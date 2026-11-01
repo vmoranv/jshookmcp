@@ -1206,42 +1206,13 @@ export class CpuEngine implements ExecutionContext {
         this.stopRequested = true;
         return; // clean exit — preserves guest state for inspection
       }
-      // A registered host stub (libc import) is a JS function, not guest code:
-      // run it and return to the caller (PC ← LR) without fetching instructions
-      // from an address that has no mapped code. The `size` guard keeps the
-      // common stub-free hot loop free of a per-instruction Map.get.
       // Re-apply persisted registers BEFORE every instruction — host fn can
       // lock decode/context registers against obfuscated function corruption.
       // Must be before the hostFn check so it also applies to host stubs.
-      for (const [idx, val] of this.persistRegs) {
-        this.registerFile.writeGpr(idx, val);
-      }
+      this.applyPersistedRegisters();
 
-      if (this.hostFns.size > 0) {
-        const hostFn = this.hostFns.get(this.registerFile.pc);
-        if (hostFn) {
-          this.invokeHost(hostFn);
-          // Apply persisted registers IMMEDIATELY after host fn returns.
-          // The host fn may have set persistReg (e.g. locking x8 decode table
-          // base) — we must apply it before the next guest instruction corrupts
-          // caller-saved registers. (The top-of-loop rewrite handles subsequent
-          // iterations; this covers the first instruction after the host stub.)
-          if (this.persistRegs.size > 0) {
-            for (const [idx, val] of this.persistRegs) {
-              this.registerFile.writeGpr(idx, val);
-            }
-            console.warn(
-              `[persistReg] Applied ${this.persistRegs.size} persisted reg(s) after hostFn`,
-            );
-          }
-          this.registerFile.pc = Number(this.registerFile.readGpr(30));
-          // Restore callee-saved registers if the return address matches a
-          // saved snapshot (BLR→hostFn→RET path; the called stub may have
-          // modified x19-x29 through ctx.setX).
-          this.checkCallerRegsRestore();
-          continue;
-        }
-      }
+      if (this.tryHostStub()) continue;
+
       const region = this.memory.findRegion(this.registerFile.pc, 4);
       const offset = this.registerFile.pc - region.base;
       const code = region.data;
@@ -1274,39 +1245,8 @@ export class CpuEngine implements ExecutionContext {
       try {
         this.execute(insn);
       } catch (e) {
-        if (e instanceof NullIndirectCallError && !this.runningConstructor) {
-          // Auto-NOP: patch the BR/BLR to RET so subsequent calls skip the
-          // NULL indirect branch instead of faulting again.
-          // During constructor execution, let the exception propagate so
-          // runConstructor can record it in the fault log.
-          const pc = this.registerFile.pc;
-          const retInsn = 0xd65f03c0; // RET
-          const retBytes = new Uint8Array([
-            retInsn & 0xff,
-            (retInsn >>> 8) & 0xff,
-            (retInsn >>> 16) & 0xff,
-            (retInsn >>> 24) & 0xff,
-          ]);
-          // Only record the first patch per address (write-protected code sections
-          // silently drop writeCode, causing duplicate exceptions on re-execution).
-          const patchTag = `0x${pc.toString(16)}`;
-          if (!this.nullCallPatches.includes(patchTag)) {
-            this.memory.writeCode(pc, retBytes);
-            this.nullCallPatches.push(patchTag);
-          }
-          if (isBlr) {
-            // BLR → RET: the "called" function returns 0.
-            this.registerFile.writeGpr(0, 0n);
-            // Discard the pending callee-save snapshot — we're not calling anything.
-            this.pendingSaveRegs = null;
-          }
-          // Re-execute at the same PC so the patched RET instruction runs
-          // and returns to the caller (LR=0 sentinel).  Do NOT advance PC here
-          // — that would skip the RET and fault on whatever follows the function.
-          continue;
-        } else {
-          throw e;
-        }
+        if (this.recoverNullIndirectCall(e, isBlr)) continue;
+        throw e;
       }
 
       if (this.pendingSaveRegs) {
@@ -1326,6 +1266,77 @@ export class CpuEngine implements ExecutionContext {
         this.checkCallerRegsRestore();
       }
     }
+  }
+
+  private applyPersistedRegisters(): void {
+    for (const [idx, val] of this.persistRegs) {
+      this.registerFile.writeGpr(idx, val);
+    }
+  }
+
+  /**
+   * A registered host stub (libc import) is a JS function, not guest code:
+   * run it and return to the caller (PC ← LR) without fetching instructions
+   * from an address that has no mapped code. The `size` guard keeps the
+   * common stub-free hot loop free of a per-instruction Map.get.
+   * Returns true when a stub ran and the loop should continue.
+   */
+  private tryHostStub(): boolean {
+    if (this.hostFns.size === 0) return false;
+    const hostFn = this.hostFns.get(this.registerFile.pc);
+    if (!hostFn) return false;
+    this.invokeHost(hostFn);
+    // Apply persisted registers IMMEDIATELY after host fn returns.
+    // The host fn may have set persistReg (e.g. locking x8 decode table
+    // base) — we must apply it before the next guest instruction corrupts
+    // caller-saved registers. (The top-of-loop rewrite handles subsequent
+    // iterations; this covers the first instruction after the host stub.)
+    if (this.persistRegs.size > 0) {
+      this.applyPersistedRegisters();
+      console.warn(`[persistReg] Applied ${this.persistRegs.size} persisted reg(s) after hostFn`);
+    }
+    this.registerFile.pc = Number(this.registerFile.readGpr(30));
+    // Restore callee-saved registers if the return address matches a
+    // saved snapshot (BLR→hostFn→RET path; the called stub may have
+    // modified x19-x29 through ctx.setX).
+    this.checkCallerRegsRestore();
+    return true;
+  }
+
+  /**
+   * Auto-NOP recovery for NullIndirectCallError: patch the BR/BLR to RET so
+   * subsequent calls skip the NULL indirect branch instead of faulting again.
+   * During constructor execution, let the exception propagate so
+   * runConstructor can record it in the fault log.
+   * Returns true when recovered (the loop should re-execute at the same PC so
+   * the patched RET instruction runs and returns to the caller (LR=0
+   * sentinel). PC must NOT advance — that would skip the RET and fault on
+   * whatever follows the function.)
+   */
+  private recoverNullIndirectCall(e: unknown, isBlr: boolean): boolean {
+    if (!(e instanceof NullIndirectCallError) || this.runningConstructor) return false;
+    const pc = this.registerFile.pc;
+    const retInsn = 0xd65f03c0; // RET
+    const retBytes = new Uint8Array([
+      retInsn & 0xff,
+      (retInsn >>> 8) & 0xff,
+      (retInsn >>> 16) & 0xff,
+      (retInsn >>> 24) & 0xff,
+    ]);
+    // Only record the first patch per address (write-protected code sections
+    // silently drop writeCode, causing duplicate exceptions on re-execution).
+    const patchTag = `0x${pc.toString(16)}`;
+    if (!this.nullCallPatches.includes(patchTag)) {
+      this.memory.writeCode(pc, retBytes);
+      this.nullCallPatches.push(patchTag);
+    }
+    if (isBlr) {
+      // BLR → RET: the "called" function returns 0.
+      this.registerFile.writeGpr(0, 0n);
+      // Discard the pending callee-save snapshot — we're not calling anything.
+      this.pendingSaveRegs = null;
+    }
+    return true;
   }
 
   /** Build a read-only TraceEvent and dispatch it to every instruction hook. */

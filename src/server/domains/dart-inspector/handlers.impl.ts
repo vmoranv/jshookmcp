@@ -121,6 +121,168 @@ function compileCustomRules(raw: unknown): CategoryRule[] | undefined {
   });
 }
 
+/** One call-graph edge ("pool" = ObjectPool heuristic, "bl" = BL decode). */
+interface DartCallGraphEdge {
+  from: string;
+  to: string;
+  fromName?: string;
+  toName?: string;
+  resolved?: string;
+}
+
+/** Mutable counters shared by the two edge-collection phases. */
+interface DartCallGraphState {
+  edges: DartCallGraphEdge[];
+  maxEdges: number;
+  hitCap: boolean;
+  poolsScanned: number;
+  poolsMissing: number;
+  blResolvedEdges: number;
+  entryByAddr: Map<bigint, DartCodeObject>;
+}
+
+type DartCodeObject = LoadedSnapshot['codeObjects'][number];
+
+/** Collect PcDescriptors cluster raw data keyed by hex offset (for BL resolution). */
+function collectPcDescriptorData(snapshot: LoadedSnapshot): Map<string, Uint8Array> {
+  const pcDescDataByOffset = new Map<string, Uint8Array>();
+  for (const cluster of snapshot.clusters) {
+    if (cluster.type !== 'PcDescriptors') continue;
+    for (const obj of cluster.objects) {
+      pcDescDataByOffset.set(`0x${obj.offset.toString(16)}`, obj.data);
+    }
+  }
+  return pcDescDataByOffset;
+}
+
+/** Phase 1: ObjectPool-based edges (heuristic; pool entries may carry a Dart
+ * heap tag bit, so each candidate is also tried tag-stripped −1). */
+function collectPoolEdges(
+  snapshot: LoadedSnapshot,
+  code: DartCodeObject,
+  state: DartCallGraphState,
+): void {
+  const pool = snapshot.objectPools.find((p) => p.address === code.objectPool);
+  if (!pool) {
+    state.poolsMissing++;
+    return;
+  }
+  state.poolsScanned++;
+  for (const poolEntry of pool.pool.getAllEntries()) {
+    if (state.hitCap) break;
+    if (poolEntry.value === 0n) continue;
+    for (const candidate of [poolEntry.value, poolEntry.value - 1n]) {
+      const target = state.entryByAddr.get(candidate);
+      if (target && target.entryPoint !== code.entryPoint) {
+        state.edges.push({
+          from: hex(code.entryPoint),
+          to: hex(target.entryPoint),
+          fromName: code.name || undefined,
+          toName: target.name || undefined,
+          resolved: 'pool',
+        });
+        if (state.edges.length >= state.maxEdges) state.hitCap = true;
+        break;
+      }
+    }
+  }
+}
+
+/** Phase 2: ARM64 BL instruction edges resolved at PcDescriptors call sites. */
+function collectBlEdges(
+  code: DartCodeObject,
+  state: DartCallGraphState,
+  pcDescDataByOffset: Map<string, Uint8Array>,
+  functionMap: ReturnType<typeof buildFunctionMap>,
+): void {
+  if (code.instructions.length === 0) return;
+  const pcOffsetKey = `0x${code.pcDescriptors.toString(16)}`;
+  const pcData = pcDescDataByOffset.get(pcOffsetKey);
+  if (!pcData) return;
+
+  const descriptors = parsePcDescriptorsData(pcData);
+  const callDescriptors = filterCallEntries(descriptors);
+  if (callDescriptors.length === 0) return;
+
+  const targets = resolveCallTargets(
+    callDescriptors,
+    code.instructions,
+    Number(code.entryPoint),
+    functionMap,
+  );
+
+  for (const target of targets) {
+    if (state.hitCap) break;
+    if (!target.functionName) continue;
+    if (target.targetAddress === Number(code.entryPoint)) continue;
+
+    state.edges.push({
+      from: hex(code.entryPoint),
+      to: target.targetHex,
+      fromName: code.name || undefined,
+      toName: target.functionName,
+      resolved: 'bl',
+    });
+    state.blResolvedEdges++;
+    if (state.edges.length >= state.maxEdges) state.hitCap = true;
+  }
+}
+
+/** Build the dart_call_graph response from a resolved snapshot. */
+function buildDartCallGraph(snapshot: LoadedSnapshot, maxEdges: number): Record<string, unknown> {
+  const codes = snapshot.codeObjects;
+
+  const entryByAddr = new Map<bigint, DartCodeObject>();
+  for (const code of codes) {
+    entryByAddr.set(code.entryPoint, code);
+  }
+
+  const nodes = codes.map((code) => ({
+    entry: hex(code.entryPoint),
+    name: code.name,
+    size: code.size,
+    hasName: Boolean(code.name),
+  }));
+
+  const state: DartCallGraphState = {
+    edges: [],
+    maxEdges,
+    hitCap: false,
+    poolsScanned: 0,
+    poolsMissing: 0,
+    blResolvedEdges: 0,
+    entryByAddr,
+  };
+  const pcDescDataByOffset = collectPcDescriptorData(snapshot);
+  const functionMap = buildFunctionMap(codes);
+
+  for (const code of codes) {
+    if (state.hitCap) break;
+    collectPoolEdges(snapshot, code, state);
+    if (state.hitCap) break;
+    collectBlEdges(code, state, pcDescDataByOffset, functionMap);
+  }
+
+  const entryPoints = nodes.filter((n) => /main|entry/i.test(n.name ?? ''));
+
+  return {
+    nodes,
+    edges: state.edges,
+    nodeCount: nodes.length,
+    edgeCount: state.edges.length,
+    entryPoints,
+    poolsScanned: state.poolsScanned,
+    poolsMissing: state.poolsMissing,
+    blResolvedEdges: state.blResolvedEdges,
+    truncated: state.hitCap,
+    honestBoundary:
+      'Edges are derived from (1) ObjectPool entries matching Code entry points (resolved=pool) ' +
+      'and (2) ARM64 BL instruction decoding at PcDescriptors call-site PC offsets (resolved=bl). ' +
+      'Indirect calls (BLR, dispatch tables, virtual/interface) are not resolved. PcDescriptors ' +
+      'cluster format varies by Dart SDK version.',
+  };
+}
+
 export class DartInspectorHandlers {
   private readonly extractor: StringsExtractor;
   private readonly smiScanner: SmiScanner;
@@ -555,133 +717,7 @@ export class DartInspectorHandlers {
     return handleSafe(async () => {
       const snapshot = await this.resolveSnapshot(args);
       const maxEdges = argNumber(args, 'maxEdges') ?? DART_CALL_GRAPH_MAX_EDGES;
-
-      const codes = snapshot.codeObjects;
-
-      // Index Code objects by entry point. Pool entries may carry a Dart heap
-      // tag bit, so each candidate value is also tried tag-stripped (−1).
-      const entryByAddr = new Map<bigint, (typeof codes)[number]>();
-      for (const code of codes) {
-        entryByAddr.set(code.entryPoint, code);
-      }
-
-      const nodes = codes.map((code) => ({
-        entry: hex(code.entryPoint),
-        name: code.name,
-        size: code.size,
-        hasName: Boolean(code.name),
-      }));
-
-      interface Edge {
-        from: string;
-        to: string;
-        fromName?: string;
-        toName?: string;
-        resolved?: string; // "pool" | "bl"
-      }
-      const edges: Edge[] = [];
-      let poolsScanned = 0;
-      let poolsMissing = 0;
-      let blResolvedEdges = 0;
-      let hitCap = false;
-
-      // Build PcDescriptors offset → raw data map for BL resolution
-      const pcDescDataByOffset = new Map<string, Uint8Array>();
-      for (const cluster of snapshot.clusters) {
-        if (cluster.type !== 'PcDescriptors') continue;
-        for (const obj of cluster.objects) {
-          pcDescDataByOffset.set(`0x${obj.offset.toString(16)}`, obj.data);
-        }
-      }
-
-      const functionMap = buildFunctionMap(codes);
-
-      for (const code of codes) {
-        if (hitCap) break;
-
-        // ---- Phase 1: ObjectPool-based edges (heuristic) ----
-        const pool = snapshot.objectPools.find((p) => p.address === code.objectPool);
-        if (pool) {
-          poolsScanned++;
-          for (const poolEntry of pool.pool.getAllEntries()) {
-            if (hitCap) break;
-            if (poolEntry.value === 0n) continue;
-            for (const candidate of [poolEntry.value, poolEntry.value - 1n]) {
-              const target = entryByAddr.get(candidate);
-              if (target && target.entryPoint !== code.entryPoint) {
-                edges.push({
-                  from: hex(code.entryPoint),
-                  to: hex(target.entryPoint),
-                  fromName: code.name || undefined,
-                  toName: target.name || undefined,
-                  resolved: 'pool',
-                });
-                if (edges.length >= maxEdges) hitCap = true;
-                break;
-              }
-            }
-          }
-        } else {
-          poolsMissing++;
-        }
-
-        if (hitCap) break;
-
-        // ---- Phase 2: BL instruction-based edges (resolved) ----
-        if (code.instructions.length > 0) {
-          const pcOffsetKey = `0x${code.pcDescriptors.toString(16)}`;
-          const pcData = pcDescDataByOffset.get(pcOffsetKey);
-
-          if (pcData) {
-            const descriptors = parsePcDescriptorsData(pcData);
-            const callDescriptors = filterCallEntries(descriptors);
-
-            if (callDescriptors.length > 0) {
-              const targets = resolveCallTargets(
-                callDescriptors,
-                code.instructions,
-                Number(code.entryPoint),
-                functionMap,
-              );
-
-              for (const target of targets) {
-                if (hitCap) break;
-                if (!target.functionName) continue;
-                if (target.targetAddress === Number(code.entryPoint)) continue;
-
-                edges.push({
-                  from: hex(code.entryPoint),
-                  to: target.targetHex,
-                  fromName: code.name || undefined,
-                  toName: target.functionName,
-                  resolved: 'bl',
-                });
-                blResolvedEdges++;
-                if (edges.length >= maxEdges) hitCap = true;
-              }
-            }
-          }
-        }
-      }
-
-      const entryPoints = nodes.filter((n) => /main|entry/i.test(n.name ?? ''));
-
-      return {
-        nodes,
-        edges,
-        nodeCount: nodes.length,
-        edgeCount: edges.length,
-        entryPoints,
-        poolsScanned,
-        poolsMissing,
-        blResolvedEdges,
-        truncated: hitCap,
-        honestBoundary:
-          'Edges are derived from (1) ObjectPool entries matching Code entry points (resolved=pool) ' +
-          'and (2) ARM64 BL instruction decoding at PcDescriptors call-site PC offsets (resolved=bl). ' +
-          'Indirect calls (BLR, dispatch tables, virtual/interface) are not resolved. PcDescriptors ' +
-          'cluster format varies by Dart SDK version.',
-      };
+      return buildDartCallGraph(snapshot, maxEdges);
     });
   }
 

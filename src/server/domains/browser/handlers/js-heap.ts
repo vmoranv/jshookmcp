@@ -172,110 +172,149 @@ export class JSHeapSearchHandlers {
     maxResults: number,
     caseSensitive: boolean,
   ): Promise<HeapSearchMatch[]> {
-    // Yield to the event loop every N nodes so a large snapshot doesn't pin
-    // the main thread (large pages can produce 200k+ string nodes).
-    const YIELD_INTERVAL = 1000;
     try {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(snapshotData);
-      } catch {
-        return [];
-      }
-      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-        return [];
-      }
-
-      const snapshot = parsed as Record<string, unknown>;
-      const stringsRaw = snapshot.strings;
-      const nodesRaw = snapshot.nodes;
-      const snapshotMeta =
-        typeof snapshot.snapshot === 'object' && snapshot.snapshot !== null
-          ? (snapshot.snapshot as Record<string, unknown>)
-          : null;
-      const meta =
-        snapshotMeta && typeof snapshotMeta.meta === 'object' && snapshotMeta.meta !== null
-          ? (snapshotMeta.meta as Record<string, unknown>)
-          : null;
-      const nodeFieldsRaw = meta?.node_fields;
-      const nodeTypesRaw = meta?.node_types;
-
-      if (!Array.isArray(nodeFieldsRaw) || !Array.isArray(stringsRaw) || !Array.isArray(nodesRaw)) {
-        return [];
-      }
-
-      const nodeFieldCount = nodeFieldsRaw.length;
-      if (nodeFieldCount === 0) return [];
-
-      const typeIdx = nodeFieldsRaw.indexOf('type');
-      const nameIdx = nodeFieldsRaw.indexOf('name');
-      const idIdx = nodeFieldsRaw.indexOf('id');
-      if (typeIdx < 0 || nameIdx < 0) return [];
-
-      const nodeTypeTable =
-        Array.isArray(nodeTypesRaw) && Array.isArray(nodeTypesRaw[0])
-          ? (nodeTypesRaw[0] as unknown[])
-          : [];
-
-      const searchStr = caseSensitive ? pattern : pattern.toLowerCase();
-      const matches: HeapSearchMatch[] = [];
-      const nodeCount = Math.floor(nodesRaw.length / nodeFieldCount);
-      const stringsArr = stringsRaw as string[];
-
-      for (let i = 0; i < nodeCount && matches.length < maxResults; i++) {
-        if (i > 0 && i % YIELD_INTERVAL === 0) {
-          await new Promise<void>((resolve) => setImmediate(resolve));
-        }
-        const base = i * nodeFieldCount;
-        const typeOrdinal = nodesRaw[base + typeIdx] as number;
-        const nameOrdinal = nodesRaw[base + nameIdx] as number;
-        if (
-          typeof nameOrdinal !== 'number' ||
-          nameOrdinal < 0 ||
-          nameOrdinal >= stringsArr.length
-        ) {
-          continue;
-        }
-
-        const tableName = nodeTypeTable[typeOrdinal];
-        const nodeTypeName =
-          (typeof tableName === 'string' ? tableName : undefined) ??
-          NODE_TYPE_NAMES[typeOrdinal] ??
-          `type_${typeOrdinal}`;
-
-        if (
-          nodeTypeName !== 'string' &&
-          nodeTypeName !== 'concatenated string' &&
-          nodeTypeName !== 'sliced string'
-        ) {
-          continue;
-        }
-
-        const value = stringsArr[nameOrdinal];
-        if (typeof value !== 'string') {
-          continue;
-        }
-        const haystack = caseSensitive ? value : value.toLowerCase();
-        if (!haystack.includes(searchStr)) {
-          continue;
-        }
-
-        const rawId = idIdx >= 0 ? (nodesRaw[base + idIdx] as number) : undefined;
-        const nodeId = rawId !== undefined ? rawId : i;
-
-        matches.push({
-          nodeId,
-          nodeType: nodeTypeName,
-          value: value.length > 200 ? `${value.slice(0, 200)}…` : value,
-          objectPath: `[HeapNode #${nodeId}]`,
-          nameHint: value.slice(0, 80),
-        });
-      }
-
-      return matches;
+      const layout = parseHeapSnapshotLayout(snapshotData);
+      if (!layout) return [];
+      return await findHeapStringMatches(layout, pattern, maxResults, caseSensitive);
     } catch (error) {
       logger.warn('[js_heap_search] Snapshot parse error:', error);
       return [];
     }
   }
+}
+
+/** Parsed .heapsnapshot column layout used for string-node scanning. */
+interface HeapSnapshotLayout {
+  nodesRaw: unknown[];
+  stringsArr: string[];
+  nodeFieldCount: number;
+  typeIdx: number;
+  nameIdx: number;
+  idIdx: number;
+  nodeTypeTable: unknown[];
+}
+
+/** Parse the V8 heap snapshot header and locate the node/string columns.
+ * Returns null for malformed or non-string-bearing snapshots. */
+function parseHeapSnapshotLayout(snapshotData: string): HeapSnapshotLayout | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(snapshotData);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+
+  const snapshot = parsed as Record<string, unknown>;
+  const stringsRaw = snapshot.strings;
+  const nodesRaw = snapshot.nodes;
+  const snapshotMeta =
+    typeof snapshot.snapshot === 'object' && snapshot.snapshot !== null
+      ? (snapshot.snapshot as Record<string, unknown>)
+      : null;
+  const meta =
+    snapshotMeta && typeof snapshotMeta.meta === 'object' && snapshotMeta.meta !== null
+      ? (snapshotMeta.meta as Record<string, unknown>)
+      : null;
+  const nodeFieldsRaw = meta?.node_fields;
+  const nodeTypesRaw = meta?.node_types;
+
+  if (!Array.isArray(nodeFieldsRaw) || !Array.isArray(stringsRaw) || !Array.isArray(nodesRaw)) {
+    return null;
+  }
+
+  const nodeFieldCount = nodeFieldsRaw.length;
+  if (nodeFieldCount === 0) return null;
+
+  const typeIdx = nodeFieldsRaw.indexOf('type');
+  const nameIdx = nodeFieldsRaw.indexOf('name');
+  const idIdx = nodeFieldsRaw.indexOf('id');
+  if (typeIdx < 0 || nameIdx < 0) return null;
+
+  const nodeTypeTable =
+    Array.isArray(nodeTypesRaw) && Array.isArray(nodeTypesRaw[0])
+      ? (nodeTypesRaw[0] as unknown[])
+      : [];
+
+  return {
+    nodesRaw,
+    stringsArr: stringsRaw as string[],
+    nodeFieldCount,
+    typeIdx,
+    nameIdx,
+    idIdx,
+    nodeTypeTable,
+  };
+}
+
+/** Yield to the event loop every N nodes so a large snapshot doesn't pin the
+ * main thread (large pages can produce 200k+ string nodes). */
+const HEAP_SEARCH_YIELD_INTERVAL = 1000;
+
+/** Scan the string-ish nodes for the pattern, yielding between chunks. */
+async function findHeapStringMatches(
+  layout: HeapSnapshotLayout,
+  pattern: string,
+  maxResults: number,
+  caseSensitive: boolean,
+): Promise<HeapSearchMatch[]> {
+  const { nodesRaw, stringsArr, nodeFieldCount, typeIdx, nameIdx, idIdx, nodeTypeTable } = layout;
+  const searchStr = caseSensitive ? pattern : pattern.toLowerCase();
+  const matches: HeapSearchMatch[] = [];
+  const nodeCount = Math.floor(nodesRaw.length / nodeFieldCount);
+
+  for (let i = 0; i < nodeCount && matches.length < maxResults; i++) {
+    if (i > 0 && i % HEAP_SEARCH_YIELD_INTERVAL === 0) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+    const base = i * nodeFieldCount;
+    const typeOrdinal = nodesRaw[base + typeIdx] as number;
+    const nameOrdinal = nodesRaw[base + nameIdx] as number;
+    if (typeof nameOrdinal !== 'number' || nameOrdinal < 0 || nameOrdinal >= stringsArr.length) {
+      continue;
+    }
+
+    const nodeTypeName = resolveNodeTypeName(nodeTypeTable, typeOrdinal);
+    if (
+      nodeTypeName !== 'string' &&
+      nodeTypeName !== 'concatenated string' &&
+      nodeTypeName !== 'sliced string'
+    ) {
+      continue;
+    }
+
+    const value = stringsArr[nameOrdinal];
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const haystack = caseSensitive ? value : value.toLowerCase();
+    if (!haystack.includes(searchStr)) {
+      continue;
+    }
+
+    const rawId = idIdx >= 0 ? (nodesRaw[base + idIdx] as number) : undefined;
+    const nodeId = rawId !== undefined ? rawId : i;
+
+    matches.push({
+      nodeId,
+      nodeType: nodeTypeName,
+      value: value.length > 200 ? `${value.slice(0, 200)}…` : value,
+      objectPath: `[HeapNode #${nodeId}]`,
+      nameHint: value.slice(0, 80),
+    });
+  }
+
+  return matches;
+}
+
+/** Node type name from the snapshot table, falling back to the builtin table. */
+function resolveNodeTypeName(nodeTypeTable: unknown[], typeOrdinal: number): string {
+  const tableName = nodeTypeTable[typeOrdinal];
+  return (
+    (typeof tableName === 'string' ? tableName : undefined) ??
+    NODE_TYPE_NAMES[typeOrdinal] ??
+    `type_${typeOrdinal}`
+  );
 }

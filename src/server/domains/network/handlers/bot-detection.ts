@@ -57,6 +57,31 @@ export function detectBotSignals(
     score += 0.2;
   }
 
+  score += collectTlsSignals(tlsSignals, signals);
+
+  score += collectHeaderOrderSignal(lowerHeaders, signals);
+
+  score += collectJaFingerprintSignals(jaFingerprint, signals);
+
+  if (h2Fingerprint) {
+    if (h2Fingerprint.hash) {
+      signals.push(`http2-fingerprint: ${h2Fingerprint.hash}`);
+      if (h2Fingerprint.knownBadH2?.includes(h2Fingerprint.hash)) {
+        signals.push(`known-bot-h2: ${h2Fingerprint.hash.slice(0, 8)}`);
+        score += 0.45;
+      }
+    }
+  }
+
+  return { score: Math.min(score, 1.0), signals };
+}
+
+/** TLS-fingerprint signals (per arxiv 2602.09606 — bot detection via TLS fingerprints). */
+function collectTlsSignals(
+  tlsSignals: { cipherCount: number; extensionCount: number; tlsVersion: string } | undefined,
+  signals: string[],
+): number {
+  let score = 0;
   // TLS-based signals (per arxiv 2602.09606 — bot detection via TLS fingerprints)
   if (tlsSignals) {
     // Real Chrome/Firefox browsers have 5-15 cipher suites
@@ -77,7 +102,12 @@ export function detectBotSignals(
       score += 0.25;
     }
   }
+  return score;
+}
 
+/** Header ordering: real browsers send headers in a consistent order. */
+function collectHeaderOrderSignal(lowerHeaders: string[], signals: string[]): number {
+  let score = 0;
   // Header ordering signal: real browsers send headers in consistent order
   const expectedBrowserOrder = [
     'host',
@@ -106,7 +136,19 @@ export function detectBotSignals(
       score += 0.1;
     }
   }
+  return score;
+}
 
+/** JA3/JA4 signals — informational by default; a bot score is added ONLY when the
+ * caller supplies a knownBad list and the captured hash matches it (no built-in
+ * feature library — "bad" is the caller's judgement). */
+function collectJaFingerprintSignals(
+  jaFingerprint:
+    | { ja3?: string; ja4?: string; knownBadJa3?: string[]; knownBadJa4?: string[] }
+    | undefined,
+  signals: string[],
+): number {
+  let score = 0;
   // JA3/JA4 fingerprint signals — informational by default; a bot score is
   // added ONLY when the caller supplies a knownBad list and the captured
   // hash matches it. The tool ships NO hardcoded feature library — "bad" is
@@ -134,15 +176,5 @@ export function detectBotSignals(
   // signal, and a bot score is added ONLY when the caller supplies a
   // knownBadH2 list and the captured hash matches it. Closes the fourth
   // bot-detection dimension (UA + header order + TLS + HTTP/2).
-  if (h2Fingerprint) {
-    if (h2Fingerprint.hash) {
-      signals.push(`http2-fingerprint: ${h2Fingerprint.hash}`);
-      if (h2Fingerprint.knownBadH2?.includes(h2Fingerprint.hash)) {
-        signals.push(`known-bot-h2: ${h2Fingerprint.hash.slice(0, 8)}`);
-        score += 0.45;
-      }
-    }
-  }
-
-  return { score: Math.min(score, 1.0), signals };
+  return score;
 }

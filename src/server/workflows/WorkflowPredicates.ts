@@ -151,125 +151,189 @@ export async function evaluatePredicate(
     return await node.predicateFn(ctx);
   }
 
-  if (node.predicateId === 'always_true') return true;
-  if (node.predicateId === 'always_false') return false;
-  if (node.predicateId === 'any_step_failed') {
-    return [...ctx.stepResults.values()].some((value) => collectSuccessStats(value).failure > 0);
-  }
+  const simple = evaluateSimplePredicate(node.predicateId, ctx);
+  if (simple !== null) return simple;
 
-  const successRateMatch = node.predicateId.match(/success_rate_gte_(\d+)/i);
-  if (successRateMatch?.[1]) {
-    const threshold = Number(successRateMatch[1]);
-    const aggregate = [...ctx.stepResults.values()].reduce<{ success: number; failure: number }>(
-      (acc, value) => {
-        const next = collectSuccessStats(value);
-        acc.success += next.success;
-        acc.failure += next.failure;
-        return acc;
-      },
-      { success: 0, failure: 0 },
-    );
-    const total = aggregate.success + aggregate.failure;
-    return total > 0 && aggregate.success / total >= threshold / 100;
-  }
-
-  const equalsMatch = node.predicateId.match(/^variable_equals_(.+?)_(.+)$/);
-  if (equalsMatch?.[1] && equalsMatch[2]) {
-    return deepEquals(getWorkflowVariable(ctx.stepResults, equalsMatch[1]), equalsMatch[2]);
-  }
-
-  const containsMatch = node.predicateId.match(/^variable_contains_(.+?)_(.+)$/);
-  if (containsMatch?.[1] && containsMatch[2]) {
-    const value = getWorkflowVariable(ctx.stepResults, containsMatch[1]);
-    if (typeof value !== 'string' && !Array.isArray(value)) {
-      return false;
-    }
-    return String(value).includes(containsMatch[2]);
-  }
-
-  const matchesMatch = node.predicateId.match(/^variable_matches_(.+?)_(.+)$/);
-  if (matchesMatch?.[1] && matchesMatch[2]) {
-    const value = getWorkflowVariable(ctx.stepResults, matchesMatch[1]);
-    if (typeof value !== 'string') {
-      return false;
-    }
-
-    try {
-      return new RegExp(matchesMatch[2]).test(value);
-    } catch {
-      return false;
-    }
-  }
-
-  // ── History-aware predicates ──────────────────────────────────────
-  // These reason about THIS workflow's past runs, so a branch can take the
-  // conservative path while a workflow is progressing and the aggressive one
-  // when it has stalled. All of them degrade to `false` when history is
-  // unavailable (no port, unknown workflow id, no recorded runs): a branch
-  // that flips behavior on evidence it does not have would silently change
-  // the workflow's meaning. Callers wanting "optimistic" behavior can pair
-  // `history_failure_rate_lte_N` with an `always_true` alternative branch.
-  const failureRateMatch = node.predicateId.match(
-    /^history_failure_rate_(gte|lte)_(\d+)(?::(.+))?$/,
-  );
-  if (failureRateMatch?.[1] && failureRateMatch[2]) {
-    const threshold = Number(failureRateMatch[2]);
-    const entries = getRecentHistory(
-      ctx,
-      resolveWorkflowId(ctx, failureRateMatch[3]),
-      DEFAULT_HISTORY_WINDOW,
-    );
-    const rate = entries ? computeFailureRate(entries) : undefined;
-    if (rate === undefined) {
-      return false;
-    }
-
-    return failureRateMatch[1] === 'gte' ? rate >= threshold : rate <= threshold;
-  }
-
-  const lastRunFailedMatch = node.predicateId.match(/^last_run_failed(?::(.+))?$/);
-  if (lastRunFailedMatch) {
-    const entries = getRecentHistory(ctx, resolveWorkflowId(ctx, lastRunFailedMatch[1]), 1);
-    return entries !== undefined && entries.length > 0 && entries[0]?.status === 'error';
-  }
-
-  const failingStepsMatch = node.predicateId.match(/^recent_steps_failing_(\d+)(?::(.+))?$/);
-  if (failingStepsMatch?.[1]) {
-    const threshold = Number(failingStepsMatch[1]);
-    const entries = getRecentHistory(
-      ctx,
-      resolveWorkflowId(ctx, failingStepsMatch[2]),
-      DEFAULT_HISTORY_WINDOW,
-    );
-    const worst = entries ? computeMaxFailedSteps(entries) : undefined;
-    if (worst === undefined) {
-      return false;
-    }
-
-    return worst >= threshold;
-  }
-
-  // Runs that recovered through a fallback arm still terminate as `success`, so
-  // `history_failure_rate_*` cannot see a route that keeps needing its backup.
-  // This predicate reads that signal: "the primary path is degrading, stop
-  // relying on it" — the case a terminal-status-only view is blind to.
-  const fallbackRateMatch = node.predicateId.match(
-    /^history_fallback_rate_(gte|lte)_(\d+)(?::(.+))?$/,
-  );
-  if (fallbackRateMatch?.[1] && fallbackRateMatch[2]) {
-    const threshold = Number(fallbackRateMatch[2]);
-    const entries = getRecentHistory(
-      ctx,
-      resolveWorkflowId(ctx, fallbackRateMatch[3]),
-      DEFAULT_HISTORY_WINDOW,
-    );
-    const rate = entries ? computeFallbackRate(entries) : undefined;
-    if (rate === undefined) {
-      return false;
-    }
-
-    return fallbackRateMatch[1] === 'gte' ? rate >= threshold : rate <= threshold;
-  }
+  const history = evaluateHistoryPredicate(node.predicateId, ctx);
+  if (history !== null) return history;
 
   throw new Error(`Unknown workflow predicateId "${node.predicateId}"`);
+}
+
+/** Built-in / variable predicates. Returns null when the id is not one of them. */
+function evaluateSimplePredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  if (predicateId === 'always_true') return true;
+  if (predicateId === 'always_false') return false;
+  if (predicateId === 'any_step_failed') {
+    return [...ctx.stepResults.values()].some((value) => collectSuccessStats(value).failure > 0);
+  }
+  return (
+    evaluateSuccessRatePredicate(predicateId, ctx) ??
+    evaluateVariableEqualsPredicate(predicateId, ctx) ??
+    evaluateVariableContainsPredicate(predicateId, ctx) ??
+    evaluateVariableMatchesPredicate(predicateId, ctx)
+  );
+}
+
+/** Aggregate success rate over all step results for `success_rate_gte_N`. */
+function aggregateSuccessStats(ctx: InternalExecutionContext): {
+  success: number;
+  failure: number;
+} {
+  return [...ctx.stepResults.values()].reduce<{ success: number; failure: number }>(
+    (acc, value) => {
+      const next = collectSuccessStats(value);
+      acc.success += next.success;
+      acc.failure += next.failure;
+      return acc;
+    },
+    { success: 0, failure: 0 },
+  );
+}
+
+function evaluateSuccessRatePredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  const successRateMatch = predicateId.match(/success_rate_gte_(\d+)/i);
+  if (!successRateMatch?.[1]) return null;
+  const threshold = Number(successRateMatch[1]);
+  const aggregate = aggregateSuccessStats(ctx);
+  const total = aggregate.success + aggregate.failure;
+  return total > 0 && aggregate.success / total >= threshold / 100;
+}
+
+function evaluateVariableEqualsPredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  const equalsMatch = predicateId.match(/^variable_equals_(.+?)_(.+)$/);
+  if (!equalsMatch?.[1] || !equalsMatch[2]) return null;
+  return deepEquals(getWorkflowVariable(ctx.stepResults, equalsMatch[1]), equalsMatch[2]);
+}
+
+function evaluateVariableContainsPredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  const containsMatch = predicateId.match(/^variable_contains_(.+?)_(.+)$/);
+  if (!containsMatch?.[1] || !containsMatch[2]) return null;
+  const value = getWorkflowVariable(ctx.stepResults, containsMatch[1]);
+  if (typeof value !== 'string' && !Array.isArray(value)) {
+    return false;
+  }
+  return String(value).includes(containsMatch[2]);
+}
+
+function evaluateVariableMatchesPredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  const matchesMatch = predicateId.match(/^variable_matches_(.+?)_(.+)$/);
+  if (!matchesMatch?.[1] || !matchesMatch[2]) return null;
+  const value = getWorkflowVariable(ctx.stepResults, matchesMatch[1]);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  try {
+    return new RegExp(matchesMatch[2]).test(value);
+  } catch {
+    return false;
+  }
+}
+
+/** ── History-aware predicates ──────────────────────────────────────
+ * These reason about THIS workflow's past runs, so a branch can take the
+ * conservative path while a workflow is progressing and the aggressive one
+ * when it has stalled. All of them degrade to `false` when history is
+ * unavailable (no port, unknown workflow id, no recorded runs): a branch
+ * that flips behavior on evidence it does not have would silently change
+ * the workflow's meaning. Callers wanting "optimistic" behavior can pair
+ * `history_failure_rate_lte_N` with an `always_true` alternative branch.
+ * Returns null when the id is not a history predicate. */
+function evaluateHistoryPredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  return (
+    evaluateFailureRatePredicate(predicateId, ctx) ??
+    evaluateLastRunFailedPredicate(predicateId, ctx) ??
+    evaluateRecentStepsFailingPredicate(predicateId, ctx) ??
+    evaluateFallbackRatePredicate(predicateId, ctx)
+  );
+}
+
+/** Compare a history-derived rate against a gte/lte threshold (null when the
+ * id does not match; false when history is unavailable). */
+function compareRatePredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+  pattern: RegExp,
+  compute: (entries: NonNullable<ReturnType<typeof getRecentHistory>>) => number | undefined,
+): boolean | null {
+  const match = predicateId.match(pattern);
+  if (!match?.[1] || !match[2]) return null;
+  const threshold = Number(match[2]);
+  const entries = getRecentHistory(ctx, resolveWorkflowId(ctx, match[3]), DEFAULT_HISTORY_WINDOW);
+  const rate = entries ? compute(entries) : undefined;
+  if (rate === undefined) return false;
+  return match[1] === 'gte' ? rate >= threshold : rate <= threshold;
+}
+
+function evaluateFailureRatePredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  return compareRatePredicate(
+    predicateId,
+    ctx,
+    /^history_failure_rate_(gte|lte)_(\d+)(?::(.+))?$/,
+    computeFailureRate,
+  );
+}
+
+function evaluateLastRunFailedPredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  const lastRunFailedMatch = predicateId.match(/^last_run_failed(?::(.+))?$/);
+  if (!lastRunFailedMatch) return null;
+  const entries = getRecentHistory(ctx, resolveWorkflowId(ctx, lastRunFailedMatch[1]), 1);
+  return entries !== undefined && entries.length > 0 && entries[0]?.status === 'error';
+}
+
+function evaluateRecentStepsFailingPredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  const failingStepsMatch = predicateId.match(/^recent_steps_failing_(\d+)(?::(.+))?$/);
+  if (!failingStepsMatch?.[1]) return null;
+  const threshold = Number(failingStepsMatch[1]);
+  const entries = getRecentHistory(
+    ctx,
+    resolveWorkflowId(ctx, failingStepsMatch[2]),
+    DEFAULT_HISTORY_WINDOW,
+  );
+  const worst = entries ? computeMaxFailedSteps(entries) : undefined;
+  if (worst === undefined) return false;
+  return worst >= threshold;
+}
+
+/** Runs that recovered through a fallback arm still terminate as `success`, so
+ * `history_failure_rate_*` cannot see a route that keeps needing its backup.
+ * This predicate reads that signal: "the primary path is degrading, stop
+ * relying on it" — the case a terminal-status-only view is blind to. */
+function evaluateFallbackRatePredicate(
+  predicateId: string,
+  ctx: InternalExecutionContext,
+): boolean | null {
+  return compareRatePredicate(
+    predicateId,
+    ctx,
+    /^history_fallback_rate_(gte|lte)_(\d+)(?::(.+))?$/,
+    computeFallbackRate,
+  );
 }

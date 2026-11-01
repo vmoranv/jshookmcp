@@ -128,7 +128,9 @@ export class V8InspectorHandlers {
       v8_heap_snapshot_export: (toolArgs) => this.v8_heap_snapshot_export(toolArgs),
     };
 
-    const handler = dispatchTable[toolName];
+    // Own-property guard: an inherited key ('constructor', 'toString', ...)
+    // would resolve to an Object.prototype member instead of a handler.
+    const handler = Object.hasOwn(dispatchTable, toolName) ? dispatchTable[toolName] : undefined;
     if (!handler) {
       throw new Error(`Unknown v8-inspector tool: ${toolName}`);
     }
@@ -818,40 +820,8 @@ export class V8InspectorHandlers {
 
   async v8_object_compare(args: ToolArgs): Promise<ToolResponse> {
     return handleSafe(async () => {
-      const objectIds: number[] | null = Array.isArray(args.objectIds)
-        ? (args.objectIds.filter(
-            (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0,
-          ) as number[])
-        : null;
-      if (!objectIds || objectIds.length === 0) {
-        throw new Error('objectIds must be a non-empty array of positive integers');
-      }
-      if (objectIds.length > 50) {
-        throw new Error('objectIds must contain at most 50 entries');
-      }
-
-      const anotherSnapshotId: string | undefined =
-        typeof args.anotherSnapshotId === 'string' && args.anotherSnapshotId.length > 0
-          ? args.anotherSnapshotId
-          : undefined;
-
-      const anotherObjectIds: number[] | undefined = anotherSnapshotId
-        ? Array.isArray(args.anotherObjectIds)
-          ? (args.anotherObjectIds.filter(
-              (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0,
-            ) as number[])
-          : undefined
-        : undefined;
-
-      if (anotherSnapshotId && !anotherObjectIds) {
-        throw new Error('anotherObjectIds is required when anotherSnapshotId is provided');
-      }
-      if (anotherObjectIds && anotherObjectIds.length !== objectIds.length) {
-        throw new Error(
-          `anotherObjectIds must have the same length as objectIds (${objectIds.length}), got ${anotherObjectIds.length}`,
-        );
-      }
-
+      const { objectIds, anotherSnapshotId, anotherObjectIds, minDeltaBytes } =
+        parseObjectCompareArgs(args);
       const snapshotId = argStringRequired(args, 'snapshotId');
       const snapshot = getSnapshot(snapshotId);
       if (!snapshot) {
@@ -861,72 +831,19 @@ export class V8InspectorHandlers {
         throw new Error(`Snapshot ${anotherSnapshotId} not found`);
       }
 
-      const minDeltaBytes =
-        typeof args.minDeltaBytes === 'number' && args.minDeltaBytes >= 0
-          ? args.minDeltaBytes
-          : 1024;
-
-      const { HeapSnapshotParser } = await import('@modules/v8-inspector/HeapSnapshotParser');
-      const { DominatorTreeBuilder } = await import('@modules/v8-inspector/DominatorTreeBuilder');
-      type DominatorNode = import('@modules/v8-inspector/DominatorTreeBuilder').DominatorNode;
-
-      // Parse primary
-      const priParser = new HeapSnapshotParser();
-      priParser.feedChunk(snapshot.chunks);
-      const priNodes = priParser.parseNodes();
-      const priEdges = priParser.parseEdges();
-
-      // Node lookup
-      type NodeEntry = { name: string; selfSize: number };
-      const priMap = new Map<number, NodeEntry>();
-      for (const n of priNodes) priMap.set(n.id, { name: n.name, selfSize: n.selfSize });
-
-      // Retained sizes (fail-soft: fallback to selfSize when dominator tree fails)
-      const priRetained = new Map<number, number>();
-      try {
-        const tree = new DominatorTreeBuilder().buildDominatorTree(priNodes, priEdges);
-        (function walk(n: DominatorNode): void {
-          priRetained.set(n.nodeId, n.retainedSize);
-          for (const c of n.children) walk(c);
-        })(tree);
-      } catch {
-        for (const n of priNodes) priRetained.set(n.id, n.selfSize);
-      }
-
-      // Property counts
-      const priProps = new Map<number, number>();
-      for (const e of priEdges) priProps.set(e.fromId, (priProps.get(e.fromId) ?? 0) + 1);
+      const primary = await parseSnapshotMaps(snapshot.chunks);
+      const priMap = primary.map;
+      const priRetained = primary.retained;
+      const priProps = primary.props;
 
       // ── Secondary snapshot ──
-      let secNodes: typeof priNodes | undefined;
-      let secRetained: Map<number, number> | undefined;
-      let secProps: Map<number, number> | undefined;
-      let secMap: Map<number, NodeEntry> | undefined;
-
-      if (anotherSnapshotId) {
-        const snap = getSnapshot(anotherSnapshotId)!;
-        const sp = new HeapSnapshotParser();
-        sp.feedChunk(snap.chunks);
-        secNodes = sp.parseNodes();
-        const secEdges = sp.parseEdges();
-
-        secRetained = new Map<number, number>();
-        try {
-          const tree = new DominatorTreeBuilder().buildDominatorTree(secNodes, secEdges);
-          (function walk(n: DominatorNode): void {
-            secRetained!.set(n.nodeId, n.retainedSize);
-            for (const c of n.children) walk(c);
-          })(tree);
-        } catch {
-          for (const n of secNodes) secRetained.set(n.id, n.selfSize);
-        }
-
-        secProps = new Map<number, number>();
-        for (const e of secEdges) secProps.set(e.fromId, (secProps.get(e.fromId) ?? 0) + 1);
-
-        secMap = new Map<number, NodeEntry>();
-        for (const n of secNodes) secMap.set(n.id, { name: n.name, selfSize: n.selfSize });
-      }
+      const secondary = anotherSnapshotId
+        ? await parseSnapshotMaps(getSnapshot(anotherSnapshotId)!.chunks)
+        : undefined;
+      const secNodes = secondary?.nodes;
+      const secRetained = secondary?.retained;
+      const secProps = secondary?.props;
+      const secMap = secondary?.map;
 
       // ── Resolve + compare ──
       interface SnapObject {
@@ -940,7 +857,7 @@ export class V8InspectorHandlers {
 
       function resolve(
         id: number,
-        map: Map<number, NodeEntry>,
+        map: Map<number, { name: string; selfSize: number }>,
         ret: Map<number, number>,
         prop: Map<number, number>,
       ): SnapObject | null {
@@ -1123,3 +1040,91 @@ const manifest: DomainManifest<'v8InspectorHandlers', V8InspectorHandlers, 'v8-i
 };
 
 export default manifest;
+
+/** Parsed snapshot lookup maps (nodes/retained/property-counts/name map). */
+interface SnapshotMaps {
+  nodes: Array<{ id: number; name: string; selfSize: number }>;
+  map: Map<number, { name: string; selfSize: number }>;
+  retained: Map<number, number>;
+  props: Map<number, number>;
+}
+
+/** Parse a heap snapshot chunk list into node/retained/property maps.
+ * Retained sizes are fail-soft: fall back to selfSize when the dominator
+ * tree cannot be built. */
+async function parseSnapshotMaps(chunks: string[]): Promise<SnapshotMaps> {
+  const { HeapSnapshotParser } = await import('@modules/v8-inspector/HeapSnapshotParser');
+  const { DominatorTreeBuilder } = await import('@modules/v8-inspector/DominatorTreeBuilder');
+  type DominatorNode = import('@modules/v8-inspector/DominatorTreeBuilder').DominatorNode;
+
+  const parser = new HeapSnapshotParser();
+  parser.feedChunk(chunks);
+  const nodes = parser.parseNodes();
+  const edges = parser.parseEdges();
+
+  const map = new Map<number, { name: string; selfSize: number }>();
+  for (const n of nodes) map.set(n.id, { name: n.name, selfSize: n.selfSize });
+
+  const retained = new Map<number, number>();
+  try {
+    const tree = new DominatorTreeBuilder().buildDominatorTree(nodes, edges);
+    (function walk(n: DominatorNode): void {
+      retained.set(n.nodeId, n.retainedSize);
+      for (const c of n.children) walk(c);
+    })(tree);
+  } catch {
+    for (const n of nodes) retained.set(n.id, n.selfSize);
+  }
+
+  const props = new Map<number, number>();
+  for (const e of edges) props.set(e.fromId, (props.get(e.fromId) ?? 0) + 1);
+
+  return { nodes, map, retained, props };
+}
+
+/** Validated v8_object_compare arguments. */
+function parseObjectCompareArgs(args: ToolArgs): {
+  objectIds: number[];
+  anotherSnapshotId: string | undefined;
+  anotherObjectIds: number[] | undefined;
+  minDeltaBytes: number;
+} {
+  const objectIds: number[] | null = Array.isArray(args.objectIds)
+    ? (args.objectIds.filter(
+        (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0,
+      ) as number[])
+    : null;
+  if (!objectIds || objectIds.length === 0) {
+    throw new Error('objectIds must be a non-empty array of positive integers');
+  }
+  if (objectIds.length > 50) {
+    throw new Error('objectIds must contain at most 50 entries');
+  }
+
+  const anotherSnapshotId: string | undefined =
+    typeof args.anotherSnapshotId === 'string' && args.anotherSnapshotId.length > 0
+      ? args.anotherSnapshotId
+      : undefined;
+
+  const anotherObjectIds: number[] | undefined = anotherSnapshotId
+    ? Array.isArray(args.anotherObjectIds)
+      ? (args.anotherObjectIds.filter(
+          (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0,
+        ) as number[])
+      : undefined
+    : undefined;
+
+  if (anotherSnapshotId && !anotherObjectIds) {
+    throw new Error('anotherObjectIds is required when anotherSnapshotId is provided');
+  }
+  if (anotherObjectIds && anotherObjectIds.length !== objectIds.length) {
+    throw new Error(
+      `anotherObjectIds must have the same length as objectIds (${objectIds.length}), got ${anotherObjectIds.length}`,
+    );
+  }
+
+  const minDeltaBytes =
+    typeof args.minDeltaBytes === 'number' && args.minDeltaBytes >= 0 ? args.minDeltaBytes : 1024;
+
+  return { objectIds, anotherSnapshotId, anotherObjectIds, minDeltaBytes };
+}

@@ -120,7 +120,11 @@ function applyConstantComparisons(state: SolveConstraintsState): void {
         return fullMatch;
       }
 
-      const compare = NUMERIC_COMPARATORS[operator];
+      // Own-property guard: inherited keys ('constructor', ...) would resolve
+      // to Object.prototype members and be called as comparators.
+      const compare = Object.hasOwn(NUMERIC_COMPARATORS, operator)
+        ? NUMERIC_COMPARATORS[operator]
+        : undefined;
       if (!compare) {
         return fullMatch;
       }

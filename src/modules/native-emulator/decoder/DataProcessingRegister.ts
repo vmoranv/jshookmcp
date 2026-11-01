@@ -27,12 +27,15 @@ const MASK64 = (1n << 64n) - 1n;
 const MASK32 = (1n << 32n) - 1n;
 
 /**
- * Try to execute a Data Processing -- Register instruction.
- * Returns true if handled, false if the instruction doesn't belong to this family.
+ * Per-block decoders for the Data Processing -- Register encoding space.
+ * Extracted verbatim from the former single execDataProcessingRegister
+ * body so each function stays under the complexity gate. Ordering is
+ * load-bearing (pointer-auth/PACGA/XPAC must win over the 1-source and
+ * 2-source windows they overlap with); the DECODERS array preserves it.
  */
-export function execDataProcessingRegister(ctx: ExecutionContext, insn: number): boolean {
+/** ADD (shifted register): sf | 0 | 0 | 01011 | shift | 0 | Rm | imm6 | Rn | Rd */
+function tryAddShiftedRegister(ctx: ExecutionContext, insn: number): boolean {
   const op2829 = (insn >>> 29) & 0b11;
-
   // ADD (shifted register): sf | 0 | 0 | 01011 | shift | 0 | Rm | imm6 | Rn | Rd
   if (op2829 === 0b00 && ((insn >>> 24) & 0b11111) === 0b01011 && ((insn >>> 21) & 1) === 0) {
     const sf = insn >>> 31;
@@ -49,6 +52,11 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function trySubShiftedRegister(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // SUB (shifted register): sf | 1 | 0 | 01011 | shift | 0 | Rm | imm6 | Rn | Rd
   if (op2829 === 0b10 && ((insn >>> 24) & 0b11111) === 0b01011 && ((insn >>> 21) & 1) === 0) {
     const sf = insn >>> 31;
@@ -63,6 +71,11 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryOrrShiftedRegister(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // ORR (shifted register): sf | 01 | 01010 | shift | 0 | Rm | imm6 | Rn | Rd
   //   MOV (register) is the alias ORR Rd, XZR, Rm. Rn/Rm use XZR for enc 31.
   if (op2829 === 0b01 && ((insn >>> 24) & 0b11111) === 0b01010 && ((insn >>> 21) & 1) === 0) {
@@ -78,6 +91,11 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryEorShiftedRegister(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // EOR (shifted register): sf | 10 | 01010 | shift | 0 | Rm | imm6 | Rn | Rd
   if (op2829 === 0b10 && ((insn >>> 24) & 0b11111) === 0b01010 && ((insn >>> 21) & 1) === 0) {
     const sf = insn >>> 31;
@@ -92,6 +110,11 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function trySubsShiftedRegister(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // SUBS/CMP (shifted register): sf | 1 | 1 | 01011 | shift | 0 | Rm | imm6 | Rn | Rd
   if (op2829 === 0b11 && ((insn >>> 24) & 0b11111) === 0b01011 && ((insn >>> 21) & 1) === 0) {
     const sf = insn >>> 31;
@@ -106,6 +129,11 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryAddsShiftedRegister(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // ADDS (shifted register): sf | 0 | 1 | 01011 | shift | 0 | Rm | imm6 | Rn | Rd
   if (op2829 === 0b01 && ((insn >>> 24) & 0b11111) === 0b01011 && ((insn >>> 21) & 1) === 0) {
     const sf = insn >>> 31;
@@ -120,6 +148,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryLogicalShiftedRegister(ctx: ExecutionContext, insn: number): boolean {
   // Logical (shifted register), N-bit selects the complement variants:
   //   opc 00 + N0 = AND, N1 = BIC; opc 01 + N0 = ORR (handled above), N1 = ORN;
   //   opc 10 + N0 = EOR (handled above), N1 = EON; opc 11 + N0 = ANDS, N1 = BICS.
@@ -155,6 +187,30 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     }
   }
 
+  return false;
+}
+
+const SHIFTED_REGISTER_DECODERS: Array<(ctx: ExecutionContext, insn: number) => boolean> = [
+  tryAddShiftedRegister,
+  trySubShiftedRegister,
+  tryOrrShiftedRegister,
+  tryEorShiftedRegister,
+  trySubsShiftedRegister,
+  tryAddsShiftedRegister,
+  tryLogicalShiftedRegister,
+];
+
+/** Shifted-register ops (ADD/SUB/ORR/EOR/SUBS/ADDS + the logical family).
+ * Sub-decoder order matches the ARM encoding table and the former single
+ * block: ORR/EOR (N=0) win before the general logical fallthrough. */
+function tryShiftedRegisterOps(ctx: ExecutionContext, insn: number): boolean {
+  for (const decode of SHIFTED_REGISTER_DECODERS) {
+    if (decode(ctx, insn)) return true;
+  }
+  return false;
+}
+
+function tryAddSubExtendedRegister(ctx: ExecutionContext, insn: number): boolean {
   // Add/subtract (extended register): sf | op | S | 01011 | 00 | 1 | Rm |
   //   option(3) | imm3 | Rn | Rd. Used for SP-relative arithmetic with a
   //   zero/sign-extended Rm (e.g. add x0, sp, w1, uxtw #2). Rn uses SP semantics.
@@ -182,6 +238,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryAddSubWithCarry(ctx: ExecutionContext, insn: number): boolean {
   // Add/subtract (with carry): sf | op | S | 11010000 | Rm | 000000 | Rn | Rd
   //   ADC/ADCS (op=0) and SBC/SBCS (op=1). Carry-in from flagC.
   if (((insn >>> 21) & 0xff) === 0b11010000) {
@@ -211,6 +271,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryPointerAuthGroup(ctx: ExecutionContext, insn: number): boolean {
   // Pointer Authentication (register form, ARMv8.3): sits in the Data
   // Processing (1 source) window (bits[30:21] = 1x11010110) with opcode2
   // bits[20:16] = 00001 fixed — base 0xDAC10000. Must run BEFORE the 1-source
@@ -230,6 +294,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
   // that block's switch default → NOP, so they must be intercepted first.
   if (execXpac(ctx, insn)) return true;
 
+  return false;
+}
+
+function tryDataProcessing3Source(ctx: ExecutionContext, insn: number): boolean {
   // Data-processing (3 source): sf | 00 | 11011 | op31(3) | Rm | o0 | Ra | Rn | Rd
   //   MADD/MSUB (Rd = Ra ± Rn*Rm), SMULH/UMULH (high 64 bits of 64×64).
   if (((insn >>> 24) & 0b11111) === 0b11011) {
@@ -296,6 +364,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     }
   }
 
+  return false;
+}
+
+function tryDataProcessing2Source(ctx: ExecutionContext, insn: number): boolean {
   // Data-processing (2 source): sf | 0 | S | 11010110 | Rm | opcode(6) | Rn | Rd
   //   UDIV/SDIV and the variable shifts LSLV/LSRV/ASRV/RORV. bit30=0 here
   //   (bit30=1 is the 1-source class below, same 11010110 discriminant).
@@ -341,6 +413,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     }
   }
 
+  return false;
+}
+
+function tryConditionalSelect(ctx: ExecutionContext, insn: number): boolean {
   // Conditional select: sf | op | S | 11010100 | Rm | cond(4) | op2(2) | Rn | Rd
   //   CSEL/CSINC/CSINV/CSNEG. The op2 low bit selects increment/negate, op
   //   (bit30) selects invert/negate. Covers CSET/CSETM/CINC/CINV aliases.
@@ -369,6 +445,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryConditionalCompareRegister(ctx: ExecutionContext, insn: number): boolean {
   // Conditional compare (register): sf | op | 1 | 11010010 | Rm | cond | 0 | Rn | 0 | nzcv
   //   CCMP (op=1) / CCMN (op=0). If cond holds, compare Rn vs Rm and set NZCV;
   //   else load the immediate nzcv field into the flags.
@@ -397,6 +477,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryConditionalCompareImmediate(ctx: ExecutionContext, insn: number): boolean {
   // Conditional compare (immediate): sf | op | 1 | 11010010 | imm5 | cond | 1 | Rn | 0 | nzcv
   //   Same as the register form but the second operand is a 5-bit zero-extended
   //   immediate. Distinguished from the register form by bit11 = 1.
@@ -425,6 +509,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+function tryDataProcessing1Source(ctx: ExecutionContext, insn: number): boolean {
   // Data-processing (1 source): sf | 1 | S | 11010110 | opcode2(5) | opcode(6) | Rn | Rd
   //   RBIT/REV16/REV32/REV, CLZ/CLS. Distinguished from 2-source by bit30=1.
   if (((insn >>> 21) & 0xff) === 0b11010110 && ((insn >>> 30) & 1) === 1) {
@@ -455,6 +543,10 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     }
   }
 
+  return false;
+}
+
+function tryCrc32(ctx: ExecutionContext, insn: number): boolean {
   // CRC32 / CRC32C (ARMv8): CRC32B/H/W/X + CRC32CB/CH/CW/CX.
   // bits[30:21] = 0b0110101100 (0x1AC); size 11 (CRC32X/CRC32CX) requires sf=1.
   // Bit12 selects CRC32 (0) vs CRC32C Castagnoli (1); bits[11:10] = operand size.
@@ -475,5 +567,30 @@ export function execDataProcessingRegister(ctx: ExecutionContext, insn: number):
     return true;
   }
 
+  return false;
+}
+
+const DECODERS: Array<(ctx: ExecutionContext, insn: number) => boolean> = [
+  tryShiftedRegisterOps,
+  tryAddSubExtendedRegister,
+  tryAddSubWithCarry,
+  tryPointerAuthGroup,
+  tryDataProcessing3Source,
+  tryDataProcessing2Source,
+  tryConditionalSelect,
+  tryConditionalCompareRegister,
+  tryConditionalCompareImmediate,
+  tryDataProcessing1Source,
+  tryCrc32,
+];
+
+/**
+ * Try to execute a Data Processing -- Register instruction.
+ * Returns true if handled, false if the instruction doesn't belong to this family.
+ */
+export function execDataProcessingRegister(ctx: ExecutionContext, insn: number): boolean {
+  for (const decode of DECODERS) {
+    if (decode(ctx, insn)) return true;
+  }
   return false;
 }

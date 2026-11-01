@@ -1247,95 +1247,109 @@ function execFpIntConv(ctx: SimdContext, f: SimdFields, isDouble: boolean): bool
  * still reports the raw opcode.
  */
 function execNeonThreeSame(ctx: SimdContext, f: SimdFields): boolean {
+  return (
+    execNeonThreeSameSaturating(ctx, f) ||
+    execNeonThreeSameLogical(ctx, f) ||
+    execNeonThreeSameInteger(ctx, f) ||
+    execNeonThreeSameMinMax(ctx, f) ||
+    execNeonThreeSameFp(ctx, f)
+  );
+}
+
+/** Saturating arithmetic group: SQADD/UQADD, SQSUB/UQSUB, SQSHL/UQSHL,
+ * SQRSHL/UQRSHL (register form). */
+function execNeonThreeSameSaturating(ctx: SimdContext, f: SimdFields): boolean {
   const { rd, rn, rm, size, q, u } = f;
   const a = ctx.vGetBytes(rn);
   const b = ctx.vGetBytes(rm);
+  const apply = (
+    opcode: number,
+    signed: (r: Uint8Array) => void,
+    unsigned: (r: Uint8Array) => void,
+  ): boolean => {
+    if (f.neonOpcode !== opcode) return false;
+    const result = new Uint8Array(16);
+    if (u === 0) signed(result);
+    else unsigned(result);
+    ctx.vSetBytes(rd, result);
+    return true;
+  };
+  return (
+    apply(
+      0b00001,
+      (r) => neonSqadd(r, a, b, size, q, ctx),
+      (r) => neonUqadd(r, a, b, size, q, ctx),
+    ) ||
+    apply(
+      0b00101,
+      (r) => neonSqsub(r, a, b, size, q, ctx),
+      (r) => neonUqsub(r, a, b, size, q, ctx),
+    ) ||
+    apply(
+      0b01001,
+      (r) => neonSqshl(r, a, b, size, q, ctx),
+      (r) => neonUqshl(r, a, b, size, q, ctx),
+    ) ||
+    apply(
+      0b01011,
+      (r) => neonSqrshl(r, a, b, size, q, ctx),
+      (r) => neonUqrshl(r, a, b, size, q, ctx),
+    )
+  );
+}
 
+/** Bitwise logical group (opcode 00011): size (and U) pick the exact operation. */
+function execNeonThreeSameLogical(ctx: SimdContext, f: SimdFields): boolean {
+  const { rd, rn, rm, size, q, u } = f;
+  if (f.neonOpcode !== 0b00011) return false;
+  const a = ctx.vGetBytes(rn);
+  const b = ctx.vGetBytes(rm);
+  if (u === 0) {
+    switch (size) {
+      case 0b00:
+        ctx.vSetBytes(rd, neonAnd(a, b, q));
+        return true;
+      case 0b01:
+        ctx.vSetBytes(rd, neonBic(a, b, q));
+        return true;
+      case 0b10:
+        ctx.vSetBytes(rd, neonOrr(a, b, q));
+        return true;
+      default:
+        ctx.vSetBytes(rd, neonOrn(a, b, q));
+        return true;
+    }
+  }
+  // U=1: EOR (size 00), BSL (01); BIT/BIF (10/11).
+  // BIT/BIF: ARM ARM C7.2.4-5 — Vd is read-modify-written, Vn is the bit
+  // condition source, Vm is the data source.
+  const dBytes = ctx.vGetBytes(rd);
+  if (size === 0b00) {
+    ctx.vSetBytes(rd, neonEor(a, b, q));
+    return true;
+  }
+  if (size === 0b01) {
+    ctx.vSetBytes(rd, neonBsl(dBytes, a, b, q));
+    return true;
+  }
+  if (size === 0b10) {
+    ctx.vSetBytes(rd, neonBit(dBytes, a, b, q));
+    return true;
+  }
+  if (size === 0b11) {
+    ctx.vSetBytes(rd, neonBif(dBytes, a, b, q));
+    return true;
+  }
+  return false;
+}
+
+/** Simple integer three-same ops: ADD/SUB, MUL/PMUL, CMGT/CMHI, CMGE/CMHS,
+ * CMTST/CMEQ. */
+function execNeonThreeSameInteger(ctx: SimdContext, f: SimdFields): boolean {
+  const { rd, rn, rm, size, q, u } = f;
+  const a = ctx.vGetBytes(rn);
+  const b = ctx.vGetBytes(rm);
   switch (f.neonOpcode) {
-    case 0b00001: {
-      // SQADD (U=0) / UQADD (U=1)
-      const result = new Uint8Array(16);
-      if (u === 0) {
-        neonSqadd(result, a, b, size, q, ctx);
-      } else {
-        neonUqadd(result, a, b, size, q, ctx);
-      }
-      ctx.vSetBytes(rd, result);
-      return true;
-    }
-    case 0b00101: {
-      // SQSUB (U=0) / UQSUB (U=1)
-      const result = new Uint8Array(16);
-      if (u === 0) {
-        neonSqsub(result, a, b, size, q, ctx);
-      } else {
-        neonUqsub(result, a, b, size, q, ctx);
-      }
-      ctx.vSetBytes(rd, result);
-      return true;
-    }
-    case 0b01001: {
-      // SQSHL (U=0) / UQSHL (U=1) — register shift
-      const result = new Uint8Array(16);
-      if (u === 0) {
-        neonSqshl(result, a, b, size, q, ctx);
-      } else {
-        neonUqshl(result, a, b, size, q, ctx);
-      }
-      ctx.vSetBytes(rd, result);
-      return true;
-    }
-    case 0b01011: {
-      // SQRSHL (U=0) / UQRSHL (U=1) — register shift with rounding
-      const result = new Uint8Array(16);
-      if (u === 0) {
-        neonSqrshl(result, a, b, size, q, ctx);
-      } else {
-        neonUqrshl(result, a, b, size, q, ctx);
-      }
-      ctx.vSetBytes(rd, result);
-      return true;
-    }
-    case 0b00011: {
-      // Bitwise logical: size (and U) pick the exact operation.
-      if (u === 0) {
-        switch (size) {
-          case 0b00:
-            ctx.vSetBytes(rd, neonAnd(a, b, q));
-            return true;
-          case 0b01:
-            ctx.vSetBytes(rd, neonBic(a, b, q));
-            return true;
-          case 0b10:
-            ctx.vSetBytes(rd, neonOrr(a, b, q));
-            return true;
-          default:
-            ctx.vSetBytes(rd, neonOrn(a, b, q));
-            return true;
-        }
-      }
-      // U=1: EOR (size 00), BSL (01); BIT/BIF (10/11).
-      // BIT/BIF: ARM ARM C7.2.4-5 — Vd is read-modify-written, Vn is the bit
-      // condition source, Vm is the data source.
-      const dBytes = ctx.vGetBytes(rd);
-      if (size === 0b00) {
-        ctx.vSetBytes(rd, neonEor(a, b, q));
-        return true;
-      }
-      if (size === 0b01) {
-        ctx.vSetBytes(rd, neonBsl(dBytes, a, b, q));
-        return true;
-      }
-      if (size === 0b10) {
-        ctx.vSetBytes(rd, neonBit(dBytes, a, b, q));
-        return true;
-      }
-      if (size === 0b11) {
-        ctx.vSetBytes(rd, neonBif(dBytes, a, b, q));
-        return true;
-      }
-      return false;
-    }
     case 0b10000: // ADD (U=0) / SUB (U=1)
       ctx.vSetBytes(rd, u === 0 ? neonAdd(a, b, size, q) : neonSub(a, b, size, q));
       return true;
@@ -1358,10 +1372,20 @@ function execNeonThreeSame(ctx: SimdContext, f: SimdFields): boolean {
     case 0b10001: // CMTST (U=0) / CMEQ (U=1)
       ctx.vSetBytes(rd, u === 0 ? neonCmtst(a, b, size, q) : neonCmeq(a, b, size, q));
       return true;
+    default:
+      return false;
+  }
+}
+
+/** Integer/FP min-max group: SMAX/UMAX/FMAX and SMIN/UMIN/FMIN (bit23 selects
+ * FP form; FMAXNM/FMINNM deferred). */
+function execNeonThreeSameMinMax(ctx: SimdContext, f: SimdFields): boolean {
+  const { rd, rn, rm, size, q, u } = f;
+  const a = ctx.vGetBytes(rn);
+  const b = ctx.vGetBytes(rm);
+  const isFp = ((f.insn >>> 23) & 1) === 1;
+  switch (f.neonOpcode) {
     case 0b01100: {
-      // SMAX (U=0, bit23=0) / UMAX (U=1, bit23=0) — integer
-      // FMAX (U=0, bit23=1) / FMAXNM (U=1, bit23=1) — FP
-      const isFp = ((f.insn >>> 23) & 1) === 1;
       if (isFp) {
         if (u === 0) return execSimdFpThreeSame(ctx, f, fmax);
         return false; // FMAXNM deferred
@@ -1370,9 +1394,6 @@ function execNeonThreeSame(ctx: SimdContext, f: SimdFields): boolean {
       return true;
     }
     case 0b01101: {
-      // SMIN (U=0, bit23=0) / UMIN (U=1, bit23=0) — integer
-      // FMIN (U=0, bit23=1) / FMINNM (U=1, bit23=1) — FP
-      const isFp = ((f.insn >>> 23) & 1) === 1;
       if (isFp) {
         if (u === 0) return execSimdFpThreeSame(ctx, f, fmin);
         return false; // FMINNM deferred
@@ -1380,7 +1401,16 @@ function execNeonThreeSame(ctx: SimdContext, f: SimdFields): boolean {
       ctx.vSetBytes(rd, u === 0 ? neonSmin(a, b, size, q) : neonUmin(a, b, size, q));
       return true;
     }
-    // ── FP three-same (bit22 selects precision: 0=single, 1=double) ──
+    default:
+      return false;
+  }
+}
+
+/** FP three-same group (bit22 selects precision: 0=single, 1=double):
+ * FADD/FSUB, FMUL, FDIV, FCMEQ/FCMGE/FCMGT. */
+function execNeonThreeSameFp(ctx: SimdContext, f: SimdFields): boolean {
+  const { u } = f;
+  switch (f.neonOpcode) {
     case 0b11010: // FADD (U=0) / FSUB (U=1)
       return execSimdFpThreeSame(ctx, f, u === 0 ? fadd : fsub);
     case 0b11011: // FMUL (U=0)

@@ -761,135 +761,153 @@ export class JniEnvironment {
     return 0n;
   }
 
+  /** Direct mocked method, or match by class+name+sig from the method handle. */
+  private resolveJavaMethodEntry(methodId: number): JavaMethodEntry | undefined {
+    const entry = this.javaMethods.get(methodId);
+    if (entry) return entry;
+    // Method ID not directly mocked — try to match by class+name+sig from
+    // the method handle (auto-allocated by an earlier GetMethodID call).
+    const mi = this.handles.get(methodId);
+    if (mi && typeof mi === 'object') {
+      const mCls = (mi as { cls?: string }).cls;
+      const mName = (mi as { name?: string }).name;
+      const mSig = (mi as { sig?: string }).sig;
+      if (mCls && mName && mSig) {
+        for (const [, mock] of this.javaMethods) {
+          if (mock.className === mCls && mock.name === mName && mock.sig === mSig) {
+            return mock;
+          }
+        }
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Check if `self` is a self-describing mock handle from a prior
+   * conditional HashMap.get/Map.get — auto-unbox mock-int, mock-boolean,
+   * mock-string, mock-bytes so intValue()/booleanValue()/toString() work
+   * without an explicit per-method mock registration.
+   * Returns the unboxed value, or undefined when `self` is not such a mock.
+   */
+  private unboxSelfDescribingMock(self: number, methodId: number): bigint | undefined {
+    const selfValue = this.handles.get(self);
+    if (!selfValue || typeof selfValue !== 'object') return undefined;
+    const sk = (selfValue as { kind?: string }).kind;
+    if (sk === 'mock-int') {
+      return BigInt((selfValue as { value: number }).value);
+    }
+    if (sk === 'mock-boolean') {
+      return BigInt((selfValue as { value: boolean }).value ? 1n : 0n);
+    }
+    // For mock-string: toString() returns self, getBytes() returns new byte[]
+    if (sk === 'mock-string') {
+      const mi2 = this.handles.get(methodId);
+      const mName = (mi2 as { name?: string } | undefined)?.name;
+      const mSig = (mi2 as { sig?: string } | undefined)?.sig;
+      if (mName === 'getBytes' || (mSig && mSig.endsWith(')[B'))) {
+        const str = (selfValue as { value: string }).value;
+        const bytes = new TextEncoder().encode(str);
+        return BigInt(this.allocHandle({ kind: 'bytes', value: bytes }));
+      }
+      return BigInt(self);
+    }
+    if (sk === 'mock-bytes') {
+      return BigInt(self);
+    }
+    return undefined;
+  }
+
+  /**
+   * ── Auto-object method resolution ──────────────────────────
+   * When `self` is an auto-object (from a prior returnObject mock or
+   * fallback allocation), look for a mock registered for the auto-object's
+   * class + the called method. This enables chained iterator patterns:
+   *   HashMap.entrySet() → Set.iterator() → Iterator.hasNext()/next()
+   */
+  private findAutoObjectEntry(self: number, methodId: number): JavaMethodEntry | undefined {
+    const selfValue = this.handles.get(self);
+    if (!selfValue || typeof selfValue !== 'object') return undefined;
+    if ((selfValue as { kind?: string }).kind !== 'auto-object') return undefined;
+    const mi = this.handles.get(methodId);
+    const mName = (mi as { name?: string } | undefined)?.name ?? '';
+    const mSig = (mi as { sig?: string } | undefined)?.sig ?? '';
+    const autoCls = (selfValue as { cls?: string }).cls ?? '';
+    if (!autoCls || !mName) return undefined;
+    for (const [, mock] of this.javaMethods) {
+      if (mock.className === autoCls && mock.name === mName && mock.sig === mSig) {
+        return mock;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Fallback for auto-object method calls with no registered mock:
+   * auto-return a non-zero handle for object-returning methods so native
+   * code's cbz null-checks pass; boolean/int returns log and return 0.
+   */
+  private autoObjectFallback(self: number, methodId: number): bigint {
+    const handleInfo = this.handles.get(methodId);
+    const sig: string = (handleInfo as { sig?: string } | undefined)?.sig ?? '()V';
+    const returnType = sig.substring(sig.indexOf(')') + 1);
+    if (returnType.startsWith('L') || returnType.startsWith('[')) {
+      // Extract class name from return type for auto-object chaining
+      const retCls = returnType.startsWith('L')
+        ? returnType.substring(1, returnType.indexOf(';'))
+        : returnType;
+      return BigInt(this.allocHandle({ kind: 'auto-object', cls: retCls, desc: sig }));
+    }
+    const selfInfo = this.handles.get(self);
+    if (
+      selfInfo &&
+      typeof selfInfo === 'object' &&
+      (selfInfo as { kind?: string }).kind === 'auto-object'
+    ) {
+      const mi = this.handles.get(methodId);
+      const name = (mi as { name?: string } | undefined)?.name ?? '?';
+      const autoCls = (selfInfo as { cls?: string }).cls ?? '?';
+      this.jniDiagLog.push(`JNI: unmocked ${autoCls}.${name}() on auto-object`);
+    }
+    return 0n;
+  }
+
+  /** Decode Call*Method arguments per its direct, V, or A representation. */
+  private readJniCallArguments(
+    ctx: HostContext,
+    mode: JniCallArgumentMode,
+    parameterTypes: readonly JniParameterType[],
+  ): bigint[] {
+    if (mode === 'jvalueArray') {
+      return parameterTypes.map((type, index) => {
+        const raw = readGuestU64(ctx, Number(ctx.x(3)) + index * 8);
+        return normalizeJniArgument(type, raw, false);
+      });
+    }
+    if (mode === 'vaList') {
+      return this.readVaListArguments(ctx, Number(ctx.x(3)), parameterTypes);
+    }
+    return parameterTypes.map((type, index) => {
+      const raw = index < 5 ? ctx.x(3 + index) : 0n;
+      return normalizeJniArgument(type, raw, false);
+    });
+  }
+
   /** Dispatch a Call*Method, decoding its direct, V, or A argument representation. */
   private jniCallMethod(ctx: HostContext, mode: JniCallArgumentMode = 'registers'): bigint {
     const self = Number(ctx.x(1));
     const methodId = Number(ctx.x(2));
-    let entry = this.javaMethods.get(methodId);
+    let entry = this.resolveJavaMethodEntry(methodId);
     if (!entry) {
-      // Method ID not directly mocked — try to match by class+name+sig from
-      // the method handle (auto-allocated by an earlier GetMethodID call).
-      const mi = this.handles.get(methodId);
-      if (mi && typeof mi === 'object') {
-        const mCls = (mi as { cls?: string }).cls;
-        const mName = (mi as { name?: string }).name;
-        const mSig = (mi as { sig?: string }).sig;
-        if (mCls && mName && mSig) {
-          for (const [, mock] of this.javaMethods) {
-            if (mock.className === mCls && mock.name === mName && mock.sig === mSig) {
-              entry = mock;
-              break;
-            }
-          }
-        }
+      const unboxed = this.unboxSelfDescribingMock(self, methodId);
+      if (unboxed !== undefined) return unboxed;
+      entry = this.findAutoObjectEntry(self, methodId);
+      if (!entry) {
+        return this.autoObjectFallback(self, methodId);
       }
-    }
-    if (!entry) {
-      // Check if `self` is a self-describing mock handle from a prior
-      // conditional HashMap.get/Map.get — auto-unbox mock-int, mock-boolean,
-      // mock-string, mock-bytes so intValue()/booleanValue()/toString() work
-      // without an explicit per-method mock registration.
-      const selfValue = this.handles.get(self);
-      if (selfValue && typeof selfValue === 'object') {
-        const sk = (selfValue as { kind?: string }).kind;
-        if (sk === 'mock-int') {
-          return BigInt((selfValue as { value: number }).value);
-        }
-        if (sk === 'mock-boolean') {
-          return BigInt((selfValue as { value: boolean }).value ? 1n : 0n);
-        }
-        // For mock-string: toString() returns self, getBytes() returns new byte[]
-        if (sk === 'mock-string') {
-          const mi2 = this.handles.get(methodId);
-          const mName = (mi2 as { name?: string } | undefined)?.name;
-          const mSig = (mi2 as { sig?: string } | undefined)?.sig;
-          if (mName === 'getBytes' || (mSig && mSig.endsWith(')[B'))) {
-            const str = (selfValue as { value: string }).value;
-            const bytes = new TextEncoder().encode(str);
-            return BigInt(this.allocHandle({ kind: 'bytes', value: bytes }));
-          }
-          return BigInt(self);
-        }
-        if (sk === 'mock-bytes') {
-          return BigInt(self);
-        }
-      }
-
-      // ── Auto-object method resolution ──────────────────────────
-      // When `self` is an auto-object (from a prior returnObject mock or
-      // fallback allocation), look for a mock registered for the auto-object's
-      // class + the called method. This enables chained iterator patterns:
-      //   HashMap.entrySet() → Set.iterator() → Iterator.hasNext()/next()
-      const selfValue2 = this.handles.get(self);
-      if (
-        selfValue2 &&
-        typeof selfValue2 === 'object' &&
-        (selfValue2 as { kind?: string }).kind === 'auto-object'
-      ) {
-        const mi3 = this.handles.get(methodId);
-        const mName3 = (mi3 as { name?: string } | undefined)?.name ?? '';
-        const mSig3 = (mi3 as { sig?: string } | undefined)?.sig ?? '';
-        // Extract the auto-object's class from the handle
-        const autoCls = (selfValue2 as { cls?: string }).cls ?? '';
-        if (autoCls && mName3) {
-          for (const [, mock] of this.javaMethods) {
-            if (mock.className === autoCls && mock.name === mName3 && mock.sig === mSig3) {
-              entry = mock;
-              break;
-            }
-          }
-        }
-        // If still no entry, check for self-describing mock-* kind handling
-        if (!entry) {
-          const sk2 = (selfValue2 as { kind?: string }).kind;
-          if (sk2 === 'mock-int') return BigInt((selfValue2 as { value: number }).value);
-          if (sk2 === 'mock-boolean')
-            return BigInt((selfValue2 as { value: boolean }).value ? 1n : 0n);
-          if (sk2 === 'mock-string') return BigInt(self);
-        }
-      }
-
-      // Fallback: auto-return non-zero handle for object-returning methods
-      // so native code's cbz null-checks pass.
-      const handleInfo2 = this.handles.get(methodId);
-      const sig2: string = (handleInfo2 as { sig?: string } | undefined)?.sig ?? '()V';
-      const returnType2 = sig2.substring(sig2.indexOf(')') + 1);
-      if (returnType2.startsWith('L') || returnType2.startsWith('[')) {
-        // Extract class name from return type for auto-object chaining
-        const retCls = returnType2.startsWith('L')
-          ? returnType2.substring(1, returnType2.indexOf(';'))
-          : returnType2;
-        return BigInt(this.allocHandle({ kind: 'auto-object', cls: retCls, desc: sig2 }));
-      }
-      // For boolean/int returns on auto-objects without mocks: log and return 0
-      const selfInfo3 = this.handles.get(self);
-      if (
-        selfInfo3 &&
-        typeof selfInfo3 === 'object' &&
-        (selfInfo3 as { kind?: string }).kind === 'auto-object'
-      ) {
-        const mi4 = this.handles.get(methodId);
-        const name4 = (mi4 as { name?: string } | undefined)?.name ?? '?';
-        const autoCls2 = (selfInfo3 as { cls?: string }).cls ?? '?';
-        this.jniDiagLog.push(`JNI: unmocked ${autoCls2}.${name4}() on auto-object`);
-      }
-      return 0n;
     }
     const parameterTypes = parseJniParameterTypes(entry.sig);
-    let args: bigint[];
-    if (mode === 'jvalueArray') {
-      args = parameterTypes.map((type, index) => {
-        const raw = readGuestU64(ctx, Number(ctx.x(3)) + index * 8);
-        return normalizeJniArgument(type, raw, false);
-      });
-    } else if (mode === 'vaList') {
-      args = this.readVaListArguments(ctx, Number(ctx.x(3)), parameterTypes);
-    } else {
-      args = parameterTypes.map((type, index) => {
-        const raw = index < 5 ? ctx.x(3 + index) : 0n;
-        return normalizeJniArgument(type, raw, false);
-      });
-    }
+    const args = this.readJniCallArguments(ctx, mode, parameterTypes);
     const result = entry.impl({ args, self, jni: this });
     return result === undefined ? 0n : BigInt.asUintN(64, BigInt(result));
   }

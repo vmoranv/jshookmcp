@@ -161,6 +161,39 @@ function collectTraceFiles(target, out = []) {
  * malformed rather than admitted with a placeholder name — a placeholder would
  * silently enter the diversity and repetition counts as if it were a real tool.
  */
+/**
+ * Parse one JSONL line into a trace record. Returns `null` for malformed lines
+ * (unparseable JSON, non-object payloads, or a missing/empty `toolName`).
+ */
+function parseTraceLine(trimmed) {
+  let parsed;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  if (typeof parsed.toolName !== 'string' || parsed.toolName.length === 0) return null;
+  return parsed;
+}
+
+/** Map an already-validated parsed line to the normalized record shape. */
+function toTraceRecord(parsed, sessionId) {
+  return {
+    sessionId,
+    seq: typeof parsed.seq === 'number' ? parsed.seq : null,
+    toolName: parsed.toolName,
+    domain: typeof parsed.domain === 'string' ? parsed.domain : null,
+    startedAt: typeof parsed.startedAt === 'number' ? parsed.startedAt : null,
+    durationMs: typeof parsed.durationMs === 'number' ? parsed.durationMs : 0,
+    ok: parsed.ok !== false,
+    errorKind: ERROR_KINDS.includes(parsed.errorKind) ? parsed.errorKind : null,
+    argsSizeBytes: typeof parsed.argsSizeBytes === 'number' ? parsed.argsSizeBytes : null,
+    resultSizeBytes: typeof parsed.resultSizeBytes === 'number' ? parsed.resultSizeBytes : null,
+    repeated: parsed.repeated === true,
+  };
+}
+
 function loadRecords(files) {
   const records = [];
   let malformed = 0;
@@ -171,18 +204,8 @@ function loadRecords(files) {
     for (const line of lines) {
       const trimmed = line.trim();
       if (trimmed.length === 0) continue;
-      let parsed;
-      try {
-        parsed = JSON.parse(trimmed);
-      } catch {
-        malformed += 1;
-        continue;
-      }
-      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        malformed += 1;
-        continue;
-      }
-      if (typeof parsed.toolName !== 'string' || parsed.toolName.length === 0) {
+      const parsed = parseTraceLine(trimmed);
+      if (parsed === null) {
         malformed += 1;
         continue;
       }
@@ -196,19 +219,7 @@ function loadRecords(files) {
       if (typeof parsed.sessionId === 'string' && parsed.sessionId !== basename(file, '.jsonl')) {
         mismatchedSessions.push({ file: basename(file), sessionId: parsed.sessionId });
       }
-      records.push({
-        sessionId,
-        seq: typeof parsed.seq === 'number' ? parsed.seq : null,
-        toolName: parsed.toolName,
-        domain: typeof parsed.domain === 'string' ? parsed.domain : null,
-        startedAt: typeof parsed.startedAt === 'number' ? parsed.startedAt : null,
-        durationMs: typeof parsed.durationMs === 'number' ? parsed.durationMs : 0,
-        ok: parsed.ok !== false,
-        errorKind: ERROR_KINDS.includes(parsed.errorKind) ? parsed.errorKind : null,
-        argsSizeBytes: typeof parsed.argsSizeBytes === 'number' ? parsed.argsSizeBytes : null,
-        resultSizeBytes: typeof parsed.resultSizeBytes === 'number' ? parsed.resultSizeBytes : null,
-        repeated: parsed.repeated === true,
-      });
+      records.push(toTraceRecord(parsed, sessionId));
     }
   }
   return { records, malformed, mismatchedSessions };

@@ -64,78 +64,97 @@ export function scanForReferences(
   moduleName: string | null,
 ): ReferenceHit[] {
   const results: ReferenceHit[] = [];
+  const ctx: RefScanContext = { bytes, regionBase, targetAddr, moduleBase, moduleName, results };
 
   for (let i = 0; i < bytes.length /* advance manually */;) {
-    const remaining = bytes.length - i;
-    const insnAddr = regionBase + BigInt(i);
-
-    // ── CALL rel32: E8 xx xx xx xx ──
-    if (remaining >= 5 && bytes[i] === 0xe8) {
-      const rel32 = bytes.readInt32LE(i + 1);
-      const target = insnAddr + 5n + BigInt(rel32);
-      if (target === targetAddr) {
-        results.push(makeHit('CALL', insnAddr, target, moduleName, moduleBase));
-      }
-      i += 5;
+    const consumed =
+      matchCallRel32(ctx, i) ??
+      matchJmpRel32(ctx, i) ??
+      matchJccRel32(ctx, i) ??
+      matchRipRelative(ctx, i, 0x8d, 'LEA') ??
+      matchRipRelative(ctx, i, 0x8b, 'MOV');
+    if (consumed !== null) {
+      i += consumed;
       continue;
     }
-
-    // ── JMP rel32: E9 xx xx xx xx ──
-    if (remaining >= 5 && bytes[i] === 0xe9) {
-      const rel32 = bytes.readInt32LE(i + 1);
-      const target = insnAddr + 5n + BigInt(rel32);
-      if (target === targetAddr) {
-        results.push(makeHit('JMP', insnAddr, target, moduleName, moduleBase));
-      }
-      i += 5;
-      continue;
-    }
-
-    // ── Jcc rel32: 0F 8x xx xx xx xx (0F 80 – 0F 8F) ──
-    if (remaining >= 6 && bytes[i] === 0x0f && (bytes[i + 1]! & 0xf0) === 0x80) {
-      const rel32 = bytes.readInt32LE(i + 2);
-      const target = insnAddr + 6n + BigInt(rel32);
-      if (target === targetAddr) {
-        results.push(makeHit('JMP', insnAddr, target, moduleName, moduleBase));
-      }
-      i += 6;
-      continue;
-    }
-
-    // ── REX.W LEA reg, [RIP+disp32]: 48/4C 8D ModRM(rm=101) disp32 ──
-    if (remaining >= 7 && (bytes[i] === 0x48 || bytes[i] === 0x4c) && bytes[i + 1] === 0x8d) {
-      const modrm = bytes[i + 2]!;
-      // Mod=00 (bits 7-6 == 0), R/M=101 (bits 2-0 == 5)
-      if ((modrm & 0xc7) === 0x05) {
-        const disp32 = bytes.readInt32LE(i + 3);
-        const target = insnAddr + 7n + BigInt(disp32);
-        if (target === targetAddr) {
-          results.push(makeHit('LEA', insnAddr, target, moduleName, moduleBase));
-        }
-      }
-      i += 7;
-      continue;
-    }
-
-    // ── REX.W MOV reg, [RIP+disp32]: 48/4C 8B ModRM(rm=101) disp32 ──
-    if (remaining >= 7 && (bytes[i] === 0x48 || bytes[i] === 0x4c) && bytes[i + 1] === 0x8b) {
-      const modrm = bytes[i + 2]!;
-      if ((modrm & 0xc7) === 0x05) {
-        const disp32 = bytes.readInt32LE(i + 3);
-        const target = insnAddr + 7n + BigInt(disp32);
-        if (target === targetAddr) {
-          results.push(makeHit('MOV', insnAddr, target, moduleName, moduleBase));
-        }
-      }
-      i += 7;
-      continue;
-    }
-
     // Unknown byte — advance by 1
     i++;
   }
 
   return results;
+}
+
+interface RefScanContext {
+  bytes: Buffer;
+  regionBase: bigint;
+  targetAddr: bigint;
+  moduleBase: bigint | null;
+  moduleName: string | null;
+  results: ReferenceHit[];
+}
+
+/** 5-byte `E8 rel32` call. Returns the consumed length when the opcode
+ * matches (whether or not the target matched), else null. */
+function matchCallRel32(ctx: RefScanContext, i: number): number | null {
+  const { bytes, regionBase, targetAddr } = ctx;
+  if (bytes.length - i < 5 || bytes[i] !== 0xe8) return null;
+  const target = regionBase + BigInt(i) + 5n + BigInt(bytes.readInt32LE(i + 1));
+  if (target === targetAddr) {
+    ctx.results.push(
+      makeHit('CALL', regionBase + BigInt(i), target, ctx.moduleName, ctx.moduleBase),
+    );
+  }
+  return 5;
+}
+
+/** 5-byte `E9 rel32` jump. */
+function matchJmpRel32(ctx: RefScanContext, i: number): number | null {
+  const { bytes, regionBase, targetAddr } = ctx;
+  if (bytes.length - i < 5 || bytes[i] !== 0xe9) return null;
+  const target = regionBase + BigInt(i) + 5n + BigInt(bytes.readInt32LE(i + 1));
+  if (target === targetAddr) {
+    ctx.results.push(
+      makeHit('JMP', regionBase + BigInt(i), target, ctx.moduleName, ctx.moduleBase),
+    );
+  }
+  return 5;
+}
+
+/** 6-byte `0F 8x rel32` conditional jump. */
+function matchJccRel32(ctx: RefScanContext, i: number): number | null {
+  const { bytes, regionBase, targetAddr } = ctx;
+  if (bytes.length - i < 6 || bytes[i] !== 0x0f || (bytes[i + 1]! & 0xf0) !== 0x80) return null;
+  const target = regionBase + BigInt(i) + 6n + BigInt(bytes.readInt32LE(i + 2));
+  if (target === targetAddr) {
+    ctx.results.push(
+      makeHit('JMP', regionBase + BigInt(i), target, ctx.moduleName, ctx.moduleBase),
+    );
+  }
+  return 6;
+}
+
+/** 7-byte `REX.W <opcode> reg, [RIP+disp32]` (LEA 0x8d / MOV 0x8b). */
+function matchRipRelative(
+  ctx: RefScanContext,
+  i: number,
+  opcode: number,
+  type: ReferenceHit['type'],
+): number | null {
+  const { bytes, regionBase, targetAddr } = ctx;
+  if (bytes.length - i < 7 || (bytes[i] !== 0x48 && bytes[i] !== 0x4c) || bytes[i + 1] !== opcode) {
+    return null;
+  }
+  const modrm = bytes[i + 2]!;
+  // Mod=00 (bits 7-6 == 0), R/M=101 (bits 2-0 == 5)
+  if ((modrm & 0xc7) === 0x05) {
+    const target = regionBase + BigInt(i) + 7n + BigInt(bytes.readInt32LE(i + 3));
+    if (target === targetAddr) {
+      ctx.results.push(
+        makeHit(type, regionBase + BigInt(i), target, ctx.moduleName, ctx.moduleBase),
+      );
+    }
+  }
+  return 7;
 }
 
 /** Format a bigint as a 0x-prefixed uppercase hex string. */

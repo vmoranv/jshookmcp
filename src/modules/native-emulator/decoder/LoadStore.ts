@@ -20,21 +20,10 @@ import { executeSimdLoadStore } from '../simd';
 import { signExtend7, signExtend9, signExtend19 } from '../simd-utils';
 
 /**
- * Try to execute a Loads and Stores instruction.
- * Returns true if handled, false if the instruction doesn't belong to this family.
+ * Per-block decoders for execLoadStore. Extracted verbatim from the former
+ * single function so each stays under the complexity gate. Block evaluation order matches the former if-chain.
  */
-export function execLoadStore(
-  ctx: ExecutionContext,
-  insn: number,
-  simdContext: SimdContext,
-): boolean {
-  // FP/SIMD register transfers (V=1, bit 26) split off to the SIMD layer —
-  // LDR/STR/LDP/STP of B/H/S/D/Q move bytes between guest memory and the V
-  // register file, not the GPRs the rest of this method serves.
-  if (((insn >>> 26) & 1) === 1) {
-    return executeSimdLoadStore(simdContext, insn);
-  }
-
+function tryLoadStoreExclusive(ctx: ExecutionContext, insn: number): boolean {
   // Load/store exclusive (LDXR/LDAXR/STXR/STLXR, byte/half/word/dword):
   //   size(31:30) | 001000 | o2 | L(22) | o1 | Rs(20:16) | o0 | Rt2 | Rn | Rt
   // The emulator is single-threaded, so an exclusive pair can never be broken
@@ -65,7 +54,10 @@ export function execLoadStore(
     }
     return true;
   }
+  return false;
+}
 
+function tryLoadStoreIntegerFamily(ctx: ExecutionContext, insn: number): boolean {
   // LDR/STR family (integer): size(31:30) | 111 | V(26)=0 | b25:24 | opc(23:22) | …
   //   opc encodes load/store + signedness: 00 STR, 01 LDR (zero-extend),
   //   10 LDRS→64-bit (sign-extend), 11 LDRS→32-bit. bits 25:24 select the form:
@@ -148,7 +140,10 @@ export function execLoadStore(
       return true;
     }
   }
+  return false;
+}
 
+function tryLoadLiteral(ctx: ExecutionContext, insn: number): boolean {
   // LDR / LDRSW (literal): opc(31:30) | 011 | V(26)=0 | 00 | imm19 | Rt
   //   PC-relative load: Rt = *(PC + SignExtend(imm19 << 2)).
   //   opc 00 → 32-bit zero-extend,  01 → 64-bit,
@@ -174,7 +169,10 @@ export function execLoadStore(
     }
     return true;
   }
+  return false;
+}
 
+function tryLoadStorePair(ctx: ExecutionContext, insn: number): boolean {
   // LDP/STP (load/store pair): opc | 101 | V(0) | idx(24:23) | L | imm7 | Rt2 | Rn | Rt
   //   bits 29:25 === 0b10100 (V=0, integer); opc(31:30): 0b00 = STP 32-bit,
   //   0b01 = LDP 32-bit, 0b10 = STP 64-bit, 0b11 = LDP 64-bit.
@@ -210,5 +208,34 @@ export function execLoadStore(
     return true;
   }
 
+  return false;
+}
+
+const execLoadStore_DECODERS: Array<(ctx: ExecutionContext, insn: number) => boolean> = [
+  tryLoadStoreExclusive,
+  tryLoadStoreIntegerFamily,
+  tryLoadLiteral,
+  tryLoadStorePair,
+];
+
+/**
+ * Try to execute a Loads and Stores instruction.
+ * Ordering is load-bearing and matches the former if-chain exactly.
+ */
+export function execLoadStore(
+  ctx: ExecutionContext,
+  insn: number,
+  simdContext: SimdContext,
+): boolean {
+  // FP/SIMD register transfers (V=1, bit 26) split off to the SIMD layer —
+  // LDR/STR/LDP/STP of B/H/S/D/Q move bytes between guest memory and the V
+  // register file, not the GPRs the rest of this method serves.
+  if (((insn >>> 26) & 1) === 1) {
+    return executeSimdLoadStore(simdContext, insn);
+  }
+
+  for (const decode of execLoadStore_DECODERS) {
+    if (decode(ctx, insn)) return true;
+  }
   return false;
 }

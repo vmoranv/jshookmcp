@@ -87,28 +87,19 @@ interface X86VectorPrefix {
   broadcastOrRounding?: boolean;
 }
 
-export function disassembleX86(input: OpcodeInput, pc: bigint, mode: 'x86' | 'x64'): string {
-  const bytes = normalizeBytes(input);
-  let index = 0;
-  let rex = 0;
-  let mandatoryPrefix: X86MandatoryPrefix = 'none';
+/** Shared decode state after prefix/REX parsing. */
+interface X86DecodeState {
+  bytes: readonly number[];
+  index: number;
+  rex: number;
+  operand64: boolean;
+  mode: 'x86' | 'x64';
+  pc: bigint;
+}
 
-  while (isX86LegacyPrefix(byteAt(bytes, index))) {
-    mandatoryPrefix = legacyPrefixKind(byteAt(bytes, index)) ?? mandatoryPrefix;
-    index++;
-  }
-
-  const vectorDecoded = decodeX86VectorInstruction(bytes, index, mode);
-  if (vectorDecoded) return vectorDecoded;
-
-  if (mode === 'x64' && byteAt(bytes, index) >= 0x40 && byteAt(bytes, index) <= 0x4f) {
-    rex = byteAt(bytes, index);
-    index++;
-  }
-
-  const op = byteAt(bytes, index++);
-  const operand64 = mode === 'x64' && (rex & 0x08) !== 0;
-
+/** push/pop, short jcc, call/jmp, mov-imm (single-opcode forms). */
+function decodeX86SimpleOpcodes(op: number, st: X86DecodeState): string | null {
+  const { bytes, index, rex, operand64, mode, pc } = st;
   if (op === 0x90) return formatDisasm({ mnemonic: 'nop', operands: '' });
   if (op === 0xc3) return formatDisasm({ mnemonic: 'ret', operands: '' });
   if (op === 0xcc) return formatDisasm({ mnemonic: 'int3', operands: '' });
@@ -126,44 +117,6 @@ export function disassembleX86(input: OpcodeInput, pc: bigint, mode: 'x86' | 'x6
     const cond = X86_CONDITIONS[op & 0xf];
     const target = relativeTarget(pc, index + 1, readInt8(bytes, index));
     return formatDisasm({ mnemonic: `j${cond}`, operands: target });
-  }
-
-  if (op === 0x0f) {
-    const op2 = byteAt(bytes, index++);
-    if (op2 >= 0x80 && op2 <= 0x8f) {
-      const cond = X86_CONDITIONS[op2 & 0xf];
-      const target = relativeTarget(pc, index + 4, readInt32LE(bytes, index));
-      return formatDisasm({ mnemonic: `j${cond}`, operands: target });
-    }
-    if (op2 === 0x38) {
-      const op3 = byteAt(bytes, index++);
-      const decoded = decodeX86LegacyExtendedMap(
-        2,
-        op3,
-        mandatoryPrefix,
-        bytes,
-        index,
-        rex,
-        operand64,
-      );
-      if (decoded) return formatDisasm(decoded);
-    }
-    if (op2 === 0x3a) {
-      const op3 = byteAt(bytes, index++);
-      const decoded = decodeX86LegacyExtendedMap(
-        3,
-        op3,
-        mandatoryPrefix,
-        bytes,
-        index,
-        rex,
-        operand64,
-      );
-      if (decoded) return formatDisasm(decoded);
-    }
-
-    const decoded = decodeX86LegacySimd(op2, mandatoryPrefix, bytes, index, rex, operand64);
-    if (decoded) return formatDisasm(decoded);
   }
 
   if (op === 0xe8) {
@@ -199,22 +152,111 @@ export function disassembleX86(input: OpcodeInput, pc: bigint, mode: 'x86' | 'x6
     });
   }
 
-  const modRmOps: Record<number, [string, boolean]> = {
-    0x01: ['add', false],
-    0x03: ['add', true],
-    0x29: ['sub', false],
-    0x2b: ['sub', true],
-    0x31: ['xor', false],
-    0x33: ['xor', true],
-    0x39: ['cmp', false],
-    0x3b: ['cmp', true],
-    0x89: ['mov', false],
-    0x8b: ['mov', true],
+  return null;
+}
+
+/** Two-byte (0x0F) opcodes: jcc rel32, 0F38/0F3A maps, legacy SIMD. */
+function decodeX86TwoByte(
+  op2: number,
+  st: X86DecodeState,
+  mandatoryPrefix: X86MandatoryPrefix,
+): string | null {
+  const { bytes, rex, operand64, pc } = st;
+  let index = st.index;
+  if (op2 >= 0x80 && op2 <= 0x8f) {
+    const cond = X86_CONDITIONS[op2 & 0xf];
+    const target = relativeTarget(pc, index + 4, readInt32LE(bytes, index));
+    return formatDisasm({ mnemonic: `j${cond}`, operands: target });
+  }
+  if (op2 === 0x38) {
+    const op3 = byteAt(bytes, index++);
+    const decoded = decodeX86LegacyExtendedMap(
+      2,
+      op3,
+      mandatoryPrefix,
+      bytes,
+      index,
+      rex,
+      operand64,
+    );
+    if (decoded) return formatDisasm(decoded);
+  }
+  if (op2 === 0x3a) {
+    const op3 = byteAt(bytes, index++);
+    const decoded = decodeX86LegacyExtendedMap(
+      3,
+      op3,
+      mandatoryPrefix,
+      bytes,
+      index,
+      rex,
+      operand64,
+    );
+    if (decoded) return formatDisasm(decoded);
+  }
+
+  const decoded = decodeX86LegacySimd(op2, mandatoryPrefix, bytes, index, rex, operand64);
+  if (decoded) return formatDisasm(decoded);
+  return null;
+}
+
+const X86_MODRM_OPS: Record<number, [string, boolean]> = {
+  0x01: ['add', false],
+  0x03: ['add', true],
+  0x29: ['sub', false],
+  0x2b: ['sub', true],
+  0x31: ['xor', false],
+  0x33: ['xor', true],
+  0x39: ['cmp', false],
+  0x3b: ['cmp', true],
+  0x89: ['mov', false],
+  0x8b: ['mov', true],
+};
+
+export function disassembleX86(input: OpcodeInput, pc: bigint, mode: 'x86' | 'x64'): string {
+  const bytes = normalizeBytes(input);
+  let index = 0;
+  let rex = 0;
+  let mandatoryPrefix: X86MandatoryPrefix = 'none';
+
+  while (isX86LegacyPrefix(byteAt(bytes, index))) {
+    mandatoryPrefix = legacyPrefixKind(byteAt(bytes, index)) ?? mandatoryPrefix;
+    index++;
+  }
+
+  const vectorDecoded = decodeX86VectorInstruction(bytes, index, mode);
+  if (vectorDecoded) return vectorDecoded;
+
+  if (mode === 'x64' && byteAt(bytes, index) >= 0x40 && byteAt(bytes, index) <= 0x4f) {
+    rex = byteAt(bytes, index);
+    index++;
+  }
+
+  const op = byteAt(bytes, index++);
+  const st: X86DecodeState = {
+    bytes,
+    index,
+    rex,
+    operand64: mode === 'x64' && (rex & 0x08) !== 0,
+    mode,
+    pc,
   };
-  const decoded = modRmOps[op];
-  if (decoded && bytes.length > index) {
-    const [mnemonic, regFirst] = decoded;
-    return formatDisasm(decodeX86ModRm(mnemonic, regFirst, byteAt(bytes, index), rex, operand64));
+
+  const simple = decodeX86SimpleOpcodes(op, st);
+  if (simple) return simple;
+
+  if (op === 0x0f) {
+    const op2 = byteAt(bytes, st.index++);
+    const twoByte = decodeX86TwoByte(op2, st, mandatoryPrefix);
+    if (twoByte) return twoByte;
+  }
+
+  const modRmDecoded = X86_MODRM_OPS[op];
+  if (modRmDecoded && bytes.length > st.index) {
+    const [mnemonic, regFirst] = modRmDecoded;
+    return formatDisasm(
+      decodeX86ModRm(mnemonic, regFirst, byteAt(bytes, st.index), rex, st.operand64),
+    );
   }
 
   return `<unknown>  ${bytes.map((byte) => byte.toString(16).padStart(2, '0')).join(' ')}`;

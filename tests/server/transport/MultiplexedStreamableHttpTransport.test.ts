@@ -320,7 +320,8 @@ describe('MultiplexedStreamableHttpTransport', () => {
       'Content-Type': 'application/json',
       'Retry-After': '1',
     });
-    expect(JSON.parse(overloaded.end.mock.calls[0]![0])).toMatchObject({
+    const payload = JSON.parse(overloaded.end.mock.calls[0]![0]);
+    expect(payload).toMatchObject({
       error: {
         code: -32001,
         data: {
@@ -330,6 +331,10 @@ describe('MultiplexedStreamableHttpTransport', () => {
         },
       },
     });
+    // `message` belongs on error.message only — a duplicate inside error.data
+    // changes the payload shape for strict JSON-RPC consumers.
+    expect(payload.error.message).toBe('MCP session in-flight capacity reached');
+    expect(payload.error.data).not.toHaveProperty('message');
 
     release();
     await Promise.allSettled([first, second, third]);

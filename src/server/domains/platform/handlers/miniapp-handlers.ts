@@ -363,140 +363,154 @@ export class MiniappHandlers {
         throw new Error('unpackedDir must be a directory');
       }
 
-      const pages = new Set<string>();
-      const components = new Set<string>();
-      const jsFiles: string[] = [];
-      let totalSize = 0;
+      const scan = await scanMiniappPackage(absoluteUnpackedDir);
+      const appJson = scan.appJsonPath ? await readJsonFileSafe(scan.appJsonPath) : null;
+      const appConfig = scan.appConfigPath ? await readJsonFileSafe(scan.appConfigPath) : null;
+      const appId =
+        extractAppIdFromManifest(appJson) ??
+        extractAppIdFromManifest(appConfig) ??
+        extractAppIdFromPath(absoluteUnpackedDir);
 
-      let appJsonPath: string | undefined;
-      let appConfigPath: string | undefined;
-      let pageFramePath: string | undefined;
-
-      await walkDirectory(absoluteUnpackedDir, async (absolutePath, fileStats) => {
-        totalSize += Number(fileStats.size);
-
-        const relPath = relative(absoluteUnpackedDir, absolutePath).replace(/\\/g, '/');
-        const lowerName = basename(absolutePath).toLowerCase();
-        const lowerExt = extname(absolutePath).toLowerCase();
-
-        if (lowerName === 'app.json' && !appJsonPath) {
-          appJsonPath = absolutePath;
-        } else if (lowerName === 'app-config.json' && !appConfigPath) {
-          appConfigPath = absolutePath;
-        } else if (lowerName === 'page-frame.html' && !pageFramePath) {
-          pageFramePath = absolutePath;
-        }
-
-        if (lowerExt === '.js') {
-          jsFiles.push(relPath);
-        }
-
-        if (
-          relPath.includes('/components/') &&
-          ['.js', '.wxml', '.json', '.wxss'].includes(lowerExt)
-        ) {
-          components.add(relPath);
-        }
-      });
-
-      const subPackages: Array<{ root: string; pages: string[] }> = [];
-      let appId: string | null = null;
-
-      if (appJsonPath) {
-        const appJson = await readJsonFileSafe(appJsonPath);
-        if (appJson) {
-          for (const page of toStringArray(appJson.pages)) {
-            pages.add(page);
-          }
-
-          const subPackagesRaw = appJson.subPackages ?? appJson.subpackages;
-          if (Array.isArray(subPackagesRaw)) {
-            for (const item of subPackagesRaw) {
-              if (!isRecord(item)) {
-                continue;
-              }
-
-              const root = typeof item.root === 'string' ? item.root.trim() : '';
-              const packagePages = toStringArray(item.pages);
-              subPackages.push({
-                root,
-                pages: packagePages,
-              });
-
-              for (const page of packagePages) {
-                if (root.length > 0) {
-                  pages.add(`${root}/${page}`);
-                } else {
-                  pages.add(page);
-                }
-              }
-            }
-          }
-
-          const usingComponents = appJson.usingComponents;
-          if (isRecord(usingComponents)) {
-            for (const componentPath of Object.values(usingComponents)) {
-              if (typeof componentPath === 'string' && componentPath.trim()) {
-                components.add(componentPath.trim());
-              }
-            }
-          }
-
-          const appIdFromAppJson =
-            typeof appJson.appId === 'string'
-              ? appJson.appId
-              : typeof appJson.appid === 'string'
-                ? appJson.appid
-                : null;
-
-          if (appIdFromAppJson && appIdFromAppJson.trim().length > 0) {
-            appId = appIdFromAppJson.trim();
-          }
-        }
-      }
-
-      if (appConfigPath) {
-        const appConfig = await readJsonFileSafe(appConfigPath);
-        if (appConfig) {
-          const appIdFromConfig =
-            typeof appConfig.appId === 'string'
-              ? appConfig.appId
-              : typeof appConfig.appid === 'string'
-                ? appConfig.appid
-                : null;
-
-          if (appIdFromConfig && appIdFromConfig.trim().length > 0 && !appId) {
-            appId = appIdFromConfig.trim();
-          }
-
-          for (const page of toStringArray(appConfig.pages)) {
-            pages.add(page);
-          }
-        }
-      }
-
-      if (!appId) {
-        appId = extractAppIdFromPath(absoluteUnpackedDir);
-      }
+      collectMiniappManifestPages(appJson, appConfig, scan);
 
       return toTextResponse({
         success: true,
         unpackedDir: absoluteUnpackedDir.replace(/\\/g, '/'),
-        pages: Array.from(pages).toSorted(),
-        subPackages,
-        components: Array.from(components).toSorted(),
-        jsFiles: jsFiles.toSorted(),
-        totalSize,
+        pages: Array.from(scan.pages).toSorted(),
+        subPackages: scan.subPackages,
+        components: Array.from(scan.components).toSorted(),
+        jsFiles: scan.jsFiles.toSorted(),
+        totalSize: scan.totalSize,
         appId,
         discovered: {
-          appJsonPath: appJsonPath ? toDisplayPath(appJsonPath) : null,
-          appConfigPath: appConfigPath ? toDisplayPath(appConfigPath) : null,
-          pageFramePath: pageFramePath ? toDisplayPath(pageFramePath) : null,
+          appJsonPath: scan.appJsonPath ? toDisplayPath(scan.appJsonPath) : null,
+          appConfigPath: scan.appConfigPath ? toDisplayPath(scan.appConfigPath) : null,
+          pageFramePath: scan.pageFramePath ? toDisplayPath(scan.pageFramePath) : null,
         },
         collectorState: getCollectorState(this.collector),
       });
     } catch (error) {
       return toErrorResponse('miniapp_pkg_analyze', error);
+    }
+  }
+}
+
+/** Mutable accumulator for the directory walk. */
+interface MiniappScanState {
+  pages: Set<string>;
+  components: Set<string>;
+  jsFiles: string[];
+  totalSize: number;
+  appJsonPath?: string;
+  appConfigPath?: string;
+  pageFramePath?: string;
+  subPackages: Array<{ root: string; pages: string[] }>;
+}
+
+/** Walk the unpacked package tree, collecting well-known files and JS/component paths. */
+async function scanMiniappPackage(rootDir: string): Promise<MiniappScanState> {
+  const state: MiniappScanState = {
+    pages: new Set(),
+    components: new Set(),
+    jsFiles: [],
+    totalSize: 0,
+    subPackages: [],
+  };
+
+  await walkDirectory(rootDir, async (absolutePath, fileStats) => {
+    state.totalSize += Number(fileStats.size);
+
+    const relPath = relative(rootDir, absolutePath).replace(/\\/g, '/');
+    const lowerName = basename(absolutePath).toLowerCase();
+    const lowerExt = extname(absolutePath).toLowerCase();
+
+    if (lowerName === 'app.json' && !state.appJsonPath) {
+      state.appJsonPath = absolutePath;
+    } else if (lowerName === 'app-config.json' && !state.appConfigPath) {
+      state.appConfigPath = absolutePath;
+    } else if (lowerName === 'page-frame.html' && !state.pageFramePath) {
+      state.pageFramePath = absolutePath;
+    }
+
+    if (lowerExt === '.js') {
+      state.jsFiles.push(relPath);
+    }
+
+    if (relPath.includes('/components/') && ['.js', '.wxml', '.json', '.wxss'].includes(lowerExt)) {
+      state.components.add(relPath);
+    }
+  });
+
+  return state;
+}
+
+/** Extract appId/appid from a parsed manifest object, or null. */
+function manifestAppId(manifest: Record<string, unknown> | null): string | null {
+  if (!manifest) return null;
+  const raw =
+    typeof manifest.appId === 'string'
+      ? manifest.appId
+      : typeof manifest.appid === 'string'
+        ? manifest.appid
+        : null;
+  return raw && raw.trim().length > 0 ? raw.trim() : null;
+}
+
+function extractAppIdFromManifest(manifest: Record<string, unknown> | null): string | null {
+  return manifestAppId(manifest);
+}
+
+/** Fold app.json + app-config.json pages/subPackages/components into the scan state. */
+function collectMiniappManifestPages(
+  appJson: Record<string, unknown> | null,
+  appConfig: Record<string, unknown> | null,
+  state: MiniappScanState,
+): void {
+  if (appJson) {
+    collectAppJsonManifest(appJson, state);
+  }
+  if (appConfig) {
+    for (const page of toStringArray(appConfig.pages)) {
+      state.pages.add(page);
+    }
+  }
+}
+
+function collectAppJsonManifest(appJson: Record<string, unknown>, state: MiniappScanState): void {
+  for (const page of toStringArray(appJson.pages)) {
+    state.pages.add(page);
+  }
+
+  const subPackagesRaw = appJson.subPackages ?? appJson.subpackages;
+  if (Array.isArray(subPackagesRaw)) {
+    collectSubPackages(subPackagesRaw, state);
+  }
+
+  const usingComponents = appJson.usingComponents;
+  if (isRecord(usingComponents)) {
+    for (const componentPath of Object.values(usingComponents)) {
+      if (typeof componentPath === 'string' && componentPath.trim()) {
+        state.components.add(componentPath.trim());
+      }
+    }
+  }
+}
+
+function collectSubPackages(subPackagesRaw: unknown[], state: MiniappScanState): void {
+  for (const item of subPackagesRaw) {
+    if (!isRecord(item)) {
+      continue;
+    }
+
+    const root = typeof item.root === 'string' ? item.root.trim() : '';
+    const packagePages = toStringArray(item.pages);
+    state.subPackages.push({
+      root,
+      pages: packagePages,
+    });
+
+    for (const page of packagePages) {
+      state.pages.add(root.length > 0 ? `${root}/${page}` : page);
     }
   }
 }

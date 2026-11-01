@@ -445,32 +445,77 @@ export async function replayRequest(
 ): Promise<ReplayResult> {
   const url = args.urlOverride ?? base.url;
   const method = (args.methodOverride ?? base.method).toUpperCase();
+  const mergedHeaders = buildReplayHeaders(base, args);
+  const body = args.bodyPatch !== undefined ? args.bodyPatch : base.postData;
+  const authorizationPolicy = createNetworkAuthorizationPolicy(args.authorization);
+  assertReplayAuthorizationUsable(authorizationPolicy);
+  const allowLegacyLocalSsrf = !authorizationPolicy && isLocalSsrfBypassEnabled();
+
+  const guards = createReplayTargetGuards(authorizationPolicy, allowLegacyLocalSsrf);
+  const resolvePinned = createPinnedTargetResolver(guards);
+
+  if (args.dryRun !== false) {
+    await validateDryRunTarget(url, args.authorization, guards);
+    return {
+      dryRun: true,
+      preview: { url, method, headers: mergedHeaders, body },
+    };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    args.timeoutMs ?? NETWORK_REPLAY_TIMEOUT_MS,
+  );
+  const useHttp2 = isHttp2Protocol(base.protocol);
+  const hopCtx = {
+    url,
+    method,
+    body,
+    mergedHeaders,
+    args,
+    maxBodyBytes,
+    maxRedirects: NETWORK_REPLAY_MAX_REDIRECTS,
+    resolvePinned,
+  };
+
+  try {
+    if (useHttp2) {
+      return replayHttp2WithRedirects(hopCtx);
+    }
+    return await replayHttp1WithRedirects({ ...hopCtx, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/** Merge base headers with the patch and the session-profile defaults. */
+function buildReplayHeaders(base: BaseRequest, args: ReplayArgs): Record<string, string> {
   const mergedHeaders = sanitizeHeaders({ ...base.headers, ...args.headerPatch });
-  const cookieHeader = args.sessionProfile ? buildCookieHeader(args.sessionProfile) : undefined;
+  const profile = args.sessionProfile;
+  const cookieHeader = profile ? buildCookieHeader(profile) : undefined;
   if (cookieHeader) {
     mergedHeaders.Cookie = cookieHeader;
   }
-  if (
-    args.sessionProfile?.userAgent &&
-    !mergedHeaders['User-Agent'] &&
-    !mergedHeaders['user-agent']
-  ) {
-    mergedHeaders['User-Agent'] = args.sessionProfile.userAgent;
+  if (profile?.userAgent && !mergedHeaders['User-Agent'] && !mergedHeaders['user-agent']) {
+    mergedHeaders['User-Agent'] = profile.userAgent;
   }
   if (
-    args.sessionProfile?.acceptLanguage &&
+    profile?.acceptLanguage &&
     !mergedHeaders['Accept-Language'] &&
     !mergedHeaders['accept-language']
   ) {
-    mergedHeaders['Accept-Language'] = args.sessionProfile.acceptLanguage;
+    mergedHeaders['Accept-Language'] = profile.acceptLanguage;
   }
-  if (args.sessionProfile?.referer && !mergedHeaders['Referer'] && !mergedHeaders['referer']) {
-    mergedHeaders.Referer = args.sessionProfile.referer;
+  if (profile?.referer && !mergedHeaders['Referer'] && !mergedHeaders['referer']) {
+    mergedHeaders.Referer = profile.referer;
   }
-  const body = args.bodyPatch !== undefined ? args.bodyPatch : base.postData;
-  const authorizationPolicy = createNetworkAuthorizationPolicy(args.authorization);
-  const allowLegacyLocalSsrf = !authorizationPolicy && isLocalSsrfBypassEnabled();
+  return mergedHeaders;
+}
 
+function assertReplayAuthorizationUsable(
+  authorizationPolicy: ReturnType<typeof createNetworkAuthorizationPolicy>,
+): void {
   if (
     authorizationPolicy &&
     (authorizationPolicy.allowPrivateNetwork || authorizationPolicy.allowInsecureHttp) &&
@@ -485,40 +530,49 @@ export async function replayRequest(
   if (isNetworkAuthorizationExpired(authorizationPolicy)) {
     throw new Error('Replay authorization expired before the request was executed.');
   }
+}
 
-  const isPrivateTargetAllowed = (target: ResolvedNetworkTarget): boolean => {
-    if (allowLegacyLocalSsrf) {
-      return true;
-    }
+interface ReplayTargetGuards {
+  isPrivateTargetAllowed: (target: ResolvedNetworkTarget) => boolean;
+  isInsecureHttpAllowed: (target: ResolvedNetworkTarget) => boolean;
+}
 
-    return (
-      authorizationPolicy?.allowPrivateNetwork === true &&
-      isAuthorizedNetworkTarget(authorizationPolicy, target)
-    );
+function createReplayTargetGuards(
+  authorizationPolicy: ReturnType<typeof createNetworkAuthorizationPolicy>,
+  allowLegacyLocalSsrf: boolean,
+): ReplayTargetGuards {
+  return {
+    isPrivateTargetAllowed: (target) => {
+      if (allowLegacyLocalSsrf) {
+        return true;
+      }
+      return (
+        authorizationPolicy?.allowPrivateNetwork === true &&
+        isAuthorizedNetworkTarget(authorizationPolicy, target)
+      );
+    },
+    isInsecureHttpAllowed: (target) => {
+      if (target.parsedUrl.protocol !== 'http:') {
+        return true;
+      }
+      if (allowLegacyLocalSsrf) {
+        return true;
+      }
+      if (isLoopbackHost(target.hostname)) {
+        return true;
+      }
+      return (
+        authorizationPolicy?.allowInsecureHttp === true &&
+        isAuthorizedNetworkTarget(authorizationPolicy, target)
+      );
+    },
   };
+}
 
-  const isInsecureHttpAllowed = (target: ResolvedNetworkTarget): boolean => {
-    if (target.parsedUrl.protocol !== 'http:') {
-      return true;
-    }
-
-    if (allowLegacyLocalSsrf) {
-      return true;
-    }
-
-    if (isLoopbackHost(target.hostname)) {
-      return true;
-    }
-
-    return (
-      authorizationPolicy?.allowInsecureHttp === true &&
-      isAuthorizedNetworkTarget(authorizationPolicy, target)
-    );
-  };
-
-  // SSRF guard + DNS pinning combined: resolve once, check, and pin the IP.
-  // Returns the pinned URL and original host header value.
-  const resolvePinned = async (
+/** SSRF guard + DNS pinning combined: resolve once, check, and pin the IP.
+ * Returns the pinned URL and original host header value. */
+function createPinnedTargetResolver(guards: ReplayTargetGuards) {
+  return async (
     targetUrl: string,
   ): Promise<{ pinnedUrl: string; originalHost: string; target: ResolvedNetworkTarget }> => {
     let target: ResolvedNetworkTarget;
@@ -528,7 +582,7 @@ export async function replayRequest(
       throw new Error(`Replay blocked: DNS resolution failed for "${targetUrl}"`);
     }
 
-    if (!isInsecureHttpAllowed(target)) {
+    if (!guards.isInsecureHttpAllowed(target)) {
       throw new Error(
         `Replay blocked: insecure HTTP is only allowed for loopback or explicitly authorized targets, got "` +
           `${targetUrl}"`,
@@ -538,7 +592,7 @@ export async function replayRequest(
     const hostnameIsPrivate = isPrivateHost(target.hostname);
     const resolvedAddressIsPrivate = isPrivateHost(target.resolvedAddress ?? '');
 
-    if ((hostnameIsPrivate || resolvedAddressIsPrivate) && !isPrivateTargetAllowed(target)) {
+    if ((hostnameIsPrivate || resolvedAddressIsPrivate) && !guards.isPrivateTargetAllowed(target)) {
       if (!hostnameIsPrivate && resolvedAddressIsPrivate && target.resolvedAddress) {
         throw new Error(
           `Replay blocked: "${targetUrl}" resolved to private IP ${target.resolvedAddress}`,
@@ -561,164 +615,164 @@ export async function replayRequest(
         : (target.resolvedAddress ?? target.hostname);
     return { pinnedUrl: target.parsedUrl.toString(), originalHost, target };
   };
+}
 
-  if (args.dryRun !== false) {
-    // Still validate the URL even for dry runs
-    if (await isSsrfTarget(url, args.authorization)) {
-      throw new Error(
-        `Replay blocked: target URL "${url}" resolves to a private/reserved address.`,
-      );
-    }
-
-    const dryRunTarget = await resolveNetworkTarget(url).catch(() => null);
-    if (dryRunTarget && !isInsecureHttpAllowed(dryRunTarget)) {
-      throw new Error(
-        `Replay blocked: insecure HTTP is only allowed for loopback or explicitly authorized targets, got "${url}"`,
-      );
-    }
-
-    return {
-      dryRun: true,
-      preview: { url, method, headers: mergedHeaders, body },
-    };
+/** Dry runs still validate the URL against the SSRF + insecure-HTTP policy. */
+async function validateDryRunTarget(
+  url: string,
+  authorization: ReplayArgs['authorization'],
+  guards: ReplayTargetGuards,
+): Promise<void> {
+  if (await isSsrfTarget(url, authorization)) {
+    throw new Error(`Replay blocked: target URL "${url}" resolves to a private/reserved address.`);
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    args.timeoutMs ?? NETWORK_REPLAY_TIMEOUT_MS,
-  );
-  const MAX_REDIRECTS = NETWORK_REPLAY_MAX_REDIRECTS;
-  const useHttp2 = isHttp2Protocol(base.protocol);
+  const dryRunTarget = await resolveNetworkTarget(url).catch(() => null);
+  if (dryRunTarget && !guards.isInsecureHttpAllowed(dryRunTarget)) {
+    throw new Error(
+      `Replay blocked: insecure HTTP is only allowed for loopback or explicitly authorized targets, got "${url}"`,
+    );
+  }
+}
 
-  try {
-    let currentUrl = url;
-    let currentMethod = method;
-    let currentBody: string | undefined = body;
+interface ReplayHopContext {
+  url: string;
+  method: string;
+  body: string | undefined;
+  mergedHeaders: Record<string, string>;
+  args: ReplayArgs;
+  maxBodyBytes: number;
+  maxRedirects: number;
+  resolvePinned: (
+    targetUrl: string,
+  ) => Promise<{ pinnedUrl: string; originalHost: string; target: ResolvedNetworkTarget }>;
+}
 
-    if (useHttp2) {
-      // HTTP/2 path — follows redirects like the HTTP/1.1 path below.
-      for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
-        const { pinnedUrl, originalHost, target } = await resolvePinned(currentUrl);
-        const parsedUrl = new URL(pinnedUrl);
-        const hopHeaders = { ...mergedHeaders };
-        if (
-          target.parsedUrl.protocol === 'http:' &&
-          target.resolvedAddress &&
-          !target.isIpLiteral
-        ) {
-          hopHeaders.Host = originalHost;
-        }
+/** 301/302/303 → method becomes GET, body dropped; 307/308 → preserve. */
+function applyRedirectStatus(
+  status: number,
+  state: { currentMethod: string; currentBody: string | undefined },
+): void {
+  if (status === 301 || status === 302 || status === 303) {
+    state.currentMethod = 'GET';
+    state.currentBody = undefined;
+  }
+}
 
-        const result = await replayHttp2Request(
-          parsedUrl,
-          currentMethod,
-          hopHeaders,
-          currentMethod !== 'GET' && currentMethod !== 'HEAD' ? currentBody : undefined,
-          args.timeoutMs ?? NETWORK_REPLAY_TIMEOUT_MS,
-          target,
-          maxBodyBytes,
-        );
+/** Remove stale Host header for a new redirect destination. */
+function clearHostHeader(headers: Record<string, string>): void {
+  delete headers['Host'];
+  delete headers['host'];
+}
 
-        if (result.status >= 300 && result.status < 400) {
-          const location = result.headers['location'] ?? result.headers['Location'];
-          if (!location) {
-            return {
-              dryRun: false,
-              status: result.status,
-              statusText: result.statusText,
-              headers: result.headers,
-              body: result.body,
-              bodyTruncated: result.bodyTruncated,
-              requestId: args.requestId,
-            };
-          }
-          currentUrl = new URL(location, currentUrl).toString();
-          // 301/302/303 → method becomes GET, body dropped; 307/308 → preserve
-          if (result.status === 301 || result.status === 302 || result.status === 303) {
-            currentMethod = 'GET';
-            currentBody = undefined;
-          }
-          // Remove stale Host header for new destination
-          delete mergedHeaders['Host'];
-          delete mergedHeaders['host'];
-          continue;
-        }
+/** HTTP/2 path — follows redirects like the HTTP/1.1 fetch path. */
+async function replayHttp2WithRedirects(hop: ReplayHopContext): Promise<ReplayResult> {
+  let currentUrl = hop.url;
+  const state = { currentMethod: hop.method, currentBody: hop.body };
 
-        return {
-          dryRun: false,
-          status: result.status,
-          statusText: result.statusText,
-          headers: result.headers,
-          body: result.body,
-          bodyTruncated: result.bodyTruncated,
-          requestId: args.requestId,
-        };
-      }
-
-      throw new Error(`Replay blocked: too many redirects (>${MAX_REDIRECTS})`);
+  for (let i = 0; i < hop.maxRedirects; i++) {
+    const { pinnedUrl, originalHost, target } = await hop.resolvePinned(currentUrl);
+    const parsedUrl = new URL(pinnedUrl);
+    const hopHeaders = { ...hop.mergedHeaders };
+    if (target.parsedUrl.protocol === 'http:' && target.resolvedAddress && !target.isIpLiteral) {
+      hopHeaders.Host = originalHost;
     }
 
-    // HTTP/1.1 path with fetch
-    let resp!: Response;
+    const result = await replayHttp2Request(
+      parsedUrl,
+      state.currentMethod,
+      hopHeaders,
+      state.currentMethod !== 'GET' && state.currentMethod !== 'HEAD'
+        ? state.currentBody
+        : undefined,
+      hop.args.timeoutMs ?? NETWORK_REPLAY_TIMEOUT_MS,
+      target,
+      hop.maxBodyBytes,
+    );
 
-    for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
-      const { pinnedUrl, originalHost, target } = await resolvePinned(currentUrl);
-      const hopHeaders = { ...mergedHeaders };
-      if (target.parsedUrl.protocol === 'http:' && target.resolvedAddress && !target.isIpLiteral) {
-        hopHeaders.Host = originalHost;
-      }
-
-      resp = await fetch(pinnedUrl, {
-        method: currentMethod,
-        headers: hopHeaders,
-        body: currentMethod !== 'GET' && currentMethod !== 'HEAD' ? currentBody : undefined,
-        signal: controller.signal,
-        redirect: 'manual',
-      });
-
-      if (resp.status >= 300 && resp.status < 400) {
-        const location = resp.headers.get('location');
-        if (!location) break; // no location header → treat as final response
-        currentUrl = new URL(location, currentUrl).toString();
-        // 301/302/303 → method becomes GET, body dropped; 307/308 → preserve
-
-        if (resp.status === 301 || resp.status === 302 || resp.status === 303) {
-          currentMethod = 'GET';
-          currentBody = undefined;
-        }
-        // Remove stale Host header for new destination
-        delete mergedHeaders['Host'];
-        delete mergedHeaders['host'];
-        continue;
-      }
-
-      break;
-    }
-
-    if (resp.status >= 300 && resp.status < 400) {
-      throw new Error(`Replay blocked: too many redirects (>${MAX_REDIRECTS})`);
-    }
-
-    const responseHeaders: Record<string, string> = {};
-    resp.headers.forEach((v, k) => {
-      responseHeaders[k] = v;
+    const asResult = (): ReplayResult => ({
+      dryRun: false,
+      status: result.status,
+      statusText: result.statusText,
+      headers: result.headers,
+      body: result.body,
+      bodyTruncated: result.bodyTruncated,
+      requestId: hop.args.requestId,
     });
 
-    const rawText = await resp.text();
-    const bodyTruncated = rawText.length > maxBodyBytes;
-    const bodyOut = bodyTruncated ? rawText.slice(0, maxBodyBytes) : rawText;
+    if (result.status >= 300 && result.status < 400) {
+      const location = result.headers['location'] ?? result.headers['Location'];
+      if (!location) return asResult();
+      currentUrl = new URL(location, currentUrl).toString();
+      applyRedirectStatus(result.status, state);
+      clearHostHeader(hop.mergedHeaders);
+      continue;
+    }
 
-    return {
-      dryRun: false,
-      status: resp.status,
-      statusText: resp.statusText,
-      headers: responseHeaders,
-      body: bodyOut,
-      bodyTruncated,
-      requestId: args.requestId,
-    };
-  } finally {
-    clearTimeout(timeoutId);
+    return asResult();
   }
+
+  throw new Error(`Replay blocked: too many redirects (>${hop.maxRedirects})`);
+}
+
+/** HTTP/1.1 path with fetch and manual redirect handling. */
+async function replayHttp1WithRedirects(
+  hop: ReplayHopContext & { signal: AbortSignal },
+): Promise<ReplayResult> {
+  let currentUrl = hop.url;
+  const state = { currentMethod: hop.method, currentBody: hop.body };
+  let resp!: Response;
+
+  for (let i = 0; i < hop.maxRedirects; i++) {
+    const { pinnedUrl, originalHost, target } = await hop.resolvePinned(currentUrl);
+    const hopHeaders = { ...hop.mergedHeaders };
+    if (target.parsedUrl.protocol === 'http:' && target.resolvedAddress && !target.isIpLiteral) {
+      hopHeaders.Host = originalHost;
+    }
+
+    resp = await fetch(pinnedUrl, {
+      method: state.currentMethod,
+      headers: hopHeaders,
+      body:
+        state.currentMethod !== 'GET' && state.currentMethod !== 'HEAD'
+          ? state.currentBody
+          : undefined,
+      signal: hop.signal,
+      redirect: 'manual',
+    });
+
+    if (resp.status >= 300 && resp.status < 400) {
+      const location = resp.headers.get('location');
+      if (!location) break; // no location header → treat as final response
+      currentUrl = new URL(location, currentUrl).toString();
+      applyRedirectStatus(resp.status, state);
+      clearHostHeader(hop.mergedHeaders);
+      continue;
+    }
+
+    break;
+  }
+
+  if (resp.status >= 300 && resp.status < 400) {
+    throw new Error(`Replay blocked: too many redirects (>${hop.maxRedirects})`);
+  }
+
+  const responseHeaders: Record<string, string> = {};
+  resp.headers.forEach((v, k) => {
+    responseHeaders[k] = v;
+  });
+
+  const rawText = await resp.text();
+  const bodyTruncated = rawText.length > hop.maxBodyBytes;
+  const bodyOut = bodyTruncated ? rawText.slice(0, hop.maxBodyBytes) : rawText;
+
+  return {
+    dryRun: false,
+    status: resp.status,
+    statusText: resp.statusText,
+    headers: responseHeaders,
+    body: bodyOut,
+    bodyTruncated,
+    requestId: hop.args.requestId,
+  };
 }

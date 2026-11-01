@@ -175,46 +175,10 @@ function parseBpftraceJsonl(
 
     if (type === 'enter') {
       enterCount++;
-      const tid = typeof parsed['tid'] === 'number' ? parsed['tid'] : undefined;
-      const elapsedMs = typeof parsed['elapsedMs'] === 'number' ? parsed['elapsedMs'] : undefined;
-      const eventPid = typeof parsed['pid'] === 'number' ? parsed['pid'] : pid;
-      const syscall = extractSyscallName(
-        typeof parsed['syscall'] === 'string' ? parsed['syscall'] : '',
-        syscalls,
-      );
-      if (!syscall || tid === undefined || elapsedMs === undefined) continue;
-
-      const args = extractEnterArgs(parsed);
-      pendingEntries.set(tid, { elapsedMs, pid: eventPid, syscall, args });
+      handleBpftraceEnter(parsed, pid, syscalls, pendingEntries);
     } else if (type === 'exit') {
       exitCount++;
-      const tid = typeof parsed['tid'] === 'number' ? parsed['tid'] : undefined;
-      const elapsedMs = typeof parsed['elapsedMs'] === 'number' ? parsed['elapsedMs'] : undefined;
-      const ret = typeof parsed['ret'] === 'number' ? parsed['ret'] : undefined;
-      const durationUs =
-        typeof parsed['durationUs'] === 'number' ? parsed['durationUs'] : undefined;
-      const syscallName = extractSyscallName(
-        typeof parsed['syscall'] === 'string' ? parsed['syscall'] : '',
-        syscalls,
-      );
-
-      if (tid === undefined || elapsedMs === undefined) continue;
-
-      const enter = pendingEntries.get(tid);
-      const syscall = enter?.syscall ?? syscallName ?? 'unknown';
-      const args = enter?.args ?? [];
-      const pidForEvent = enter?.pid ?? (typeof parsed['pid'] === 'number' ? parsed['pid'] : pid);
-
-      pendingEntries.delete(tid);
-
-      events.push({
-        timestamp: elapsedMs,
-        pid: pidForEvent,
-        syscall,
-        args,
-        returnValue: ret,
-        duration: durationUs !== undefined ? durationUs / 1000 : undefined, // μs → ms
-      });
+      handleBpftraceExit(parsed, pid, syscalls, pendingEntries, events);
     }
   }
 
@@ -637,4 +601,59 @@ export async function handleSyscallEbpfAttach(
     liveCapable: probe.liveCapable,
     bpftraceAvailable: probe.available,
   };
+}
+
+function handleBpftraceEnter(
+  parsed: Record<string, unknown>,
+  fallbackPid: number,
+  syscalls: string[],
+  pendingEntries: Map<number, { elapsedMs: number; pid: number; syscall: string; args: string[] }>,
+): void {
+  const tid = typeof parsed['tid'] === 'number' ? parsed['tid'] : undefined;
+  const elapsedMs = typeof parsed['elapsedMs'] === 'number' ? parsed['elapsedMs'] : undefined;
+  const eventPid = typeof parsed['pid'] === 'number' ? parsed['pid'] : fallbackPid;
+  const syscall = extractSyscallName(
+    typeof parsed['syscall'] === 'string' ? parsed['syscall'] : '',
+    syscalls,
+  );
+  if (!syscall || tid === undefined || elapsedMs === undefined) return;
+
+  const args = extractEnterArgs(parsed);
+  pendingEntries.set(tid, { elapsedMs, pid: eventPid, syscall, args });
+}
+
+function handleBpftraceExit(
+  parsed: Record<string, unknown>,
+  fallbackPid: number,
+  syscalls: string[],
+  pendingEntries: Map<number, { elapsedMs: number; pid: number; syscall: string; args: string[] }>,
+  events: SyscallEvent[],
+): void {
+  const tid = typeof parsed['tid'] === 'number' ? parsed['tid'] : undefined;
+  const elapsedMs = typeof parsed['elapsedMs'] === 'number' ? parsed['elapsedMs'] : undefined;
+  const ret = typeof parsed['ret'] === 'number' ? parsed['ret'] : undefined;
+  const durationUs = typeof parsed['durationUs'] === 'number' ? parsed['durationUs'] : undefined;
+  const syscallName = extractSyscallName(
+    typeof parsed['syscall'] === 'string' ? parsed['syscall'] : '',
+    syscalls,
+  );
+
+  if (tid === undefined || elapsedMs === undefined) return;
+
+  const enter = pendingEntries.get(tid);
+  const syscall = enter?.syscall ?? syscallName ?? 'unknown';
+  const args = enter?.args ?? [];
+  const pidForEvent =
+    enter?.pid ?? (typeof parsed['pid'] === 'number' ? parsed['pid'] : fallbackPid);
+
+  pendingEntries.delete(tid);
+
+  events.push({
+    timestamp: elapsedMs,
+    pid: pidForEvent,
+    syscall,
+    args,
+    returnValue: ret,
+    duration: durationUs !== undefined ? durationUs / 1000 : undefined, // μs → ms
+  });
 }

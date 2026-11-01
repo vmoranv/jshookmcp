@@ -312,83 +312,18 @@ export class BrowserControlHandlers {
     try {
       const driver = this.parseBrowserDriver(args);
       const mode = this.parseBrowserLaunchMode(args);
-      const sessionId = this.getCurrentSessionId();
+      const sessionId = this.getCurrentSessionId() ?? '';
       const lease = this.deps.sessionCoordinator?.getBrowserLease(sessionId);
 
-      if (mode === 'launch' && lease && lease.otherOwners > 0) {
-        return R.fail(
-          `browser_launch is blocked while ${lease.otherOwners} other browser session(s) are active. ` +
-            'Use browser_attach to share the existing Chrome connection without replacing it.',
-        ).json();
-      }
-      if (mode === 'connect' && lease && !lease.owned && lease.otherOwners > 0) {
-        return R.fail(
-          'browser_launch(mode="connect") cannot join a browser owned by another session because it does not ' +
-            'allocate an isolated tab. Use browser_attach instead.',
-        ).json();
-      }
+      const leaseBlock = browserLaunchLeaseBlock(mode, lease);
+      if (leaseBlock) return leaseBlock;
 
       if (driver === 'camoufox') {
-        if (mode === 'connect') {
-          const wsEndpoint = argString(args, 'wsEndpoint');
-          if (!wsEndpoint) {
-            return R.fail(
-              'wsEndpoint is required for connect mode. Use camoufox_server({ action: "launch" }) first to get a ' +
-                'wsEndpoint.',
-            ).json();
-          }
-          return R.ok()
-            .merge({
-              driver: 'camoufox',
-              mode: 'connect',
-              wsEndpoint,
-              message: 'Connected to Camoufox server. Use page_navigate to begin.',
-            })
-            .json();
-        }
-
-        return R.ok()
-          .merge({
-            driver: 'camoufox',
-            mode: 'launch',
-            message: 'Camoufox (Firefox) browser launched',
-            note:
-              'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_monitor({ ' +
-              'action: "enable" }) use Playwright events and are fully supported.',
-          })
-          .json();
+        return camoufoxLaunchResponse(mode, args);
       }
 
       if (mode === 'connect') {
-        const connectRequest = this.parseChromeConnectRequest(args);
-
-        if (!this.hasChromeConnectRequest(connectRequest)) {
-          return R.fail(
-            'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
-          ).json();
-        }
-
-        await this.deps.collector.connect(connectRequest);
-        const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
-        const status = await this.deps.collector.getStatus();
-
-        this.emitBrowserLaunched('connect');
-
-        return R.ok()
-          .merge({
-            driver: 'chrome',
-            mode: 'connect',
-            endpoint: this.describeChromeConnectRequest(connectRequest),
-            autoConnect: this.isAutoConnectRequest(connectRequest),
-            channel: connectRequest.channel ?? null,
-            userDataDir: connectRequest.userDataDir ?? null,
-            manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
-            approvalHint: this.getAutoConnectApprovalHint(connectRequest),
-            message: 'Connected to existing Chrome browser successfully',
-            browserSessionOwners: claim?.totalOwners ?? 1,
-            status,
-          })
-          .json();
+        return this.connectChromeBrowser(args, sessionId);
       }
 
       const launchRequest = this.parseChromeLaunchRequest(args);
@@ -399,23 +334,7 @@ export class BrowserControlHandlers {
         }
 
         // Auto-select the first tab so page_navigate / page_evaluate work immediately after launch.
-        const pages = await this.deps.collector.listPages();
-        if (pages.length > 0) {
-          await this.deps.collector.selectPage(0);
-          await this.syncTabRegistryWithCollectorPages('browser_launch');
-        }
-        const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
-        const currentPage = pages[0];
-        this.deps.onBrowserAttachStateChanged?.({
-          endpoint: null,
-          selectedIndex: pages.length > 0 ? 0 : null,
-          selectedUrl: currentPage?.url ?? null,
-          selectedTitle: currentPage?.title ?? null,
-          selectedTargetId: null,
-          browserPid: this.deps.collector.getChromePid(),
-          rendererPid: null,
-          attachedAt: new Date().toISOString(),
-        });
+        const { pages, claim, currentPage } = await this.finishLaunch('browser_launch', sessionId);
 
         const status = await this.deps.collector.getStatus();
 
@@ -452,23 +371,10 @@ export class BrowserControlHandlers {
           ...launchRequest,
           headless: true,
         });
-        const pages = await this.deps.collector.listPages();
-        if (pages.length > 0) {
-          await this.deps.collector.selectPage(0);
-          await this.syncTabRegistryWithCollectorPages('browser_launch_fallback');
-        }
-        const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
-        const currentPage = pages[0];
-        this.deps.onBrowserAttachStateChanged?.({
-          endpoint: null,
-          selectedIndex: pages.length > 0 ? 0 : null,
-          selectedUrl: currentPage?.url ?? null,
-          selectedTitle: currentPage?.title ?? null,
-          selectedTargetId: null,
-          browserPid: this.deps.collector.getChromePid(),
-          rendererPid: null,
-          attachedAt: new Date().toISOString(),
-        });
+        const { pages, claim, currentPage } = await this.finishLaunch(
+          'browser_launch_fallback',
+          sessionId,
+        );
         const fallbackStatus = await this.deps.collector.getStatus();
 
         this.emitBrowserLaunched('launch');
@@ -699,45 +605,12 @@ export class BrowserControlHandlers {
       const existingLease = this.deps.sessionCoordinator?.getBrowserLease(sessionId);
       await this.deps.collector.connect(connectRequest);
 
-      const rawPageIndex = args.pageIndex;
-      const pageIndexProvided =
-        rawPageIndex !== undefined &&
-        rawPageIndex !== null &&
-        !(typeof rawPageIndex === 'string' && rawPageIndex.trim() === '');
-      const pageIndex =
-        typeof rawPageIndex === 'number'
-          ? rawPageIndex
-          : typeof rawPageIndex === 'string' && rawPageIndex.trim() !== ''
-            ? Number(rawPageIndex)
-            : 0;
-      const requestedIndex = Number.isFinite(pageIndex) ? pageIndex : 0;
-
-      let pages = await this.deps.collector.listPages();
-      let isolatedTabCreated = false;
-      if (
-        !pageIndexProvided &&
-        existingLease &&
-        !existingLease.owned &&
-        existingLease.otherOwners > 0
-      ) {
-        await this.deps.collector.createPage();
-        pages = await this.deps.collector.listPages();
-        isolatedTabCreated = pages.length > 0;
-      }
-      const preferred = isolatedTabCreated
-        ? { selectedIndex: pages.length - 1, selected: pages.at(-1) ?? null }
-        : this.pickPreferredAttachPage(pages, pageIndexProvided ? requestedIndex : null);
-      const selectedIndex = preferred.selectedIndex;
-
-      if (pages.length > 0) {
-        await this.deps.collector.selectPage(selectedIndex);
-        if (requestedIndex !== selectedIndex) {
-          logger.warn(
-            `[browser_attach] requested pageIndex ${requestedIndex} resolved to ${selectedIndex}; ` +
-              `preferred non-blank target when available`,
-          );
-        }
-      }
+      const { pageIndexProvided, requestedIndex } = parseAttachPageIndex(args);
+      const { pages, isolatedTabCreated, selectedIndex } = await this.selectAttachPage(
+        pageIndexProvided,
+        requestedIndex,
+        existingLease,
+      );
 
       const registry = this.deps.getTabRegistry();
       const syncedPageId = await this.syncTabRegistryWithCollectorPages('browser_attach');
@@ -787,11 +660,11 @@ export class BrowserControlHandlers {
           currentTitle: selected?.title ?? null,
           totalPages: pages.length,
           connectionReused: Boolean(existingLease?.owned || existingLease?.otherOwners),
-          sessionIsolation: isolatedTabCreated
-            ? 'dedicated-tab'
-            : pageIndexProvided && existingLease?.otherOwners
-              ? 'explicit-shared-tab'
-              : 'existing-tab',
+          sessionIsolation: resolveSessionIsolation(
+            isolatedTabCreated,
+            pageIndexProvided,
+            existingLease,
+          ),
           browserSessionOwners: claim?.totalOwners ?? 1,
           contextSwitched: pages.length > 0,
           detachedCdpTarget: clearedTarget.detached,
@@ -818,4 +691,199 @@ export class BrowserControlHandlers {
         .json();
     }
   }
+  /** Post-launch bookkeeping shared by the normal and Linux-fallback paths:
+   * auto-select the first tab, sync the registry, claim the lease and
+   * broadcast the attach state. */
+  private async finishLaunch(
+    registrySyncTag: string,
+    sessionId: string,
+  ): Promise<{
+    pages: Awaited<ReturnType<CodeCollector['listPages']>>;
+    claim: { totalOwners?: number } | null | undefined;
+    currentPage: Awaited<ReturnType<CodeCollector['listPages']>>[number] | undefined;
+  }> {
+    const pages = await this.deps.collector.listPages();
+    if (pages.length > 0) {
+      await this.deps.collector.selectPage(0);
+      await this.syncTabRegistryWithCollectorPages(registrySyncTag);
+    }
+    const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
+    const currentPage = pages[0];
+    this.deps.onBrowserAttachStateChanged?.({
+      endpoint: null,
+      selectedIndex: pages.length > 0 ? 0 : null,
+      selectedUrl: currentPage?.url ?? null,
+      selectedTitle: currentPage?.title ?? null,
+      selectedTargetId: null,
+      browserPid: this.deps.collector.getChromePid(),
+      rendererPid: null,
+      attachedAt: new Date().toISOString(),
+    });
+    return { pages, claim, currentPage };
+  }
+
+  /** Chrome connect mode: validate the connect request, attach, claim the
+   * lease and describe the attached endpoint. */
+  private async connectChromeBrowser(
+    args: Record<string, unknown>,
+    sessionId: string,
+  ): Promise<ToolResponse> {
+    let connectRequest: ChromeConnectRequest;
+    try {
+      connectRequest = this.parseChromeConnectRequest(args);
+    } catch (error) {
+      return R.fail(error).json();
+    }
+
+    if (!this.hasChromeConnectRequest(connectRequest)) {
+      return R.fail(
+        'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
+      ).json();
+    }
+
+    await this.deps.collector.connect(connectRequest);
+    const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
+    const status = await this.deps.collector.getStatus();
+
+    this.emitBrowserLaunched('connect');
+
+    return R.ok()
+      .merge({
+        driver: 'chrome',
+        mode: 'connect',
+        endpoint: this.describeChromeConnectRequest(connectRequest),
+        autoConnect: this.isAutoConnectRequest(connectRequest),
+        channel: connectRequest.channel ?? null,
+        userDataDir: connectRequest.userDataDir ?? null,
+        manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
+        approvalHint: this.getAutoConnectApprovalHint(connectRequest),
+        message: 'Connected to existing Chrome browser successfully',
+        browserSessionOwners: claim?.totalOwners ?? 1,
+        status,
+      })
+      .json();
+  }
+
+  /** Attach target selection: isolated tab when joining a shared browser, else
+   * the preferred page. Returns the fresh page list plus the selected index. */
+  private async selectAttachPage(
+    pageIndexProvided: boolean,
+    requestedIndex: number,
+    existingLease: { owned?: boolean; otherOwners?: number } | null | undefined,
+  ): Promise<{
+    pages: Awaited<ReturnType<CodeCollector['listPages']>>;
+    isolatedTabCreated: boolean;
+    selectedIndex: number;
+  }> {
+    let pages = await this.deps.collector.listPages();
+    let isolatedTabCreated = false;
+    if (
+      !pageIndexProvided &&
+      existingLease &&
+      !existingLease.owned &&
+      (existingLease.otherOwners ?? 0) > 0
+    ) {
+      await this.deps.collector.createPage();
+      pages = await this.deps.collector.listPages();
+      isolatedTabCreated = pages.length > 0;
+    }
+    const preferred = isolatedTabCreated
+      ? { selectedIndex: pages.length - 1, selected: pages.at(-1) ?? null }
+      : this.pickPreferredAttachPage(pages, pageIndexProvided ? requestedIndex : null);
+    const selectedIndex = preferred.selectedIndex;
+
+    if (pages.length > 0) {
+      await this.deps.collector.selectPage(selectedIndex);
+      if (requestedIndex !== selectedIndex) {
+        logger.warn(
+          `[browser_attach] requested pageIndex ${requestedIndex} resolved to ${selectedIndex}; ` +
+            `preferred non-blank target when available`,
+        );
+      }
+    }
+    return { pages, isolatedTabCreated, selectedIndex };
+  }
+}
+
+/** Refuse launch/connect combinations that would steal or hijack another
+ * session's browser lease. Returns the failure response or null when allowed. */
+function browserLaunchLeaseBlock(
+  mode: string,
+  lease: { owned?: boolean; otherOwners: number } | null | undefined,
+): ReturnType<typeof R.fail>['json'] extends () => infer T ? T | null : never {
+  if (mode === 'launch' && lease && lease.otherOwners > 0) {
+    return R.fail(
+      `browser_launch is blocked while ${lease.otherOwners} other browser session(s) are active. ` +
+        'Use browser_attach to share the existing Chrome connection without replacing it.',
+    ).json();
+  }
+  if (mode === 'connect' && lease && !lease.owned && lease.otherOwners > 0) {
+    return R.fail(
+      'browser_launch(mode="connect") cannot join a browser owned by another session because it does not ' +
+        'allocate an isolated tab. Use browser_attach instead.',
+    ).json();
+  }
+  return null;
+}
+
+/** Camoufox launch/connect responses (no Chrome session coordination). */
+function camoufoxLaunchResponse(mode: string, args: Record<string, unknown>) {
+  if (mode === 'connect') {
+    const wsEndpoint = argString(args, 'wsEndpoint');
+    if (!wsEndpoint) {
+      return R.fail(
+        'wsEndpoint is required for connect mode. Use camoufox_server({ action: "launch" }) first to get a ' +
+          'wsEndpoint.',
+      ).json();
+    }
+    return R.ok()
+      .merge({
+        driver: 'camoufox',
+        mode: 'connect',
+        wsEndpoint,
+        message: 'Connected to Camoufox server. Use page_navigate to begin.',
+      })
+      .json();
+  }
+
+  return R.ok()
+    .merge({
+      driver: 'camoufox',
+      mode: 'launch',
+      message: 'Camoufox (Firefox) browser launched',
+      note:
+        'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_monitor({ ' +
+        'action: "enable" }) use Playwright events and are fully supported.',
+    })
+    .json();
+}
+
+/** Parse `pageIndex`: reports whether it was supplied and the numeric value. */
+function parseAttachPageIndex(args: Record<string, unknown>): {
+  pageIndexProvided: boolean;
+  requestedIndex: number;
+} {
+  const rawPageIndex = args.pageIndex;
+  const pageIndexProvided =
+    rawPageIndex !== undefined &&
+    rawPageIndex !== null &&
+    !(typeof rawPageIndex === 'string' && rawPageIndex.trim() === '');
+  const pageIndex =
+    typeof rawPageIndex === 'number'
+      ? rawPageIndex
+      : typeof rawPageIndex === 'string' && rawPageIndex.trim() !== ''
+        ? Number(rawPageIndex)
+        : 0;
+  return { pageIndexProvided, requestedIndex: Number.isFinite(pageIndex) ? pageIndex : 0 };
+}
+
+/** How the attach shares the browser: dedicated → explicit shared → existing. */
+function resolveSessionIsolation(
+  isolatedTabCreated: boolean,
+  pageIndexProvided: boolean,
+  existingLease: { otherOwners?: number } | null | undefined,
+): string {
+  if (isolatedTabCreated) return 'dedicated-tab';
+  if (pageIndexProvided && existingLease?.otherOwners) return 'explicit-shared-tab';
+  return 'existing-tab';
 }

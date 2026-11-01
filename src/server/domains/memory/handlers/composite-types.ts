@@ -295,45 +295,60 @@ export function detectCompositeTypes(
   const results: CompositeTypeDetection[] = [];
   if (fields.length < 2) return results;
 
-  // ── Detect float[3] (Vector3) ──
+  detectVector3(fields, results);
+  detectMatrixRuns(fields, results);
+  detectPointerArrays(fields, results);
+
+  return results;
+}
+
+type StructField = { offset: number; size: number; type: string; name: string; value?: string };
+
+/** ── Detect float[3] (Vector3) ── */
+function detectVector3(fields: StructField[], results: CompositeTypeDetection[]): void {
   for (let i = 0; i <= fields.length - 3; i++) {
     const f0 = fields[i]!;
     const f1 = fields[i + 1]!;
     const f2 = fields[i + 2]!;
     if (
-      f0.type === 'float' &&
-      f0.size === 4 &&
-      f1.type === 'float' &&
-      f1.size === 4 &&
-      f2.type === 'float' &&
-      f2.size === 4 &&
-      f1.offset === f0.offset + 4 &&
-      f2.offset === f1.offset + 4
+      !(
+        f0.type === 'float' &&
+        f0.size === 4 &&
+        f1.type === 'float' &&
+        f1.size === 4 &&
+        f2.type === 'float' &&
+        f2.size === 4 &&
+        f1.offset === f0.offset + 4 &&
+        f2.offset === f1.offset + 4
+      )
     ) {
-      // Check if names suggest vector components
-      const names = [f0.name.toLowerCase(), f1.name.toLowerCase(), f2.name.toLowerCase()];
-      const vectorScore =
-        names.some((n) => /^(x|position_x|pos_x|vec_x|vx)$/.test(n)) &&
-        names.some((n) => /^(y|position_y|pos_y|vec_y|vy)$/.test(n)) &&
-        names.some((n) => /^(z|position_z|pos_z|vec_z|vz)$/.test(n))
-          ? 0.95
-          : names.every((n) => /^(float|field|unknown|fld)/.test(n))
-            ? 0.7
-            : 0.5;
-
-      results.push({
-        offset: f0.offset,
-        size: 12,
-        suggestedType: 'Vector3',
-        confidence: vectorScore,
-        elementCount: 3,
-      });
-      i += 2; // skip the next two floats (they're part of this vector)
+      continue;
     }
-  }
+    // Check if names suggest vector components
+    const names = [f0.name.toLowerCase(), f1.name.toLowerCase(), f2.name.toLowerCase()];
+    const vectorScore =
+      names.some((n) => /^(x|position_x|pos_x|vec_x|vx)$/.test(n)) &&
+      names.some((n) => /^(y|position_y|pos_y|vec_y|vy)$/.test(n)) &&
+      names.some((n) => /^(z|position_z|pos_z|vec_z|vz)$/.test(n))
+        ? 0.95
+        : names.every((n) => /^(float|field|unknown|fld)/.test(n))
+          ? 0.7
+          : 0.5;
 
-  // ── Detect float[16] (Matrix4x4) ──
-  const consecutiveFloats: Array<{ start: number; count: number }> = [];
+    results.push({
+      offset: f0.offset,
+      size: 12,
+      suggestedType: 'Vector3',
+      confidence: vectorScore,
+      elementCount: 3,
+    });
+    i += 2; // skip the next two floats (they're part of this vector)
+  }
+}
+
+/** Group consecutive float fields (adjacent 4-byte floats) into runs. */
+function findConsecutiveFloatRuns(fields: StructField[]): Array<{ start: number; count: number }> {
+  const runs: Array<{ start: number; count: number }> = [];
   let runStart = -1;
   let runCount = 0;
   for (let i = 0; i < fields.length; i++) {
@@ -345,97 +360,87 @@ export function detectCompositeTypes(
       } else if (f.offset === fields[i - 1]!.offset + 4) {
         runCount++;
       } else {
-        consecutiveFloats.push({ start: runStart, count: runCount });
+        runs.push({ start: runStart, count: runCount });
         runStart = i;
         runCount = 1;
       }
     } else {
       if (runStart !== -1) {
-        consecutiveFloats.push({ start: runStart, count: runCount });
+        runs.push({ start: runStart, count: runCount });
         runStart = -1;
         runCount = 0;
       }
     }
   }
-  if (runStart !== -1) consecutiveFloats.push({ start: runStart, count: runCount });
+  if (runStart !== -1) runs.push({ start: runStart, count: runCount });
+  return runs;
+}
 
-  for (const run of consecutiveFloats) {
-    if (run.count === 16) {
-      results.push({
-        offset: fields[run.start]!.offset,
-        size: 64,
-        suggestedType: 'Matrix4x4',
-        confidence: 0.9,
-        elementCount: 16,
-      });
-    } else if (run.count === 9) {
-      results.push({
-        offset: fields[run.start]!.offset,
-        size: 36,
-        suggestedType: 'Matrix3x3',
-        confidence: 0.85,
-        elementCount: 9,
-      });
-    } else if (run.count === 4) {
-      results.push({
-        offset: fields[run.start]!.offset,
-        size: 16,
-        suggestedType: 'Vector4',
-        confidence: 0.75,
-        elementCount: 4,
-      });
-    }
+/** ── Detect float[16]/float[9]/float[4] matrix/vector runs ── */
+function detectMatrixRuns(fields: StructField[], results: CompositeTypeDetection[]): void {
+  const matrixShapes: Array<{ count: number; type: string; size: number; confidence: number }> = [
+    { count: 16, type: 'Matrix4x4', size: 64, confidence: 0.9 },
+    { count: 9, type: 'Matrix3x3', size: 36, confidence: 0.85 },
+    { count: 4, type: 'Vector4', size: 16, confidence: 0.75 },
+  ];
+  for (const run of findConsecutiveFloatRuns(fields)) {
+    const shape = matrixShapes.find((s) => s.count === run.count);
+    if (!shape) continue;
+    results.push({
+      offset: fields[run.start]!.offset,
+      size: shape.size,
+      suggestedType: shape.type,
+      confidence: shape.confidence,
+      elementCount: shape.count,
+    });
   }
+}
 
-  // ── Detect null-terminated pointer arrays ──
-  let ptrRunStart = -1;
-  let ptrRunCount = 0;
+/** Group consecutive 8-byte pointer fields into runs. */
+function findConsecutivePointerRuns(
+  fields: StructField[],
+): Array<{ start: number; count: number }> {
+  const runs: Array<{ start: number; count: number }> = [];
+  let runStart = -1;
+  let runCount = 0;
   for (let i = 0; i < fields.length; i++) {
     const f = fields[i]!;
     if ((f.type === 'pointer' || f.type === 'vtable_ptr') && f.size === 8) {
-      if (ptrRunStart === -1) {
-        ptrRunStart = i;
-        ptrRunCount = 1;
+      if (runStart === -1) {
+        runStart = i;
+        runCount = 1;
       } else if (f.offset === fields[i - 1]!.offset + 8) {
-        ptrRunCount++;
+        runCount++;
       } else {
-        if (ptrRunCount >= 3) {
-          results.push({
-            offset: fields[ptrRunStart]!.offset,
-            size: ptrRunCount * 8,
-            suggestedType: `pointer_array_${ptrRunCount}`,
-            confidence: 0.6,
-            elementCount: ptrRunCount,
-          });
-        }
-        ptrRunStart = i;
-        ptrRunCount = 1;
+        runs.push({ start: runStart, count: runCount });
+        runStart = i;
+        runCount = 1;
       }
     } else {
-      if (ptrRunCount >= 3) {
-        results.push({
-          offset: fields[ptrRunStart]!.offset,
-          size: ptrRunCount * 8,
-          suggestedType: `pointer_array_${ptrRunCount}`,
-          confidence: 0.6,
-          elementCount: ptrRunCount,
-        });
+      if (runStart !== -1) {
+        runs.push({ start: runStart, count: runCount });
+        runStart = -1;
+        runCount = 0;
       }
-      ptrRunStart = -1;
-      ptrRunCount = 0;
     }
   }
-  if (ptrRunCount >= 3) {
-    results.push({
-      offset: fields[ptrRunStart]!.offset,
-      size: ptrRunCount * 8,
-      suggestedType: `pointer_array_${ptrRunCount}`,
-      confidence: 0.6,
-      elementCount: ptrRunCount,
-    });
-  }
+  if (runStart !== -1) runs.push({ start: runStart, count: runCount });
+  return runs;
+}
 
-  return results;
+/** ── Detect null-terminated pointer arrays (runs of ≥3 pointers) ── */
+function detectPointerArrays(fields: StructField[], results: CompositeTypeDetection[]): void {
+  for (const run of findConsecutivePointerRuns(fields)) {
+    if (run.count >= 3) {
+      results.push({
+        offset: fields[run.start]!.offset,
+        size: run.count * 8,
+        suggestedType: `pointer_array_${run.count}`,
+        confidence: 0.6,
+        elementCount: run.count,
+      });
+    }
+  }
 }
 
 // ── Type Override State ──

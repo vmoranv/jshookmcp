@@ -125,192 +125,16 @@ export class AntiDetectionCheckHandlers {
     const penaltyPerFail = 15;
     const penaltyPerWarn = 7;
 
-    // ── 1. ETW/AMSI patch status ──────────────────────────────────────────
-    let etwAmsiPatched = false;
-    let patchDetails: Record<string, boolean> = {};
-    let etwMonitoring: Record<string, unknown> = {};
-
-    // ETW/AMSI patch status is a Windows-only concept. On other platforms
-    // the patcher is a no-op stub and `isPatched()` returns false, which
-    // would otherwise incorrectly penalise the score. Skip both the lookup
-    // and the penalty on non-Windows; expose the unavailable status in
-    // `checks` so callers can still tell the difference.
-    const isWindows = process.platform === 'win32';
-    if (isWindows) {
-      try {
-        const { isPatched, getPatchDetails, getEtwMonitoringSummary } =
-          await import('@src/native/syscall/InProcessPatcher');
-        etwAmsiPatched = isPatched();
-        if (includeDetails) {
-          patchDetails = getPatchDetails();
-        }
-        etwMonitoring = getEtwMonitoringSummary() as unknown as Record<string, unknown>;
-
-        if (!etwAmsiPatched) {
-          score -= penaltyPerFail;
-          recommendations.push(
-            'ETW/AMSI not patched — call memory_antidetection action=harden to apply',
-          );
-        }
-      } catch {
-        score -= penaltyPerWarn;
-        recommendations.push('Could not check ETW/AMSI patch status');
-      }
-    }
-
-    // ── 2. Debugger detection ─────────────────────────────────────────────
-    let debuggerAttached = false;
-
-    if (isWindows) {
-      try {
-        const koffi = require('koffi');
-        const k32 = koffi.load('kernel32.dll');
-        const IsDebuggerPresent = k32.func('int IsDebuggerPresent()');
-        debuggerAttached = IsDebuggerPresent() !== 0;
-        try {
-          k32.unload();
-        } catch {
-          /* ignore */
-        }
-      } catch {
-        // Fallback: check PEB.BeingDebugged via NtQueryInformationProcess
-        try {
-          const koffi = require('koffi');
-          const ntdll = koffi.load('ntdll.dll');
-          const NtQueryInformationProcess = ntdll.func(
-            'int32 NtQueryInformationProcess(void *, uint32, _Out_ void *, uint32, _Out_ uint32 *)',
-          );
-          // ProcessDebugPort = 7
-          const buf = Buffer.alloc(8);
-          const retLen = Buffer.alloc(4);
-          const status = NtQueryInformationProcess(
-            BigInt('0xFFFFFFFFFFFFFFFF'),
-            7,
-            koffi.address(buf),
-            8,
-            koffi.address(retLen),
-          ) as number;
-          try {
-            ntdll.unload();
-          } catch {
-            /* ignore */
-          }
-          debuggerAttached = status >= 0 && buf.readBigUInt64LE(0) !== 0n;
-        } catch {
-          // Cannot determine — don't penalize
-        }
-      }
-
-      if (debuggerAttached) {
-        score -= penaltyPerWarn;
-        recommendations.push(
-          'Debugger attached to self — this is expected during development but raises suspicion',
-        );
-      }
-    }
-
-    // ── 3. HVCI/VBS status ────────────────────────────────────────────────
-    let hvciEnabled = false;
-    let vbsEnabled = false;
-
-    if (isWindows) {
-      try {
-        // Check HVCI via registry: HKLM\System\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity
-        const { execSync } = require('node:child_process');
-        const hvciOutput = execSync(
-          'reg query "HKLM\\System\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity" /v Enabled 2>nul',
-          { timeout: 5000, encoding: 'utf8', windowsHide: true },
-        ) as string;
-        hvciEnabled = hvciOutput.includes('0x1');
-
-        // Check VBS via registry
-        const vbsOutput = execSync(
-          'reg query "HKLM\\System\\CurrentControlSet\\Control\\DeviceGuard" /v EnableVirtualizationBasedSecurity 2>nul',
-          { timeout: 5000, encoding: 'utf8', windowsHide: true },
-        ) as string;
-        vbsEnabled = vbsOutput.includes('0x1');
-      } catch {
-        // Registry keys may not exist — HVCI/VBS not configured
-      }
-
-      if (hvciEnabled) {
-        score -= penaltyPerWarn;
-        recommendations.push(
-          'HVCI (Hypervisor-protected Code Integrity) is ENABLED — ' +
-            'this blocks unsigned driver loading and some memory operations',
-        );
-      }
-      if (vbsEnabled) {
-        score -= penaltyPerWarn;
-        recommendations.push(
-          'Virtualization-Based Security (VBS) is ENABLED — ' +
-            'this enables HVCI, Credential Guard, and restricts kernel access',
-        );
-      }
-    }
-
-    // ── 4. Anti-cheat / EDR / debugger process detection ──────────────────
-    let acProcesses: string[] = [];
-
-    if (isWindows) {
-      try {
-        const { execSync } = require('node:child_process');
-        const tasklistOutput = execSync('tasklist /FO CSV /NH', {
-          timeout: 5000,
-          encoding: 'utf8',
-          windowsHide: true,
-        }) as string;
-
-        const lowerOutput = tasklistOutput.toLowerCase();
-        const detected: string[] = [];
-
-        for (const proc of KNOWN_AC_PROCESSES) {
-          if (lowerOutput.includes(proc.name.toLowerCase())) {
-            detected.push(proc.name);
-          }
-        }
-
-        acProcesses = detected;
-      } catch {
-        // tasklist unavailable — skip
-      }
-
-      if (acProcesses.length > 0) {
-        // Count critical/high severity
-        const criticalCount = acProcesses.filter((name) =>
-          KNOWN_AC_PROCESSES.some(
-            (p) => p.name === name && (p.severity === 'critical' || p.severity === 'high'),
-          ),
-        ).length;
-
-        if (criticalCount > 0) {
-          score = Math.max(0, score - penaltyPerFail * criticalCount);
-          recommendations.push(
-            `${criticalCount} high/critical security process(es) detected: ${acProcesses.join(', ')}`,
-          );
-        } else {
-          score -= penaltyPerWarn;
-          recommendations.push(
-            `Known security/debugging processes detected: ${acProcesses.join(', ')}`,
-          );
-        }
-      }
-    }
-
-    // ── 5. Environment gate checks ────────────────────────────────────────
-    const envGates = true;
-    const gateVars = ['JSHOOK_INJECTION_ENABLE', 'JSHOOK_BYOVD_ENABLE', 'JSHOOK_SELFDEFENSE'];
-
-    for (const v of gateVars) {
-      if (readEnvBoolean(v, false)) {
-        if (v === 'JSHOOK_SELFDEFENSE') {
-          score -= penaltyPerWarn;
-          recommendations.push(
-            `${v}=1: Self-defense is active (safe operations only — no BreakOnTermination)`,
-          );
-        }
-      }
-    }
+    const etw = await checkEtwAmsi(includeDetails, recommendations);
+    score -= etw.penalty;
+    const debuggerAttached = checkDebuggerAttached(recommendations, penaltyPerWarn);
+    score -= debuggerAttached.penalty;
+    const hvci = checkHvciVbs(recommendations, penaltyPerWarn);
+    score -= hvci.penalty;
+    const acProcesses = checkAcProcesses(recommendations, penaltyPerFail, penaltyPerWarn);
+    score -= acProcesses.penalty;
+    score = Math.max(0, score);
+    checkEnvGates(recommendations);
 
     // ── Verdict ────────────────────────────────────────────────────────────
     let verdict: 'pass' | 'warn' | 'fail';
@@ -326,12 +150,12 @@ export class AntiDetectionCheckHandlers {
       success: true,
       verdict,
       checks: {
-        etwAmsiPatched,
-        debuggerAttached,
-        hvciEnabled,
-        vbsEnabled,
-        acProcesses,
-        envGates,
+        etwAmsiPatched: etw.etwAmsiPatched,
+        debuggerAttached: debuggerAttached.debuggerAttached,
+        hvciEnabled: hvci.hvciEnabled,
+        vbsEnabled: hvci.vbsEnabled,
+        acProcesses: acProcesses.processes,
+        envGates: true,
       },
       score,
       recommendations,
@@ -339,8 +163,8 @@ export class AntiDetectionCheckHandlers {
 
     if (includeDetails) {
       result.details = {
-        patchDetails,
-        etwMonitoring,
+        patchDetails: etw.patchDetails,
+        etwMonitoring: etw.etwMonitoring,
         platform: process.platform,
         pid: process.pid,
         title: process.title,
@@ -348,5 +172,211 @@ export class AntiDetectionCheckHandlers {
     }
 
     return result;
+  }
+}
+
+/** ETW/AMSI patch status is a Windows-only concept. On other platforms the
+ * patcher is a no-op stub and `isPatched()` returns false, which would
+ * otherwise incorrectly penalise the score. Skip both the lookup and the
+ * penalty on non-Windows; expose the unavailable status in `checks`. */
+async function checkEtwAmsi(
+  includeDetails: boolean,
+  recommendations: string[],
+): Promise<{
+  etwAmsiPatched: boolean;
+  patchDetails: Record<string, boolean>;
+  etwMonitoring: Record<string, unknown>;
+  penalty: number;
+}> {
+  let etwAmsiPatched = false;
+  let patchDetails: Record<string, boolean> = {};
+  let etwMonitoring: Record<string, unknown> = {};
+  let penalty = 0;
+
+  if (process.platform !== 'win32') {
+    return { etwAmsiPatched, patchDetails, etwMonitoring, penalty };
+  }
+  try {
+    const { isPatched, getPatchDetails, getEtwMonitoringSummary } =
+      await import('@src/native/syscall/InProcessPatcher');
+    etwAmsiPatched = isPatched();
+    if (includeDetails) {
+      patchDetails = getPatchDetails();
+    }
+    etwMonitoring = getEtwMonitoringSummary() as unknown as Record<string, unknown>;
+
+    if (!etwAmsiPatched) {
+      penalty = 15;
+      recommendations.push(
+        'ETW/AMSI not patched — call memory_antidetection action=harden to apply',
+      );
+    }
+  } catch {
+    penalty = 7;
+    recommendations.push('Could not check ETW/AMSI patch status');
+  }
+  return { etwAmsiPatched, patchDetails, etwMonitoring, penalty };
+}
+
+/** IsDebuggerPresent with a PEB.BeingDebugged (ProcessDebugPort) fallback. */
+function checkDebuggerAttached(
+  recommendations: string[],
+  penaltyPerWarn: number,
+): { debuggerAttached: boolean; penalty: number } {
+  if (process.platform !== 'win32') return { debuggerAttached: false, penalty: 0 };
+  let debuggerAttached = false;
+  try {
+    const koffi = require('koffi');
+    const k32 = koffi.load('kernel32.dll');
+    const IsDebuggerPresent = k32.func('int IsDebuggerPresent()');
+    debuggerAttached = IsDebuggerPresent() !== 0;
+    try {
+      k32.unload();
+    } catch {
+      /* ignore */
+    }
+  } catch {
+    // Fallback: check PEB.BeingDebugged via NtQueryInformationProcess
+    try {
+      const koffi = require('koffi');
+      const ntdll = koffi.load('ntdll.dll');
+      const NtQueryInformationProcess = ntdll.func(
+        'int32 NtQueryInformationProcess(void *, uint32, _Out_ void *, uint32, _Out_ uint32 *)',
+      );
+      // ProcessDebugPort = 7
+      const buf = Buffer.alloc(8);
+      const retLen = Buffer.alloc(4);
+      const status = NtQueryInformationProcess(
+        BigInt('0xFFFFFFFFFFFFFFFF'),
+        7,
+        koffi.address(buf),
+        8,
+        koffi.address(retLen),
+      ) as number;
+      try {
+        ntdll.unload();
+      } catch {
+        /* ignore */
+      }
+      debuggerAttached = status >= 0 && buf.readBigUInt64LE(0) !== 0n;
+    } catch {
+      // Cannot determine — don't penalize
+    }
+  }
+
+  if (debuggerAttached) {
+    recommendations.push(
+      'Debugger attached to self — this is expected during development but raises suspicion',
+    );
+    return { debuggerAttached, penalty: penaltyPerWarn };
+  }
+  return { debuggerAttached, penalty: 0 };
+}
+
+/** HVCI/VBS registry probe (Windows only; keys may be absent). */
+function checkHvciVbs(
+  recommendations: string[],
+  penaltyPerWarn: number,
+): { hvciEnabled: boolean; vbsEnabled: boolean; penalty: number } {
+  let hvciEnabled = false;
+  let vbsEnabled = false;
+  let penalty = 0;
+  if (process.platform !== 'win32') return { hvciEnabled, vbsEnabled, penalty };
+  try {
+    // Check HVCI via registry: HKLM\System\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity
+    const { execSync } = require('node:child_process');
+    const hvciOutput = execSync(
+      'reg query "HKLM\\System\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity" /v Enabled 2>nul',
+      { timeout: 5000, encoding: 'utf8', windowsHide: true },
+    ) as string;
+    hvciEnabled = hvciOutput.includes('0x1');
+
+    // Check VBS via registry
+    const vbsOutput = execSync(
+      'reg query "HKLM\\System\\CurrentControlSet\\Control\\DeviceGuard" /v EnableVirtualizationBasedSecurity 2>nul',
+      { timeout: 5000, encoding: 'utf8', windowsHide: true },
+    ) as string;
+    vbsEnabled = vbsOutput.includes('0x1');
+  } catch {
+    // Registry keys may not exist — HVCI/VBS not configured
+  }
+
+  if (hvciEnabled) {
+    penalty += penaltyPerWarn;
+    recommendations.push(
+      'HVCI (Hypervisor-protected Code Integrity) is ENABLED — ' +
+        'this blocks unsigned driver loading and some memory operations',
+    );
+  }
+  if (vbsEnabled) {
+    penalty += penaltyPerWarn;
+    recommendations.push(
+      'Virtualization-Based Security (VBS) is ENABLED — ' +
+        'this enables HVCI, Credential Guard, and restricts kernel access',
+    );
+  }
+  return { hvciEnabled, vbsEnabled, penalty };
+}
+
+/** tasklist scan for known anti-cheat / EDR / debugging processes. */
+function checkAcProcesses(
+  recommendations: string[],
+  penaltyPerFail: number,
+  penaltyPerWarn: number,
+): { processes: string[]; penalty: number } {
+  if (process.platform !== 'win32') return { processes: [], penalty: 0 };
+  let processes: string[] = [];
+  try {
+    const { execSync } = require('node:child_process');
+    const tasklistOutput = execSync('tasklist /FO CSV /NH', {
+      timeout: 5000,
+      encoding: 'utf8',
+      windowsHide: true,
+    }) as string;
+
+    const lowerOutput = tasklistOutput.toLowerCase();
+    const detected: string[] = [];
+
+    for (const proc of KNOWN_AC_PROCESSES) {
+      if (lowerOutput.includes(proc.name.toLowerCase())) {
+        detected.push(proc.name);
+      }
+    }
+
+    processes = detected;
+  } catch {
+    // tasklist unavailable — skip
+  }
+
+  if (processes.length === 0) return { processes, penalty: 0 };
+
+  // Count critical/high severity
+  const criticalCount = processes.filter((name) =>
+    KNOWN_AC_PROCESSES.some(
+      (proc) => proc.name === name && (proc.severity === 'critical' || proc.severity === 'high'),
+    ),
+  ).length;
+
+  if (criticalCount > 0) {
+    recommendations.push(
+      `${criticalCount} high/critical security process(es) detected: ${processes.join(', ')}`,
+    );
+    return { processes, penalty: penaltyPerFail * criticalCount };
+  }
+  recommendations.push(`Known security/debugging processes detected: ${processes.join(', ')}`);
+  return { processes, penalty: penaltyPerWarn };
+}
+
+/** Environment gate visibility (penalises active self-defense only). */
+function checkEnvGates(recommendations: string[]): void {
+  const gateVars = ['JSHOOK_INJECTION_ENABLE', 'JSHOOK_BYOVD_ENABLE', 'JSHOOK_SELFDEFENSE'];
+  for (const v of gateVars) {
+    if (readEnvBoolean(v, false)) {
+      if (v === 'JSHOOK_SELFDEFENSE') {
+        recommendations.push(
+          `${v}=1: Self-defense is active (safe operations only — no BreakOnTermination)`,
+        );
+      }
+    }
   }
 }

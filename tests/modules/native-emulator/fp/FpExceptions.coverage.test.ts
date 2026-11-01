@@ -24,6 +24,16 @@ describe('detectInvalidOperation', () => {
     expect(detectInvalidOperation(3, 'add', 1, 2)).toBe(false);
   });
 
+  it('does not resolve inherited Object.prototype keys as predicates', () => {
+    // A bare table lookup would return Object.prototype.constructor / toString
+    // for these op names and call them; they must fall through to the
+    // unknown-operation path instead.
+    expect(() => detectInvalidOperation(1, 'constructor', 1, 2)).not.toThrow();
+    expect(detectInvalidOperation(1, 'constructor', 1, 2)).toBe(false);
+    expect(detectInvalidOperation(1, 'toString', 1, 2)).toBe(false);
+    expect(detectInvalidOperation(1, 'valueOf', 1, 2)).toBe(false);
+  });
+
   it('sub: Inf - Inf (same sign) is invalid', () => {
     expect(detectInvalidOperation(NaN, 'sub', Infinity, Infinity)).toBe(true);
     expect(detectInvalidOperation(NaN, 'sub', -Infinity, -Infinity)).toBe(true);

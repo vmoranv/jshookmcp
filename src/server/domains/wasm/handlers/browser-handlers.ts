@@ -339,6 +339,44 @@ export class BrowserHandlers {
           };
         });
 
+        /** Byte pattern from the search argument: hex string or UTF-8 text. */
+        // eslint-disable-next-line unicorn/consistent-function-scoping -- runs inside page.evaluate
+        const patternBytesOf = (pattern: string): number[] => {
+          if (/^[0-9a-fA-F\s]+$/.test(pattern)) {
+            return (
+              pattern
+                .replace(/\s/g, '')
+                .match(/.{2}/g)
+                ?.map((h: string) => parseInt(h, 16)) ?? []
+            );
+          }
+          return Array.from(new TextEncoder().encode(pattern));
+        };
+
+        /** Naive byte scan over [from, to); returns match offsets. */
+        // eslint-disable-next-line unicorn/consistent-function-scoping -- runs inside page.evaluate
+        const scanForPattern = (
+          buffer: Uint8Array,
+          patternBytes: number[],
+          from: number,
+          to: number,
+        ): Array<{ offset: number }> => {
+          const results: Array<{ offset: number }> = [];
+          if (patternBytes.length === 0) return results;
+          const last = Math.min(to - patternBytes.length, buffer.length - patternBytes.length);
+          for (let i = from; i <= last; i++) {
+            let match = true;
+            for (let j = 0; j < patternBytes.length; j++) {
+              if (buffer[i + j] !== patternBytes[j]) {
+                match = false;
+                break;
+              }
+            }
+            if (match) results.push({ offset: i });
+          }
+          return results;
+        };
+
         try {
           const targetInstance = instances[opts.instanceIndex] as
             | { exports?: { memory?: { buffer?: ArrayBufferLike } } }
@@ -358,58 +396,14 @@ export class BrowserHandlers {
           const buffer = new Uint8Array(memory.buffer);
           const slice = Array.from(buffer.slice(opts.offset, opts.offset + opts.length));
 
-          let searchResults: Array<{ offset: number }> | undefined;
-          if (opts.searchPattern) {
-            searchResults = [];
-            const pattern = opts.searchPattern;
-            const isHex = /^[0-9a-fA-F\s]+$/.test(pattern);
-            if (isHex) {
-              const hexBytes =
-                pattern
-                  .replace(/\s/g, '')
-                  .match(/.{2}/g)
-                  ?.map((h: string) => parseInt(h, 16)) || [];
-              for (
-                let i = opts.offset;
-                i <=
-                Math.min(
-                  opts.offset + opts.length - hexBytes.length,
-                  buffer.length - hexBytes.length,
-                );
-                i++
-              ) {
-                let match = true;
-                for (let j = 0; j < hexBytes.length; j++) {
-                  if (buffer[i + j] !== hexBytes[j]) {
-                    match = false;
-                    break;
-                  }
-                }
-                if (match) searchResults.push({ offset: i });
-              }
-            } else {
-              const encoder = new TextEncoder();
-              const patternBytes = encoder.encode(pattern);
-              for (
-                let i = opts.offset;
-                i <=
-                Math.min(
-                  opts.offset + opts.length - patternBytes.length,
-                  buffer.length - patternBytes.length,
-                );
-                i++
-              ) {
-                let match = true;
-                for (let j = 0; j < patternBytes.length; j++) {
-                  if (buffer[i + j] !== patternBytes[j]) {
-                    match = false;
-                    break;
-                  }
-                }
-                if (match) searchResults.push({ offset: i });
-              }
-            }
-          }
+          const searchResults = opts.searchPattern
+            ? scanForPattern(
+                buffer,
+                patternBytesOf(opts.searchPattern),
+                opts.offset,
+                opts.offset + opts.length,
+              )
+            : undefined;
 
           return {
             totalMemoryPages: memory.buffer.byteLength / 65536,

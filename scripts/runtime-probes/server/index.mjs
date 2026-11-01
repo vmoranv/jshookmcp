@@ -59,6 +59,193 @@ async function readRequestBody(req) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+/** JSON/static shortcut responders shared by the probe routes. */
+function respondJson(res, payload, extraHeaders = {}) {
+  res.writeHead(200, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+    ...extraHeaders,
+  });
+  res.end(payload);
+}
+
+function respondScript(res, payload) {
+  res.writeHead(200, {
+    'content-type': 'application/javascript; charset=utf-8',
+    'cache-control': 'no-store',
+  });
+  res.end(payload);
+}
+
+function respondHtml(res, payload) {
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+  res.end(payload);
+}
+
+async function respondGraphql(req, res, assets, graphqlMarker) {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'access-control-allow-origin': '*',
+      'access-control-allow-headers': 'content-type, x-runtime-audit',
+      'access-control-allow-methods': 'POST, OPTIONS',
+    });
+    res.end();
+    return;
+  }
+  const bodyText = await readRequestBody(req);
+  let payload = null;
+  try {
+    payload = bodyText ? JSON.parse(bodyText) : null;
+  } catch {
+    payload = null;
+  }
+  const query = typeof payload?.query === 'string' ? payload.query : '';
+  const operationName = typeof payload?.operationName === 'string' ? payload.operationName : null;
+  const variables =
+    payload && typeof payload === 'object' && !Array.isArray(payload) ? payload.variables : null;
+  const requestedName =
+    variables && typeof variables === 'object' && !Array.isArray(variables) ? variables.name : null;
+  const responsePayload =
+    query.includes('__schema') || operationName === 'IntrospectionQuery'
+      ? assets.graphqlSchemaPayload
+      : {
+          data: {
+            auditGreeting:
+              typeof requestedName === 'string'
+                ? `${graphqlMarker}:${requestedName}`
+                : `${graphqlMarker}:anonymous`,
+            marker: graphqlMarker,
+            __typename: 'Query',
+          },
+        };
+  respondJson(res, JSON.stringify(responsePayload), { 'access-control-allow-origin': '*' });
+}
+
+function respondSse(res, sseMarker) {
+  res.writeHead(200, {
+    'content-type': 'text/event-stream',
+    'cache-control': 'no-cache',
+    connection: 'keep-alive',
+    'access-control-allow-origin': '*',
+  });
+  res.write(': connected\n\n');
+  setTimeout(() => {
+    res.write('id: evt-1\n');
+    res.write(`data: ${sseMarker}\n\n`);
+  }, 150);
+  setTimeout(() => {
+    try {
+      res.end();
+    } catch {}
+  }, 600);
+}
+
+/** Route table for the HTTP probe endpoints (extracted from the former inline
+ * createServer callback to stay under the complexity gate). */
+async function handleProbeRequest(req, res, { assets, markers }) {
+  if (!req.url) {
+    res.writeHead(400).end('missing url');
+    return;
+  }
+  if (req.url === '/') {
+    respondHtml(res, assets.rootPageHtml);
+    return;
+  }
+  if (req.url === '/app.js') {
+    respondScript(res, assets.rootAppScript);
+    return;
+  }
+  if (req.url === '/plugins.index.json') {
+    respondJson(res, JSON.stringify(markers.registry.getPluginPayload()));
+    return;
+  }
+  if (req.url === '/workflows.index.json') {
+    respondJson(res, JSON.stringify(markers.registry.getWorkflowPayload()));
+    return;
+  }
+  if (req.url === '/graphql-page/' || req.url === '/graphql-page/index.html') {
+    respondHtml(
+      res,
+      `<!doctype html><html><head><meta charset="utf-8" /><title>graphql probe</title><script>${assets.graphqlPageScript}</script></head><body><main><h1>${markers.GRAPHQL}</h1><button id="run-graphql" onclick="window.runGraphqlAudit('GraphQLButton')">Run GraphQL</button><pre id="graphql-output"></pre></main></body></html>`,
+    );
+    return;
+  }
+  if (req.url === '/webpack-page/' || req.url === '/webpack-page/index.html') {
+    respondHtml(
+      res,
+      `<!doctype html><html><head><meta charset="utf-8" /><title>webpack probe</title><script>${assets.webpackPageScript}</script></head><body><main><h1>${markers.WEBPACK}</h1></main></body></html>`,
+    );
+    return;
+  }
+  if (req.url === '/wasm-page/' || req.url === '/wasm-page/index.html') {
+    respondHtml(
+      res,
+      `<!doctype html><html><head><meta charset="utf-8" /><title>wasm probe</title><script>${assets.wasmPageScript}</script></head><body><main><h1>${markers.WASM}</h1></main></body></html>`,
+    );
+    return;
+  }
+  if (req.url === '/history/one') {
+    respondHtml(
+      res,
+      '<!doctype html><html><head><title>history-one</title></head><body><h1 data-page="one">history one</h1></body></html>',
+    );
+    return;
+  }
+  if (req.url === '/history/two') {
+    respondHtml(
+      res,
+      '<!doctype html><html><head><title>history-two</title></head><body><h1 data-page="two">history two</h1></body></html>',
+    );
+    return;
+  }
+  if (req.url === '/sourcemap/' || req.url === '/sourcemap/index.html') {
+    respondHtml(
+      res,
+      '<!doctype html><html><body><h1>sourcemap probe</h1><script src="/sourcemap/app.min.js"></script></body></html>',
+    );
+    return;
+  }
+  if (req.url === '/sourcemap/app.min.js') {
+    respondScript(res, assets.sourceMapScript);
+    return;
+  }
+  if (req.url === '/sourcemap/app.min.js.map') {
+    respondJson(res, assets.sourceMapPayload);
+    return;
+  }
+  if (req.url === '/graphql') {
+    await respondGraphql(req, res, assets, markers.GRAPHQL);
+    return;
+  }
+  if (req.url === '/wasm/runtime-audit.wasm') {
+    res.writeHead(200, { 'content-type': 'application/wasm', 'cache-control': 'no-store' });
+    res.end(assets.wasmProbeBytes);
+    return;
+  }
+  if (req.url.startsWith('/body')) {
+    res.writeHead(200, {
+      'content-type': 'text/plain; charset=utf-8',
+      'cache-control': 'no-store',
+      'access-control-allow-origin': '*',
+    });
+    res.end(assets.bodyPayload);
+    return;
+  }
+  if (req.url.startsWith('/intercept-target')) {
+    res.writeHead(200, {
+      'content-type': 'text/plain; charset=utf-8',
+      'cache-control': 'no-store',
+    });
+    res.end('original-intercept-body');
+    return;
+  }
+  if (req.url.startsWith('/sse')) {
+    respondSse(res, markers.SSE);
+    return;
+  }
+  res.writeHead(404).end('not found');
+}
+
 export async function createProbeServer(constants) {
   const {
     BODY_MARKER,
@@ -85,189 +272,18 @@ export async function createProbeServer(constants) {
   let workflowRegistryPayload = assets.workflowRegistryPayload;
   const sockets = new Set();
   const tlsSockets = new Set();
-  const httpServer = http.createServer(async (req, res) => {
-    if (!req.url) {
-      res.writeHead(400).end('missing url');
-      return;
-    }
-    if (req.url === '/') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(assets.rootPageHtml);
-      return;
-    }
-    if (req.url === '/app.js') {
-      res.writeHead(200, {
-        'content-type': 'application/javascript; charset=utf-8',
-        'cache-control': 'no-store',
-      });
-      res.end(assets.rootAppScript);
-      return;
-    }
-    if (req.url === '/plugins.index.json') {
-      res.writeHead(200, {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store',
-      });
-      res.end(JSON.stringify(pluginRegistryPayload));
-      return;
-    }
-    if (req.url === '/workflows.index.json') {
-      res.writeHead(200, {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store',
-      });
-      res.end(JSON.stringify(workflowRegistryPayload));
-      return;
-    }
-    if (req.url === '/graphql-page/' || req.url === '/graphql-page/index.html') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(
-        `<!doctype html><html><head><meta charset="utf-8" /><title>graphql probe</title><script>${assets.graphqlPageScript}</script></head><body><main><h1>${GRAPHQL_MARKER}</h1><button id="run-graphql" onclick="window.runGraphqlAudit('GraphQLButton')">Run GraphQL</button><pre id="graphql-output"></pre></main></body></html>`,
-      );
-      return;
-    }
-    if (req.url === '/webpack-page/' || req.url === '/webpack-page/index.html') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(
-        `<!doctype html><html><head><meta charset="utf-8" /><title>webpack probe</title><script>${assets.webpackPageScript}</script></head><body><main><h1>${WEBPACK_MARKER}</h1></main></body></html>`,
-      );
-      return;
-    }
-    if (req.url === '/wasm-page/' || req.url === '/wasm-page/index.html') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(
-        `<!doctype html><html><head><meta charset="utf-8" /><title>wasm probe</title><script>${assets.wasmPageScript}</script></head><body><main><h1>${WASM_MARKER}</h1></main></body></html>`,
-      );
-      return;
-    }
-    if (req.url === '/history/one') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(
-        '<!doctype html><html><head><title>history-one</title></head><body><h1 data-page="one">history one</h1></body></html>',
-      );
-      return;
-    }
-    if (req.url === '/history/two') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(
-        '<!doctype html><html><head><title>history-two</title></head><body><h1 data-page="two">history two</h1></body></html>',
-      );
-      return;
-    }
-    if (req.url === '/sourcemap/' || req.url === '/sourcemap/index.html') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(
-        '<!doctype html><html><body><h1>sourcemap probe</h1><script src="/sourcemap/app.min.js"></script></body></html>',
-      );
-      return;
-    }
-    if (req.url === '/sourcemap/app.min.js') {
-      res.writeHead(200, {
-        'content-type': 'application/javascript; charset=utf-8',
-        'cache-control': 'no-store',
-      });
-      res.end(assets.sourceMapScript);
-      return;
-    }
-    if (req.url === '/sourcemap/app.min.js.map') {
-      res.writeHead(200, {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store',
-      });
-      res.end(assets.sourceMapPayload);
-      return;
-    }
-    if (req.url === '/graphql') {
-      if (req.method === 'OPTIONS') {
-        res.writeHead(204, {
-          'access-control-allow-origin': '*',
-          'access-control-allow-headers': 'content-type, x-runtime-audit',
-          'access-control-allow-methods': 'POST, OPTIONS',
-        });
-        res.end();
-        return;
-      }
-      const bodyText = await readRequestBody(req);
-      let payload = null;
-      try {
-        payload = bodyText ? JSON.parse(bodyText) : null;
-      } catch {
-        payload = null;
-      }
-      const query = typeof payload?.query === 'string' ? payload.query : '';
-      const operationName =
-        typeof payload?.operationName === 'string' ? payload.operationName : null;
-      const variables =
-        payload && typeof payload === 'object' && !Array.isArray(payload)
-          ? payload.variables
-          : null;
-      const requestedName =
-        variables && typeof variables === 'object' && !Array.isArray(variables)
-          ? variables.name
-          : null;
-      const responsePayload =
-        query.includes('__schema') || operationName === 'IntrospectionQuery'
-          ? assets.graphqlSchemaPayload
-          : {
-              data: {
-                auditGreeting:
-                  typeof requestedName === 'string'
-                    ? `${GRAPHQL_MARKER}:${requestedName}`
-                    : `${GRAPHQL_MARKER}:anonymous`,
-                marker: GRAPHQL_MARKER,
-                __typename: 'Query',
-              },
-            };
-      res.writeHead(200, {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store',
-        'access-control-allow-origin': '*',
-      });
-      res.end(JSON.stringify(responsePayload));
-      return;
-    }
-    if (req.url === '/wasm/runtime-audit.wasm') {
-      res.writeHead(200, { 'content-type': 'application/wasm', 'cache-control': 'no-store' });
-      res.end(assets.wasmProbeBytes);
-      return;
-    }
-    if (req.url.startsWith('/body')) {
-      res.writeHead(200, {
-        'content-type': 'text/plain; charset=utf-8',
-        'cache-control': 'no-store',
-        'access-control-allow-origin': '*',
-      });
-      res.end(assets.bodyPayload);
-      return;
-    }
-    if (req.url.startsWith('/intercept-target')) {
-      res.writeHead(200, {
-        'content-type': 'text/plain; charset=utf-8',
-        'cache-control': 'no-store',
-      });
-      res.end('original-intercept-body');
-      return;
-    }
-    if (req.url.startsWith('/sse')) {
-      res.writeHead(200, {
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
-        connection: 'keep-alive',
-        'access-control-allow-origin': '*',
-      });
-      res.write(': connected\n\n');
-      setTimeout(() => {
-        res.write('id: evt-1\n');
-        res.write(`data: ${SSE_MARKER}\n\n`);
-      }, 150);
-      setTimeout(() => {
-        try {
-          res.end();
-        } catch {}
-      }, 600);
-      return;
-    }
-    res.writeHead(404).end('not found');
+  const markers = {
+    GRAPHQL: GRAPHQL_MARKER,
+    SSE: SSE_MARKER,
+    WASM: WASM_MARKER,
+    WEBPACK: WEBPACK_MARKER,
+    registry: {
+      getPluginPayload: () => pluginRegistryPayload,
+      getWorkflowPayload: () => workflowRegistryPayload,
+    },
+  };
+  const httpServer = http.createServer((req, res) => {
+    void handleProbeRequest(req, res, { assets, markers });
   });
 
   httpServer.on('connection', (socket) => {
