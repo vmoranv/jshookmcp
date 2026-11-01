@@ -452,26 +452,10 @@ export class PointerChainEngine {
     regionIndex: SortedRegionIndex,
   ): Promise<LevelMatch[]> {
     const matches: LevelMatch[] = [];
+    const targetIndex = buildTargetIndex(targetAddresses, maxOffset);
+    if (!targetIndex) return matches;
+
     const chunkSize = POINTER_CHAIN_SCAN_CHUNK_SIZE;
-
-    // Build sorted target list for O(log n) binary search per pointer.
-    // BigInt64Array stores native 8-byte values — ~87.5% smaller than JS BigInt[]
-    const sortedTargets = Array.from(targetAddresses).toSorted((a, b) =>
-      a < b ? -1 : a > b ? 1 : 0,
-    );
-    if (sortedTargets.length === 0) return matches;
-
-    // Copy into TypedArray for cache-friendly binary search
-    const targets = new BigInt64Array(sortedTargets.length);
-    for (let i = 0; i < sortedTargets.length; i++) {
-      targets[i] = sortedTargets[i]!;
-    }
-    const targetCount = targets.length;
-
-    // Compute global target range for fast pre-filter
-    const maxOffsetBig = BigInt(maxOffset);
-    const globalMin = targets[0]! - maxOffsetBig;
-    const globalMax = targets[targetCount - 1]! + maxOffsetBig;
 
     // Iterate pre-built readable regions (no per-region queryRegion syscalls)
     const readableRegions = regionIndex.getReadableRegions();
@@ -495,43 +479,7 @@ export class PointerChainEngine {
           break;
         }
 
-        // Scan for pointer-sized values that fall within target range
-        const scanEnd = chunk.length - 8;
-        for (let i = 0; i <= scanEnd; i += alignment) {
-          const ptrValue = chunk.readBigUInt64LE(i);
-
-          // Fast pre-filter: check global range
-          if (ptrValue < globalMin || ptrValue > globalMax) continue;
-
-          // Binary search on BigInt64Array: find first target >= (ptrValue - maxOffset)
-          const searchMin = ptrValue - maxOffsetBig;
-          const searchMax = ptrValue + maxOffsetBig;
-          let lo = 0;
-          let hi = targetCount;
-          while (lo < hi) {
-            const mid = (lo + hi) >>> 1;
-            if (targets[mid]! < searchMin) lo = mid + 1;
-            else hi = mid;
-          }
-
-          // Check targets in range [searchMin, searchMax]
-          for (let t = lo; t < targetCount && targets[t]! <= searchMax; t++) {
-            const target = targets[t]!;
-            const diff = ptrValue > target ? Number(ptrValue - target) : Number(target - ptrValue);
-
-            if (diff <= maxOffset) {
-              const pointerAddr = chunkAddr + BigInt(i);
-              const matchOffset = Number(target - ptrValue);
-
-              matches.push({
-                pointerAddress: pointerAddr,
-                pointsTo: ptrValue,
-                offset: matchOffset,
-              });
-              break; // One match per pointer address
-            }
-          }
-        }
+        scanPointerChunk(chunk, chunkAddr, alignment, targetIndex, matches);
       }
     }
 
@@ -725,3 +673,96 @@ function buildBacktrackedLinks(
 }
 
 export const pointerChainEngine = new PointerChainEngine();
+
+/** Sorted target list + range bounds for pointer-level scanning. */
+interface TargetIndex {
+  targets: BigInt64Array;
+  targetCount: number;
+  globalMin: bigint;
+  globalMax: bigint;
+  /** Numeric form, for the per-hit distance comparison. */
+  maxOffset: number;
+  /** BigInt form, for the binary-search bounds. */
+  maxOffsetBig: bigint;
+}
+
+/**
+ * Build the O(log n) search structure for one BFS level.
+ *
+ * BigInt64Array stores native 8-byte values — ~87.5% smaller than a JS
+ * BigInt[], which matters because every scanned word binary-searches it.
+ * Returns null when there are no targets to look for.
+ */
+function buildTargetIndex(targetAddresses: Set<bigint>, maxOffset: number): TargetIndex | null {
+  const sortedTargets = Array.from(targetAddresses).toSorted((a, b) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  );
+  if (sortedTargets.length === 0) return null;
+
+  const targets = new BigInt64Array(sortedTargets.length);
+  for (let i = 0; i < sortedTargets.length; i++) {
+    targets[i] = sortedTargets[i]!;
+  }
+  const targetCount = targets.length;
+  const maxOffsetBig = BigInt(maxOffset);
+
+  return {
+    targets,
+    targetCount,
+    maxOffset,
+    // Compute global target range for fast pre-filter
+    globalMin: targets[0]! - maxOffsetBig,
+    globalMax: targets[targetCount - 1]! + maxOffsetBig,
+    maxOffsetBig,
+  };
+}
+
+/**
+ * Scan one chunk for pointer-sized values landing within ±maxOffset of any
+ * target. One match is recorded per pointer address (the first target in
+ * range wins).
+ */
+function scanPointerChunk(
+  chunk: Buffer,
+  chunkAddr: bigint,
+  alignment: number,
+  index: TargetIndex,
+  matches: LevelMatch[],
+): void {
+  const { targets, targetCount, globalMin, globalMax, maxOffsetBig } = index;
+  const maxOffset = index.maxOffset;
+
+  const scanEnd = chunk.length - 8;
+  for (let i = 0; i <= scanEnd; i += alignment) {
+    const ptrValue = chunk.readBigUInt64LE(i);
+
+    // Fast pre-filter: check global range
+    if (ptrValue < globalMin || ptrValue > globalMax) continue;
+
+    // Binary search: find first target >= (ptrValue - maxOffset)
+    const searchMin = ptrValue - maxOffsetBig;
+    const searchMax = ptrValue + maxOffsetBig;
+    let lo = 0;
+    let hi = targetCount;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (targets[mid]! < searchMin) lo = mid + 1;
+      else hi = mid;
+    }
+
+    // Check targets in range [searchMin, searchMax]
+    for (let t = lo; t < targetCount && targets[t]! <= searchMax; t++) {
+      const target = targets[t]!;
+      const diff = ptrValue > target ? Number(ptrValue - target) : Number(target - ptrValue);
+
+      if (diff <= maxOffset) {
+        matches.push({
+          pointerAddress: chunkAddr + BigInt(i),
+          pointsTo: ptrValue,
+          offset: Number(target - ptrValue),
+        });
+        break; // One match per pointer address
+      }
+    }
+  }
+}
