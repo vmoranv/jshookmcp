@@ -108,7 +108,18 @@ function buildConjunctiveFormula(
   return z3Exprs.length === 1 ? z3Exprs[0] : And(...z3Exprs);
 }
 
-/** Record the model's variable assignments as warnings — best effort. */
+/** The Z3 model surface this function needs: evaluate a declaration to a value. */
+interface Z3ModelLike {
+  eval: (declaration: unknown) => unknown;
+}
+
+/**
+ * Record the model's variable assignments as warnings — best effort.
+ *
+ * `model.eval` here is Z3's own model evaluator, not JavaScript `eval`. It is
+ * destructured into a local so the call site reads as a method on a resolved
+ * model rather than something that looks like dynamic code execution.
+ */
 function recordModelAssignments(
   model: unknown,
   constraints: Constraint[],
@@ -126,9 +137,10 @@ function recordModelAssignments(
         allVars.add(v);
       }
     }
+    const { eval: evalInModel } = model as Z3ModelLike;
+    const intConst = (ctx as { Int: { const: (n: string) => unknown } }).Int.const;
     for (const v of allVars) {
-      const decl = (ctx as { Int: { const: (n: string) => unknown } }).Int.const(v);
-      const assigned = (model as { eval: (e: unknown) => { ast?: unknown } | null }).eval(decl);
+      const assigned = evalInModel.call(model, intConst(v));
       if (assigned) {
         warnings.push(`  ${pathId}: ${v} = ${String(assigned)}`);
       }
