@@ -8,8 +8,8 @@ describe('DetailedDataManager CAS Deduplication & DA Slice Sampling', () => {
     manager = DetailedDataManager.getInstance();
   });
 
-  afterEach(() => {
-    manager.shutdown();
+  afterEach(async () => {
+    await manager.shutdownAsync();
   });
 
   describe('CAS Deduplication', () => {

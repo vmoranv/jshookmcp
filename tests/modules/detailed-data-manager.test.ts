@@ -33,12 +33,12 @@ describe('DetailedDataManager', () => {
     await mkdir(TEST_DIR, { recursive: true });
     await mkdir(join(TEST_DIR, 'tmp', 'detailed-data'), { recursive: true });
     manager = new DetailedDataManager();
-    // Allow init() to complete
-    await new Promise((r) => setTimeout(r, 100));
+    // init() runs in the constructor; wait for it deterministically.
+    await manager.whenReady();
   });
 
   afterEach(async () => {
-    manager.shutdown();
+    await manager.shutdownAsync();
     await rm(TEST_DIR, { recursive: true, force: true }).catch(() => {});
   });
 

@@ -61,12 +61,13 @@ describe('DetailedDataManager disk lifecycle', () => {
     await mkdir(TEST_DIR, { recursive: true });
     await mkdir(PERSIST_DIR, { recursive: true });
     manager = new DetailedDataManager();
-    // Allow the fire-and-forget init() (mkdir + load + cleanupExpired) to settle.
-    await sleep(150);
+    // init() runs in the constructor; wait for it deterministically instead
+    // of sleeping a fixed interval.
+    await manager.whenReady();
   });
 
   afterEach(async () => {
-    manager.shutdown();
+    await manager.shutdownAsync();
     vi.restoreAllMocks();
     await rm(TEST_DIR, { recursive: true, force: true }).catch(() => {});
   });

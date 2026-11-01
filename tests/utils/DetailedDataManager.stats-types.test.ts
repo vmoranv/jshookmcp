@@ -16,8 +16,8 @@ describe('utils/DetailedDataManager getStats types', () => {
     manager = DetailedDataManager.getInstance();
   });
 
-  afterEach(() => {
-    DetailedDataManager.getInstance().shutdown();
+  afterEach(async () => {
+    await DetailedDataManager.getInstance().shutdownAsync();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });

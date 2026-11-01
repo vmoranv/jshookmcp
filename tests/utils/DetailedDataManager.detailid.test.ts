@@ -22,8 +22,8 @@ describe('DetailedDataManager detailId generation', () => {
     vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
   });
 
-  afterEach(() => {
-    DetailedDataManager.getInstance().shutdown();
+  afterEach(async () => {
+    await DetailedDataManager.getInstance().shutdownAsync();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });

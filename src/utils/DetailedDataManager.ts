@@ -169,6 +169,19 @@ export class DetailedDataManager {
     dedupHitCount: 0,
   };
 
+  /**
+   * Handle for the constructor's background initialisation.
+   *
+   * `init()` is started from the constructor and must not block it, but a
+   * caller that shuts the manager down immediately still has to be able to
+   * wait for that work to finish. Without a handle the async chain outlives
+   * `shutdown()`: its `logger` writes then land after the surrounding worker
+   * has begun tearing down (vitest reports that as
+   * `EnvironmentTeardownError: Closing rpc while "onUserConsoleLog" was
+   * pending`). `shutdownAsync()` awaits this.
+   */
+  private initialization: Promise<void> = Promise.resolve();
+
   constructor() {
     this.persistDir = join(getArtifactDir('tmp'), 'detailed-data');
     this.metadataPath = join(this.persistDir, '.metadata.jsonl');
@@ -176,7 +189,7 @@ export class DetailedDataManager {
     if (typeof this.cleanupInterval === 'object' && 'unref' in this.cleanupInterval) {
       this.cleanupInterval.unref();
     }
-    void this.init();
+    this.initialization = this.init();
   }
 
   /** @deprecated Use constructor injection. Kept for backward compatibility. */
@@ -187,6 +200,13 @@ export class DetailedDataManager {
     return this.instance;
   }
 
+  /**
+   * Synchronous shutdown: stop timers and drop state immediately.
+   *
+   * The constructor's `init()` may still be running. Callers that need to
+   * guarantee no background work remains afterwards (tests, worker teardown)
+   * must use {@link shutdownAsync} instead — this method cannot wait.
+   */
   shutdown(): void {
     this.disposed = true;
     if (this.cleanupInterval) {
@@ -197,6 +217,28 @@ export class DetailedDataManager {
     this.contentHashIndex.clear();
     // Reset singleton so next getInstance() creates a fresh instance with interval
     DetailedDataManager.instance = undefined;
+  }
+
+  /**
+   * Shutdown that also waits for the background `init()` to settle.
+   *
+   * `init()` checks `disposed` between its steps, so flagging it first means
+   * the remaining work returns early instead of racing persistence writes.
+   * Errors are already swallowed inside `init()`; this only waits.
+   */
+  async shutdownAsync(): Promise<void> {
+    this.shutdown();
+    await this.initialization;
+  }
+
+  /**
+   * Resolve once the constructor's background `init()` has settled.
+   *
+   * Callers that immediately read persisted state (tests, any code that needs
+   * the loaded cache) should await this instead of sleeping a fixed interval.
+   */
+  whenReady(): Promise<void> {
+    return this.initialization;
   }
 
   private async init(): Promise<void> {
