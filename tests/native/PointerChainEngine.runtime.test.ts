@@ -24,6 +24,7 @@
 import { describe, it, expect } from 'vitest';
 import { PointerChainEngine } from '@native/PointerChainEngine';
 import { MemoryScanner } from '@native/MemoryScanner';
+import { nativeMemoryManager } from '@native/NativeMemoryManager';
 
 const WIN32_RUNTIME = process.platform === 'win32' && process.env.JSHOOK_NATIVE_RUNTIME === '1';
 
@@ -56,7 +57,7 @@ describe.skipIf(!WIN32_RUNTIME)(
   'PointerChainEngine — real self-process pointer chase (runtime, host=Windows)',
   () => {
     it('dereferences a real in-process slot and applies link offsets', async () => {
-      const scanner = new MemoryScanner();
+      const scanner = new MemoryScanner(nativeMemoryManager);
       const engine = new PointerChainEngine();
 
       targetHolder[0] = TARGET_MARKER;
@@ -72,6 +73,7 @@ describe.skipIf(!WIN32_RUNTIME)(
         isStatic: false,
         depth: 1,
         lastValidated: 0,
+        isValid: true,
       };
 
       const resolvedBase = await engine.resolveChain(process.pid, baseChain);
@@ -100,6 +102,7 @@ describe.skipIf(!WIN32_RUNTIME)(
         isStatic: false,
         depth: 1,
         lastValidated: 0,
+        isValid: true,
       };
 
       const result = await engine.validateChain(process.pid, bogusChain);
@@ -114,7 +117,7 @@ describe.skipIf(!WIN32_RUNTIME)(
     });
 
     it('marks a resolvable chain valid when targetAddress matches', async () => {
-      const scanner = new MemoryScanner();
+      const scanner = new MemoryScanner(nativeMemoryManager);
       const engine = new PointerChainEngine();
 
       targetHolder[1] = TARGET_MARKER;
@@ -130,6 +133,7 @@ describe.skipIf(!WIN32_RUNTIME)(
         isStatic: false,
         depth: 1,
         lastValidated: 0,
+        isValid: true,
       };
 
       const result = await engine.validateChain(process.pid, chain);

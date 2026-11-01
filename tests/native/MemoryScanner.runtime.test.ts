@@ -18,6 +18,7 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { MemoryScanner } from '@native/MemoryScanner';
+import { nativeMemoryManager } from '@native/NativeMemoryManager';
 
 const WIN32_RUNTIME = process.platform === 'win32' && process.env.JSHOOK_NATIVE_RUNTIME === '1';
 
@@ -38,7 +39,7 @@ describe.skipIf(!WIN32_RUNTIME)(
 
     beforeAll(() => {
       sentinelHolder[2] = SENTINEL;
-      scanner = new MemoryScanner();
+      scanner = new MemoryScanner(nativeMemoryManager);
     });
 
     it('finds a value written by the test itself via firstScan', async () => {
