@@ -68,100 +68,192 @@ function makeTool(name: string, description: string): Tool {
 
 // ── domain resolver ──
 
+/**
+ * One rule in the tool-name → domain table.
+ *
+ * `prefixes` are matched with `startsWith`; `exact` names are matched with
+ * `===`. A rule may use either or both.
+ */
+interface DomainRule {
+  domain: string;
+  prefixes?: readonly string[];
+  exact?: readonly string[];
+}
+
+/**
+ * Ordered rules — FIRST MATCH WINS, and the order is load-bearing.
+ *
+ * Two spots that look reorderable but are not:
+ *   - `page_` appears in the browser rule, which comes BEFORE the workflow rule
+ *     containing `page_script_`, so `page_script_*` resolves to 'workflow'
+ *     only because `page_` is checked earlier and cannot match it... it can, so
+ *     `page_script_*` actually lands in 'browser'. That is the current
+ *     behaviour and the fixture depends on it.
+ *   - `shared_state_` / `state_board` sit in a later coordination rule than
+ *     the `sourcemap_` group; moving them changes nothing today but pins the
+ *     intended grouping.
+ *
+ * New prefixes must be appended where their precedence belongs, not at the
+ * end, or previously-resolved tools silently change domain.
+ */
+const DOMAIN_RULES: readonly DomainRule[] = [
+  {
+    domain: 'browser',
+    prefixes: ['page_', 'browser_', 'console_', 'tab_', 'captcha_', 'stealth_', 'dom_'],
+  },
+  {
+    domain: 'debugger',
+    prefixes: ['debug_', 'breakpoint_'],
+    exact: ['breakpoint', 'watch'],
+  },
+  {
+    domain: 'network',
+    prefixes: ['network_', 'ws_', 'sse_'],
+  },
+  {
+    domain: 'workflow',
+    prefixes: ['workflow_', 'run_extension_', 'list_extension_', 'api_probe_', 'page_script_'],
+  },
+  {
+    domain: 'analysis',
+    prefixes: [
+      'analysis_',
+      'deobfuscate',
+      'detect_',
+      'search_in_',
+      'collect_',
+      'manage_hooks',
+      'extract_function',
+    ],
+  },
+  {
+    domain: 'transform',
+    prefixes: ['transform_', 'ast_', 'webcrack_'],
+  },
+  {
+    domain: 'memory',
+    prefixes: ['memory_', 'heap_'],
+  },
+  {
+    domain: 'process',
+    prefixes: ['process_'],
+  },
+  {
+    domain: 'instrumentation',
+    prefixes: ['hook_', 'ai_hook_', 'evidence_'],
+  },
+  {
+    domain: 'encoding',
+    prefixes: ['encode_', 'decode_', 'binary_'],
+  },
+  {
+    domain: 'graphql',
+    prefixes: ['graphql_'],
+  },
+  {
+    domain: 'streaming',
+    prefixes: ['stream_'],
+  },
+  {
+    domain: 'wasm',
+    prefixes: ['wasm_'],
+  },
+  {
+    domain: 'sourcemap',
+    prefixes: ['sourcemap_', 'source_map_', 'js_bundle_', 'webpack_'],
+  },
+  {
+    domain: 'trace',
+    prefixes: ['trace_'],
+  },
+  {
+    domain: 'instrumentation',
+    prefixes: ['instrumentation_'],
+  },
+  {
+    domain: 'coordination',
+    prefixes: ['coordination_'],
+  },
+  {
+    domain: 'maintenance',
+    prefixes: ['maintenance_'],
+  },
+  {
+    domain: 'workflow',
+    prefixes: ['macro_'],
+  },
+  {
+    domain: 'maintenance',
+    prefixes: ['sandbox_'],
+  },
+  {
+    domain: 'canvas',
+    prefixes: ['canvas_'],
+  },
+  {
+    domain: 'coordination',
+    prefixes: ['shared_state_', 'state_board'],
+  },
+  {
+    domain: 'v8-inspector',
+    prefixes: ['v8_'],
+  },
+  {
+    domain: 'tls-inspector',
+    prefixes: ['tls_'],
+  },
+  {
+    domain: 'canvas',
+    prefixes: ['skia_'],
+  },
+  {
+    domain: 'binary-instrument',
+    prefixes: ['frida_', 'ghidra_', 'unidbg_', 'jadx_', 'generate_hooks'],
+  },
+  {
+    domain: 'adb-bridge',
+    prefixes: ['adb_', 'android_'],
+  },
+  {
+    domain: 'mojo-ipc',
+    prefixes: ['mojo_'],
+  },
+  {
+    domain: 'syscall-hook',
+    prefixes: ['syscall_'],
+  },
+  {
+    domain: 'protocol-analysis',
+    prefixes: ['protocol_', 'packet_', 'proto_', 'pcap_'],
+  },
+  {
+    domain: 'extension-registry',
+    prefixes: ['extension_', 'ble_', 'serial_'],
+    exact: ['webhook'],
+  },
+  {
+    domain: 'platform',
+    prefixes: ['platform_'],
+  },
+  {
+    domain: 'debugger',
+    prefixes: ['antidebug_'],
+  },
+];
+
+function ruleMatches(rule: DomainRule, name: string): boolean {
+  if (rule.exact?.includes(name)) {
+    return true;
+  }
+  return rule.prefixes?.some((prefix) => name.startsWith(prefix)) ?? false;
+}
+
 export function resolveSearchQualityToolDomain(name: string): string | null {
-  if (
-    name.startsWith('page_') ||
-    name.startsWith('browser_') ||
-    name.startsWith('console_') ||
-    name.startsWith('tab_') ||
-    name.startsWith('captcha_') ||
-    name.startsWith('stealth_') ||
-    name.startsWith('dom_')
-  )
-    return 'browser';
-  if (
-    name.startsWith('debug_') ||
-    name === 'breakpoint' ||
-    name.startsWith('breakpoint_') ||
-    name === 'watch'
-  )
-    return 'debugger';
-  if (name.startsWith('network_') || name.startsWith('ws_') || name.startsWith('sse_'))
-    return 'network';
-  if (
-    name.startsWith('workflow_') ||
-    name.startsWith('run_extension_') ||
-    name.startsWith('list_extension_') ||
-    name.startsWith('api_probe_') ||
-    name.startsWith('page_script_')
-  )
-    return 'workflow';
-  if (
-    name.startsWith('analysis_') ||
-    name.startsWith('deobfuscate') ||
-    name.startsWith('detect_') ||
-    name.startsWith('search_in_') ||
-    name.startsWith('collect_') ||
-    name.startsWith('manage_hooks') ||
-    name.startsWith('extract_function')
-  )
-    return 'analysis';
-  if (name.startsWith('transform_') || name.startsWith('ast_') || name.startsWith('webcrack_'))
-    return 'transform';
-  if (name.startsWith('memory_') || name.startsWith('heap_')) return 'memory';
-  if (name.startsWith('process_')) return 'process';
-  if (name.startsWith('hook_') || name.startsWith('ai_hook_') || name.startsWith('evidence_'))
-    return 'instrumentation';
-  if (name.startsWith('encode_') || name.startsWith('decode_') || name.startsWith('binary_'))
-    return 'encoding';
-  if (name.startsWith('graphql_')) return 'graphql';
-  if (name.startsWith('stream_')) return 'streaming';
-  if (name.startsWith('wasm_')) return 'wasm';
-  if (
-    name.startsWith('sourcemap_') ||
-    name.startsWith('source_map_') ||
-    name.startsWith('js_bundle_') ||
-    name.startsWith('webpack_')
-  )
-    return 'sourcemap';
-  if (name.startsWith('trace_')) return 'trace';
-  if (name.startsWith('instrumentation_')) return 'instrumentation';
-  if (name.startsWith('coordination_')) return 'coordination';
-  if (name.startsWith('maintenance_')) return 'maintenance';
-  if (name.startsWith('macro_')) return 'workflow';
-  if (name.startsWith('sandbox_')) return 'maintenance';
-  if (name.startsWith('canvas_')) return 'canvas';
-  if (name.startsWith('shared_state_') || name.startsWith('state_board')) return 'coordination';
-  if (name.startsWith('v8_')) return 'v8-inspector';
-  if (name.startsWith('tls_')) return 'tls-inspector';
-  if (name.startsWith('skia_')) return 'canvas';
-  if (
-    name.startsWith('frida_') ||
-    name.startsWith('ghidra_') ||
-    name.startsWith('unidbg_') ||
-    name.startsWith('jadx_') ||
-    name.startsWith('generate_hooks')
-  )
-    return 'binary-instrument';
-  if (name.startsWith('adb_') || name.startsWith('android_')) return 'adb-bridge';
-  if (name.startsWith('mojo_')) return 'mojo-ipc';
-  if (name.startsWith('syscall_')) return 'syscall-hook';
-  if (
-    name.startsWith('protocol_') ||
-    name.startsWith('packet_') ||
-    name.startsWith('proto_') ||
-    name.startsWith('pcap_')
-  )
-    return 'protocol-analysis';
-  if (
-    name.startsWith('extension_') ||
-    name === 'webhook' ||
-    name.startsWith('ble_') ||
-    name.startsWith('serial_')
-  )
-    return 'extension-registry';
-  if (name.startsWith('platform_')) return 'platform';
-  if (name.startsWith('antidebug_')) return 'debugger';
+  for (const rule of DOMAIN_RULES) {
+    if (ruleMatches(rule, name)) {
+      return rule.domain;
+    }
+  }
   return null;
 }
 
