@@ -4,6 +4,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+/** Everything a capture section needs from the calling test. */
+interface CaptureInput {
+  toolName: string;
+  parsed: unknown;
+  ctx: E2EContext;
+  overrides: Record<string, Record<string, unknown>>;
+}
+
 const PREFERRED_WORKFLOW_IDS = ['workflow.batch-register.v1', 'workflow.demo.v1'];
 
 function selectWorkflowId(parsed: unknown): string | null {
@@ -30,292 +38,383 @@ export function applyContextCapture(
   ctx: E2EContext,
   overrides: Record<string, Record<string, unknown>>,
 ): void {
-  // ── browser PID from browser launch flows ──
-  if ((toolName === 'browser_launch' || toolName === 'process_launch_debug') && isRecord(parsed)) {
+  captureBrowserPidFromBrowserLaunchFlows({ toolName, parsed, ctx, overrides });
+  captureScripts({ toolName, parsed, ctx, overrides });
+  captureBreakpoints({ toolName, parsed, ctx, overrides });
+  captureNetworkRequestsCapture({ toolName, parsed, ctx, overrides });
+  captureAiHooks({ toolName, parsed, ctx, overrides });
+  captureScopeVariablesObjectid({ toolName, parsed, ctx, overrides });
+  captureExtensionWorkflowsWorkflowid({ toolName, parsed, ctx, overrides });
+  capturePageSnapshotsSnapshotid({ toolName, parsed, ctx, overrides });
+  captureV8SnapshotsSnapshotidDiffInputs({ toolName, parsed, ctx, overrides });
+  captureExtensionsPluginid({ toolName, parsed, ctx, overrides });
+  captureWatchCaptureIdForWatchRemove({ toolName, parsed, ctx, overrides });
+  captureXhrBreakpointCaptureIdForXhrBreakpointRemove({ toolName, parsed, ctx, overrides });
+  captureEventBreakpointCaptureIdForEventBreakpointRemove({ toolName, parsed, ctx, overrides });
+  captureBlackbox({ toolName, parsed, ctx, overrides });
+  captureDebuggerSessionCaptureSessionFilePathForLoad({ toolName, parsed, ctx, overrides });
+  captureSourcemapUrlFromSourcemapDiscover({ toolName, parsed, ctx, overrides });
+  captureCoordinationDomainTaskHandoff({ toolName, parsed, ctx, overrides });
+}
+
+/** browser PID from browser launch flows */
+function captureBrowserPidFromBrowserLaunchFlows(input: CaptureInput): void {
+  if (
+    (input.toolName === 'browser_launch' || input.toolName === 'process_launch_debug') &&
+    isRecord(input.parsed)
+  ) {
     // launch flows may return pid directly, in nested browser, or nested process
-    const pid = parsed.pid ?? (isRecord(parsed.browser) ? parsed.browser.pid : undefined);
-    const processPid = isRecord(parsed.process) ? parsed.process.pid : undefined;
+    const pid =
+      input.parsed.pid ?? (isRecord(input.parsed.browser) ? input.parsed.browser.pid : undefined);
+    const processPid = isRecord(input.parsed.process) ? input.parsed.process.pid : undefined;
     const candidatePid = pid ?? processPid;
     if (typeof candidatePid === 'number' && candidatePid > 0) {
-      ctx.browserPid = candidatePid;
+      input.ctx.browserPid = candidatePid;
     }
   }
+}
 
-  // ── Scripts ──
-  if (toolName === 'get_all_scripts' && isRecord(parsed)) {
+/** Scripts */
+function captureScripts(input: CaptureInput): void {
+  if (input.toolName === 'get_all_scripts' && isRecord(input.parsed)) {
     // Handle multiple response formats: { scripts: [...] }, direct array, etc.
-    const scripts = Array.isArray(parsed.scripts)
-      ? parsed.scripts
-      : Array.isArray(parsed)
-        ? parsed
+    const scripts = Array.isArray(input.parsed.scripts)
+      ? input.parsed.scripts
+      : Array.isArray(input.parsed)
+        ? input.parsed
         : [];
     if (scripts.length > 0) {
       const firstScript = scripts[0] as Record<string, unknown>;
       const id = firstScript.scriptId ?? firstScript.id;
       if (id !== undefined) {
-        ctx.scriptId = String(id);
-        overrides.get_script_source = { scriptId: ctx.scriptId };
-        overrides.extract_function_tree = { scriptId: ctx.scriptId, functionName: 'fetch' };
+        input.ctx.scriptId = String(id);
+        input.overrides.get_script_source = { scriptId: input.ctx.scriptId };
+        input.overrides.extract_function_tree = {
+          scriptId: input.ctx.scriptId,
+          functionName: 'fetch',
+        };
       }
     }
   }
 
-  if (toolName === 'get_detailed_data' && isRecord(parsed)) {
-    const detailId = parsed.detailId ?? parsed.id;
+  if (input.toolName === 'get_detailed_data' && isRecord(input.parsed)) {
+    const detailId = input.parsed.detailId ?? input.parsed.id;
     if (detailId !== undefined && detailId !== null) {
-      ctx.detailId = String(detailId);
+      input.ctx.detailId = String(detailId);
     }
   }
+}
 
-  // ── Breakpoints ──
-  if (isRecord(parsed)) {
-    const breakpoint = isRecord(parsed.breakpoint) ? parsed.breakpoint : undefined;
-    const breakpointId = parsed.breakpointId ?? breakpoint?.breakpointId;
+/** Breakpoints */
+function captureBreakpoints(input: CaptureInput): void {
+  if (isRecord(input.parsed)) {
+    const breakpoint = isRecord(input.parsed.breakpoint) ? input.parsed.breakpoint : undefined;
+    const breakpointId = input.parsed.breakpointId ?? breakpoint?.breakpointId;
     if (
-      toolName === 'breakpoint_set' ||
-      (toolName === 'breakpoint' && typeof breakpointId === 'string' && breakpointId.length > 0)
+      input.toolName === 'breakpoint_set' ||
+      (input.toolName === 'breakpoint' &&
+        typeof breakpointId === 'string' &&
+        breakpointId.length > 0)
     ) {
-      ctx.breakpointId = String(breakpointId);
-      overrides.breakpoint_remove = { breakpointId: ctx.breakpointId };
+      input.ctx.breakpointId = String(breakpointId);
+      input.overrides.breakpoint_remove = { breakpointId: input.ctx.breakpointId };
     }
   }
+}
 
-  // ── Network requests capture ──
+/** Network requests capture */
+function captureNetworkRequestsCapture(input: CaptureInput): void {
   if (
-    toolName === 'network_get_requests' &&
-    isRecord(parsed) &&
-    Array.isArray(parsed.requests) &&
-    parsed.requests.length > 0
+    input.toolName === 'network_get_requests' &&
+    isRecord(input.parsed) &&
+    Array.isArray(input.parsed.requests) &&
+    input.parsed.requests.length > 0
   ) {
-    const first = parsed.requests[0] as Record<string, unknown>;
+    const first = input.parsed.requests[0] as Record<string, unknown>;
     if (first.requestId !== undefined && first.requestId !== null) {
-      ctx.requestId = String(first.requestId);
-      overrides.network_get_response_body = { requestId: ctx.requestId };
-      overrides.network_replay_request = { requestId: ctx.requestId, dryRun: true };
+      input.ctx.requestId = String(first.requestId);
+      input.overrides.network_get_response_body = { requestId: input.ctx.requestId };
+      input.overrides.network_replay_request = { requestId: input.ctx.requestId, dryRun: true };
     }
   }
 
-  if (toolName === 'instrumentation_session' && isRecord(parsed)) {
+  if (input.toolName === 'instrumentation_session' && isRecord(input.parsed)) {
     const session =
-      parsed.success === true && isRecord(parsed.session)
-        ? parsed.session
-        : isRecord(parsed.result) && isRecord(parsed.result.session)
-          ? parsed.result.session
+      input.parsed.success === true && isRecord(input.parsed.session)
+        ? input.parsed.session
+        : isRecord(input.parsed.result) && isRecord(input.parsed.result.session)
+          ? input.parsed.result.session
           : undefined;
     const sessionId = session?.id;
     if (typeof sessionId === 'string' && sessionId.length > 0) {
-      ctx.instrumentationSessionId = sessionId;
-      overrides.instrumentation_operation = {
+      input.ctx.instrumentationSessionId = sessionId;
+      input.overrides.instrumentation_operation = {
         action: 'list',
-        sessionId: ctx.instrumentationSessionId,
+        sessionId: input.ctx.instrumentationSessionId,
       };
-      overrides.instrumentation_artifact = {
+      input.overrides.instrumentation_artifact = {
         action: 'query',
-        sessionId: ctx.instrumentationSessionId,
+        sessionId: input.ctx.instrumentationSessionId,
       };
     }
   }
 
-  if (toolName === 'memory_first_scan' && isRecord(parsed)) {
-    const sessionId = parsed.sessionId;
+  if (input.toolName === 'memory_first_scan' && isRecord(input.parsed)) {
+    const sessionId = input.parsed.sessionId;
     if (typeof sessionId === 'string' && sessionId.length > 0) {
-      ctx.memoryScanSessionId = sessionId;
-      overrides.memory_scan_delete = { action: 'delete', sessionId: ctx.memoryScanSessionId };
-      overrides.memory_scan_export = { action: 'export', sessionId: ctx.memoryScanSessionId };
+      input.ctx.memoryScanSessionId = sessionId;
+      input.overrides.memory_scan_delete = {
+        action: 'delete',
+        sessionId: input.ctx.memoryScanSessionId,
+      };
+      input.overrides.memory_scan_export = {
+        action: 'export',
+        sessionId: input.ctx.memoryScanSessionId,
+      };
     }
   }
 
-  if (toolName === 'memory_freeze' && isRecord(parsed)) {
-    const freezeId = parsed.id ?? parsed.freezeId;
+  if (input.toolName === 'memory_freeze' && isRecord(input.parsed)) {
+    const freezeId = input.parsed.id ?? input.parsed.freezeId;
     if (typeof freezeId === 'string' && freezeId.length > 0) {
-      ctx.freezeId = freezeId;
-      overrides.memory_unfreeze = { action: 'unfreeze', freezeId: ctx.freezeId };
+      input.ctx.freezeId = freezeId;
+      input.overrides.memory_unfreeze = { action: 'unfreeze', freezeId: input.ctx.freezeId };
     }
   }
+}
 
-  // ── AI Hooks ──
-  if (toolName === 'ai_hook' && isRecord(parsed) && parsed['action'] === 'inject') {
-    const hookId = parsed.hookId ?? parsed.id;
-    if (hookId !== undefined && hookId !== null) {
-      ctx.hookId = String(hookId);
-      overrides.ai_hook = { action: 'inject', hookId: ctx.hookId };
-    }
-  }
-
-  // ── Scope variables → objectId ──
+/** AI Hooks */
+function captureAiHooks(input: CaptureInput): void {
   if (
-    toolName === 'get_scope_variables_enhanced' &&
-    isRecord(parsed) &&
-    Array.isArray(parsed.variables)
+    input.toolName === 'ai_hook' &&
+    isRecord(input.parsed) &&
+    input.parsed['action'] === 'inject'
   ) {
-    const objVar = (parsed.variables as Record<string, unknown>[]).find(
+    const hookId = input.parsed.hookId ?? input.parsed.id;
+    if (hookId !== undefined && hookId !== null) {
+      input.ctx.hookId = String(hookId);
+      input.overrides.ai_hook = { action: 'inject', hookId: input.ctx.hookId };
+    }
+  }
+}
+
+/** Scope variables → objectId */
+function captureScopeVariablesObjectid(input: CaptureInput): void {
+  if (
+    input.toolName === 'get_scope_variables_enhanced' &&
+    isRecord(input.parsed) &&
+    Array.isArray(input.parsed.variables)
+  ) {
+    const objVar = (input.parsed.variables as Record<string, unknown>[]).find(
       (v) => v.objectId !== undefined && v.objectId !== null,
     );
     if (objVar) {
-      ctx.objectId = String(objVar.objectId);
-      overrides.get_object_properties = { objectId: ctx.objectId };
+      input.ctx.objectId = String(objVar.objectId);
+      input.overrides.get_object_properties = { objectId: input.ctx.objectId };
     }
   }
+}
 
-  // ── Extension workflows → workflowId ──
-  if (toolName === 'list_extension_workflows') {
-    const workflowId = selectWorkflowId(parsed);
+/** Extension workflows → workflowId */
+function captureExtensionWorkflowsWorkflowid(input: CaptureInput): void {
+  if (input.toolName === 'list_extension_workflows') {
+    const workflowId = selectWorkflowId(input.parsed);
     if (workflowId) {
-      ctx.workflowId = workflowId;
-      overrides.run_extension_workflow = { workflowId: ctx.workflowId };
+      input.ctx.workflowId = workflowId;
+      input.overrides.run_extension_workflow = { workflowId: input.ctx.workflowId };
     }
   }
+}
 
-  // ── Page snapshots → snapshotId ──
-  if (toolName === 'save_page_snapshot' && isRecord(parsed)) {
-    const snapshotId = parsed.snapshotId ?? parsed.id;
+/** Page snapshots → snapshotId */
+function capturePageSnapshotsSnapshotid(input: CaptureInput): void {
+  if (input.toolName === 'save_page_snapshot' && isRecord(input.parsed)) {
+    const snapshotId = input.parsed.snapshotId ?? input.parsed.id;
     if (typeof snapshotId === 'string' && snapshotId.length > 0) {
-      ctx.snapshotId = snapshotId;
-      overrides.restore_page_snapshot = { snapshotId: ctx.snapshotId };
+      input.ctx.snapshotId = snapshotId;
+      input.overrides.restore_page_snapshot = { snapshotId: input.ctx.snapshotId };
     }
   }
+}
 
-  // ── V8 snapshots → snapshotId / diff inputs ──
-  if (toolName === 'v8_heap_snapshot_capture' && isRecord(parsed)) {
-    const snapshotId = parsed.snapshotId ?? parsed.id;
+/** V8 snapshots → snapshotId / diff inputs */
+function captureV8SnapshotsSnapshotidDiffInputs(input: CaptureInput): void {
+  if (input.toolName === 'v8_heap_snapshot_capture' && isRecord(input.parsed)) {
+    const snapshotId = input.parsed.snapshotId ?? input.parsed.id;
     if (typeof snapshotId === 'string' && snapshotId.length > 0) {
-      if (ctx.v8SnapshotId && ctx.v8SnapshotId !== snapshotId && !ctx.v8ComparisonSnapshotId) {
-        ctx.v8ComparisonSnapshotId = snapshotId;
-      } else if (!ctx.v8SnapshotId) {
-        ctx.v8SnapshotId = snapshotId;
+      if (
+        input.ctx.v8SnapshotId &&
+        input.ctx.v8SnapshotId !== snapshotId &&
+        !input.ctx.v8ComparisonSnapshotId
+      ) {
+        input.ctx.v8ComparisonSnapshotId = snapshotId;
+      } else if (!input.ctx.v8SnapshotId) {
+        input.ctx.v8SnapshotId = snapshotId;
       } else {
-        ctx.v8SnapshotId = snapshotId;
+        input.ctx.v8SnapshotId = snapshotId;
       }
 
-      overrides.v8_heap_snapshot_analyze = { snapshotId: ctx.v8SnapshotId };
+      input.overrides.v8_heap_snapshot_analyze = { snapshotId: input.ctx.v8SnapshotId };
 
-      if (ctx.v8SnapshotId && ctx.v8ComparisonSnapshotId) {
-        overrides.v8_heap_diff = {
-          snapshotId1: ctx.v8SnapshotId,
-          snapshotId2: ctx.v8ComparisonSnapshotId,
+      if (input.ctx.v8SnapshotId && input.ctx.v8ComparisonSnapshotId) {
+        input.overrides.v8_heap_diff = {
+          snapshotId1: input.ctx.v8SnapshotId,
+          snapshotId2: input.ctx.v8ComparisonSnapshotId,
         };
-      } else if (ctx.v8SnapshotId) {
-        overrides.v8_heap_diff = {
-          snapshotId1: ctx.v8SnapshotId,
-          snapshotId2: ctx.v8SnapshotId,
+      } else if (input.ctx.v8SnapshotId) {
+        input.overrides.v8_heap_diff = {
+          snapshotId1: input.ctx.v8SnapshotId,
+          snapshotId2: input.ctx.v8SnapshotId,
         };
       }
     }
   }
+}
 
-  // ── Extensions → pluginId ──
-  if (toolName === 'list_extensions' && isRecord(parsed) && Array.isArray(parsed.plugins)) {
-    const plugin = parsed.plugins.find(
+/** Extensions → pluginId */
+function captureExtensionsPluginid(input: CaptureInput): void {
+  if (
+    input.toolName === 'list_extensions' &&
+    isRecord(input.parsed) &&
+    Array.isArray(input.parsed.plugins)
+  ) {
+    const plugin = input.parsed.plugins.find(
       (value): value is Record<string, unknown> =>
         isRecord(value) && typeof value.id === 'string' && value.id.length > 0,
     );
     if (plugin) {
-      ctx.pluginId = plugin.id as string;
-      overrides.extension_reload = { pluginId: ctx.pluginId };
-      overrides.extension_uninstall = { pluginId: ctx.pluginId };
-      overrides.extension_execute_in_context = {
-        pluginId: ctx.pluginId,
+      input.ctx.pluginId = plugin.id as string;
+      input.overrides.extension_reload = { pluginId: input.ctx.pluginId };
+      input.overrides.extension_uninstall = { pluginId: input.ctx.pluginId };
+      input.overrides.extension_execute_in_context = {
+        pluginId: input.ctx.pluginId,
         contextName: 'default',
         args: {},
       };
     }
   }
+}
 
-  // ── Watch: capture ID for watch_remove ──
+/** Watch: capture ID for watch_remove */
+function captureWatchCaptureIdForWatchRemove(input: CaptureInput): void {
   if (
-    (toolName === 'watch_add' || toolName === 'watch') &&
-    isRecord(parsed) &&
-    parsed.success === true
+    (input.toolName === 'watch_add' || input.toolName === 'watch') &&
+    isRecord(input.parsed) &&
+    input.parsed.success === true
   ) {
-    const watchId = parsed.id ?? parsed.watchId;
+    const watchId = input.parsed.id ?? input.parsed.watchId;
     if (watchId !== undefined && watchId !== null) {
-      ctx.watchId = String(watchId);
-      overrides.watch_remove = { watchId: ctx.watchId };
+      input.ctx.watchId = String(watchId);
+      input.overrides.watch_remove = { watchId: input.ctx.watchId };
     }
   }
+}
 
-  // ── XHR breakpoint: capture ID for xhr_breakpoint_remove ──
+/** XHR breakpoint: capture ID for xhr_breakpoint_remove */
+function captureXhrBreakpointCaptureIdForXhrBreakpointRemove(input: CaptureInput): void {
   if (
-    isRecord(parsed) &&
-    (toolName === 'xhr_breakpoint_set' ||
-      (toolName === 'breakpoint' && parsed.success === true && parsed.urlPattern !== undefined))
+    isRecord(input.parsed) &&
+    (input.toolName === 'xhr_breakpoint_set' ||
+      (input.toolName === 'breakpoint' &&
+        input.parsed.success === true &&
+        input.parsed.urlPattern !== undefined))
   ) {
-    const breakpointId = parsed.id ?? parsed.breakpointId;
+    const breakpointId = input.parsed.id ?? input.parsed.breakpointId;
     if (breakpointId !== undefined && breakpointId !== null) {
-      ctx.xhrBreakpointId = String(breakpointId);
-      overrides.xhr_breakpoint_remove = { breakpointId: ctx.xhrBreakpointId };
+      input.ctx.xhrBreakpointId = String(breakpointId);
+      input.overrides.xhr_breakpoint_remove = { breakpointId: input.ctx.xhrBreakpointId };
     }
   }
+}
 
-  // ── Event breakpoint: capture ID for event_breakpoint_remove ──
-  if (isRecord(parsed)) {
-    const breakpointId = parsed.id ?? parsed.breakpointId;
+/** Event breakpoint: capture ID for event_breakpoint_remove */
+function captureEventBreakpointCaptureIdForEventBreakpointRemove(input: CaptureInput): void {
+  if (isRecord(input.parsed)) {
+    const breakpointId = input.parsed.id ?? input.parsed.breakpointId;
     const isSingleEventBreakpoint =
-      toolName === 'event_breakpoint_set' ||
-      (toolName === 'breakpoint' && parsed.success === true && parsed.eventName !== undefined);
+      input.toolName === 'event_breakpoint_set' ||
+      (input.toolName === 'breakpoint' &&
+        input.parsed.success === true &&
+        input.parsed.eventName !== undefined);
     const isCategoryBreakpoint =
-      toolName === 'event_breakpoint_set_category' ||
-      (toolName === 'breakpoint' && parsed.success === true && Array.isArray(parsed.breakpointIds));
+      input.toolName === 'event_breakpoint_set_category' ||
+      (input.toolName === 'breakpoint' &&
+        input.parsed.success === true &&
+        Array.isArray(input.parsed.breakpointIds));
 
     if (isSingleEventBreakpoint && breakpointId !== undefined && breakpointId !== null) {
-      ctx.eventBreakpointId = String(breakpointId);
-      overrides.event_breakpoint_remove = { breakpointId: ctx.eventBreakpointId };
+      input.ctx.eventBreakpointId = String(breakpointId);
+      input.overrides.event_breakpoint_remove = { breakpointId: input.ctx.eventBreakpointId };
     }
 
     if (
       isCategoryBreakpoint &&
-      Array.isArray(parsed.breakpointIds) &&
-      parsed.breakpointIds.length > 0
+      Array.isArray(input.parsed.breakpointIds) &&
+      input.parsed.breakpointIds.length > 0
     ) {
-      const firstId = parsed.breakpointIds[0];
+      const firstId = input.parsed.breakpointIds[0];
       if (typeof firstId === 'string' && firstId.length > 0) {
-        ctx.eventBreakpointId = firstId;
-        overrides.event_breakpoint_remove = { breakpointId: ctx.eventBreakpointId };
+        input.ctx.eventBreakpointId = firstId;
+        input.overrides.event_breakpoint_remove = { breakpointId: input.ctx.eventBreakpointId };
       }
     }
   }
+}
 
-  // ── Blackbox ──
+/** Blackbox */
+function captureBlackbox(input: CaptureInput): void {
   if (
-    toolName === 'blackbox_add_common' &&
-    isRecord(parsed) &&
-    Array.isArray(parsed.added) &&
-    parsed.added.length > 0
+    input.toolName === 'blackbox_add_common' &&
+    isRecord(input.parsed) &&
+    Array.isArray(input.parsed.added) &&
+    input.parsed.added.length > 0
   ) {
-    overrides.blackbox_add = { pattern: parsed.added[0] as string };
+    input.overrides.blackbox_add = { pattern: input.parsed.added[0] as string };
   }
+}
 
-  // ── Debugger session: capture session file path for load ──
-  if (toolName === 'debugger_session' && isRecord(parsed) && parsed['action'] === 'save') {
-    const path = parsed.filePath ?? parsed.path ?? parsed.sessionPath;
+/** Debugger session: capture session file path for load */
+function captureDebuggerSessionCaptureSessionFilePathForLoad(input: CaptureInput): void {
+  if (
+    input.toolName === 'debugger_session' &&
+    isRecord(input.parsed) &&
+    input.parsed['action'] === 'save'
+  ) {
+    const path = input.parsed.filePath ?? input.parsed.path ?? input.parsed.sessionPath;
     if (typeof path === 'string' && path.length > 0) {
-      ctx.sessionPath = path;
-      overrides.debugger_session = { action: 'load', filePath: ctx.sessionPath };
+      input.ctx.sessionPath = path;
+      input.overrides.debugger_session = { action: 'load', filePath: input.ctx.sessionPath };
     }
   }
 
-  if (isRecord(parsed) && Array.isArray(parsed.modules) && parsed.modules.length > 0) {
+  if (
+    isRecord(input.parsed) &&
+    Array.isArray(input.parsed.modules) &&
+    input.parsed.modules.length > 0
+  ) {
     // Pick a small, safe DLL (prefer ntdll or kernel32 or any real path)
     const mod =
-      (parsed.modules as Record<string, unknown>[]).find((m) => {
+      (input.parsed.modules as Record<string, unknown>[]).find((m) => {
         const name = String(m.name ?? m.moduleName ?? '').toLowerCase();
         return name.includes('ntdll') || name.includes('kernel32');
-      }) ?? (parsed.modules[0] as Record<string, unknown>);
+      }) ?? (input.parsed.modules[0] as Record<string, unknown>);
     const dllPath = mod?.path ?? mod?.modulePath ?? mod?.name ?? mod?.moduleName;
     if (typeof dllPath === 'string' && dllPath.length > 0) {
-      ctx.dllPath = dllPath;
-      if (typeof ctx.browserPid === 'number' && ctx.browserPid > 0) {
-        overrides.inject_dll = { pid: ctx.browserPid, dllPath: ctx.dllPath };
+      input.ctx.dllPath = dllPath;
+      if (typeof input.ctx.browserPid === 'number' && input.ctx.browserPid > 0) {
+        input.overrides.inject_dll = { pid: input.ctx.browserPid, dllPath: input.ctx.dllPath };
       }
     }
   }
+}
 
-  // ── Sourcemap URL from sourcemap_discover ──
-  if (toolName === 'sourcemap_discover') {
-    const maps = Array.isArray(parsed)
-      ? parsed
-      : isRecord(parsed)
-        ? (parsed.sourceMaps ?? parsed.maps ?? parsed.discovered)
+/** Sourcemap URL from sourcemap_discover */
+function captureSourcemapUrlFromSourcemapDiscover(input: CaptureInput): void {
+  if (input.toolName === 'sourcemap_discover') {
+    const maps = Array.isArray(input.parsed)
+      ? input.parsed
+      : isRecord(input.parsed)
+        ? (input.parsed.sourceMaps ?? input.parsed.maps ?? input.parsed.discovered)
         : null;
     if (Array.isArray(maps) && maps.length > 0) {
       const first = maps.find((item) => {
@@ -325,25 +424,27 @@ export function applyContextCapture(
       }) as Record<string, unknown> | undefined;
       const url = first?.sourceMapUrl ?? first?.url ?? first?.mapUrl;
       if (typeof url === 'string' && url.length > 0) {
-        ctx.sourceMapUrl = url;
-        overrides.sourcemap_fetch_and_parse = { sourceMapUrl: ctx.sourceMapUrl };
-        overrides.sourcemap_reconstruct_tree = { sourceMapUrl: ctx.sourceMapUrl };
+        input.ctx.sourceMapUrl = url;
+        input.overrides.sourcemap_fetch_and_parse = { sourceMapUrl: input.ctx.sourceMapUrl };
+        input.overrides.sourcemap_reconstruct_tree = { sourceMapUrl: input.ctx.sourceMapUrl };
       }
     }
   }
+}
 
-  // ── Coordination Domain: task handoff ──
-  if (toolName === 'create_task_handoff' && isRecord(parsed)) {
-    const taskId = parsed.taskId;
+/** Coordination Domain: task handoff */
+function captureCoordinationDomainTaskHandoff(input: CaptureInput): void {
+  if (input.toolName === 'create_task_handoff' && isRecord(input.parsed)) {
+    const taskId = input.parsed.taskId;
     if (typeof taskId === 'string') {
-      ctx.taskId = taskId;
-      overrides.complete_task_handoff = {
-        taskId: ctx.taskId,
+      input.ctx.taskId = taskId;
+      input.overrides.complete_task_handoff = {
+        taskId: input.ctx.taskId,
         summary: 'E2E testing complete',
         artifacts: ['test.txt'],
       };
-      overrides.get_task_context = { taskId: ctx.taskId };
-      overrides.append_session_insight = {
+      input.overrides.get_task_context = { taskId: input.ctx.taskId };
+      input.overrides.append_session_insight = {
         category: 'other',
         content: 'E2E test executed handoff creation.',
       };
