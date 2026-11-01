@@ -481,6 +481,111 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
     return undefined;
   }
 
+  /** `x.y` / `x[i]` over a resolved receiver. */
+  function evalMember(
+    node: t.MemberExpression,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    const obj = evalExpr(node.object, env, arrays);
+    if (obj === undefined || obj === null) {
+      return undefined;
+    }
+    if (!node.computed) {
+      return undefined;
+    }
+    const prop = evalExpr(node.property, env, arrays);
+    if (typeof obj === 'string' && typeof prop === 'number') {
+      return obj.charAt(prop);
+    }
+    if (Array.isArray(obj) && typeof prop === 'number') {
+      return (obj[prop] as string | number | boolean | null | undefined) ?? null;
+    }
+    return undefined;
+  }
+
+  /** `a <op> b`, refusing array operands and unknown operators. */
+  function evalBinaryOp(
+    node: t.BinaryExpression,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    const left = evalExpr(node.left, env, arrays);
+    const right = evalExpr(node.right, env, arrays);
+    if (left === undefined || right === undefined || Array.isArray(left) || Array.isArray(right)) {
+      return undefined;
+    }
+    return evalBinary(node.operator, left, right);
+  }
+
+  /** `!x`, `-x`, `+x`, `~x`, `typeof x`. */
+  function evalUnaryOp(
+    node: t.UnaryExpression,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    const value = evalExpr(node.argument, env, arrays);
+    if (value === undefined) {
+      return undefined;
+    }
+    switch (node.operator) {
+      case '!':
+        return !value;
+      case '-':
+        return typeof value === 'number' ? -value : undefined;
+      case '+':
+        return typeof value === 'number' ? value : undefined;
+      case '~':
+        return typeof value === 'number' ? ~value : undefined;
+      case 'typeof':
+        return typeof value;
+      default:
+        return undefined;
+    }
+  }
+
+  /** `a && b` / `a || b` / `a ?? b`, short-circuiting on the resolved left. */
+  function evalLogicalOp(
+    node: t.LogicalExpression,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    const left = evalExpr(node.left, env, arrays);
+    if (left === undefined) {
+      return undefined;
+    }
+    if (node.operator === '&&') {
+      return left ? evalExpr(node.right, env, arrays) : left;
+    }
+    if (node.operator === '||') {
+      return left ? left : evalExpr(node.right, env, arrays);
+    }
+    // '??'
+    return left !== null ? left : evalExpr(node.right, env, arrays);
+  }
+
+  /** A template literal with statically evaluable interpolations. */
+  function evalTemplate(
+    node: t.TemplateLiteral,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    let result = '';
+    for (let i = 0; i < node.quasis.length; i += 1) {
+      const q = node.quasis[i]!;
+      result += q.value.cooked ?? q.value.raw;
+      const expr = node.expressions[i];
+      if (expr) {
+        const value = evalExpr(expr, env, arrays);
+        if (value === undefined || value === null) {
+          return undefined;
+        }
+        result += String(value);
+      }
+    }
+    return result;
+  }
+
   function evalExpr(
     node: t.Node,
     env: Map<string, EvalValue>,
@@ -506,71 +611,19 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
       return arr ? evalArray(arr, env, arrays) : undefined;
     }
     if (types.isMemberExpression(node)) {
-      const obj = evalExpr(node.object, env, arrays);
-      if (obj === undefined || obj === null) {
-        return undefined;
-      }
-      if (!node.computed) {
-        return undefined;
-      }
-      const prop = evalExpr(node.property, env, arrays);
-      if (typeof obj === 'string' && typeof prop === 'number') {
-        return obj.charAt(prop);
-      }
-      if (Array.isArray(obj) && typeof prop === 'number') {
-        return (obj[prop] as string | number | boolean | null | undefined) ?? null;
-      }
-      return undefined;
+      return evalMember(node, env, arrays);
     }
     if (types.isArrayExpression(node)) {
       return evalArray(node, env, arrays);
     }
     if (types.isBinaryExpression(node)) {
-      const left = evalExpr(node.left, env, arrays);
-      const right = evalExpr(node.right, env, arrays);
-      if (
-        left === undefined ||
-        right === undefined ||
-        Array.isArray(left) ||
-        Array.isArray(right)
-      ) {
-        return undefined;
-      }
-      return evalBinary(node.operator, left, right);
+      return evalBinaryOp(node, env, arrays);
     }
     if (types.isUnaryExpression(node)) {
-      const value = evalExpr(node.argument, env, arrays);
-      if (value === undefined) {
-        return undefined;
-      }
-      switch (node.operator) {
-        case '!':
-          return !value;
-        case '-':
-          return typeof value === 'number' ? -value : undefined;
-        case '+':
-          return typeof value === 'number' ? value : undefined;
-        case '~':
-          return typeof value === 'number' ? ~value : undefined;
-        case 'typeof':
-          return typeof value;
-        default:
-          return undefined;
-      }
+      return evalUnaryOp(node, env, arrays);
     }
     if (types.isLogicalExpression(node)) {
-      const left = evalExpr(node.left, env, arrays);
-      if (left === undefined) {
-        return undefined;
-      }
-      if (node.operator === '&&') {
-        return left ? evalExpr(node.right, env, arrays) : left;
-      }
-      if (node.operator === '||') {
-        return left ? left : evalExpr(node.right, env, arrays);
-      }
-      // '??'
-      return left !== null ? left : evalExpr(node.right, env, arrays);
+      return evalLogicalOp(node, env, arrays);
     }
     if (types.isConditionalExpression(node)) {
       const test = evalExpr(node.test, env, arrays);
@@ -580,20 +633,7 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
       return evalExpr(test ? node.consequent : node.alternate, env, arrays);
     }
     if (types.isTemplateLiteral(node)) {
-      let result = '';
-      for (let i = 0; i < node.quasis.length; i += 1) {
-        const q = node.quasis[i]!;
-        result += q.value.cooked ?? q.value.raw;
-        const expr = node.expressions[i];
-        if (expr) {
-          const value = evalExpr(expr, env, arrays);
-          if (value === undefined || value === null) {
-            return undefined;
-          }
-          result += String(value);
-        }
-      }
-      return result;
+      return evalTemplate(node, env, arrays);
     }
     if (types.isCallExpression(node)) {
       return evalCall(node, env, arrays);
