@@ -198,6 +198,94 @@ export async function enumerateFiles(
   return collected;
 }
 
+/** Surrounding lines for a match, honouring `contextLines`. */
+function buildMatchContext(
+  lines: string[],
+  lineIdx: number,
+  contextLines: number,
+): { before: Array<{ line: number; text: string }>; after: Array<{ line: number; text: string }> } {
+  const before: Array<{ line: number; text: string }> = [];
+  for (let b = Math.max(0, lineIdx - contextLines); b < lineIdx; b += 1) {
+    const t = lines[b];
+    if (t !== undefined) before.push({ line: b + 1, text: t });
+  }
+  const after: Array<{ line: number; text: string }> = [];
+  for (let a = lineIdx + 1; a < Math.min(lines.length, lineIdx + 1 + contextLines); a += 1) {
+    const t = lines[a];
+    if (t !== undefined) after.push({ line: a + 1, text: t });
+  }
+  return { before, after };
+}
+
+/** What one line contributed to the running totals. */
+interface LineScanOutcome {
+  /** Matches emitted from this line. */
+  emitted: number;
+  /** Per-file match cap reached — the remaining line's matches are dropped. */
+  hitPerFileCap: boolean;
+  /** Global result cap reached — the whole file walk must stop. */
+  hitGlobalCap: boolean;
+}
+
+/**
+ * Emit every match on one line into `matches`.
+ *
+ * `pos` tracks the scan position so a match is never re-emitted; a zero-width
+ * match advances by one character to guarantee progress. Line-length and
+ * per-file caps are the caller's concern for the former, this function's for
+ * the latter.
+ */
+function scanLine(
+  re: RegExp,
+  text: string,
+  lineIdx: number,
+  rel: string,
+  lines: string[],
+  opts: NormalizedSearchOptions,
+  matches: JadxMatch[],
+  filesMatched: Set<string>,
+  matchesThisFile: number,
+): LineScanOutcome {
+  let emitted = 0;
+  let pos = 0;
+  let match = timedTest(re, text, pos);
+
+  while (match !== null) {
+    if (matchesThisFile >= opts.maxMatchesPerFile) {
+      return { emitted, hitPerFileCap: true, hitGlobalCap: false };
+    }
+    const start = match.index + 1;
+    const end = match.index + match[0].length + 1;
+    const built: JadxMatch = {
+      file: rel,
+      line: lineIdx + 1,
+      column: start,
+      text,
+      matchStart: start,
+      matchEnd: end,
+    };
+    if (opts.contextLines > 0) {
+      built.context = buildMatchContext(lines, lineIdx, opts.contextLines);
+    }
+    matches.push(built);
+    filesMatched.add(rel);
+    matchesThisFile += 1;
+    emitted += 1;
+
+    if (matches.length >= opts.maxResults) {
+      return { emitted, hitPerFileCap: false, hitGlobalCap: true };
+    }
+    // Advance past this match. For zero-width matches, step forward
+    // one character to avoid an infinite loop.
+    const consumed = match[0].length;
+    pos = match.index + (consumed > 0 ? consumed : 1);
+    if (pos > text.length) break;
+    match = timedTest(re, text, pos);
+  }
+
+  return { emitted, hitPerFileCap: false, hitGlobalCap: false };
+}
+
 export class NodeFallbackEngine {
   async run(opts: NormalizedSearchOptions): Promise<EngineRunOutcome> {
     const absDir = resolvePath(opts.decompileDir);
@@ -208,7 +296,7 @@ export class NodeFallbackEngine {
     const filesMatched = new Set<string>();
     let truncated = false;
 
-    outer: for (const relPath of files) {
+    for (const relPath of files) {
       const fullPath = posix.join(absDir.split(sep).join('/'), relPath);
       let content: string;
       try {
@@ -228,55 +316,29 @@ export class NodeFallbackEngine {
         const text = lines[lineIdx];
         if (text === undefined) continue;
         if (text.length > JADX_SEARCH_MAX_LINE_BYTES) continue;
-        // Walk every match on the line, tracking `pos` so we don't re-emit
-        // the same match. `timedTest` honours the explicit startIndex.
-        let pos = 0;
-        let match = timedTest(re, text, pos);
-        while (match !== null) {
-          if (matchesThisFile >= opts.maxMatchesPerFile) {
-            truncated = true;
-            break;
-          }
-          const start = match.index + 1;
-          const end = match.index + match[0].length + 1;
-          const built: JadxMatch = {
-            file: rel,
-            line: lineIdx + 1,
-            column: start,
-            text,
-            matchStart: start,
-            matchEnd: end,
-          };
-          if (opts.contextLines > 0) {
-            const before: Array<{ line: number; text: string }> = [];
-            for (let b = Math.max(0, lineIdx - opts.contextLines); b < lineIdx; b += 1) {
-              const t = lines[b];
-              if (t !== undefined) before.push({ line: b + 1, text: t });
-            }
-            const after: Array<{ line: number; text: string }> = [];
-            for (
-              let a = lineIdx + 1;
-              a < Math.min(lines.length, lineIdx + 1 + opts.contextLines);
-              a += 1
-            ) {
-              const t = lines[a];
-              if (t !== undefined) after.push({ line: a + 1, text: t });
-            }
-            built.context = { before, after };
-          }
-          matches.push(built);
-          filesMatched.add(rel);
-          matchesThisFile += 1;
-          if (matches.length >= opts.maxResults) {
-            truncated = true;
-            break outer;
-          }
-          // Advance past this match. For zero-width matches, step forward
-          // one character to avoid an infinite loop.
-          const consumed = match[0].length;
-          pos = match.index + (consumed > 0 ? consumed : 1);
-          if (pos > text.length) break;
-          match = timedTest(re, text, pos);
+
+        const outcome = scanLine(
+          re,
+          text,
+          lineIdx,
+          rel,
+          lines,
+          opts,
+          matches,
+          filesMatched,
+          matchesThisFile,
+        );
+        matchesThisFile += outcome.emitted;
+
+        if (outcome.hitPerFileCap) {
+          // The per-file cap only stops matches on THIS line; the original
+          // inner `break` left the line loop and the outer file loop went on
+          // to the next line of the same file.
+          truncated = true;
+        }
+        if (outcome.hitGlobalCap) {
+          truncated = true;
+          return { matches, filesMatched: filesMatched.size, truncated };
         }
       }
     }
