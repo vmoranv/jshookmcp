@@ -500,6 +500,42 @@ export function parseSpirv(data: Uint8Array): SpirvReflectResult {
   }
 
   // ── Pass 1: build ID→name, ID→type-info, decorations, member names ────────
+  const ids = collectIdMetadata(instructions);
+
+  // ── Pass 2: resolve entry points, bindings, structs, locations ────────────
+  const reflected = resolveReflection(instructions, ids);
+
+  return {
+    magic,
+    versionMajor,
+    versionMinor,
+    generator,
+    bound,
+    entryPoints: reflected.entryPoints,
+    bindings: reflected.bindings,
+    locations: reflected.locations,
+    structs: reflected.structs,
+    warnings,
+    instructions,
+  };
+}
+
+/** Pass-1 output: every lookup table the reflection pass reads. */
+interface SpirvIdMetadata {
+  idToName: Map<number, string>;
+  memberNames: Map<MemberKey, string>;
+  decorations: Map<number, DecorationRecord>;
+  memberDecorations: Map<MemberKey, DecorationRecord>;
+  typeInfo: Map<number, TypeDescriptor>;
+}
+
+/**
+ * Pass 1 — walk the instruction stream once for names and decorations, then
+ * sweep again for type descriptors (a type may be referenced before its
+ * defining instruction, so `recordTypeInfo` cannot be folded into the first
+ * loop).
+ */
+function collectIdMetadata(instructions: readonly Instruction[]): SpirvIdMetadata {
   const idToName = new Map<number, string>();
   const memberNames = new Map<MemberKey, string>();
   const decorations = new Map<number, DecorationRecord>();
@@ -563,80 +599,153 @@ export function parseSpirv(data: Uint8Array): SpirvReflectResult {
     recordTypeInfo(inst, typeInfo);
   }
 
-  // ── Pass 2: resolve entry points, bindings, structs, locations ────────────
-  const entryPoints: SpirvEntryPoint[] = [];
-  const bindings: SpirvBinding[] = [];
-  const locations: SpirvLocation[] = [];
+  return { idToName, memberNames, decorations, memberDecorations, typeInfo };
+}
 
-  // Track struct type ids that are marked Block/BufferBlock for struct emission.
+/** Pass-2 output: the reflected surface. */
+interface SpirvReflection {
+  entryPoints: SpirvEntryPoint[];
+  bindings: SpirvBinding[];
+  locations: SpirvLocation[];
+  structs: SpirvStruct[];
+}
+
+/**
+ * Pass 2 — resolve entry points, bindings and interface locations, then emit
+ * struct descriptors for the types that matter to an analyst.
+ */
+function resolveReflection(
+  instructions: readonly Instruction[],
+  ids: SpirvIdMetadata,
+): SpirvReflection {
+  const { idToName, memberNames, decorations, typeInfo } = ids;
+
+  const entryPoints = collectEntryPoints(instructions);
+  const { bindings, locations, variableStructIds } = collectVariableSurface(
+    instructions,
+    idToName,
+    decorations,
+    typeInfo,
+  );
+
+  const structs = emitStructs(
+    idToName,
+    memberNames,
+    decorations,
+    typeInfo,
+    collectStructIds(typeInfo),
+    variableStructIds,
+  );
+  return { entryPoints, bindings, locations, structs };
+}
+
+/** Struct type ids present in the module, for the struct-emission fallback. */
+function collectStructIds(typeInfo: Map<number, TypeDescriptor>): Set<number> {
   const structIds = new Set<number>();
   for (const [id, info] of typeInfo) {
     if (info.kind === 'struct') {
       structIds.add(id);
     }
   }
+  return structIds;
+}
 
-  // Also include structs referenced by OpVariable with uniform/storage storage.
-  // (Block-decorated structs may not carry Block themselves; the variable does.)
+/**
+ * OpEntryPoint instructions → entry points.
+ *
+ * OpEntryPoint: ExecutionModel | entryPointId | name(string) | [interfaceIds...]
+ * The interface ids after the name are not needed for reflection, so they are
+ * left unread.
+ */
+function collectEntryPoints(instructions: readonly Instruction[]): SpirvEntryPoint[] {
+  const entryPoints: SpirvEntryPoint[] = [];
+  for (const inst of instructions) {
+    if (inst.opcode !== OpEntryPoint || inst.words.length < 4) {
+      continue;
+    }
+    const execModel = inst.words[1] ?? 0;
+    const entryId = inst.words[2] ?? 0;
+    const name = decodeStringLiteral(inst.words, 3);
+    entryPoints.push({
+      name: name ?? `<id:${entryId}>`,
+      stage: mapExecutionModel(execModel),
+    });
+  }
+  return entryPoints;
+}
+
+/** What the OpVariable sweep contributes to the reflected surface. */
+interface VariableSurface {
+  bindings: SpirvBinding[];
+  locations: SpirvLocation[];
+  /** Structs reached through a descriptor variable, for struct emission. */
+  variableStructIds: Set<number>;
+}
+
+/**
+ * OpVariable instructions → descriptor bindings, interface locations, and the
+ * struct type ids they point at.
+ *
+ * OpVariable: resultType | resultId | storageClass | [initializer]
+ */
+function collectVariableSurface(
+  instructions: readonly Instruction[],
+  idToName: Map<number, string>,
+  decorations: Map<number, DecorationRecord>,
+  typeInfo: Map<number, TypeDescriptor>,
+): VariableSurface {
+  const bindings: SpirvBinding[] = [];
+  const locations: SpirvLocation[] = [];
   const variableStructIds = new Set<number>();
 
   for (const inst of instructions) {
-    if (inst.opcode === OpEntryPoint) {
-      // OpEntryPoint: ExecutionModel | entryPointId | name(string) | [interfaceIds...]
-      if (inst.words.length >= 4) {
-        const execModel = inst.words[1] ?? 0;
-        const entryId = inst.words[2] ?? 0;
-        const name = decodeStringLiteral(inst.words, 3);
-        const stage = mapExecutionModel(execModel);
-        // Compute the word offset where the string ends to skip interface ids.
-        entryPoints.push({
-          name: name ?? `<id:${entryId}>`,
-          stage,
-        });
-      }
-    } else if (inst.opcode === OpVariable) {
-      // OpVariable: resultType | resultId | storageClass | [initializer]
-      if (inst.words.length >= 4) {
-        const resultType = inst.words[1] ?? 0;
-        const resultId = inst.words[2] ?? 0;
-        const storageClass = inst.words[3] ?? 0;
+    if (inst.opcode !== OpVariable || inst.words.length < 4) {
+      continue;
+    }
+    const resultType = inst.words[1] ?? 0;
+    const resultId = inst.words[2] ?? 0;
+    const storageClass = inst.words[3] ?? 0;
+    const dec = decorations.get(resultId);
+    const isDescriptorVar = isDescriptorStorageClass(storageClass);
+    const displayName = idToName.get(resultId) ?? `<id:${resultId}>`;
 
-        const dec = decorations.get(resultId);
-        const isBindingVar =
-          (dec?.binding !== undefined || dec?.descriptorSet !== undefined) &&
-          isDescriptorStorageClass(storageClass);
+    if ((dec?.binding !== undefined || dec?.descriptorSet !== undefined) && isDescriptorVar) {
+      bindings.push({
+        name: displayName,
+        group: dec?.descriptorSet ?? 0,
+        binding: dec?.binding ?? 0,
+        typeId: resultType,
+      });
+    }
 
-        if (isBindingVar) {
-          bindings.push({
-            name: idToName.get(resultId) ?? `<id:${resultId}>`,
-            group: dec?.descriptorSet ?? 0,
-            binding: dec?.binding ?? 0,
-            typeId: resultType,
-          });
-        }
+    if (dec?.location !== undefined && isInterfaceStorageClass(storageClass)) {
+      locations.push({ name: displayName, location: dec.location });
+    }
 
-        if (dec?.location !== undefined && isInterfaceStorageClass(storageClass)) {
-          locations.push({
-            name: idToName.get(resultId) ?? `<id:${resultId}>`,
-            location: dec.location,
-          });
-        }
-
-        // Track struct ids used by uniform/storage variables for struct emission.
-        if (isDescriptorStorageClass(storageClass)) {
-          const pointed = resolvePointerToStruct(resultType, typeInfo);
-          if (pointed !== null) {
-            variableStructIds.add(pointed);
-          }
-        }
+    if (isDescriptorVar) {
+      const pointed = resolvePointerToStruct(resultType, typeInfo);
+      if (pointed !== null) {
+        variableStructIds.add(pointed);
       }
     }
   }
 
-  // ── Emit structs ───────────────────────────────────────────────────────────
-  // Emit any struct type that either has a Block decoration or is referenced by
-  // a descriptor variable. Fall back to emitting all structs if none qualify,
-  // so reflection still surfaces structure for headerless modules.
+  return { bindings, locations, variableStructIds };
+}
+
+/**
+ * Emit struct descriptors, preferring Block/BufferBlock-decorated types, then
+ * types reached from a descriptor variable, and finally every struct so that
+ * reflection still surfaces structure for headerless modules.
+ */
+function emitStructs(
+  idToName: Map<number, string>,
+  memberNames: Map<MemberKey, string>,
+  decorations: Map<number, DecorationRecord>,
+  typeInfo: Map<number, TypeDescriptor>,
+  structIds: Set<number>,
+  variableStructIds: Set<number>,
+): SpirvStruct[] {
   const emittedStructIds = new Set<number>();
   const structs: SpirvStruct[] = [];
 
@@ -676,20 +785,7 @@ export function parseSpirv(data: Uint8Array): SpirvReflectResult {
       emitStruct(id);
     }
   }
-
-  return {
-    magic,
-    versionMajor,
-    versionMinor,
-    generator,
-    bound,
-    entryPoints,
-    bindings,
-    locations,
-    structs,
-    warnings,
-    instructions,
-  };
+  return structs;
 }
 
 // ─── Instruction statistics & cost estimate ─────────────────────────────────
