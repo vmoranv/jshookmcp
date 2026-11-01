@@ -253,52 +253,40 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
     left: string | number | boolean | null,
     right: string | number | boolean | null,
   ): string | number | boolean | undefined {
-    switch (operator) {
-      case '+':
-        return typeof left === 'string' || typeof right === 'string'
-          ? String(left) + String(right)
-          : (left as number) + (right as number);
-      case '-':
-        return typeof left === 'number' && typeof right === 'number' ? left - right : undefined;
-      case '*':
-        return typeof left === 'number' && typeof right === 'number' ? left * right : undefined;
-      case '/':
-        return typeof left === 'number' && typeof right === 'number' ? left / right : undefined;
-      case '%':
-        return typeof left === 'number' && typeof right === 'number' ? left % right : undefined;
-      case '**':
-        return typeof left === 'number' && typeof right === 'number' ? left ** right : undefined;
-      case '<<':
-        return typeof left === 'number' && typeof right === 'number' ? left << right : undefined;
-      case '>>':
-        return typeof left === 'number' && typeof right === 'number' ? left >> right : undefined;
-      case '>>>':
-        return typeof left === 'number' && typeof right === 'number' ? left >>> right : undefined;
-      case '&':
-        return typeof left === 'number' && typeof right === 'number' ? left & right : undefined;
-      case '|':
-        return typeof left === 'number' && typeof right === 'number' ? left | right : undefined;
-      case '^':
-        return typeof left === 'number' && typeof right === 'number' ? left ^ right : undefined;
-      case '<':
-        return comparable(left) < comparable(right);
-      case '>':
-        return comparable(left) > comparable(right);
-      case '<=':
-        return comparable(left) <= comparable(right);
-      case '>=':
-        return comparable(left) >= comparable(right);
-      case '===':
-        return left === right;
-      case '!==':
-        return left !== right;
-      case '==':
-        return left == right; // eslint-disable-line eqeqeq
-      case '!=':
-        return left != right; // eslint-disable-line eqeqeq
-      default:
-        return undefined;
+    // `+` is the only overloaded operator (string concat when either side is a
+    // string), so it stays explicit; the rest come from lookup tables.
+    if (operator === '+') {
+      return typeof left === 'string' || typeof right === 'string'
+        ? String(left) + String(right)
+        : (left as number) + (right as number);
     }
+
+    // Own-property guards: a bare lookup resolves inherited keys ('constructor',
+    // 'toString', ...) to Object.prototype members and would call those.
+    const numeric = Object.hasOwn(NUMERIC_BINARY_OPS, operator)
+      ? NUMERIC_BINARY_OPS[operator]
+      : undefined;
+    if (numeric) {
+      return typeof left === 'number' && typeof right === 'number'
+        ? numeric(left, right)
+        : undefined;
+    }
+
+    const comparison = Object.hasOwn(COMPARISON_BINARY_OPS, operator)
+      ? COMPARISON_BINARY_OPS[operator]
+      : undefined;
+    if (comparison) {
+      return comparison(comparable(left), comparable(right));
+    }
+
+    const equality = Object.hasOwn(EQUALITY_BINARY_OPS, operator)
+      ? EQUALITY_BINARY_OPS[operator]
+      : undefined;
+    if (equality) {
+      return equality(left, right);
+    }
+
+    return undefined;
   }
 
   function evalArray(
@@ -999,3 +987,38 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
     simplifyExpressions,
   };
 }
+
+/** Numeric-only binary operators (both operands must be numbers). */
+const NUMERIC_BINARY_OPS: Partial<Record<string, (left: number, right: number) => number>> = {
+  '-': (l, r) => l - r,
+  '*': (l, r) => l * r,
+  '/': (l, r) => l / r,
+  '%': (l, r) => l % r,
+  '**': (l, r) => l ** r,
+  '<<': (l, r) => l << r,
+  '>>': (l, r) => l >> r,
+  '>>>': (l, r) => l >>> r,
+  '&': (l, r) => l & r,
+  '|': (l, r) => l | r,
+  '^': (l, r) => l ^ r,
+};
+
+/** Relational comparisons over `comparable()`-normalised operands. */
+const COMPARISON_BINARY_OPS: Partial<
+  Record<string, (left: string | number, right: string | number) => boolean>
+> = {
+  '<': (l, r) => l < r,
+  '>': (l, r) => l > r,
+  '<=': (l, r) => l <= r,
+  '>=': (l, r) => l >= r,
+};
+
+/** Loose and strict equality, preserving the original ==/!= semantics. */
+const EQUALITY_BINARY_OPS: Partial<Record<string, (left: unknown, right: unknown) => boolean>> = {
+  '===': (l, r) => l === r,
+  '!==': (l, r) => l !== r,
+  // eslint-disable-next-line eqeqeq
+  '==': (l, r) => l == r,
+  // eslint-disable-next-line eqeqeq
+  '!=': (l, r) => l != r,
+};
