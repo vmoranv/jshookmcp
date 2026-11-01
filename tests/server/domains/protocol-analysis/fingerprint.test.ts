@@ -122,6 +122,17 @@ describe('ProtocolAnalysisHandlers — handleProtoFingerprint behavioral tests',
       expect(fp.protocolMatches[0].protocol).toBe('SSH');
       expect(fp.parsedFields.banner).toContain('SSH-2.0');
     });
+
+    it('omits parsedFields for a truncated SSH banner (<10 bytes)', async () => {
+      // 4 bytes: matches the SSH hex prefix but is too short to decode a
+      // banner. parsedFields must be absent (not an empty object), and the
+      // generic length-field hint must still appear.
+      const res = await handlers.handleProtoFingerprint({ hexPayloads: ['5353482D'] });
+      const json = parseContent(res);
+      const fp = json.fingerprints[0];
+      expect(fp.protocolMatches[0].protocol).toBe('SSH');
+      expect(fp.parsedFields).toBeUndefined();
+    });
   });
 
   describe('WebSocket detection', () => {

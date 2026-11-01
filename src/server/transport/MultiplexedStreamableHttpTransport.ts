@@ -238,8 +238,7 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     if (isGet) {
       const maxSseInFlight = this.maxSseInFlight;
       if (session.sseInFlight >= maxSseInFlight) {
-        this.writeCapacityError(res, retryAfterMs, {
-          message: 'MCP session SSE stream capacity reached',
+        this.writeCapacityError(res, retryAfterMs, 'MCP session SSE stream capacity reached', {
           code: 'MCP_SESSION_SSE_CAPACITY',
           retryAfterMs,
           sseInFlight: session.sseInFlight,
@@ -254,8 +253,7 @@ export class MultiplexedStreamableHttpTransport implements Transport {
 
     const maxInFlight = this.maxInFlight;
     if (session.inFlight >= maxInFlight) {
-      this.writeCapacityError(res, retryAfterMs, {
-        message: 'MCP session in-flight capacity reached',
+      this.writeCapacityError(res, retryAfterMs, 'MCP session in-flight capacity reached', {
         code: 'MCP_SESSION_INFLIGHT_CAPACITY',
         retryAfterMs,
         inFlight: session.inFlight,
@@ -268,10 +266,12 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     return true;
   }
 
-  /** Write a 503 capacity rejection with a Retry-After header. */
+  /** Write a 503 capacity rejection with a Retry-After header. The message
+   * lives on `error.message` only; `data` carries the structured details. */
   private writeCapacityError(
     res: ServerResponse,
     retryAfterMs: number,
+    message: string,
     data: Record<string, unknown>,
   ): void {
     res.writeHead(503, {
@@ -281,7 +281,7 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     res.end(
       JSON.stringify({
         jsonrpc: '2.0',
-        error: { code: -32001, message: data['message'], data },
+        error: { code: -32001, message, data },
         id: null,
       }),
     );
@@ -315,8 +315,7 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     if (this.getSessionAdmissionUsage() >= maxSessions) await this.evictExpiredSessions();
     if (this.getSessionAdmissionUsage() >= maxSessions) {
       const retryAfterMs = this.options.capacityRetryAfterMs ?? HTTP_CAPACITY_RETRY_AFTER_MS;
-      this.writeCapacityError(res, retryAfterMs, {
-        message: 'MCP session capacity reached',
+      this.writeCapacityError(res, retryAfterMs, 'MCP session capacity reached', {
         code: 'MCP_SESSION_CAPACITY',
         retryAfterMs,
         sessionCount: this.getSessionAdmissionUsage(),

@@ -193,8 +193,10 @@ function appendKnownPrefixMatches(
   }
 }
 
-function describeSshBanner(clean: string): Record<string, unknown> {
-  if (clean.length < 20) return {};
+/** SSH banner preview; null when the payload is too short to decode, so the
+ * caller omits `parsedFields` entirely (matching the former inline guard). */
+function describeSshBanner(clean: string): Record<string, unknown> | null {
+  if (clean.length < 20) return null;
   return {
     banner: Buffer.from(clean.substring(0, Math.min(clean.length, 80)), 'hex').toString('ascii'),
   };
