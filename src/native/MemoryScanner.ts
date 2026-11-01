@@ -668,54 +668,15 @@ export class MemoryScanner {
     const start = performance.now();
     const maxResults = options.maxResults ?? 10000;
 
-    // Parse pattern into (byte | null)[] where null = wildcard
-    const parsed: (number | null)[] = [];
-    const tokens = pattern.trim().split(/\s+/);
-    for (const token of tokens) {
-      if (token === '??' || token === '?' || token === '???') {
-        parsed.push(null);
-      } else {
-        // Strip optional 0x prefix
-        const hex = token.startsWith('0x') || token.startsWith('0X') ? token.slice(2) : token;
-        if (hex.length !== 2 || !/^[0-9a-fA-F]{2}$/.test(hex)) {
-          throw new Error(`Invalid AOB pattern byte: "${token}" (expected 2 hex chars or "??")`);
-        }
-        parsed.push(parseInt(hex, 16));
-      }
-    }
-
-    if (parsed.length === 0) {
-      throw new Error('AOB pattern must contain at least one byte or wildcard');
-    }
-
-    // Build search needle: byte array + mask boolean array
-    const needle = Buffer.from(parsed.map((b) => b ?? 0));
-    const mask: boolean[] = parsed.map((b) => b !== null);
+    const { needle, mask, patternLen } = parseAobPattern(pattern);
 
     const matches: bigint[] = [];
     const handle = this.provider.openProcess(pid, false);
     try {
-      // Build regionFilter for getFilteredRegions
-      const scanFilter: import('./NativeMemoryManager.types').RegionFilter = {
-        ...options.regionFilter,
-      };
-
-      // Legacy moduleName: translate to modulePattern for backward compat
-      if (options.moduleName && !scanFilter.modulePattern) {
-        scanFilter.modulePattern = options.moduleName;
-      }
-
-      // Legacy executableOnly: translate to regionFilter
-      if (options.executableOnly && scanFilter.executable === undefined) {
-        scanFilter.executable = true;
-      }
-
       const regions = this.getFilteredRegions(handle, {
         valueType: 'byte',
-        regionFilter: Object.keys(scanFilter).length > 0 ? scanFilter : undefined,
+        regionFilter: buildAobRegionFilter(options),
       });
-
-      const patternLen = parsed.length;
       let chunksProcessed = 0;
       for (const region of regions) {
         if (matches.length >= maxResults) break;
@@ -736,19 +697,15 @@ export class MemoryScanner {
             break;
           }
 
-          // Scan the chunk byte by byte using mask
-          for (let i = 0; i <= chunk.length - patternLen && matches.length < maxResults; i++) {
-            let matched = true;
-            for (let j = 0; j < patternLen; j++) {
-              if (mask[j] && chunk[i + j] !== needle[j]) {
-                matched = false;
-                break;
-              }
-            }
-            if (matched) {
-              matches.push(chunkAddr + BigInt(i));
-            }
-          }
+          scanChunkForMaskedPattern(
+            chunk,
+            chunkAddr,
+            needle,
+            mask,
+            patternLen,
+            maxResults,
+            matches,
+          );
 
           chunksProcessed++;
           if (chunksProcessed % SCAN_YIELD_CHUNK_INTERVAL === 0) {
@@ -979,6 +936,85 @@ function scanChunkForValue(
       addresses.push(addr);
       values.set(addr, Buffer.from(chunk.subarray(i, i + valueSize)));
       if (addresses.length >= maxResults) break;
+    }
+  }
+}
+
+/** Parse an "AA BB ?? CC" pattern into a needle + wildcard mask. */
+function parseAobPattern(pattern: string): {
+  needle: Buffer;
+  mask: boolean[];
+  patternLen: number;
+} {
+  const parsed: (number | null)[] = [];
+  const tokens = pattern.trim().split(/\s+/);
+  for (const token of tokens) {
+    if (token === '??' || token === '?' || token === '???') {
+      parsed.push(null);
+    } else {
+      // Strip optional 0x prefix
+      const hex = token.startsWith('0x') || token.startsWith('0X') ? token.slice(2) : token;
+      if (hex.length !== 2 || !/^[0-9a-fA-F]{2}$/.test(hex)) {
+        throw new Error(`Invalid AOB pattern byte: "${token}" (expected 2 hex chars or "??")`);
+      }
+      parsed.push(parseInt(hex, 16));
+    }
+  }
+
+  if (parsed.length === 0) {
+    throw new Error('AOB pattern must contain at least one byte or wildcard');
+  }
+
+  return {
+    needle: Buffer.from(parsed.map((b) => b ?? 0)),
+    mask: parsed.map((b) => b !== null),
+    patternLen: parsed.length,
+  };
+}
+
+/** Translate aobScan's options (incl. legacy names) into a RegionFilter. */
+function buildAobRegionFilter(options: {
+  moduleName?: string;
+  executableOnly?: boolean;
+  regionFilter?: import('./NativeMemoryManager.types').RegionFilter;
+}): import('./NativeMemoryManager.types').RegionFilter | undefined {
+  const scanFilter: import('./NativeMemoryManager.types').RegionFilter = {
+    ...options.regionFilter,
+  };
+
+  // Legacy moduleName: translate to modulePattern for backward compat
+  if (options.moduleName && !scanFilter.modulePattern) {
+    scanFilter.modulePattern = options.moduleName;
+  }
+
+  // Legacy executableOnly: translate to regionFilter
+  if (options.executableOnly && scanFilter.executable === undefined) {
+    scanFilter.executable = true;
+  }
+
+  return Object.keys(scanFilter).length > 0 ? scanFilter : undefined;
+}
+
+/** Byte-by-byte masked match of `needle` inside one chunk. */
+function scanChunkForMaskedPattern(
+  chunk: Buffer,
+  chunkAddr: bigint,
+  needle: Buffer,
+  mask: boolean[],
+  patternLen: number,
+  maxResults: number,
+  matches: bigint[],
+): void {
+  for (let i = 0; i <= chunk.length - patternLen && matches.length < maxResults; i++) {
+    let matched = true;
+    for (let j = 0; j < patternLen; j++) {
+      if (mask[j] && chunk[i + j] !== needle[j]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) {
+      matches.push(chunkAddr + BigInt(i));
     }
   }
 }
