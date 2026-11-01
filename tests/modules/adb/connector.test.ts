@@ -24,8 +24,8 @@ const mocks = vi.hoisted(() => {
 
   const clientInstance = {
     listDevices: vi.fn(async () => [
-      { id: 'emulator-5554', type: 'device', transportId: '1' },
-      { id: 'device-serial-123', type: 'device', transportId: '2' },
+      { id: 'emulator-5554', type: 'device' },
+      { id: 'device-serial-123', type: 'device' },
     ]),
     getDevice: vi.fn(() => deviceClient),
   };

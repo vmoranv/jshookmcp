@@ -138,7 +138,9 @@ export class ADBConnector {
         model: '',
         product: '',
         device: '',
-        transportId: d.transportId,
+        // adbkit's Device exposes only {id, type}; there is no transport id to
+        // read, so the field stays absent rather than carrying an undefined
+        // placeholder.
         sdkVersion: '',
         abi: '',
       };
