@@ -1,1 +1,1 @@
-export { WorkerPool, WorkerPoolImpl } from './WorkerPool.impl.js';
+export { WorkerPool } from './WorkerPool.impl.js';

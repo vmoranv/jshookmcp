@@ -122,7 +122,7 @@ export async function resolveConnectOptionsImpl(
   );
 }
 
-export function isAutoConnectRequest(endpointOrOptions: string | ChromeConnectOptions): boolean {
+function isAutoConnectRequest(endpointOrOptions: string | ChromeConnectOptions): boolean {
   return (
     typeof endpointOrOptions !== 'string' &&
     Boolean(
@@ -210,7 +210,7 @@ export function buildConnectTimeoutError(
   );
 }
 
-export function shouldAttemptPlaywrightFallback(error: unknown): boolean {
+function shouldAttemptPlaywrightFallback(error: unknown): boolean {
   const message = getUnknownErrorMessage(error);
 
   if (/ECONNREFUSED|ENOTFOUND|404|stale/i.test(message)) {
@@ -222,7 +222,7 @@ export function shouldAttemptPlaywrightFallback(error: unknown): boolean {
   );
 }
 
-export async function connectWithPlaywrightFallbackImpl(
+async function connectWithPlaywrightFallbackImpl(
   connectOptions: { browserWSEndpoint?: string; browserURL?: string },
   primaryError: unknown,
   timeoutMs: number,

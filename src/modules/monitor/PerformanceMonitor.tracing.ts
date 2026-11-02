@@ -8,7 +8,7 @@ import { resolveArtifactPath } from '@utils/artifacts';
 import { countTraceEvents } from './PerformanceMonitor.types';
 
 /** Default cap on saved trace size; larger traces are truncated with a warning. */
-export const DEFAULT_MAX_TRACE_SIZE_MB = 500;
+const DEFAULT_MAX_TRACE_SIZE_MB = 500;
 
 export async function startTracing(
   collector: CodeCollector,

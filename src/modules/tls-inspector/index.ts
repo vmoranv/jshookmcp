@@ -10,4 +10,4 @@ export {
   classifyKeyLogSecrets,
 } from './TLSKeyLogExtractor';
 export type { KeyLogEntry } from './TLSKeyLogExtractor';
-export { listCipherSuites, lookupCipherSuite, describeCipherSuite } from './TLSPacketParser';
+export { listCipherSuites, describeCipherSuite } from './TLSPacketParser';

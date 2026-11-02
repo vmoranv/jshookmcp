@@ -1018,19 +1018,19 @@ interface EvaluateContextLike {
  *
  * Supports both string expressions and function callbacks.
  */
-export async function evaluateOnContextWithTimeout<Args extends readonly unknown[], Result>(
+async function evaluateOnContextWithTimeout<Args extends readonly unknown[], Result>(
   page: Page,
   context: EvaluateContextLike,
   pageFunction: (...args: Args) => Result,
   ...args: Args
 ): Promise<Awaited<Result>>;
-export async function evaluateOnContextWithTimeout(
+async function evaluateOnContextWithTimeout(
   page: Page,
   context: EvaluateContextLike,
   pageFunction: string,
   ...args: readonly unknown[]
 ): Promise<unknown>;
-export async function evaluateOnContextWithTimeout<Args extends readonly unknown[], Result>(
+async function evaluateOnContextWithTimeout<Args extends readonly unknown[], Result>(
   page: Page,
   context: EvaluateContextLike,
   pageFunction: string | ((...args: never[]) => Result),

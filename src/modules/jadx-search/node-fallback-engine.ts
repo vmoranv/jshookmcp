@@ -81,7 +81,7 @@ interface CompiledGlob {
 }
 
 /** Compile a glob list once for repeated use across many paths. */
-export function compileGlobs(globs: readonly string[]): CompiledGlob[] {
+function compileGlobs(globs: readonly string[]): CompiledGlob[] {
   return globs.map((raw) => {
     const negate = raw.startsWith('!');
     const pattern = negate ? raw.slice(1) : raw;
@@ -90,7 +90,7 @@ export function compileGlobs(globs: readonly string[]): CompiledGlob[] {
 }
 
 /** Match a file path (relative, forward-slash) against pre-compiled globs. */
-export function matchesCompiledGlobs(path: string, compiled: readonly CompiledGlob[]): boolean {
+function matchesCompiledGlobs(path: string, compiled: readonly CompiledGlob[]): boolean {
   let include = false;
   let hasPositive = false;
   for (const { negate, re } of compiled) {

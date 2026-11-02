@@ -38,7 +38,6 @@ export {
   uninstallGPUCommandHook,
   getGPUCommandTrace,
   analyzeCommandTrace,
-  resetGPUCommandTrace,
 } from './CommandHook';
 
 // ─────────────────────────────────────────────────────────────────────────────

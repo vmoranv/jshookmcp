@@ -40,9 +40,6 @@ export const BINARY_SECRETS_MAX_RESULTS = int('BINARY_SECRETS_MAX_RESULTS', 500)
  */
 export const BINARY_SECRETS_MIN_ENTROPY_X10 = int('BINARY_SECRETS_MIN_ENTROPY_X10', 70);
 
-/** Per-`.test()` budget enforced by the runtime ReDoS guard. Default: 50 ms. */
-export const BINARY_SECRETS_REGEX_TIMEOUT_MS = int('BINARY_SECRETS_REGEX_TIMEOUT_MS', 50);
-
 /**
  * Streaming chunk size in bytes. Larger chunks reduce overhead at the
  * cost of resident memory. Default: 16 MiB.

@@ -54,7 +54,7 @@ export async function listZipEntries(
   }
 }
 
-export async function readZipEntryBuffer(
+async function readZipEntryBuffer(
   apkPath: string,
   entryName: string,
 ): Promise<{ success: true; buffer: Buffer } | { success: false; error: string }> {

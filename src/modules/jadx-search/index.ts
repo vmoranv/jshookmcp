@@ -5,5 +5,5 @@ export {
   resetRipgrepDetection,
   setRipgrepDetectionForTests,
 } from './ripgrep-detector';
-export { RipgrepEngine, buildRipgrepArgs } from './ripgrep-engine';
+export { buildRipgrepArgs } from './ripgrep-engine';
 export { compileSafePattern, enumerateFiles, matchesGlobs } from './node-fallback-engine';

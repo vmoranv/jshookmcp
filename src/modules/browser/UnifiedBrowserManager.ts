@@ -524,9 +524,6 @@ export class UnifiedBrowserManager implements IBrowserManager {
 }
 
 // Re-export types and classes
-export { BrowserModeManager } from '@modules/browser/BrowserModeManager';
 export type { BrowserModeConfig } from '@modules/browser/BrowserModeManager';
-export { CamoufoxBrowserManager } from '@modules/browser/CamoufoxBrowserManager';
 export type { CamoufoxBrowserConfig } from '@modules/browser/CamoufoxBrowserManager';
-export { BrowserDiscovery } from '@modules/browser/BrowserDiscovery';
 export type { BrowserInfo, BrowserSignature } from '@modules/browser/BrowserDiscovery';

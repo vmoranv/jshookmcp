@@ -665,7 +665,7 @@ export async function getGPUCommandTrace(page: Page): Promise<GPUCommandTrace> {
 }
 
 /** Max wait for in-flight timestamp resolution inside getGPUCommandTrace (ms). */
-export const TIMESTAMP_RESOLVE_WAIT_MS = 1500;
+const TIMESTAMP_RESOLVE_WAIT_MS = 1500;
 
 /**
  * Convert GPU timestamp ticks to nanoseconds using the device's

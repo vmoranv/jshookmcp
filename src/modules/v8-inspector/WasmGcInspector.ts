@@ -38,7 +38,7 @@ export interface WasmScript {
 /**
  * Discover all WebAssembly scripts in the current page context.
  */
-export async function discoverWasmScripts(page: unknown): Promise<WasmScript[]> {
+async function discoverWasmScripts(page: unknown): Promise<WasmScript[]> {
   if (!isCDPPageLike(page)) {
     throw new Error('WASM inspection requires a live CDP page');
   }

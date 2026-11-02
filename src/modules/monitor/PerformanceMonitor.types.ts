@@ -125,7 +125,7 @@ export function isCDPHeapSnapshotChunkPayload(
   return isRecord(value) && typeof value.chunk === 'string';
 }
 
-export function isCDPHeapSamplingNode(value: unknown): value is CDPHeapSamplingNode {
+function isCDPHeapSamplingNode(value: unknown): value is CDPHeapSamplingNode {
   if (!isRecord(value)) {
     return false;
   }
@@ -174,7 +174,7 @@ export function countTraceEvents(traceData: Buffer | string): number {
   return count;
 }
 
-export function insertTopAllocation(
+function insertTopAllocation(
   topAllocations: HeapAllocationSummary[],
   candidate: HeapAllocationSummary,
   topN: number,

@@ -234,25 +234,9 @@ export function findByTextInPage(
 }
 
 /** Node-side visibility check used by direct (non-injected) evaluation calls. */
-export function isVisible(element: Element): boolean {
+function isVisible(element: Element): boolean {
   const style = window.getComputedStyle(element);
   return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-}
-
-export function querySelectorEvaluation(selector: string): DOMInspectorElementInfo {
-  const element = document.querySelector(selector);
-  if (!element) return { found: false };
-  const attributes: Record<string, string> = {};
-  for (const attr of Array.from(element.attributes)) attributes[attr.name] = attr.value;
-  const rect = element.getBoundingClientRect();
-  return {
-    found: true,
-    nodeName: element.nodeName,
-    attributes,
-    textContent: element.textContent?.trim() || '',
-    boundingBox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-    visible: isVisible(element),
-  };
 }
 
 export function getStructureEvaluation(

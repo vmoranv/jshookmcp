@@ -3,7 +3,7 @@ import type { FieldSpec } from './types';
 const PRINTABLE_MIN = 0x20;
 const PRINTABLE_MAX = 0x7e;
 
-export const DELIMITER_CANDIDATES = [
+const DELIMITER_CANDIDATES = [
   Buffer.from([0x2c]),
   Buffer.from([0x7c]),
   Buffer.from([0x3a]),
@@ -13,7 +13,7 @@ export const DELIMITER_CANDIDATES = [
   Buffer.from([0x0d, 0x0a]),
 ];
 
-export function normalizeHexPayload(value: string): string {
+function normalizeHexPayload(value: string): string {
   return value.replace(/^0x/i, '').replace(/\s+/g, '').toLowerCase();
 }
 
@@ -34,7 +34,7 @@ export function parseHexPayload(value: string): Buffer | null {
   return Buffer.from(normalizeHexPayload(value), 'hex');
 }
 
-export function isPrintableByte(value: number): boolean {
+function isPrintableByte(value: number): boolean {
   return value >= PRINTABLE_MIN && value <= PRINTABLE_MAX;
 }
 
@@ -53,7 +53,7 @@ export function printableRatio(buffer: Buffer): number {
   return printableCount / buffer.length;
 }
 
-export function averagePrintableRatio(buffers: Buffer[]): number {
+function averagePrintableRatio(buffers: Buffer[]): number {
   if (buffers.length === 0) {
     return 0;
   }
@@ -62,7 +62,7 @@ export function averagePrintableRatio(buffers: Buffer[]): number {
   return sum / buffers.length;
 }
 
-export function splitBuffer(buffer: Buffer, delimiter: Buffer): Buffer[] {
+function splitBuffer(buffer: Buffer, delimiter: Buffer): Buffer[] {
   if (delimiter.length === 0) {
     return [buffer];
   }
@@ -81,7 +81,7 @@ export function splitBuffer(buffer: Buffer, delimiter: Buffer): Buffer[] {
   return parts;
 }
 
-export function bufferToDelimiterString(buffer: Buffer): string {
+function bufferToDelimiterString(buffer: Buffer): string {
   return printableRatio(buffer) === 1 ? buffer.toString('utf8') : buffer.toString('hex');
 }
 
@@ -143,7 +143,7 @@ export function decodeFloat(buffer: Buffer, byteOrder: 'le' | 'be'): number | nu
   return null;
 }
 
-export function countOccurrences(buffer: Buffer, delimiter: Buffer): number {
+function countOccurrences(buffer: Buffer, delimiter: Buffer): number {
   if (delimiter.length === 0) {
     return 0;
   }
@@ -160,7 +160,7 @@ export function countOccurrences(buffer: Buffer, delimiter: Buffer): number {
   return count;
 }
 
-export function inferFieldType(samples: Buffer[]): FieldSpec['type'] {
+function inferFieldType(samples: Buffer[]): FieldSpec['type'] {
   if (samples.length === 0) {
     return 'bytes';
   }
@@ -187,7 +187,7 @@ export function inferFieldType(samples: Buffer[]): FieldSpec['type'] {
   return 'bytes';
 }
 
-export function looksLikeFloatSamples(samples: Buffer[]): boolean {
+function looksLikeFloatSamples(samples: Buffer[]): boolean {
   const decoded: number[] = [];
   for (const sample of samples) {
     const value = decodeFloat(sample, 'be');
@@ -201,7 +201,7 @@ export function looksLikeFloatSamples(samples: Buffer[]): boolean {
   return decoded.some((value) => Math.abs(value) > 0.001 && Math.abs(value) < 1_000_000);
 }
 
-export function isPrintableColumn(buffers: Buffer[], offset: number): boolean {
+function isPrintableColumn(buffers: Buffer[], offset: number): boolean {
   let valueCount = 0;
   let printableCount = 0;
   for (const buffer of buffers) {
@@ -219,7 +219,7 @@ export function isPrintableColumn(buffers: Buffer[], offset: number): boolean {
   return valueCount > 0 && printableCount / valueCount >= 0.8;
 }
 
-export function isBooleanColumn(buffers: Buffer[], offset: number): boolean {
+function isBooleanColumn(buffers: Buffer[], offset: number): boolean {
   let valueCount = 0;
   for (const buffer of buffers) {
     const value = buffer[offset];
