@@ -35,5 +35,14 @@ engines:
       # NOT excluded.
       - "scripts/run-check-parallel.mjs"
 
+      # Script search primitives. Compiling a caller-supplied search term into
+      # a RegExp IS this module's purpose, so the "RegExp constructor called
+      # with a non-literal value" rule flags the feature itself. The literal
+      # path escapes every metacharacter before compiling; the regex path is
+      # the caller's explicit opt-in. Nothing else lives here — the manager
+      # that consumes these primitives is deliberately NOT excluded, so any
+      # other finding in ScriptManager.impl.class.ts stays visible.
+      - "src/modules/debugger/ScriptManager.impl.search.ts"
+
   eslint-9:
     exclude_paths: *codacy_domain_excludes
