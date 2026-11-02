@@ -16,6 +16,96 @@ import {
   SCRIPT_CONTEXT_HALF_LINES_SMALL,
 } from '@src/constants';
 
+/** Lines between cooperative yields inside one script scan. */
+const SEARCH_LINE_YIELD_INTERVAL = 250;
+/** Scripts between cooperative yields across the whole search. */
+const SEARCH_SCRIPT_YIELD_INTERVAL = 10;
+
+/** One hit from searchInScripts. */
+interface ScriptSearchMatch {
+  scriptId: string;
+  url: string;
+  line: number;
+  column: number;
+  matchText: string;
+  context: string;
+}
+
+/**
+ * Build the search regex. A literal keyword is escaped so regex metacharacters
+ * in the user's text match themselves; `g` is required by `matchAll`.
+ */
+function buildSearchRegex(keyword: string, isRegex: boolean, caseSensitive: boolean): RegExp {
+  const flags = caseSensitive ? 'g' : 'gi';
+  return isRegex
+    ? new RegExp(keyword, flags)
+    : new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+}
+
+/** Everything one script scan needs from the caller. */
+interface ScriptScanArgs {
+  script: { scriptId: string; url: string; source?: string };
+  searchRegex: RegExp;
+  contextLines: number;
+  maxMatches: number;
+  /** Accumulator shared across scripts; appended to in place. */
+  matches: ScriptSearchMatch[];
+  checkCancellation: () => void;
+}
+
+/**
+ * Scan one script's source, appending hits to `matches`.
+ *
+ * Cancellation and yielding happen at exactly the points the inline loop used:
+ * before each line, every 256 accumulated matches, and every
+ * SEARCH_LINE_YIELD_INTERVAL lines. Moving this body out must not change when
+ * those fire — the deadline tests assert on the resulting CDP call counts.
+ */
+async function scanScriptSource(args: ScriptScanArgs): Promise<void> {
+  const { script, searchRegex, contextLines, maxMatches, matches, checkCancellation } = args;
+  const lines = script.source!.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+
+    for (const match of line.matchAll(searchRegex)) {
+      if (matches.length >= maxMatches) break;
+      if (matches.length % 256 === 0) {
+        await waitForImmediate();
+        checkCancellation();
+      }
+
+      const context = getContextWindow(
+        lines,
+        line,
+        i,
+        match.index || 0,
+        contextLines,
+        CONTEXT_TRUNCATE_LINES_LARGE,
+        CONTEXT_SNIPPET_HALF_LINES_LARGE,
+      );
+
+      matches.push({
+        scriptId: script.scriptId,
+        url: script.url || 'inline',
+        line: i + 1,
+        column: match.index || 0,
+        matchText: match[0],
+        context,
+      });
+      if (matches.length >= maxMatches) break;
+    }
+
+    if (matches.length >= maxMatches) break;
+
+    if ((i + 1) % SEARCH_LINE_YIELD_INTERVAL === 0) {
+      await waitForImmediate();
+      checkCancellation();
+    }
+  }
+}
+
 /** Cap on the number of scripts scanned by searchInScripts. */
 const SEARCH_RESULT_LIMIT = SCRIPT_SEARCH_RESULT_LIMIT;
 /** Context truncation trigger for the searchInScripts path (chars). */
@@ -104,8 +194,6 @@ interface DebuggerScriptParsedEvent {
 export class ScriptManager {
   private collector: CodeCollector;
   private static readonly SOURCE_LOAD_BATCH_SIZE = 8;
-  private static readonly SEARCH_LINE_YIELD_INTERVAL = 250;
-  private static readonly SEARCH_SCRIPT_YIELD_INTERVAL = 10;
   private cdpSession: CDPSession | null = null;
   private scripts: Map<string, ScriptInfo> = new Map();
   private scriptsByUrl: Map<string, ScriptInfo[]> = new Map();
@@ -428,18 +516,9 @@ export class ScriptManager {
 
     const { isRegex = false, caseSensitive = false, contextLines = 3, maxMatches = 100 } = options;
 
-    const searchRegex = isRegex
-      ? new RegExp(keyword, caseSensitive ? 'g' : 'gi')
-      : new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseSensitive ? 'g' : 'gi');
+    const searchRegex = buildSearchRegex(keyword, isRegex, caseSensitive);
 
-    const matches: Array<{
-      scriptId: string;
-      url: string;
-      line: number;
-      column: number;
-      matchText: string;
-      context: string;
-    }> = [];
+    const matches: ScriptSearchMatch[] = [];
 
     const scripts = await this.getAllScripts(false, SEARCH_RESULT_LIMIT);
 
@@ -449,49 +528,19 @@ export class ScriptManager {
       if (!script.source && !(await this.loadScriptSourceInternal(script))) continue;
       checkCancellation();
 
-      const lines = script.source!.split('\n');
+      // scanScriptSource performs the same in-loop cancellation checks and
+      // yields at the same line boundaries the inline loop did; it only moves
+      // the body out, it does not change when the checks fire.
+      await scanScriptSource({
+        script,
+        searchRegex,
+        contextLines,
+        maxMatches,
+        matches,
+        checkCancellation,
+      });
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line) continue;
-
-        for (const match of line.matchAll(searchRegex)) {
-          if (matches.length >= maxMatches) break;
-          if (matches.length % 256 === 0) {
-            await waitForImmediate();
-            checkCancellation();
-          }
-
-          const context = getContextWindow(
-            lines,
-            line,
-            i,
-            match.index || 0,
-            contextLines,
-            CONTEXT_TRUNCATE_LINES_LARGE,
-            CONTEXT_SNIPPET_HALF_LINES_LARGE,
-          );
-
-          matches.push({
-            scriptId: script.scriptId,
-            url: script.url || 'inline',
-            line: i + 1,
-            column: match.index || 0,
-            matchText: match[0],
-            context,
-          });
-          if (matches.length >= maxMatches) break;
-        }
-
-        if (matches.length >= maxMatches) break;
-
-        if ((i + 1) % ScriptManager.SEARCH_LINE_YIELD_INTERVAL === 0) {
-          await waitForImmediate();
-          checkCancellation();
-        }
-      }
-
-      if ((scriptIndex + 1) % ScriptManager.SEARCH_SCRIPT_YIELD_INTERVAL === 0) {
+      if ((scriptIndex + 1) % SEARCH_SCRIPT_YIELD_INTERVAL === 0) {
         await waitForImmediate();
       }
     }
