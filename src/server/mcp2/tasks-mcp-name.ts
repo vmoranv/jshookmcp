@@ -31,7 +31,7 @@ export const TASKS_TASKID_MIRROR_METHODS = Object.freeze([
 export type TasksTaskIdMirrorMethod = (typeof TASKS_TASKID_MIRROR_METHODS)[number];
 
 /** Standard methods (SEP-2243) that also mirror via `params.name` / `params.uri`. */
-export const STANDARD_NAMED_MIRROR_METHODS = Object.freeze([
+const STANDARD_NAMED_MIRROR_METHODS = Object.freeze([
   'tools/call', // params.name
   'resources/read', // params.uri
   'prompts/get', // params.name

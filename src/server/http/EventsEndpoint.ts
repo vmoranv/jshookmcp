@@ -38,13 +38,13 @@ import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { logger } from '@utils/logger';
 
 /** Heartbeat interval for /events (comment frames keep idle proxies open). */
-export const SSE_EVENTS_HEARTBEAT_MS = 15_000;
+const SSE_EVENTS_HEARTBEAT_MS = 15_000;
 
 /** Replay buffer capacity: most recent mirrored events flushed to new clients. */
-export const SSE_EVENTS_REPLAY_LIMIT = 100;
+const SSE_EVENTS_REPLAY_LIMIT = 100;
 
 /** Upper bound on concurrent /events streams (each is a long-lived socket). */
-export const SSE_EVENTS_MAX_CLIENTS = 32;
+const SSE_EVENTS_MAX_CLIENTS = 32;
 
 /**
  * Bus events mirrored to SSE subscribers. Metadata-only by contract — see the

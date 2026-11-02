@@ -154,25 +154,6 @@ const DEFAULT_BOOST_RULES: BoostRule[] = [
   },
 ];
 
-/**
- * Read-only accessor for the default rule table, used by
- * `scripts/audit-event-contracts.mjs`.
- *
- * That audit exists because nothing else can validate these event names. The
- * `[key: string]: unknown` index signature on `ServerEventMap`
- * (`src/server/EventBus.ts`) widens `keyof ServerEventMap` to `string |
- * number`, so typing `eventPattern` as `keyof ServerEventMap` would accept any
- * string at all — the check would read as a guarantee while providing none.
- *
- * A rule naming an event that no code ever emits therefore compiles, loads and
- * subscribes without a single failure. That is exactly how
- * `adb:device_connected` sat inert: the emitter was deleted in b428982b, the
- * tool was restored in e36194d9 without it, and `listenerCount()` stayed 1.
- */
-export function getDefaultBoostRules(): readonly BoostRule[] {
-  return DEFAULT_BOOST_RULES;
-}
-
 export class ActivationController {
   private readonly eventBus: EventBus<ServerEventMap>;
   private readonly ctx: MCPServerContext;

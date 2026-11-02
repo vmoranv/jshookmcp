@@ -60,10 +60,10 @@
 import { RingBuffer } from '@utils/RingBuffer';
 
 /** Entries retained before the oldest are evicted. */
-export const DEFAULT_MAX_ENTRIES = 2000;
+const DEFAULT_MAX_ENTRIES = 2000;
 
 /** Cap on concurrently tracked sessions before the oldest is evicted. */
-export const MAX_TRACKED_SESSIONS = 64;
+const MAX_TRACKED_SESSIONS = 64;
 
 /**
  * How a failure was classified, by where in the pipeline it was caught.

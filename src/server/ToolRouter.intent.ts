@@ -29,13 +29,13 @@ export interface RoutedWorkflowMatch {
 
 // ── Task Classification Patterns ──
 
-export const BROWSER_OR_NETWORK_TASK_PATTERN =
+const BROWSER_OR_NETWORK_TASK_PATTERN =
   /(browser|page|navigate|click|type|screenshot|scrape|network|request|response|api|traffic|hook|capture|intercept|monitor|浏览器|页面|导航|点击|输入|截图|爬取|网络|请求|响应|接口|流量|抓包|拦截|监控)/i;
 
-export const MAINTENANCE_TASK_PATTERN =
+const MAINTENANCE_TASK_PATTERN =
   /(token budget|cache|artifact|extension|plugin|reload|doctor|cleanup|memory|profile|tool list|令牌预算|缓存|工件|扩展|插件|重载|环境诊断|清理|内存|配置)/i;
 
-export const STATELESS_COMPUTE_TASK_PATTERN =
+const STATELESS_COMPUTE_TASK_PATTERN =
   /(stateless|deterministic|pure compute|offline|decode|encode|hex|base64|protobuf|msgpack|checksum|hash|payload|frame|packet|bytes?|bytecode|pcap|protocol|state machine|field inference|ast transform|crypto harness|无状态|确定性|纯算|离线|解码|编码|十六进制|校验和|载荷|字节|协议|报文|帧|字段推断|状态机|构包)/i;
 
 // ── Workflow Rules Cache ──
@@ -53,7 +53,7 @@ const INTENT_CACHE_MAX = 64;
  *
  * Cached lazily — manifests are immutable at runtime.
  */
-export function getEffectiveWorkflowRules(): WorkflowRule[] {
+function getEffectiveWorkflowRules(): WorkflowRule[] {
   if (cachedWorkflowRules) return cachedWorkflowRules;
   const rules: WorkflowRule[] = [];
   for (const m of getLoadedManifests()) {

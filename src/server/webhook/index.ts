@@ -1,2 +1,2 @@
 export { CommandQueue, CommandQueueImpl } from './CommandQueue.impl.js';
-export { WebhookServer, WebhookServerImpl } from './WebhookServer.impl.js';
+export { WebhookServer } from './WebhookServer.impl.js';

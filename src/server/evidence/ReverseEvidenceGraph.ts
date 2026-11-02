@@ -28,9 +28,9 @@ import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { logger } from '@utils/logger';
 
 /** Default cap on stored nodes before oldest entries are evicted. */
-export const DEFAULT_MAX_NODES = 100_000;
+const DEFAULT_MAX_NODES = 100_000;
 /** Default cap on stored edges before oldest entries are evicted. */
-export const DEFAULT_MAX_EDGES = 100_000;
+const DEFAULT_MAX_EDGES = 100_000;
 
 export interface ReverseEvidenceGraphOptions {
   /** Cap on stored nodes; oldest (by createdAt) are evicted when exceeded. */
