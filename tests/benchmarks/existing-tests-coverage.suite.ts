@@ -3,7 +3,7 @@
  *
  * The repo already carries 1000+ handler tests plus e2e real-task tests. Instead of
  * duplicating them, this suite converts them into a quantifiable per-tool coverage
- * matrix: for each of the 735 registry tools, does the existing test asset reference
+ * matrix: for each of the 736 registry tools, does the existing test asset reference
  * its handler method or tool name (unit tests + e2e real tasks)?
  *
  * Output: per-domain covered/total ratios → artifacts/benchmarks/existing-test-coverage.{md,json}
@@ -30,7 +30,7 @@ export interface ToolRef {
 }
 
 function loadToolRefs(): ToolRef[] {
-  // Full 735-tool universe comes from the generated registry map (domain per tool);
+  // Full 736-tool universe comes from the generated registry map (domain per tool);
   // manifest.ts files add the tool→handler-method binding where one exists.
   const domainsText = readFileSync(
     join(ROOT, 'src/server/registry/generated-tool-domains.ts'),

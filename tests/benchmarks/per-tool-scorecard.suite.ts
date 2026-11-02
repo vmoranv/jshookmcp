@@ -324,7 +324,7 @@ function renderPerToolScorecard(): { md: string; stats: Record<string, number> }
   const fullyMeasured = metrics.filter((m) => m.evaluation === 'all layers measured').length;
 
   const lines: string[] = [
-    '# Per-Tool Benchmark Scorecard — native metrics (735 tools)',
+    '# Per-Tool Benchmark Scorecard — native metrics (736 tools)',
     '',
     `Generated: ${new Date().toISOString()}`,
     '',
@@ -373,7 +373,7 @@ export function createPerToolScorecardSuite(allSuites: readonly BenchSuite[]): B
         name: 'per-tool/complete-coverage',
         tool: '*all*',
         origin: 'homemade',
-        reference: 'registry 735 tools × native-metric columns',
+        reference: 'registry 736 tools × native-metric columns',
         run: async () => {
           await refreshMeasurements(depthSuites);
           const metrics = perToolMetrics();
@@ -389,7 +389,7 @@ export function createPerToolScorecardSuite(allSuites: readonly BenchSuite[]): B
         validate: (v) => {
           const b = body(v);
           const total = Number(b.total ?? 0);
-          if (total !== 735) return `expected exactly 735 scored tools, got ${total}`;
+          if (total !== 736) return `expected exactly 736 scored tools, got ${total}`;
           const orphans = (b.orphans ?? []) as string[];
           return orphans.length === 0
             ? true
@@ -432,7 +432,7 @@ export function createPerToolScorecardSuite(allSuites: readonly BenchSuite[]): B
         tool: '*all*',
         origin: 'homemade',
         reference:
-          '735-row native-metric scorecard persisted to artifacts/benchmarks/per-tool-scorecard.{md,json}',
+          '736-row native-metric scorecard persisted to artifacts/benchmarks/per-tool-scorecard.{md,json}',
         run: async () => {
           const { md, stats } = renderPerToolScorecard();
           const outDir = join(ROOT, 'artifacts/benchmarks');
@@ -447,9 +447,9 @@ export function createPerToolScorecardSuite(allSuites: readonly BenchSuite[]): B
         validate: (v) => {
           const b = body(v);
           const rows = Number(b.rows ?? 0);
-          if (rows < 735) return `scorecard has ${rows} tool rows, expected 735`;
+          if (rows < 736) return `scorecard has ${rows} tool rows, expected 736`;
           const stats = b.stats as Record<string, number> | undefined;
-          if (!stats || Number(stats.total ?? 0) !== 735) return 'stats block missing/incorrect';
+          if (!stats || Number(stats.total ?? 0) !== 736) return 'stats block missing/incorrect';
           return true;
         },
       },
