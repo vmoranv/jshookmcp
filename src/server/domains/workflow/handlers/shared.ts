@@ -45,7 +45,7 @@ interface BundleCacheEntry {
   cachedAt: number;
 }
 
-export const BUILTIN_SCRIPT_ENTRIES = [
+const BUILTIN_SCRIPT_ENTRIES = [
   {
     name: 'auth_extract',
     description: 'Extract auth tokens from localStorage and cookies',

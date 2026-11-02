@@ -120,12 +120,3 @@ export class GraphQLToolHandlers {
 }
 
 // Re-export sub-handlers for direct access
-export {
-  CallGraphHandlers,
-  ScriptReplaceHandlers,
-  IntrospectionHandlers,
-  ExtractHandlers,
-  ReplayHandlers,
-  SubscribeHandlers,
-  SchemaEnumHandlers,
-};

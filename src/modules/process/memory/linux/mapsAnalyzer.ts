@@ -20,8 +20,7 @@
  * Win32/macOS have no /proc equivalent; the handler returns an explicit
  * unsupported-platform result rather than fabricating data.
  */
-import { readFile } from 'node:fs/promises';
-import { parseProcMaps, formatLinuxProtection, type LinuxMemoryRegion } from './mapsParser';
+import { formatLinuxProtection, type LinuxMemoryRegion } from './mapsParser';
 
 /** A single maps region annotated with objective structural facts. */
 export interface MapRegionSignal {
@@ -160,21 +159,4 @@ export function analyzeMaps(regions: LinuxMemoryRegion[]): MapsAnalysis {
     signals,
     note: ANALYSIS_NOTE,
   };
-}
-
-/**
- * Read /proc/{pid}/maps and return the analyzed result. Fail-soft: when /proc
- * is unavailable (non-Linux, process gone, permission denied) returns
- * `{ available: false, error }` so the handler never throws on platform issues.
- */
-export async function readProcMapsSafe(
-  pid: number,
-): Promise<{ available: true; analysis: MapsAnalysis } | { available: false; error: string }> {
-  try {
-    const content = await readFile(`/proc/${pid}/maps`, 'utf-8');
-    const regions = parseProcMaps(content);
-    return { available: true, analysis: analyzeMaps(regions) };
-  } catch (err) {
-    return { available: false, error: String(err) };
-  }
 }

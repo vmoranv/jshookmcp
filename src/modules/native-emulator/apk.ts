@@ -20,9 +20,6 @@ import { ToolError } from '@errors/ToolError';
 import { logger } from '@utils/logger';
 import { NEMU_APK_MAX_TOTAL_SO_BYTES } from '@src/constants';
 
-/** Only this ABI is loadable — the emulated CPU is AArch64. */
-export const LOADABLE_ABI = 'arm64-v8a';
-
 const ARM64_SO_RE = /^lib\/arm64-v8a\/(lib[^/]+\.so)$/i;
 /** Guard against a zip bomb: refuse to buffer more than this per extracted lib. */
 const MAX_SO_BYTES = 256 * 1024 * 1024;

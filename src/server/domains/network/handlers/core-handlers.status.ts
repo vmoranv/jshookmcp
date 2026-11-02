@@ -63,7 +63,7 @@ export async function handleNetworkDisable(
 }
 
 /** Shared status-response shape (used by both the composition handlers and the legacy base chain). */
-export function buildNetworkStatusResponse(status: {
+function buildNetworkStatusResponse(status: {
   enabled: boolean;
   requestCount: number;
   responseCount: number;

@@ -37,7 +37,7 @@ export function packF16Bits(bits16: number | bigint): Uint8Array<ArrayBuffer> {
 }
 
 /** Read the low 2 bytes of a V register as an f16 bit pattern (u16). */
-export function readF16Bits(v: Uint8Array): bigint {
+function readF16Bits(v: Uint8Array): bigint {
   const dv = new DataView(v.buffer, v.byteOffset, 16);
   return BigInt(dv.getUint16(0, true));
 }
@@ -175,12 +175,6 @@ export function intToF16(raw: bigint, signed: boolean, intBits: 32 | 64): number
   const value = signed ? BigInt.asIntN(intBits, masked) : masked;
   return f16round(Number(value));
 }
-
-/** FCVT between binary16 and single/double precision. */
-export const f16ToSingle = (h: number): number => h; // half → double is exact, then fround
-export const singleToF16 = (s: number): number => f16round(s);
-export const f16ToDouble = (h: number): number => h; // half→double is exact
-export const doubleToF16 = (d: number): number => f16round(d);
 
 // ── Compare → NZCV (same flag semantics as fp32/fp64) ────────────────────────
 

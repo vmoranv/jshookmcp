@@ -374,7 +374,6 @@ export function collectTurboFanIRFromDir(traceDir: string): TurboFanTraceResult 
 }
 
 // Re-export parser types for convenience
-export { parseTurboFanJSONFiles } from './TurboFanGraphParser';
 export type {
   TurboFanNode,
   TurboFanEdge,

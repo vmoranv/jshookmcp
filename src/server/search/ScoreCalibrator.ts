@@ -26,7 +26,7 @@ export const DEFAULT_CONFIDENCE_THRESHOLD = 0.25;
 /**
  * Computes effective content query length after filtering degenerate tokens.
  */
-export function calculateEffectiveLength(contentTokens: readonly string[]): number {
+function calculateEffectiveLength(contentTokens: readonly string[]): number {
   return Math.max(1, contentTokens.length);
 }
 
@@ -40,7 +40,7 @@ export function calculateEffectiveLength(contentTokens: readonly string[]): numb
  * while multi-word queries (L=5 => D~3.2) are dampened proportionally
  * to their token count to prevent accidental match accumulation.
  */
-export function lengthNormalizationFactor(effectiveLength: number): number {
+function lengthNormalizationFactor(effectiveLength: number): number {
   if (effectiveLength <= 1) return 1.0;
   return Math.sqrt(effectiveLength) * (1.0 + 0.28 * Math.log(effectiveLength));
 }
@@ -48,7 +48,7 @@ export function lengthNormalizationFactor(effectiveLength: number): number {
 /**
  * Normalizes a raw retrieval score by query length factor.
  */
-export function normalizeRawScore(rawScore: number, effectiveLength: number): number {
+function normalizeRawScore(rawScore: number, effectiveLength: number): number {
   if (rawScore <= 0) return 0;
   const factor = lengthNormalizationFactor(effectiveLength);
   return rawScore / factor;
@@ -60,7 +60,7 @@ export function normalizeRawScore(rawScore: number, effectiveLength: number): nu
  *
  * P(Relevant | score, L) = 1 / (1 + exp(- (S_norm - midpoint) / scale))
  */
-export function calibrateConfidence(rawScore: number, effectiveLength: number): number {
+function calibrateConfidence(rawScore: number, effectiveLength: number): number {
   if (rawScore <= 0) return 0.0;
   const normalized = normalizeRawScore(rawScore, effectiveLength);
   const logit = (normalized - CALIBRATION_MIDPOINT) / CALIBRATION_SCALE;
@@ -76,7 +76,7 @@ export function calibrateConfidence(rawScore: number, effectiveLength: number): 
  * Decides whether the top retrieved score constitutes a confident match,
  * rejecting out-of-domain noise that fails the posterior confidence floor.
  */
-export function isConfidentMatch(
+function isConfidentMatch(
   rawScore: number,
   effectiveLength: number,
   threshold = DEFAULT_CONFIDENCE_THRESHOLD,

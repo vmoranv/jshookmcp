@@ -6,7 +6,7 @@ import type {
 } from '@internal-types/config';
 import { DEFAULT_SEARCH_VECTOR_MODEL_ID } from '@src/constants/search-model';
 
-export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
+const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
   {
     pattern:
       '(?:security|vuln|xss|injection|csrf|exploit|attack|prototype\\s*pollution|漏洞|安全|注入|攻击)',
@@ -151,7 +151,7 @@ export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
   },
 ] satisfies SearchQueryCategoryProfileConfig[];
 
-export const DEFAULT_CJK_QUERY_ALIAS_CONFIGS = [
+const DEFAULT_CJK_QUERY_ALIAS_CONFIGS = [
   { pattern: '工作流|流程编排|流程自动化|编排', tokens: ['workflow', 'flow', 'orchestration'] },
   { pattern: '抓包|抓取|采集|捕获', tokens: ['capture', 'sniff', 'collect'] },
   { pattern: '接口|端点', tokens: ['api', 'endpoint', 'request'] },
@@ -196,7 +196,7 @@ export const DEFAULT_CJK_QUERY_ALIAS_CONFIGS = [
   { pattern: '桌面应用|electron|nwjs|预加载', tokens: ['electron', 'bridge', 'preload', 'ipc'] },
 ] satisfies SearchCjkQueryAliasConfig[];
 
-export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
+const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
   {
     pattern:
       '(?:端到端闭环|全链路闭环|一键闭环|api(?:[_\\s-]*)capture(?:[_\\s-]*)session|抓取接口|抓包流程)',

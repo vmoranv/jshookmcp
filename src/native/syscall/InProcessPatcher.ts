@@ -410,7 +410,7 @@ export function resetPatchState(): void {
  *
  * @returns List of active trace sessions with provider information.
  */
-export function enumerateActiveTraceSessions(): {
+function enumerateActiveTraceSessions(): {
   sessions: Array<{ loggerName: string; loggerId: number; isKernelTrace: boolean }>;
   monitoringActive: boolean;
   monitoringProviders: string[];

@@ -482,7 +482,7 @@ export function detectDuplicateCode(ast: t.File): Array<{
   return duplicates;
 }
 
-export function computeASTHash(node: t.Node): string {
+function computeASTHash(node: t.Node): string {
   const normalized = JSON.stringify(node, (key, value) => {
     if (['loc', 'start', 'end', 'range'].includes(key)) {
       return undefined;
@@ -502,7 +502,7 @@ export function computeASTHash(node: t.Node): string {
   return hash.toString(36);
 }
 
-export function normalizeCode(node: t.Node): string {
+function normalizeCode(node: t.Node): string {
   let identifierCounter = 0;
   const identifierMap = new Map<string, string>();
 

@@ -30,7 +30,7 @@ export function normalizeWebSocketPath(path: string | null | undefined): string 
   return path.startsWith('/') ? path : `/${path}`;
 }
 
-export function websocketOpcodeName(opcode: number): WebSocketFrameType | null {
+function websocketOpcodeName(opcode: number): WebSocketFrameType | null {
   const opcodeNames: Record<number, WebSocketFrameType> = {
     0x1: 'text',
     0x2: 'binary',

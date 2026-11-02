@@ -62,7 +62,7 @@ export interface CanvasDumpShadersResult {
  * @param engineHint - explicit engine override (skips auto-detect)
  * @param maxPrograms - in-page enumeration cap (mirrors the tool argument)
  */
-export function buildDumpShadersPayload(
+function buildDumpShadersPayload(
   canvasId?: string,
   includeUniforms: boolean = true,
   engineHint?: string,

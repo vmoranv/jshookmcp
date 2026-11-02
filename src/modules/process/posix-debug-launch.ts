@@ -18,7 +18,7 @@ import { ProcessRegistry } from '@utils/ProcessRegistry';
 import type { ProcessInfo } from '@modules/process/ProcessManager.types';
 
 /** Shell-metacharacter strip shared by pattern searches. */
-export function sanitizePattern(s: string): string {
+function sanitizePattern(s: string): string {
   return String(s || '').replace(/[^\w\s.@/\-:,+]/g, '');
 }
 

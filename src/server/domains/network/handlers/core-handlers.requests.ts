@@ -289,7 +289,7 @@ export function applyRequestFilters(
   };
 }
 
-export function buildEmptyRequestsResponse(autoEnabled: boolean): ToolResponse {
+function buildEmptyRequestsResponse(autoEnabled: boolean): ToolResponse {
   return R.ok()
     .merge({
       message: 'No network requests captured yet',

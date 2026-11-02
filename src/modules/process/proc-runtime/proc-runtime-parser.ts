@@ -8,16 +8,15 @@
  *   - /proc/{pid}/status   : key: value human-readable process metadata
  *
  * All parsers are pure functions of file content — safe to unit test without a
- * real /proc filesystem. `readProcessRuntimeSafe` does the I/O and is
- * fail-soft (returns partial results when a file is unreadable) so a missing
- * status file does not discard environ/cmdline.
+ * real /proc filesystem. I/O wrappers over these parsers must be fail-soft
+ * (return partial results when a file is unreadable) so a missing status file
+ * does not discard environ/cmdline.
  *
  * Honesty: no built-in secret/sensitive-key database. Every environment
  * variable is returned verbatim; the caller decides what to redact. This is
  * deliberate — a reverse-engineering tool must not silently hide values its
  * author guessed were sensitive.
  */
-import { readFile } from 'node:fs/promises';
 
 /** Selected fields from /proc/{pid}/status, normalized. Unknown fields are omitted. */
 export interface ProcStatusSummary {
@@ -150,46 +149,4 @@ export function parseProcStatusSummary(content: string): ProcStatusSummary {
     }
   }
   return out;
-}
-
-/**
- * Read environ + cmdline + status for a pid. Fail-soft per file: an unreadable
- * file (permission, process gone) yields an empty value for that field rather
- * than aborting the whole read. `available` is true when at least one of the
- * three files was read.
- */
-export async function readProcessRuntimeSafe(
-  pid: number,
-): Promise<{ available: true; info: ProcessRuntimeInfo } | { available: false; error: string }> {
-  const base = `/proc/${pid}`;
-  let gotAny = false;
-  let lastError = '';
-  const cmdline: string[] = [];
-  const environ: Record<string, string> = {};
-  const status: ProcStatusSummary = {};
-  try {
-    const c = await readFile(`${base}/cmdline`, 'utf-8');
-    for (const a of parseProcCmdline(c)) cmdline.push(a);
-    gotAny = true;
-  } catch (err) {
-    lastError = String(err);
-  }
-  try {
-    const e = await readFile(`${base}/environ`, 'utf-8');
-    Object.assign(environ, parseProcEnviron(e));
-    gotAny = true;
-  } catch (err) {
-    lastError = String(err);
-  }
-  try {
-    const s = await readFile(`${base}/status`, 'utf-8');
-    Object.assign(status, parseProcStatusSummary(s));
-    gotAny = true;
-  } catch (err) {
-    lastError = String(err);
-  }
-  if (!gotAny) {
-    return { available: false, error: lastError };
-  }
-  return { available: true, info: { cmdline, environ, status } };
 }

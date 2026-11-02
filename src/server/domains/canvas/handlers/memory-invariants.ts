@@ -90,7 +90,7 @@ export interface CanvasMemoryInvariantsResult {
  *
  * @param canvasId - optional canvas element ID / index to scope to
  */
-export function buildMemoryInvariantsPayload(canvasId?: string): string {
+function buildMemoryInvariantsPayload(canvasId?: string): string {
   return `(function() {
   function safe(name) { try { return typeof window[name]; } catch(e) { return 'undefined'; } }
 
@@ -255,7 +255,7 @@ export function buildMemoryInvariantsPayload(canvasId?: string): string {
  * fire either from a specific violation or as a generic safe-cleanup hint
  * when memory usage is non-trivial.
  */
-export function evaluateInvariants(metrics: CanvasMemoryMetrics): {
+function evaluateInvariants(metrics: CanvasMemoryMetrics): {
   checks: InvariantCheck[];
   violations: InvariantViolation[];
   recommendations: SafeCleanupRecommendation[];

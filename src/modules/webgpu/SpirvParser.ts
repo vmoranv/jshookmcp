@@ -103,7 +103,7 @@ const OpImageSparseDrefGather = 110;
 const OpImageSparseTexelsResident = 111;
 
 /** Opcode → human-readable name (used by disassembler). */
-export const OPCODE_NAMES: Record<number, string> = {
+const OPCODE_NAMES: Record<number, string> = {
   [OpEntryPoint]: 'OpEntryPoint',
   [OpName]: 'OpName',
   [OpMemberName]: 'OpMemberName',
@@ -800,7 +800,7 @@ function emitStructs(
  * specific vendor/die — use `costScore` for relative comparison between
  * shaders, not as an absolute cycle count.
  */
-export const SPIRV_OP_WEIGHTS: Record<number, number> = {
+const SPIRV_OP_WEIGHTS: Record<number, number> = {
   // Memory-class ops: weight 1 (default).
   [OpLoad]: 1,
   [OpStore]: 1,

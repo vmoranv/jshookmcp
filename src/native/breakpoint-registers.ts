@@ -50,7 +50,7 @@ export const DR_ACCESS_MAP: Record<BreakpointAccess, Dr7Entry['access']> = {
  * breakpoint set. Suspend/write/SetThreadContext/Resume/CloseHandle and the
  * per-thread error isolation are shared.
  */
-export function applyDRToAllThreadsShared(opts: {
+function applyDRToAllThreadsShared(opts: {
   pid: number;
   drIndex: number;
   address: bigint;

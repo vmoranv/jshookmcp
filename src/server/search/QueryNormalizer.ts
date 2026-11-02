@@ -55,7 +55,7 @@ const PARAM_DESCRIPTION_STOP_WORDS = new Set([
  * Standard English stop words to filter out during query processing
  * and document description indexing.
  */
-export const ENGLISH_STOP_WORDS = new Set<string>([
+const ENGLISH_STOP_WORDS = new Set<string>([
   'a',
   'about',
   'above',

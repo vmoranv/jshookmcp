@@ -84,7 +84,7 @@ const fromSqliteBoolean = (value: unknown): boolean => value === 1 || value === 
  * unit so both storage conventions serialize correctly. Returns null when the
  * value is missing or unparseable — HAR callers substitute the epoch sentinel.
  */
-export function wallTimeToIso(t: number | null | undefined): string | null {
+function wallTimeToIso(t: number | null | undefined): string | null {
   if (t === null || t === undefined || !Number.isFinite(t)) return null;
   const ms = t > EPOCH_MS_FLOOR ? t : t * 1000;
   const d = new Date(ms);

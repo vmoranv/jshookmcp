@@ -11,7 +11,7 @@ import type { LogcatLineFilter } from './logcat';
 
 export type LogcatPriority = 'V' | 'D' | 'I' | 'W' | 'E' | 'F' | 'S';
 
-export const PRIORITY_RANK: Record<LogcatPriority, number> = {
+const PRIORITY_RANK: Record<LogcatPriority, number> = {
   V: 0,
   D: 1,
   I: 2,
@@ -73,11 +73,6 @@ export function meetsMinPriority(line: ParsedLogcatLine, min: LogcatPriority): b
  */
 export function priorityPredicate(min: LogcatPriority): (line: string) => boolean {
   return (line) => meetsMinPriority(parseLogcatLine(line), min);
-}
-
-/** Re-exported so callers can build a threadtime-format adb logcat arg set. */
-export function threadtimeFormatArgs(): string[] {
-  return ['-v', 'threadtime'];
 }
 
 export type { LogcatLineFilter };

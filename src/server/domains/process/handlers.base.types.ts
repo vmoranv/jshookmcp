@@ -60,21 +60,13 @@ export type MemoryPatternType = 'hex' | 'int32' | 'int64' | 'float' | 'double' |
 export type BinaryEncoding = 'hex' | 'base64';
 export type InjectionValidationModeOverride = 'strict' | 'balanced' | 'permissive' | 'disabled';
 
-export const MEMORY_PATTERN_TYPES: Set<MemoryPatternType> = new Set([
+const MEMORY_PATTERN_TYPES: Set<MemoryPatternType> = new Set([
   'hex',
   'int32',
   'int64',
   'float',
   'double',
   'string',
-]);
-
-export const BINARY_ENCODINGS: Set<BinaryEncoding> = new Set(['hex', 'base64']);
-export const INJECTION_VALIDATION_MODES: Set<InjectionValidationModeOverride> = new Set([
-  'strict',
-  'balanced',
-  'permissive',
-  'disabled',
 ]);
 
 /** Validate an arg is a positive integer PID. */

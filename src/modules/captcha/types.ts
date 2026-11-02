@@ -97,14 +97,14 @@ export interface CaptchaDetectionResult extends CaptchaDetectionResultBase {
 /**
  * Signal source used during rule-based assessment.
  */
-export const CAPTCHA_SIGNAL_SOURCES = ['url', 'title', 'dom', 'text', 'vendor'] as const;
+const CAPTCHA_SIGNAL_SOURCES = ['url', 'title', 'dom', 'text', 'vendor'] as const;
 
 export type CaptchaSignalSource = (typeof CAPTCHA_SIGNAL_SOURCES)[number];
 
 /**
  * Signal polarity used during rule-based assessment.
  */
-export const CAPTCHA_SIGNAL_KINDS = ['captcha', 'exclude'] as const;
+const CAPTCHA_SIGNAL_KINDS = ['captcha', 'exclude'] as const;
 
 export type CaptchaSignalKind = (typeof CAPTCHA_SIGNAL_KINDS)[number];
 
@@ -156,13 +156,7 @@ export interface CaptchaCandidate {
 /**
  * Next-step recommendation from rule-based assessment before execution policy is applied.
  */
-export const CAPTCHA_NEXT_STEPS = [
-  'ignore',
-  'observe',
-  'ask_ai',
-  'manual',
-  'switch_to_headed',
-] as const;
+const CAPTCHA_NEXT_STEPS = ['ignore', 'observe', 'ask_ai', 'manual', 'switch_to_headed'] as const;
 
 export type CaptchaNextStep = (typeof CAPTCHA_NEXT_STEPS)[number];
 

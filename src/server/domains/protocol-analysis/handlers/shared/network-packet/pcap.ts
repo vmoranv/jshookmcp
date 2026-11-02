@@ -12,7 +12,7 @@ import type {
 /** Default snaplen for classic PCAP writes (libpcap's standard 65535). */
 export const PCAP_DEFAULT_SNAPLEN = 65535;
 
-export function writeUint32(
+function writeUint32(
   buffer: Buffer,
   offset: number,
   value: number,
@@ -25,7 +25,7 @@ export function writeUint32(
   }
 }
 
-export function writeUint16(
+function writeUint16(
   buffer: Buffer,
   offset: number,
   value: number,
@@ -38,18 +38,15 @@ export function writeUint16(
   }
 }
 
-export function readUint32(buffer: Buffer, offset: number, endianness: PacketEndianness): number {
+function readUint32(buffer: Buffer, offset: number, endianness: PacketEndianness): number {
   return endianness === 'little' ? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset);
 }
 
-export function readUint16(buffer: Buffer, offset: number, endianness: PacketEndianness): number {
+function readUint16(buffer: Buffer, offset: number, endianness: PacketEndianness): number {
   return endianness === 'little' ? buffer.readUInt16LE(offset) : buffer.readUInt16BE(offset);
 }
 
-export function getPcapMagic(
-  endianness: PacketEndianness,
-  precision: PacketTimestampPrecision,
-): Buffer {
+function getPcapMagic(endianness: PacketEndianness, precision: PacketTimestampPrecision): Buffer {
   const hex =
     endianness === 'little'
       ? precision === 'nano'
@@ -61,7 +58,7 @@ export function getPcapMagic(
   return Buffer.from(hex, 'hex');
 }
 
-export function parsePcapHeader(buffer: Buffer): PcapHeader {
+function parsePcapHeader(buffer: Buffer): PcapHeader {
   if (buffer.length < 24) {
     throw new Error('PCAP file is too small to contain a global header');
   }

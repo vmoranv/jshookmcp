@@ -19,7 +19,7 @@ import {
   type TransformKind,
 } from '@server/domains/transform/transform-kinds';
 
-export { SUPPORTED_TRANSFORMS, type TransformKind };
+export { type TransformKind };
 
 export interface ApplyResult {
   transformed: string;

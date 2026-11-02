@@ -3,7 +3,7 @@
  * Shared APK manifest helpers reused across the APK tools.
  */
 
-export function readXmlAttr(tag: string, attr: string): string | undefined {
+function readXmlAttr(tag: string, attr: string): string | undefined {
   const escaped = attr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return (
     tag.match(new RegExp(`\\b${escaped}\\s*=\\s*"([^"]*)"`, 'i'))?.[1] ??

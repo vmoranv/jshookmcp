@@ -477,16 +477,3 @@ function toSnapshotError(code: SnapshotErrorCode, message: string, error: unknow
   const detail = stderr !== undefined && stderr.length > 0 ? `: ${stderr}` : '';
   return new SnapshotError(code, `${message}${detail}`, { stderr, exitCode, cause: error });
 }
-
-/**
- * True when `git` is runnable — used by tests to skip git-dependent suites
- * on machines without a git binary.
- */
-export async function isGitAvailable(): Promise<boolean> {
-  try {
-    await execFileAsync('git', ['--version'], { windowsHide: true, timeout: 10_000 });
-    return true;
-  } catch {
-    return false;
-  }
-}

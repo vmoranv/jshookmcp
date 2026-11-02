@@ -70,15 +70,6 @@ export type {
   MagicSignature,
   ByteFrequencyEntry,
 } from './handlers/shared';
-export {
-  MAGIC_SIGNATURES,
-  DETECT_SOURCE_SET,
-  ENTROPY_SOURCE_SET,
-  DECODE_ENCODING_SET,
-  OUTPUT_FORMAT_SET,
-  INPUT_FORMAT_SET,
-  OUTPUT_ENCODING_SET,
-} from './handlers/shared';
 
 type ResponseBodyPayload = {
   body: string;

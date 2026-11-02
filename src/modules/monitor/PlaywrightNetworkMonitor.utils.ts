@@ -1,6 +1,6 @@
 import type { PlaywrightLikeResponse } from './PlaywrightNetworkMonitor.types';
 
-export function normalizeHttpVersion(value: unknown): string | undefined {
+function normalizeHttpVersion(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const normalized = value.trim().toLowerCase();
   if (normalized === 'http/1.0' || normalized === '1.0') return '1.0';

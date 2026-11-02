@@ -27,14 +27,14 @@ export function readF64(v: Uint8Array): number {
 }
 
 /** Pack a float32 into a fresh 16-byte V register (upper 12 bytes zeroed). */
-export function packF32(value: number): Uint8Array<ArrayBuffer> {
+function packF32(value: number): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(16);
   new DataView(out.buffer).setFloat32(0, f32(value), true);
   return out;
 }
 
 /** Pack a float64 into a fresh 16-byte V register (upper 8 bytes zeroed). */
-export function packF64(value: number): Uint8Array<ArrayBuffer> {
+function packF64(value: number): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(16);
   new DataView(out.buffer).setFloat64(0, value, true);
   return out;

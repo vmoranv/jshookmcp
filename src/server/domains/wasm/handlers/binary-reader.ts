@@ -9,7 +9,7 @@
  */
 
 /** wasm section id → human name (index 0 is custom, resolved per-section). */
-export const SECTION_NAMES = [
+const SECTION_NAMES = [
   'custom',
   'type',
   'import',
@@ -37,7 +37,7 @@ export interface WasmFunctionName {
   name: string;
 }
 
-export const WASM_MAGIC = [0x00, 0x61, 0x73, 0x6d]; // \0asm
+const WASM_MAGIC = [0x00, 0x61, 0x73, 0x6d]; // \0asm
 
 /** Read an unsigned LEB128 (wasm varuint32). Returns [value, nextOffset]. */
 export function readU32Leb128(bytes: Buffer, offset: number): [number, number] {

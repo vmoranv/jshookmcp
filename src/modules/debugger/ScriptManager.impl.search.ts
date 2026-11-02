@@ -16,7 +16,7 @@ import {
 } from '@src/constants';
 
 /** Lines between cooperative yields inside one script scan. */
-export const SEARCH_LINE_YIELD_INTERVAL = 250;
+const SEARCH_LINE_YIELD_INTERVAL = 250;
 /** Scripts between cooperative yields across the whole search. */
 export const SEARCH_SCRIPT_YIELD_INTERVAL = 10;
 

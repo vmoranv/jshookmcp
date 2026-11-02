@@ -657,7 +657,7 @@ export function computeAdjustedControls(msrs: VmxCapabilityMsrs): AdjustedContro
  * @param purpose Human-readable tag for tracking.
  * @returns PhysicalAllocation with VA populated and physicalAddress=null.
  */
-export async function allocatePhysicalMemory(
+async function allocatePhysicalMemory(
   sizeBytes: number,
   purpose: string,
 ): Promise<PhysicalAllocation> {
@@ -1793,28 +1793,6 @@ async function resolvePhysicalAllocationAddresses(allocations: {
 
   // Count actual successes
   return resolved;
-}
-
-/**
- * Free a VirtualAlloc allocation.
- *
- * Releases the virtual memory allocated by allocatePhysicalMemory.
- * Must be called with the exact base address returned by VirtualAlloc.
- */
-export function freePhysicalMemory(allocation: PhysicalAllocation): boolean {
-  if (process.platform !== 'win32') return false;
-
-  try {
-    const koffi = require('koffi');
-    const kernel32 = koffi.load('kernel32.dll');
-    const VirtualFree = kernel32.func('int VirtualFree(void *, size_t, uint32)');
-    const MEM_RELEASE = 0x8000;
-
-    const result = VirtualFree(allocation.virtualAddress, 0, MEM_RELEASE);
-    return result !== 0;
-  } catch {
-    return false;
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════

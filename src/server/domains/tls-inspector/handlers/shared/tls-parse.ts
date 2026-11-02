@@ -13,17 +13,6 @@ const CONTENT_TYPE_NAMES: Record<number, string> = {
   24: 'heartbeat',
 };
 
-const HANDSHAKE_TYPE_NAMES: Record<number, string> = {
-  1: 'client_hello',
-  2: 'server_hello',
-  4: 'new_session_ticket',
-  8: 'encrypted_extensions',
-  11: 'certificate',
-  13: 'certificate_request',
-  15: 'certificate_verify',
-  20: 'finished',
-};
-
 const CIPHER_SUITES_BY_ID: Record<number, string> = {
   0x009c: 'TLS_RSA_WITH_AES_128_GCM_SHA256',
   0x009d: 'TLS_RSA_WITH_AES_256_GCM_SHA384',
@@ -67,10 +56,6 @@ export function tlsVersionName(major: number, minor: number): string {
 
 export function contentTypeName(contentType: number): string {
   return CONTENT_TYPE_NAMES[contentType] ?? 'unknown';
-}
-
-export function handshakeTypeName(handshakeType: number): string {
-  return HANDSHAKE_TYPE_NAMES[handshakeType] ?? 'unknown';
 }
 
 export function parseClientHello(payload: Buffer): {

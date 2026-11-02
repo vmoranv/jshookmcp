@@ -104,8 +104,3 @@ export function clearBrowserPathCache(): void {
 export function getCachedBrowserPath(): string | undefined {
   return cachedBrowserPath ?? undefined;
 }
-
-/**
- * Backward-compatible alias.
- */
-export const resolveBrowserExecutablePath = findBrowserExecutable;

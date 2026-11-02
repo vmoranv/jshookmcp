@@ -118,7 +118,7 @@ export async function installShaderSourceHook(
 }
 
 /** Restore the original createShaderModule prototype method. */
-export async function uninstallShaderSourceHook(page: Page): Promise<void> {
+async function uninstallShaderSourceHook(page: Page): Promise<void> {
   await page.evaluate(() => {
     const w = window as any;
     const state = w.webgpuShaderHookState;

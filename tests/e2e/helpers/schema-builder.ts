@@ -109,7 +109,7 @@ function stringFromSchema(name: string, config: SchemaBuilderConfig): unknown {
   return 'test';
 }
 
-export function scalarFromSchema(
+function scalarFromSchema(
   name: string,
   schema: Record<string, unknown> | undefined,
   config: SchemaBuilderConfig,
@@ -126,7 +126,7 @@ export function scalarFromSchema(
   return null;
 }
 
-export function valueFromSchema(
+function valueFromSchema(
   name: string,
   schema: Record<string, unknown> | undefined,
   config: SchemaBuilderConfig,

@@ -387,7 +387,7 @@ export function execPointerAuth3Source(ctx: ExecutionContext, insn: number): boo
  * the same canonical masking as computePacField: the pointer's 48 address bits
  * and the modifier duplicated 32→64.
  */
-export function pacgaDigest(pointer: bigint, modifier: bigint, keyHex: string): bigint {
+function pacgaDigest(pointer: bigint, modifier: bigint, keyHex: string): bigint {
   const dup = ((modifier & 0xffffffffn) | ((modifier & 0xffffffffn) << 32n)) & MASK64;
   return qarma5Encrypt(pointer & POINTER_PLAINTEXT_MASK, dup, keyHex);
 }
@@ -505,5 +505,3 @@ export function execHintPac(ctx: ExecutionContext, insn: number): boolean {
   }
   return true;
 }
-
-export { insertPac, extractPac, stripPac };

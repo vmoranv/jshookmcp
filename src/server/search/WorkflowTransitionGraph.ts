@@ -91,9 +91,7 @@ const TRANSITION_MAP: ReadonlyMap<string, ReadonlyArray<TransitionEdge>> = (() =
  * @param activeToolNames Currently active or recently invoked tools in session
  * @returns Map of target tool name -> cumulative transition boost multiplier
  */
-export function getTransitionBoosts(
-  activeToolNames?: ReadonlySet<string>,
-): ReadonlyMap<string, number> {
+function getTransitionBoosts(activeToolNames?: ReadonlySet<string>): ReadonlyMap<string, number> {
   if (!activeToolNames || activeToolNames.size === 0) {
     return new Map();
   }

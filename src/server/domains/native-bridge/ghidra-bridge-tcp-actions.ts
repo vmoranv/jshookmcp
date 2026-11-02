@@ -28,16 +28,12 @@ export interface TcpActionResult extends Record<string, unknown> {
   backend: 'ghidra-bridge-py';
 }
 
-export function tcpBackendOptions(): GhidraBridgeTcpOptions {
-  return COMMON_OPTIONS;
-}
-
 export async function tcpStatus(): Promise<TcpActionResult> {
   const reachable = await ghidraBridgePing(COMMON_OPTIONS);
   return { success: true, action: 'status', backend: 'ghidra-bridge-py', reachable };
 }
 
-export async function tcpListFunctions(): Promise<TcpActionResult> {
+async function tcpListFunctions(): Promise<TcpActionResult> {
   const functions = await ghidraBridgeEval(
     '[f.getName() for f in currentProgram.getFunctionManager().getFunctions(True)]',
     {},
@@ -69,7 +65,7 @@ const DECOMPILE_HELPER = [
   '        _jshook_decomp.dispose()',
 ].join('\n');
 
-export async function tcpDecompileFunction(functionName: string): Promise<TcpActionResult> {
+async function tcpDecompileFunction(functionName: string): Promise<TcpActionResult> {
   await ghidraBridgeExec(DECOMPILE_HELPER, {}, COMMON_OPTIONS);
   const decompiled = await ghidraBridgeEval(
     '_jshook_bridge_decompile_fn(_jshook_fn)',
@@ -95,7 +91,7 @@ const XREFS_HELPER = [
   '    return _jshook_out',
 ].join('\n');
 
-export async function tcpGetXrefs(functionName: string): Promise<TcpActionResult> {
+async function tcpGetXrefs(functionName: string): Promise<TcpActionResult> {
   await ghidraBridgeExec(XREFS_HELPER, {}, COMMON_OPTIONS);
   const xrefs = await ghidraBridgeEval(
     '_jshook_bridge_xrefs_fn(_jshook_fn)',
@@ -127,9 +123,7 @@ const STRINGS_HELPER = [
   '    return _jshook_out',
 ].join('\n');
 
-export async function tcpSearchStrings(
-  searchPattern: string | undefined,
-): Promise<TcpActionResult> {
+async function tcpSearchStrings(searchPattern: string | undefined): Promise<TcpActionResult> {
   await ghidraBridgeExec(STRINGS_HELPER, {}, COMMON_OPTIONS);
   const strings = await ghidraBridgeEval(
     '_jshook_bridge_strings_fn(_jshook_needle)',
@@ -139,7 +133,7 @@ export async function tcpSearchStrings(
   return { success: true, action: 'search_strings', backend: 'ghidra-bridge-py', strings };
 }
 
-export async function tcpGetSegments(): Promise<TcpActionResult> {
+async function tcpGetSegments(): Promise<TcpActionResult> {
   const segments = await ghidraBridgeEval(
     '[str(_jshook_b.getName()) + " " + str(_jshook_b.getStart()) + "-" + str(_jshook_b.getEnd()) + " (" + str(_jshook_b.getSize()) + " bytes)" for _jshook_b in currentProgram.getMemory().getBlocks()]',
     {},
@@ -158,7 +152,7 @@ const RUN_SCRIPT_HELPER = [
   '        _jshook_f.close()',
 ].join('\n');
 
-export async function tcpRunScript(scriptPath: string): Promise<TcpActionResult> {
+async function tcpRunScript(scriptPath: string): Promise<TcpActionResult> {
   await ghidraBridgeExec(RUN_SCRIPT_HELPER, {}, COMMON_OPTIONS);
   await ghidraBridgeEval(
     '_jshook_bridge_run_script_fn(_jshook_path)',

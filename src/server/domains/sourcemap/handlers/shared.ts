@@ -101,7 +101,7 @@ const BASE64_DECODE_MAP: ReadonlyMap<string, number> = new Map(
 
 // ── VLQ decoding ──
 
-export function fromVlqSigned(value: number): number {
+function fromVlqSigned(value: number): number {
   // Arithmetic (not bitwise) so 32-bit boundary values survive: `>> 1` would overflow
   // past 2^31 and corrupt legal tc39 boundary mappings into negatives.
   const isNegative = value % 2 === 1;

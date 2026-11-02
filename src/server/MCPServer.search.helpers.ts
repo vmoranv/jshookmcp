@@ -5,7 +5,7 @@
  * and domain description generation.
  */
 import { createHash } from 'node:crypto';
-import { getProfileDomains, getToolDomain, getToolsForProfile } from '@server/ToolCatalog';
+import { getProfileDomains, getToolDomain } from '@server/ToolCatalog';
 import type { Tool } from '@modelcontextprotocol/server';
 import type { ToolProfile } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
@@ -52,16 +52,6 @@ export function getVisibleDomainsForTier(ctx: MCPServerContext): ReadonlySet<str
     }
     const toolDomain = getToolDomain(toolName);
     if (toolDomain) visible.add(toolDomain);
-  }
-  return visible;
-}
-
-export function getVisibleToolNamesForTier(ctx: MCPServerContext): ReadonlySet<string> {
-  const visible = new Set(getToolsForProfile(ctx.baseTier).map((tool) => tool.name));
-  for (const name of ctx.activatedToolNames) visible.add(name);
-  for (const tool of ctx.selectedTools) visible.add(tool.name);
-  for (const record of ctx.extensionToolsByName.values()) {
-    visible.add(record.name);
   }
   return visible;
 }

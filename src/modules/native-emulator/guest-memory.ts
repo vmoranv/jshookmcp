@@ -13,7 +13,7 @@ export function alignGuestAddress(value: number, alignment: number): number {
   return Math.ceil(value / alignment) * alignment;
 }
 
-export function decodeGuestU64(bytes: Uint8Array): bigint {
+function decodeGuestU64(bytes: Uint8Array): bigint {
   if (bytes.byteLength < 8) {
     throw new Error(`Expected 8 guest bytes, received ${bytes.byteLength}`);
   }

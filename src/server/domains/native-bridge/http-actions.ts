@@ -36,7 +36,7 @@ export interface HttpActionRecipe {
   extra?: Record<string, unknown>;
 }
 
-export const GHIDRA_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
+const GHIDRA_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
   open_project: {
     path: '/project/open',
     kind: 'open_project',
@@ -58,7 +58,7 @@ export const GHIDRA_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
   get_segments: { path: '/segments', kind: 'plain', extra: { segments: null } },
 };
 
-export const IDA_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
+const IDA_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
   open_binary: { path: '/binary/open', kind: 'open', body: { binaryPath: null } },
   list_functions: { path: '/functions', kind: 'plain', extra: { functions: null } },
   decompile_function: { path: '/functions/{name}/decompile', kind: 'decompile' },
@@ -77,7 +77,7 @@ export const IDA_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
   get_segments: { path: '/segments', kind: 'plain', extra: { segments: null } },
 };
 
-export const RIZIN_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
+const RIZIN_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
   open_binary: { path: '/binary/open', kind: 'open', body: { binaryPath: null } },
   analyze: {
     path: '/analysis/run',
@@ -100,7 +100,7 @@ export const RIZIN_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
   get_segments: { path: '/segments', kind: 'plain', extra: { segments: null } },
 };
 
-export const BINARY_NINJA_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
+const BINARY_NINJA_HTTP_ACTIONS: Record<string, HttpActionRecipe> = {
   open_binary: { path: '/binary/open', kind: 'open', body: { binaryPath: null } },
   list_functions: { path: '/functions', kind: 'plain', extra: { functions: null } },
   decompile_function: { path: '/functions/{name}/decompile', kind: 'decompile' },
@@ -140,16 +140,6 @@ export const REQUIRED_ARG_BY_KIND: Partial<Record<HttpActionKind, string>> = {
   xrefs: 'functionName',
   run_script: 'scriptPath',
   run_command: 'command',
-};
-
-/** Body key each POST kind reads its argument from. */
-export const BODY_ARG_BY_KIND: Partial<Record<HttpActionKind, string>> = {
-  open: 'binaryPath',
-  open_project: 'binaryPath',
-  run_script: 'scriptPath',
-  run_command: 'command',
-  analyze: 'analysisLevel',
-  strings_post: 'searchPattern',
 };
 
 /** Build the literal JSON body for a POST recipe (placeholders replaced). */

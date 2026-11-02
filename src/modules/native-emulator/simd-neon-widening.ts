@@ -7,9 +7,6 @@
 
 import { laneBytes, packLanes, readLanes, readLaneSigned } from './simd-utils';
 
-// Re-export for external consumers that depend on these via this module.
-export { laneBytes, packLanes, readLanes, readLaneSigned };
-
 /** Interpret an unsigned lane as signed (two's complement) at the lane width. */
 function toSigned(v: bigint, bytes: number): bigint {
   const bits = BigInt(bytes * 8);
@@ -595,22 +592,6 @@ export function neonUshll(
   }
 
   return packLanes(result, outputSize);
-}
-
-/**
- * SXTL/SXTL2: Signed Extend Long
- * Alias for SSHLL with shift amount #0 (sign-extends narrow to wide).
- */
-export function neonSxtl(vn: Uint8Array, size: number, q: number): Uint8Array<ArrayBuffer> {
-  return neonSshll(vn, 0, size, q);
-}
-
-/**
- * UXTL/UXTL2: Unsigned Extend Long
- * Alias for USHLL with shift amount #0 (zero-extends narrow to wide).
- */
-export function neonUxtl(vn: Uint8Array, size: number, q: number): Uint8Array<ArrayBuffer> {
-  return neonUshll(vn, 0, size, q);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

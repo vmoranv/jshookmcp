@@ -17,7 +17,7 @@ import { monitorEventLoopDelay } from 'node:perf_hooks';
 const NS_PER_MS = 1_000_000;
 
 /** Default summary window (ms). Startup blocking samples only pollute the first window. */
-export const DEFAULT_LOOP_LAG_WINDOW_MS = 30_000;
+const DEFAULT_LOOP_LAG_WINDOW_MS = 30_000;
 
 /**
  * Millisecond latency summary + sample count.

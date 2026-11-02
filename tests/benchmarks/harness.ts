@@ -176,10 +176,6 @@ export function expectSuccess(v: unknown): Record<string, unknown> {
   return b;
 }
 
-export function detail(v: unknown): string {
-  return body(v).detail as string;
-}
-
 // ── Scorecard rendering ──
 
 export function renderScorecard(results: readonly BenchSuiteResult[]): string {

@@ -141,7 +141,7 @@ let vectorStatsCache = new Map<string, ExecStats>();
 let cache: ToolMetrics[] | null = null;
 let depthSuites: readonly BenchSuite[] = [];
 
-export async function refreshMeasurements(suites: readonly BenchSuite[]): Promise<void> {
+async function refreshMeasurements(suites: readonly BenchSuite[]): Promise<void> {
   depthSuites = suites;
   vectorStatsCache = await measureVectorBenches();
   cache = null;
@@ -292,7 +292,7 @@ function summarizeHandlerFn(cov: CoverageMeta, domain: string, methods: string[]
   return '0% (fns not found in coverage)';
 }
 
-export function perToolMetrics(): ToolMetrics[] {
+function perToolMetrics(): ToolMetrics[] {
   if (cache) return cache;
   const loaders: Loaders = {
     cov: loadCoverageMeta(),

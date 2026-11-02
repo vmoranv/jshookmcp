@@ -330,52 +330,6 @@ export function neonUqshl(
 }
 
 /**
- * SQSHL (immediate): Signed Saturating Shift Left by immediate
- * Encoding: 0 Q 0 01111 immh:immb 011101 Rn Rd
- */
-export function neonSqshlImm(
-  vd: Uint8Array,
-  vn: Uint8Array,
-  shift: number,
-  size: number,
-  q: number,
-  ctx: SaturatingContext,
-): void {
-  const laneCount = (16 >> size) * (q === 1 ? 1 : 0.5);
-  const bits = 8 << size;
-
-  for (let i = 0; i < laneCount; i++) {
-    const value = readLaneSigned(vn, i, size);
-    const result = value << BigInt(shift);
-    const sat = saturateSigned(result, bits, ctx);
-    writeLane(vd, i, size, sat & widthMask(laneBytes(size)));
-  }
-}
-
-/**
- * UQSHL (immediate): Unsigned Saturating Shift Left by immediate
- * Encoding: 0 Q 1 01111 immh:immb 011101 Rn Rd
- */
-export function neonUqshlImm(
-  vd: Uint8Array,
-  vn: Uint8Array,
-  shift: number,
-  size: number,
-  q: number,
-  ctx: SaturatingContext,
-): void {
-  const laneCount = (16 >> size) * (q === 1 ? 1 : 0.5);
-  const bits = 8 << size;
-
-  for (let i = 0; i < laneCount; i++) {
-    const value = readLaneUnsigned(vn, i, size);
-    const result = value << BigInt(shift);
-    const sat = saturateUnsigned(result, bits, ctx);
-    writeLane(vd, i, size, sat);
-  }
-}
-
-/**
  * SQSHLU: Signed saturating Shift Left Unsigned
  * Encoding: 0 Q 1 01111 immh:immb 011001 Rn Rd
  * Read as signed, shift left, saturate as unsigned
@@ -720,74 +674,6 @@ export function neonSqrshrun(
     const shifted = (wide + round) >> BigInt(shift);
     const narrow = saturateUnsigned(shifted, outputBits, ctx);
     writeLane(vd, offset + i, size, narrow);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ── 4. Saturating Multiply Instructions ──
-// ══════════════════════════════════════════════════════════════════════════════
-
-/**
- * SQDMULH: Signed Saturating Doubling Multiply High
- * Encoding: 0 Q 0 01110 size 1 Rm 101101 Rn Rd
- * Only supports 16-bit and 32-bit elements
- * Result = (a * b * 2) >> bits, saturated
- */
-export function neonSqdmulh(
-  vd: Uint8Array,
-  vn: Uint8Array,
-  vm: Uint8Array,
-  size: number,
-  q: number,
-  ctx: SaturatingContext,
-): void {
-  if (size !== 1 && size !== 2) throw new Error('SQDMULH: size must be 1 (H) or 2 (S)');
-
-  const laneCount = (16 >> size) * (q === 1 ? 1 : 0.5);
-  const bits = 8 << size;
-
-  for (let i = 0; i < laneCount; i++) {
-    const a = readLaneSigned(vn, i, size);
-    const b = readLaneSigned(vm, i, size);
-
-    // Doubling multiply: (a * b * 2), take high bits
-    const product = a * b * 2n;
-    const high = product >> BigInt(bits);
-
-    const sat = saturateSigned(high, bits, ctx);
-    writeLane(vd, i, size, sat & widthMask(laneBytes(size)));
-  }
-}
-
-/**
- * SQRDMULH: Signed Saturating Rounding Doubling Multiply High
- * Encoding: 0 Q 0 01110 size 1 Rm 101110 Rn Rd
- * Rounded version of SQDMULH
- */
-export function neonSqrdmulh(
-  vd: Uint8Array,
-  vn: Uint8Array,
-  vm: Uint8Array,
-  size: number,
-  q: number,
-  ctx: SaturatingContext,
-): void {
-  if (size !== 1 && size !== 2) throw new Error('SQRDMULH: size must be 1 (H) or 2 (S)');
-
-  const laneCount = (16 >> size) * (q === 1 ? 1 : 0.5);
-  const bits = 8 << size;
-
-  for (let i = 0; i < laneCount; i++) {
-    const a = readLaneSigned(vn, i, size);
-    const b = readLaneSigned(vm, i, size);
-
-    // Doubling multiply with rounding
-    const product = a * b * 2n;
-    const round = 1n << BigInt(bits - 1);
-    const high = (product + round) >> BigInt(bits);
-
-    const sat = saturateSigned(high, bits, ctx);
-    writeLane(vd, i, size, sat & widthMask(laneBytes(size)));
   }
 }
 

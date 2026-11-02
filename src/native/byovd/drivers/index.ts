@@ -22,5 +22,3 @@ export function findDriver(name: string): ByovdDriverDef | undefined {
   const lower = name.toLowerCase();
   return byovdDriverRegistry.find((d) => d.name.toLowerCase() === lower);
 }
-
-export { RTCore64, KProcessHacker, ThrottleStop };

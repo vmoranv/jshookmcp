@@ -69,22 +69,6 @@ export function matchApkSurfaceHints(
   return { protectorHints, sdkHints };
 }
 
-export function matchGenericProtectorHints(
-  entries: string[],
-  xml: string,
-  options: ApkSurfaceHintOptions = {},
-): ApkSurfaceHint[] {
-  return matchApkSurfaceHints(entries, xml, options).protectorHints;
-}
-
-export function matchGenericSdkHints(
-  entries: string[],
-  xml: string,
-  options: ApkSurfaceHintOptions = {},
-): ApkSurfaceHint[] {
-  return matchApkSurfaceHints(entries, xml, options).sdkHints;
-}
-
 function matchGenericProtectorHintsFromIndex(index: ApkSurfaceIndex): ApkSurfaceHint[] {
   const hints: ApkSurfaceHint[] = [];
   const nativeLoaderEvidence = collectEntryEvidence(index, (line) =>

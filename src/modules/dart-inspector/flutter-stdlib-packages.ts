@@ -10,7 +10,7 @@
  *  - https://api.flutter.dev/flutter/packages.html — Flutter SDK packages
  *  - https://api.dart.dev/stable/dart-core/dart-core-library.html — Dart core libs
  *
- * `SDK_SNAPSHOT_VERSION` records the Flutter release the snapshot was taken
+ * The review marker below records the Flutter release the snapshot was taken
  * against; bump it whenever the whitelist is refreshed.
  *
  * Dart core libraries (`dart:async`, `dart:io`, …) are referenced via the
@@ -18,14 +18,13 @@
  * catch malformed `package:dart` strings.
  */
 
-/** Last Flutter SDK release the whitelist was reviewed against. */
-export const SDK_SNAPSHOT_VERSION = '3.24.x';
+// Whitelist last reviewed against Flutter SDK 3.24.x.
 
 /**
  * Frozen set of Flutter SDK + Dart core package names (lowercase,
  * `^[a-z_][a-z0-9_]*$`). Sorted alphabetically for diff hygiene.
  */
-export const FLUTTER_STDLIB_PACKAGES: ReadonlySet<string> = Object.freeze(
+const FLUTTER_STDLIB_PACKAGES: ReadonlySet<string> = Object.freeze(
   new Set<string>([
     // Dart core libs (defensive — usually referenced via `dart:` not `package:`)
     '_internal',

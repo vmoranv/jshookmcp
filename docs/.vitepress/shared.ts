@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitepress';
 
-export const base = process.env.VITEPRESS_BASE || '/';
+const base = process.env.VITEPRESS_BASE || '/';
 
 export const shared = defineConfig({
   title: 'JSHookMCP',

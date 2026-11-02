@@ -33,7 +33,7 @@ export function serializeSessionState(session: BufferedSession): {
   };
 }
 
-export function wakeSessionWaiters(session: BufferedSession): void {
+function wakeSessionWaiters(session: BufferedSession): void {
   for (const waiter of session.waiters) {
     waiter();
   }

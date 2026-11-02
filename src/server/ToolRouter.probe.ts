@@ -19,7 +19,7 @@ export interface RoutingState {
 
 let allToolsByNameCache: Map<string, Tool> | null = null;
 
-export function getAllToolsByName(): Map<string, Tool> {
+function getAllToolsByName(): Map<string, Tool> {
   const loadedCatalog = getLoadedSearchCatalog();
   if (loadedCatalog) return loadedCatalog.toolByName as Map<string, Tool>;
   if (!allToolsByNameCache) allToolsByNameCache = new Map(allTools.map((t) => [t.name, t]));

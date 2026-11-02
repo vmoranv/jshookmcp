@@ -131,7 +131,7 @@ export interface WorkerPoolStats {
   totalFailed: number;
 }
 
-export class WorkerPoolImpl {
+class WorkerPoolImpl {
   readonly maxWorkers: number;
   readonly idleWorkers: Worker[] = [];
   readonly pendingTasks = new Map<string, PendingTaskController>();

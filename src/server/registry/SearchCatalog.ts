@@ -57,8 +57,3 @@ export async function loadSearchCatalog(): Promise<SearchCatalog> {
 export function getLoadedSearchCatalog(): SearchCatalog | null {
   return catalog;
 }
-
-export function resetSearchCatalogForTests(): void {
-  catalog = null;
-  loadPromise = null;
-}

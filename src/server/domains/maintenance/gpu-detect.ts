@@ -1,14 +1,11 @@
 /**
  * GPU detection and classification: cloud GPU, VM GPU, local device.
  *
- * Detects GPU vendor/model via platform-specific commands and classifies
- * results with isCloudGpu / isVirtualMachine flags for VM/cloud triage.
+ * Classifies caller-supplied renderer strings with isCloudGpu /
+ * isVirtualMachine flags for VM/cloud triage. Parse helpers
+ * (parseLinuxOutput / parseMacOutput) turn raw tool output into GpuInfo
+ * lists for callers that collect it themselves.
  */
-
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
-const execFileAsync = promisify(execFile);
 
 // ── Cloud GPU models (NVIDIA datacenter) ──
 
@@ -128,76 +125,6 @@ export function classifyGpuInputs(input: GpuClassifierInput): GpuDetectResult {
   };
 }
 
-// ── Platform-specific collectors ──
-
-async function detectLinux(): Promise<{ gpus: GpuInfo[]; rawOutput: string }> {
-  const rawOutput = await tryCommands([
-    {
-      cmd: 'nvidia-smi',
-      args: ['--query-gpu=name,driver_version,memory.total', '--format=csv,noheader,nounits'],
-    },
-    { cmd: 'lspci', args: [] },
-  ]);
-
-  return { gpus: parseLinuxOutput(rawOutput), rawOutput };
-}
-
-async function detectWindows(): Promise<{ gpus: GpuInfo[]; rawOutput: string }> {
-  const rawOutput = await tryCommands([
-    {
-      cmd: 'wmic',
-      args: [
-        'path',
-        'win32_videocontroller',
-        'get',
-        'name,driverversion,adapterram',
-        '/format:csv',
-      ],
-    },
-    {
-      cmd: 'powershell',
-      args: [
-        '-Command',
-        'Get-WmiObject Win32_VideoController | Select-Object Name,DriverVersion,AdapterRAM | ConvertTo-Csv -NoTypeInformation',
-      ],
-    },
-  ]);
-
-  return { gpus: parseWindowsOutput(rawOutput), rawOutput };
-}
-
-async function detectDarwin(): Promise<{ gpus: GpuInfo[]; rawOutput: string }> {
-  const rawOutput = await tryCommands([{ cmd: 'system_profiler', args: ['SPDisplaysDataType'] }]);
-
-  return { gpus: parseMacOutput(rawOutput), rawOutput };
-}
-
-// ── Command helpers ──
-
-interface CommandAttempt {
-  cmd: string;
-  args: string[];
-}
-
-async function tryCommands(attempts: CommandAttempt[]): Promise<string> {
-  for (const attempt of attempts) {
-    try {
-      const { stdout } = await execFileAsync(attempt.cmd, attempt.args, {
-        timeout: 10_000,
-        windowsHide: true,
-        maxBuffer: 256 * 1024,
-      });
-      if (stdout.trim().length > 0) return stdout;
-    } catch {
-      // Try next command
-    }
-  }
-  return '';
-}
-
-// ── Output parsers ──
-
-/** @internal Exported for testing — parse lspci/nvidia-smi output. */
 export function parseLinuxOutput(raw: string): GpuInfo[] {
   const gpus: GpuInfo[] = [];
   const lines = raw.split('\n');
@@ -232,45 +159,6 @@ export function parseLinuxOutput(raw: string): GpuInfo[] {
   }
 
   // Fallback: treat non-empty output as single unknown GPU
-  if (gpus.length === 0 && raw.trim()) {
-    gpus.push({ vendor: 'unknown', model: 'Unknown (see rawOutput)' });
-  }
-
-  return gpus;
-}
-
-function parseWindowsOutput(raw: string): GpuInfo[] {
-  const gpus: GpuInfo[] = [];
-  const lines = raw.split('\n');
-
-  let headerSkipped = false;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    // Skip CSV header and WMIC dashes
-    if (
-      !headerSkipped ||
-      /^-{3,}/.test(trimmed) ||
-      /Node,Name/.test(trimmed) ||
-      trimmed.startsWith('"#TYPE') ||
-      trimmed.startsWith('"Node"')
-    ) {
-      headerSkipped = true;
-      continue;
-    }
-
-    const parts = trimmed.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
-    const name = parts[1] ?? parts[0] ?? trimmed;
-    if (!name || name === 'Name') continue;
-
-    gpus.push({
-      vendor: detectVendor(name),
-      model: name,
-      driverVersion: parts[2] || undefined,
-      memoryMB: parts[3] ? Math.round(parseFloat(parts[3]) / (1024 * 1024)) : undefined,
-    });
-  }
-
   if (gpus.length === 0 && raw.trim()) {
     gpus.push({ vendor: 'unknown', model: 'Unknown (see rawOutput)' });
   }
@@ -337,44 +225,3 @@ function detectVendor(model: string): string {
 }
 
 // ── Public API ──
-
-export async function detectGpu(): Promise<GpuDetectResult> {
-  let raw: { gpus: GpuInfo[]; rawOutput: string };
-  let method: string;
-
-  switch (process.platform) {
-    case 'linux':
-      raw = await detectLinux();
-      method = 'nvidia-smi / lspci';
-      break;
-    case 'win32':
-      raw = await detectWindows();
-      method = 'wmic / powershell';
-      break;
-    case 'darwin':
-      raw = await detectDarwin();
-      method = 'system_profiler SPDisplaysDataType';
-      break;
-    default:
-      return {
-        gpus: [],
-        isCloudGpu: false,
-        isVirtualMachine: false,
-        classifications: [],
-        method: `unsupported platform: ${process.platform}`,
-      };
-  }
-
-  const classifications = raw.gpus.map((g) => classifyGpu(g.model));
-  const isCloudGpu = classifications.some((c) => c.isCloudGpu);
-  const isVirtualMachine = classifications.some((c) => c.isVirtualMachine);
-
-  return {
-    gpus: raw.gpus,
-    isCloudGpu,
-    isVirtualMachine,
-    classifications,
-    rawOutput: raw.rawOutput || undefined,
-    method,
-  };
-}
