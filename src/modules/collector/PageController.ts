@@ -1,5 +1,6 @@
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
+import { checkPageCDPHealth as checkPageCDPHealthShared } from '@modules/collector/PageCDPTimeoutGuard';
 import {
   PAGE_FRAME_SELECTOR_TIMEOUT_MS,
   PAGE_NETWORK_IDLE_TIMEOUT_MS,
@@ -7,7 +8,6 @@ import {
   PAGE_EVALUATE_TIMEOUT_MS,
   PAGE_CDP_HEALTH_CHECK_TIMEOUT_MS,
 } from '@src/constants';
-import { setTimeout as asyncSetTimeout } from 'node:timers/promises';
 import { writeFile } from 'node:fs/promises';
 import type { Page, Frame, NewDocumentScriptEvaluation } from 'rebrowser-puppeteer-core';
 import type { BrowserTargetInfo } from '@modules/browser/BrowserTargetSessionManager.shared';
@@ -964,39 +964,8 @@ async function checkPageCDPHealth(
   page: Page,
   timeoutMs = PAGE_CDP_HEALTH_CHECK_TIMEOUT_MS,
 ): Promise<void> {
-  // Use AbortSignal-based timeout so the interrupt is truly async at the node level.
-  const ac = new AbortController();
-  const timer = asyncSetTimeout(timeoutMs, undefined, { signal: ac.signal }).then(() => {
-    throw new Error('cdp_unreachable');
-  });
-  let cdp: import('rebrowser-puppeteer-core').CDPSession | null = null;
-  try {
-    cdp = await Promise.race([page.createCDPSession(), timer as unknown as Promise<never>]);
-    await Promise.race([
-      cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
-      timer as unknown as Promise<never>,
-    ]);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg === 'cdp_unreachable') {
-      throw new Error(
-        'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
-          "Call debugger_lifecycle({ action: 'disable' })() before this tool, or run it before " +
-          "debugger_lifecycle({ action: 'enable' })().",
-        { cause: err },
-      );
-    }
-    throw err;
-  } finally {
-    ac.abort();
-    if (cdp) {
-      try {
-        await cdp.detach();
-      } catch {
-        // Best-effort detach — session may already be closed
-      }
-    }
-  }
+  // Shared with PageCDPTimeoutGuard — one implementation, one failure message.
+  return checkPageCDPHealthShared(page, timeoutMs);
 }
 
 interface EvaluateContextLike {
