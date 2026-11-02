@@ -31,7 +31,7 @@ export type ObfuscationClassification =
   | 'packed'
   | 'encrypted';
 
-export interface AsarFileObfuscationReport {
+interface AsarFileObfuscationReport {
   path: string;
   size: number;
   classification: ObfuscationClassification;
@@ -39,7 +39,7 @@ export interface AsarFileObfuscationReport {
   indicators: Record<string, number | boolean | string>;
 }
 
-export interface AsarDeobfuscateResult {
+interface AsarDeobfuscateResult {
   success: boolean;
   tool: 'asar_deobfuscate';
   inputPath: string;

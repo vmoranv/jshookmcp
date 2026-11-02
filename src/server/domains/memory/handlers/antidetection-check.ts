@@ -95,7 +95,7 @@ const KNOWN_AC_PROCESSES: ReadonlyArray<{
   { name: 'Procmon64.exe', category: 'debugger', severity: 'medium' },
 ] as const;
 
-export interface AntidetectionCheckResult {
+interface AntidetectionCheckResult {
   success: boolean;
   verdict: 'pass' | 'warn' | 'fail';
   checks: {

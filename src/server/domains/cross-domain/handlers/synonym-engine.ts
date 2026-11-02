@@ -14,7 +14,7 @@
  * 3. Tools are scored by match count + confidence weight.
  */
 
-export interface SynonymGroup {
+interface SynonymGroup {
   /** Canonical concept name. */
   concept: string;
   /** Normalized keywords that trigger this concept. */

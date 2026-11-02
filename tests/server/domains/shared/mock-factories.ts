@@ -136,7 +136,7 @@ export function createCodeCollectorMock(
 /**
  * Interface representing an MCP tool response content item.
  */
-export interface McpResponseContent {
+interface McpResponseContent {
   type: string;
   text?: string;
   image?: {

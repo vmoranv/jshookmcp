@@ -52,7 +52,7 @@ const OFFLOAD_MAX_FILES = 2000;
  */
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
-export interface OffloadFilePlaceholder {
+interface OffloadFilePlaceholder {
   _offload: {
     type: 'file';
     /** Project-relative path to the offloaded file (forward slashes). */

@@ -23,7 +23,7 @@ const PTR_VERSION = 1;
 /** Maximum entries per pointer map file (safety cap). */
 const MAX_ENTRIES = 10_000_000;
 
-export interface PointerMapEntry {
+interface PointerMapEntry {
   /** Hex address string (e.g. "0x7FF612340000") */
   address: string;
   /** Hex value at the address */
@@ -34,7 +34,7 @@ export interface PointerMapEntry {
   label?: string;
 }
 
-export interface PointerMapFile {
+interface PointerMapFile {
   version: typeof PTR_VERSION;
   createdAt: string;
   /** Target process ID at time of capture */

@@ -9,7 +9,7 @@
  *   lexical name prefix grouping cannot discover.
  */
 
-export interface TransitionEdge {
+interface TransitionEdge {
   targetTool: string;
   weight: number;
 }

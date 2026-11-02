@@ -17,7 +17,7 @@ export interface SourceInfo {
 }
 
 /** Taint atoms tracked for a value inside a single function body. */
-export interface TaintInfo {
+interface TaintInfo {
   /** Parameter indices whose taint reaches this value. */
   params: Set<number>;
   /** A known taint source (e.g. `location.hash`) reaching this value. */

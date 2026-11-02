@@ -31,7 +31,7 @@ import type { PageController } from '@server/domains/canvas/dependencies';
 import { asJsonResponse } from '@server/domains/shared/response';
 import { argBool, argNumber } from '@server/domains/shared/parse-args';
 
-export interface CanvasShaderProgram {
+interface CanvasShaderProgram {
   name?: string;
   vertexShader: string;
   fragmentShader: string;
@@ -40,7 +40,7 @@ export interface CanvasShaderProgram {
   source: 'engine-introspection' | 'fallback-walker' | 'unknown';
 }
 
-export interface CanvasDumpShadersResult {
+interface CanvasDumpShadersResult {
   success: boolean;
   engine: string | null;
   totalPrograms: number;

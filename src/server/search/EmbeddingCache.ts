@@ -11,7 +11,7 @@ const CACHE_VERSION_V1 = 1;
 /** v2 当前写版本：items 按工具名对齐 + 逐项 hash，支持增量部分命中。 */
 const CACHE_VERSION = 2;
 
-export interface EmbeddingCachePayload {
+interface EmbeddingCachePayload {
   version: number;
   modelId: string;
   fingerprint: string;
@@ -20,12 +20,12 @@ export interface EmbeddingCachePayload {
   data: string;
 }
 
-export interface EmbeddingCacheItem {
+interface EmbeddingCacheItem {
   name: string;
   hash: string;
 }
 
-export interface EmbeddingCachePayloadV2 {
+interface EmbeddingCachePayloadV2 {
   version: number;
   modelId: string;
   dim: number;

@@ -38,6 +38,8 @@ function isPrintableByte(value: number): boolean {
   return value >= PRINTABLE_MIN && value <= PRINTABLE_MAX;
 }
 
+// Used inside this file by buildDelimitedFields. Static analysis cannot see it.
+// fallow-ignore-next-line unused-export
 export function printableRatio(buffer: Buffer): number {
   if (buffer.length === 0) {
     return 0;
@@ -97,6 +99,8 @@ export function parsePayloads(hexPayloads: string[]): Buffer[] {
   return buffers;
 }
 
+// Used inside this file by inferByteOrder. Static analysis cannot see it.
+// fallow-ignore-next-line unused-export
 export function decodeInteger(buffer: Buffer, byteOrder: 'le' | 'be'): number | null {
   if (buffer.length === 0) {
     return null;
@@ -129,6 +133,8 @@ export function decodeInteger(buffer: Buffer, byteOrder: 'le' | 'be'): number | 
   return Number.isFinite(value) ? value : null;
 }
 
+// Used inside this file by inferByteOrder. Static analysis cannot see it.
+// fallow-ignore-next-line unused-export
 export function decodeFloat(buffer: Buffer, byteOrder: 'le' | 'be'): number | null {
   if (buffer.length === 4) {
     const value = byteOrder === 'le' ? buffer.readFloatLE(0) : buffer.readFloatBE(0);

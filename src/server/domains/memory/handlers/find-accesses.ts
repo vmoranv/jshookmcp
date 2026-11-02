@@ -46,7 +46,7 @@ const WIN32_UNSUPPORTED_MSG =
   'memory_find_accesses is only supported on Windows. ' +
   'Hardware breakpoint registers (DR0-DR3) require Win32 debug APIs.';
 
-export interface FindAccessHit {
+interface FindAccessHit {
   /** Index of this hit (1-based) */
   hitCount: number;
   /** Address of the instruction that accessed the watched address */

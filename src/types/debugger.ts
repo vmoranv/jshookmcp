@@ -90,7 +90,7 @@ export interface Session {
   data: SessionData;
 }
 
-export interface SessionData {
+interface SessionData {
   code?: CollectCodeResult;
   deobfuscated?: DeobfuscateResult;
   analysis?: UnderstandCodeResult;
