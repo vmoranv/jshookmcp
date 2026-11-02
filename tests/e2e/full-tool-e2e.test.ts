@@ -247,22 +247,12 @@ function isPassingResult(result: ToolResult): boolean {
  * Tools not listed here fall back to schema-driven auto-generation via buildArgs().
  * Tools that require runtime context are only emitted once their prerequisites exist.
  */
-function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<string, unknown>> {
-  const wasmInputPath = WASM_FIXTURE_PATH;
-  const {
-    targetUrl,
-    artifactDir,
-    browserPath,
-    asarPath,
-    electronPath,
-    electronEnabled,
-    electronCdpPort,
-    electronUserdataDir,
-    miniappPath,
-  } = cfg;
-  const browserPid =
-    typeof ctx.browserPid === 'number' && ctx.browserPid > 0 ? ctx.browserPid : null;
-
+/** Overrides for browser, page and DOM tools. */
+function buildBrowserAndPageOverrides(
+  ctx: E2EContext,
+  targetUrl: string,
+  artifactDir: string,
+): Record<string, Record<string, unknown>> {
   return {
     browser_launch: { headless: false },
     browser_attach: { endpoint: 'http://localhost:9222' },
@@ -308,6 +298,16 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
       : { url: targetUrl, lineNumber: 1 },
     ...(ctx.breakpointId ? { breakpoint_remove: { breakpointId: ctx.breakpointId } } : {}),
     get_all_scripts: {},
+  };
+}
+
+/** Overrides for debugger, breakpoint and console tools. */
+function buildDebuggerOverrides(
+  ctx: E2EContext,
+  targetUrl: string,
+  artifactDir: string,
+): Record<string, Record<string, unknown>> {
+  return {
     get_script_source: ctx.scriptId ? { scriptId: ctx.scriptId } : { url: targetUrl },
     ...(ctx.detailId ? { get_detailed_data: { detailId: ctx.detailId } } : {}),
     breakpoint_set_on_exception: { state: 'all' },
@@ -358,6 +358,19 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     binary_encode: { data: 'Hello', inputFormat: 'utf8', outputEncoding: 'base64' },
     binary_entropy_analysis: { data: 'SGVsbG8gV29ybGQ=', source: 'base64' },
     protobuf_decode_raw: { data: 'CAESBXdvcmxk' },
+  };
+}
+
+/** Overrides for analysis, encoding, wasm and binary tools. */
+function buildAnalysisAndBinaryOverrides(
+  ctx: E2EContext,
+  targetUrl: string,
+  artifactDir: string,
+  browserPath: E2EConfig['browserPath'],
+  wasmInputPath: string,
+  browserPid: number | null,
+): Record<string, Record<string, unknown>> {
+  return {
     manage_hooks: { action: 'list' },
     ai_hook: { action: 'list' },
     ...(ctx.hookId
@@ -432,6 +445,23 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     sourcemap_discover: {},
     extension_list_installed: {},
     stealth_inject: {},
+  };
+}
+
+/** Overrides for electron, process, memory and stealth tools. */
+function buildPlatformAndMemoryOverrides(
+  ctx: E2EContext,
+  targetUrl: string,
+  artifactDir: string,
+  asarPath: E2EConfig['asarPath'],
+  electronPath: E2EConfig['electronPath'],
+  electronEnabled: boolean,
+  electronCdpPort: E2EConfig['electronCdpPort'],
+  electronUserdataDir: E2EConfig['electronUserdataDir'],
+  miniappPath: E2EConfig['miniappPath'],
+  browserPid: number | null,
+): Record<string, Record<string, unknown>> {
+  return {
     stealth_set_user_agent: {
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Browser/120.0.0.0',
     },
@@ -601,6 +631,16 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     summarize_trace: { detail: 'compact' },
     execute_sandbox_script: { code: '1 + 2', timeoutMs: 1000 },
     frida_attach: { target: 'test-target' },
+  };
+}
+
+/** Overrides for network, streaming, canvas, plugin and evidence tools. */
+function buildNetworkAndMiscOverrides(
+  ctx: E2EContext,
+  targetUrl: string,
+  artifactDir: string,
+): Record<string, Record<string, unknown>> {
+  return {
     state_board: { action: 'list' },
     state_board_watch: { action: 'start', key: 'e2e-watch-key', pollIntervalMs: 250 },
     state_board_io: { action: 'export' },
@@ -713,6 +753,54 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     browser_jsdom_execute: { code: 'document.title' },
     browser_jsdom_serialize: {},
     browser_jsdom_cookies: {},
+  };
+}
+
+export function getOverrides(
+  ctx: E2EContext,
+  cfg: E2EConfig,
+): Record<string, Record<string, unknown>> {
+  const wasmInputPath = WASM_FIXTURE_PATH;
+  const {
+    targetUrl,
+    artifactDir,
+    browserPath,
+    asarPath,
+    electronPath,
+    electronEnabled,
+    electronCdpPort,
+    electronUserdataDir,
+    miniappPath,
+  } = cfg;
+  const browserPid =
+    typeof ctx.browserPid === 'number' && ctx.browserPid > 0 ? ctx.browserPid : null;
+
+  // Builder order matches the original entry order; later spreads win on
+  // duplicate keys, exactly as the single literal did.
+  return {
+    ...buildBrowserAndPageOverrides(ctx, targetUrl, artifactDir),
+    ...buildDebuggerOverrides(ctx, targetUrl, artifactDir),
+    ...buildAnalysisAndBinaryOverrides(
+      ctx,
+      targetUrl,
+      artifactDir,
+      browserPath,
+      wasmInputPath,
+      browserPid,
+    ),
+    ...buildPlatformAndMemoryOverrides(
+      ctx,
+      targetUrl,
+      artifactDir,
+      asarPath,
+      electronPath,
+      electronEnabled,
+      electronCdpPort,
+      electronUserdataDir,
+      miniappPath,
+      browserPid,
+    ),
+    ...buildNetworkAndMiscOverrides(ctx, targetUrl, artifactDir),
   };
 }
 

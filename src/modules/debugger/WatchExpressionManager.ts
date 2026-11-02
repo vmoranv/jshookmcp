@@ -4,6 +4,71 @@ import { WATCH_EVAL_TIMEOUT_MS, WATCH_MAX_HISTORY } from '@src/constants';
 
 type WatchValue = unknown;
 
+/**
+ * One deep-equality strategy for a non-plain container type.
+ *
+ * `matches` is applied to BOTH operands, so a Map is only compared as a Map
+ * when the other side is also a Map — mixed types fall through to the generic
+ * record comparison (which rejects them, since neither is a plain record of
+ * the same shape).
+ */
+interface ContainerComparator {
+  matches: (value: unknown) => boolean;
+  /** `recurse` is the owner's deepEqual, needed by Map for its values. */
+  equal: (a: unknown, b: unknown, recurse: (x: unknown, y: unknown) => boolean) => boolean;
+}
+
+/** Container comparisons, tried in this order before the plain-record path. */
+const CONTAINER_COMPARATORS: readonly ContainerComparator[] = [
+  {
+    matches: (v) => v instanceof Map,
+    equal: (a, b, recurse) => {
+      const mapA = a as Map<unknown, unknown>;
+      const mapB = b as Map<unknown, unknown>;
+      if (mapA.size !== mapB.size) return false;
+      for (const [key, value] of mapA) {
+        if (!mapB.has(key) || !recurse(value, mapB.get(key))) return false;
+      }
+      return true;
+    },
+  },
+  {
+    matches: (v) => v instanceof Set,
+    equal: (a, b) => {
+      const setA = a as Set<unknown>;
+      const setB = b as Set<unknown>;
+      if (setA.size !== setB.size) return false;
+      for (const item of setA) {
+        if (!setB.has(item)) return false;
+      }
+      return true;
+    },
+  },
+  {
+    matches: (v) => v instanceof RegExp,
+    equal: (a, b) =>
+      (a as RegExp).source === (b as RegExp).source && (a as RegExp).flags === (b as RegExp).flags,
+  },
+  {
+    matches: (v) => v instanceof Date,
+    equal: (a, b) => (a as Date).getTime() === (b as Date).getTime(),
+  },
+  {
+    matches: (v) => v instanceof ArrayBuffer,
+    equal: (a, b) => {
+      const bufA = a as ArrayBuffer;
+      const bufB = b as ArrayBuffer;
+      if (bufA.byteLength !== bufB.byteLength) return false;
+      const viewA = new Uint8Array(bufA);
+      const viewB = new Uint8Array(bufB);
+      for (let i = 0; i < viewA.length; i += 1) {
+        if (viewA[i] !== viewB[i]) return false;
+      }
+      return true;
+    },
+  },
+];
+
 interface ValueHistoryEntry {
   value: WatchValue;
   timestamp: number;
@@ -164,36 +229,14 @@ export class WatchExpressionManager {
 
     // Non-plain containers need explicit comparisons — Object.keys() on a Map
     // or RegExp is empty, which used to make any two instances "equal" and
-    // silently suppressed valueChanged notifications.
-    if (a instanceof Map && b instanceof Map) {
-      if (a.size !== b.size) return false;
-      for (const [key, value] of a) {
-        if (!b.has(key) || !this.deepEqual(value, b.get(key))) return false;
-      }
-      return true;
+    // silently suppressed valueChanged notifications. Each container kind is
+    // tried in a fixed order; the first one whose type guard accepts BOTH
+    // operands owns the verdict.
+    const container = CONTAINER_COMPARATORS.find((c) => c.matches(a) && c.matches(b));
+    if (container) {
+      return container.equal(a, b, (x, y) => this.deepEqual(x, y));
     }
-    if (a instanceof Set && b instanceof Set) {
-      if (a.size !== b.size) return false;
-      for (const item of a) {
-        if (!b.has(item)) return false;
-      }
-      return true;
-    }
-    if (a instanceof RegExp && b instanceof RegExp) {
-      return a.source === b.source && a.flags === b.flags;
-    }
-    if (a instanceof Date && b instanceof Date) {
-      return a.getTime() === b.getTime();
-    }
-    if (a instanceof ArrayBuffer && b instanceof ArrayBuffer) {
-      if (a.byteLength !== b.byteLength) return false;
-      const viewA = new Uint8Array(a);
-      const viewB = new Uint8Array(b);
-      for (let i = 0; i < viewA.length; i += 1) {
-        if (viewA[i] !== viewB[i]) return false;
-      }
-      return true;
-    }
+
     if (!this.isRecord(a) || !this.isRecord(b)) return false;
 
     const keysA = Object.keys(a);

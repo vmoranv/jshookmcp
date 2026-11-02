@@ -154,112 +154,132 @@ try {
   `.trim();
 }
 
-export async function injectDll(
-  platform: Platform,
-  pid: number,
-  dllPath: string,
-  options?: { confirmed?: boolean; payloadHash?: string; validationMode?: string },
-): Promise<{
+/** Result shape shared by the validation gate and the injection phase. */
+interface InjectionOutcome {
   success: boolean;
   remoteThreadId?: number;
   error?: string;
   confirmationRequired?: boolean;
   validationFailed?: boolean;
-}> {
-  // Validation phase
+}
+
+/**
+ * Run the pre-injection validation gate.
+ *
+ * Returns `null` when the caller may proceed, or the failure outcome to return
+ * verbatim. Skipped entirely when `confirmed` is set — that flag exists to let
+ * an operator bypass validation after an explicit confirmation.
+ *
+ * A thrown validator is reported as `validationFailed` rather than escaping:
+ * the injection path must not start on an unvalidated target.
+ */
+async function runInjectionValidation(
+  pid: number,
+  dllPath: string,
+  options: { confirmed?: boolean; payloadHash?: string; validationMode?: string } | undefined,
+): Promise<InjectionOutcome | null> {
+  // getValidator runs BEFORE the confirmed check, matching the original: it is
+  // a cheap factory but its side effects (or throws) must not be skipped just
+  // because the caller confirmed.
   const injectionValidator = getValidator(options?.validationMode);
 
-  // Skip validation if confirmed flag is set or validation is disabled
-  if (!options?.confirmed) {
-    try {
-      // Validate target process
-      const targetValidation = await injectionValidator.validateTargetProcess(pid);
-      if (!targetValidation.valid) {
-        return {
-          success: false,
-          error: targetValidation.errors.join('; '),
-          validationFailed: true,
-        };
-      }
+  if (options?.confirmed) {
+    return null;
+  }
 
-      // Validate DLL payload
-      const payloadValidation = await injectionValidator.validateDllPayload(dllPath, {
-        expectedHash: options?.payloadHash,
-      });
-      if (!payloadValidation.valid) {
-        return {
-          success: false,
-          error: payloadValidation.errors.join('; '),
-          validationFailed: true,
-        };
-      }
-
-      // Check if confirmation is required
-      const confirmationReq = injectionValidator.requireConfirmation(
-        targetValidation,
-        payloadValidation,
-      );
-      if (confirmationReq.required) {
-        return {
-          success: false,
-          error: confirmationReq.reason || 'Confirmation required',
-          confirmationRequired: true,
-          validationFailed: true,
-        };
-      }
-
-      // Log warnings (non-blocking)
-      if (targetValidation.warnings.length > 0) {
-        logger.warn(`DLL injection warnings (target): ${targetValidation.warnings.join('; ')}`);
-      }
-      if (payloadValidation.warnings.length > 0) {
-        logger.warn(`DLL injection warnings (payload): ${payloadValidation.warnings.join('; ')}`);
-      }
-    } catch (validationError) {
-      logger.error('Validation error during DLL injection:', validationError);
+  try {
+    // Validate target process
+    const targetValidation = await injectionValidator.validateTargetProcess(pid);
+    if (!targetValidation.valid) {
       return {
         success: false,
-        error: `Validation error: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+        error: targetValidation.errors.join('; '),
         validationFailed: true,
       };
     }
-  }
 
-  // Injection phase (unchanged from original)
-  if (platform === 'linux') {
-    try {
-      validatePath(dllPath);
-      const { stderr } = await execAsync(
-        `gdb -p ${pid} -batch -ex "call (void*)dlopen(\\"${dllPath}\\", 1)" -ex "quit"`,
-        { timeout: MEMORY_INJECT_TIMEOUT_MS },
-      );
-      if (stderr.includes('Operation not permitted') || stderr.includes('ptrace:')) {
-        throw new Error(`GDB injection failed (ptrace blocked): ${stderr}`);
-      }
-      return { success: true };
-    } catch (error) {
-      logger.error('Linux DLL injection failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    // Validate DLL payload
+    const payloadValidation = await injectionValidator.validateDllPayload(dllPath, {
+      expectedHash: options?.payloadHash,
+    });
+    if (!payloadValidation.valid) {
+      return {
+        success: false,
+        error: payloadValidation.errors.join('; '),
+        validationFailed: true,
+      };
     }
-  } else if (platform === 'darwin') {
-    try {
-      validatePath(dllPath);
-      const { stdout, stderr } = await execAsync(
-        `lldb --batch -p ${pid} -o "expr (void*)dlopen(\\"${dllPath}\\", 1)"`,
-        { timeout: MEMORY_INJECT_TIMEOUT_MS },
-      );
-      if (stderr.includes('error:') || stdout.includes('error:')) {
-        throw new Error(`LLDB injection failed: ${stderr || stdout}`);
-      }
-      return { success: true };
-    } catch (error) {
-      logger.error('macOS DLL injection failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
-    }
-  } else if (platform !== 'win32') {
-    return { success: false, error: 'DLL injection not supported on this platform' };
-  }
 
+    // Check if confirmation is required
+    const confirmationReq = injectionValidator.requireConfirmation(
+      targetValidation,
+      payloadValidation,
+    );
+    if (confirmationReq.required) {
+      return {
+        success: false,
+        error: confirmationReq.reason || 'Confirmation required',
+        confirmationRequired: true,
+        validationFailed: true,
+      };
+    }
+
+    // Log warnings (non-blocking)
+    if (targetValidation.warnings.length > 0) {
+      logger.warn(`DLL injection warnings (target): ${targetValidation.warnings.join('; ')}`);
+    }
+    if (payloadValidation.warnings.length > 0) {
+      logger.warn(`DLL injection warnings (payload): ${payloadValidation.warnings.join('; ')}`);
+    }
+  } catch (validationError) {
+    logger.error('Validation error during DLL injection:', validationError);
+    return {
+      success: false,
+      error: `Validation error: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+      validationFailed: true,
+    };
+  }
+  return null;
+}
+
+/** Linux: dlopen through a gdb batch session. */
+async function injectDllLinux(pid: number, dllPath: string): Promise<InjectionOutcome> {
+  try {
+    validatePath(dllPath);
+    const { stderr } = await execAsync(
+      `gdb -p ${pid} -batch -ex "call (void*)dlopen(\\"${dllPath}\\", 1)" -ex "quit"`,
+      { timeout: MEMORY_INJECT_TIMEOUT_MS },
+    );
+    if (stderr.includes('Operation not permitted') || stderr.includes('ptrace:')) {
+      throw new Error(`GDB injection failed (ptrace blocked): ${stderr}`);
+    }
+    return { success: true };
+  } catch (error) {
+    logger.error('Linux DLL injection failed:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/** Darwin: dlopen through an lldb batch session. */
+async function injectDllDarwin(pid: number, dllPath: string): Promise<InjectionOutcome> {
+  try {
+    validatePath(dllPath);
+    const { stdout, stderr } = await execAsync(
+      `lldb --batch -p ${pid} -o "expr (void*)dlopen(\\"${dllPath}\\", 1)"`,
+      { timeout: MEMORY_INJECT_TIMEOUT_MS },
+    );
+    if (stderr.includes('error:') || stdout.includes('error:')) {
+      throw new Error(`LLDB injection failed: ${stderr || stdout}`);
+    }
+    return { success: true };
+  } catch (error) {
+    logger.error('macOS DLL injection failed:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/** Windows: PowerShell helper that calls CreateRemoteThread + LoadLibrary. */
+async function injectDllWindows(pid: number, dllPath: string): Promise<InjectionOutcome> {
   try {
     const psScript = buildDllInjectionScript(pid, dllPath);
 
@@ -283,6 +303,31 @@ export async function injectDll(
       error: error instanceof Error ? error.message : 'PowerShell execution failed',
     };
   }
+}
+
+export async function injectDll(
+  platform: Platform,
+  pid: number,
+  dllPath: string,
+  options?: { confirmed?: boolean; payloadHash?: string; validationMode?: string },
+): Promise<InjectionOutcome> {
+  // Validation phase
+  const validationFailure = await runInjectionValidation(pid, dllPath, options);
+  if (validationFailure) {
+    return validationFailure;
+  }
+
+  // Injection phase
+  if (platform === 'linux') {
+    return injectDllLinux(pid, dllPath);
+  }
+  if (platform === 'darwin') {
+    return injectDllDarwin(pid, dllPath);
+  }
+  if (platform !== 'win32') {
+    return { success: false, error: 'DLL injection not supported on this platform' };
+  }
+  return injectDllWindows(pid, dllPath);
 }
 
 // ── Shellcode Injection ──

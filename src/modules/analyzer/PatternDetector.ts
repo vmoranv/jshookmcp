@@ -194,71 +194,98 @@ export function deduplicatePatterns<T extends { location: string; type: string }
   return result;
 }
 
+/** Keyword groups per crypto family, as matched in URLs, POST bodies and logs. */
+const CRYPTO_KEYWORDS = {
+  AES: ['aes', 'cipher', 'encrypt', 'decrypt', 'CryptoJS.AES'],
+  RSA: ['rsa', 'publickey', 'privatekey', 'RSA.encrypt'],
+  MD5: ['md5', 'MD5', 'CryptoJS.MD5'],
+  SHA: ['sha', 'sha1', 'sha256', 'sha512', 'CryptoJS.SHA'],
+  Base64: ['base64', 'btoa', 'atob', 'Base64.encode'],
+} as const;
+
+function isEncryptionPatternType(value: string): value is EncryptionPattern['type'] {
+  return Object.prototype.hasOwnProperty.call(CRYPTO_KEYWORDS, value);
+}
+
+/** Per-channel parameters for {@link collectCryptoMatches}. */
+interface CryptoChannel {
+  /** Already lower-cased text to search. */
+  text: string;
+  /** Report location for every hit. */
+  location: string;
+  confidence: number;
+  /** Evidence suffix describing where the hit was found. */
+  sourceLabel: string;
+  /** Optional extra evidence appended after the label. */
+  extraEvidence?: string;
+}
+
+/**
+ * Scan one lower-cased text for every crypto keyword group.
+ *
+ * Each channel (URL / POST body / console log) differs only in its location,
+ * confidence and evidence wording, so the keyword walk itself is shared.
+ */
+function collectCryptoMatches(channel: CryptoChannel): EncryptionPattern[] {
+  const patterns: EncryptionPattern[] = [];
+  for (const [type, keywords] of Object.entries(CRYPTO_KEYWORDS)) {
+    if (!isEncryptionPatternType(type)) continue;
+    for (const keyword of keywords) {
+      if (!channel.text.includes(keyword.toLowerCase())) continue;
+      const evidence: string[] = [keyword, channel.sourceLabel];
+      if (channel.extraEvidence !== undefined) {
+        evidence.push(channel.extraEvidence);
+      }
+      patterns.push({
+        type,
+        location: channel.location,
+        confidence: channel.confidence,
+        evidence,
+      });
+    }
+  }
+  return patterns;
+}
+
 export function detectEncryptionPatterns(
   requests: NetworkRequest[],
   logs: ConsoleMessage[],
 ): EncryptionPattern[] {
   const patterns: EncryptionPattern[] = [];
 
-  const cryptoKeywords = {
-    AES: ['aes', 'cipher', 'encrypt', 'decrypt', 'CryptoJS.AES'],
-    RSA: ['rsa', 'publickey', 'privatekey', 'RSA.encrypt'],
-    MD5: ['md5', 'MD5', 'CryptoJS.MD5'],
-    SHA: ['sha', 'sha1', 'sha256', 'sha512', 'CryptoJS.SHA'],
-    Base64: ['base64', 'btoa', 'atob', 'Base64.encode'],
-  } as const;
-  const isEncryptionPatternType = (value: string): value is EncryptionPattern['type'] =>
-    Object.prototype.hasOwnProperty.call(cryptoKeywords, value);
-
   for (const req of requests) {
-    for (const [type, keywords] of Object.entries(cryptoKeywords)) {
-      if (!isEncryptionPatternType(type)) continue;
-      for (const keyword of keywords) {
-        if (req.url.toLowerCase().includes(keyword.toLowerCase())) {
-          patterns.push({
-            type,
-            location: req.url,
-            confidence: PATTERN_CONFIDENCE_ENCRYPTION_URL,
-            evidence: [keyword, 'Found in URL'],
-          });
-        }
-      }
-    }
+    patterns.push(
+      ...collectCryptoMatches({
+        text: req.url.toLowerCase(),
+        location: req.url,
+        confidence: PATTERN_CONFIDENCE_ENCRYPTION_URL,
+        sourceLabel: 'Found in URL',
+      }),
+    );
 
     /* v8 ignore next */
     if (req.postData) {
-      const postData = req.postData.toLowerCase();
-      for (const [type, keywords] of Object.entries(cryptoKeywords)) {
-        if (!isEncryptionPatternType(type)) continue;
-        for (const keyword of keywords) {
-          if (postData.includes(keyword.toLowerCase())) {
-            patterns.push({
-              type,
-              location: req.url,
-              confidence: PATTERN_CONFIDENCE_ENCRYPTION_POST,
-              evidence: [keyword, 'Found in POST data'],
-            });
-          }
-        }
-      }
+      patterns.push(
+        ...collectCryptoMatches({
+          text: req.postData.toLowerCase(),
+          location: req.url,
+          confidence: PATTERN_CONFIDENCE_ENCRYPTION_POST,
+          sourceLabel: 'Found in POST data',
+        }),
+      );
     }
   }
 
   for (const log of logs) {
-    const text = log.text.toLowerCase();
-    for (const [type, keywords] of Object.entries(cryptoKeywords)) {
-      if (!isEncryptionPatternType(type)) continue;
-      for (const keyword of keywords) {
-        if (text.includes(keyword.toLowerCase())) {
-          patterns.push({
-            type,
-            location: /* v8 ignore next */ log.url || 'console',
-            confidence: PATTERN_CONFIDENCE_ENCRYPTION_LOG,
-            evidence: [keyword, 'Found in console log', log.text.substring(0, 100)],
-          });
-        }
-      }
-    }
+    patterns.push(
+      ...collectCryptoMatches({
+        text: log.text.toLowerCase(),
+        location: /* v8 ignore next */ log.url || 'console',
+        confidence: PATTERN_CONFIDENCE_ENCRYPTION_LOG,
+        sourceLabel: 'Found in console log',
+        extraEvidence: log.text.substring(0, 100),
+      }),
+    );
   }
 
   return deduplicatePatterns(patterns);

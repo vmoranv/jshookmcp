@@ -109,126 +109,169 @@ export function correlateToJS(
   };
 }
 
-/**
- * Try to match a single Skia object with a JS object.
- */
-function tryMatch(
-  skiaObj: {
-    id: string;
-    type: string;
-    name: string;
-    text?: string;
-    bounds: { x: number; y: number; width: number; height: number };
-    color?: string;
-  },
+/** The Skia-side object `tryMatch` inspects. */
+interface SkiaMatchCandidate {
+  id: string;
+  type: string;
+  name: string;
+  text?: string;
+  bounds: { x: number; y: number; width: number; height: number };
+  color?: string;
+}
+
+/** Build a correlation result for a matched pair. */
+function correlationOf(
+  skiaObj: SkiaMatchCandidate,
+  jsObj: JSObjectInfo,
+  confidence: number,
+  matchType: SkiaJSCorrelation['matchType'],
+  explanation: string,
+): SkiaJSCorrelation {
+  return {
+    skiaObjectId: skiaObj.id,
+    jsObjectId: jsObj.objectId,
+    jsObjectName: jsObj.name || jsObj.className,
+    confidence,
+    matchType,
+    explanation,
+  };
+}
+
+/** Text strategy: the drawn string equals or is contained in a JS string. */
+function matchByText(skiaObj: SkiaMatchCandidate, jsObj: JSObjectInfo): SkiaJSCorrelation | null {
+  if (!skiaObj.text) return null;
+  for (const str of jsObj.stringProps) {
+    if (
+      str === skiaObj.text ||
+      (str.includes(skiaObj.text) && skiaObj.text.length > MIN_TEXT_MATCH_CHARS)
+    ) {
+      return correlationOf(
+        skiaObj,
+        jsObj,
+        TEXT_MATCH_CONFIDENCE,
+        'text',
+        `Draw text "${skiaObj.text.slice(0, EXPLANATION_TRUNCATE_CHARS)}" matches JS string property`,
+      );
+    }
+  }
+  return null;
+}
+
+/** Dimension strategy: bounds dimensions line up with numeric props. */
+function matchByDimension(
+  skiaObj: SkiaMatchCandidate,
   jsObj: JSObjectInfo,
 ): SkiaJSCorrelation | null {
-  // Text match
-  if (skiaObj.text) {
-    for (const str of jsObj.stringProps) {
-      if (
-        str === skiaObj.text ||
-        (str.includes(skiaObj.text) && skiaObj.text.length > MIN_TEXT_MATCH_CHARS)
-      ) {
-        return {
-          skiaObjectId: skiaObj.id,
-          jsObjectId: jsObj.objectId,
-          jsObjectName: jsObj.name || jsObj.className,
-          confidence: TEXT_MATCH_CONFIDENCE,
-          matchType: 'text',
-          explanation: `Draw text "${skiaObj.text.slice(0, EXPLANATION_TRUNCATE_CHARS)}" matches JS string property`,
-        };
-      }
-    }
-  }
-
-  // Dimension match
   const dimMatch = matchDimensions(skiaObj.bounds, jsObj.numericProps);
-  if (dimMatch) {
+  if (!dimMatch) return null;
+  return correlationOf(skiaObj, jsObj, dimMatch.confidence, 'dimension', dimMatch.explanation);
+}
+
+/** Colour strategy: the draw colour matches a JS colour property. */
+function matchByColor(skiaObj: SkiaMatchCandidate, jsObj: JSObjectInfo): SkiaJSCorrelation | null {
+  if (!skiaObj.color) return null;
+  for (const color of jsObj.colorProps) {
+    if (colorsMatch(color, skiaObj.color)) {
+      return correlationOf(
+        skiaObj,
+        jsObj,
+        COLOR_MATCH_CONFIDENCE,
+        'color',
+        `Color ${skiaObj.color} matches JS color property "${color}"`,
+      );
+    }
+  }
+  return null;
+}
+
+/**
+ * URL strategy, for `drawImage` only.
+ *
+ * Image commands stash their source URL in the `color` field (see the comment
+ * in the original body), which is why this reads `skiaObj.color`.
+ */
+function matchByUrl(skiaObj: SkiaMatchCandidate, jsObj: JSObjectInfo): SkiaJSCorrelation | null {
+  if (skiaObj.type !== 'drawImage') return null;
+  const urlFromPaint = skiaObj.color;
+  if (!urlFromPaint) return null;
+  for (const url of jsObj.urlProps) {
+    if (url === urlFromPaint || url.includes(urlFromPaint)) {
+      return correlationOf(
+        skiaObj,
+        jsObj,
+        URL_MATCH_CONFIDENCE,
+        'url',
+        `Image URL matches JS property`,
+      );
+    }
+  }
+  return null;
+}
+
+/**
+ * Name strategy: the object's own name, else any JS string property.
+ *
+ * The two hits use different confidences and different `jsObjectName` sources —
+ * a name-to-name hit keeps `jsObj.name`, a name-to-string hit falls back to
+ * `className`.
+ */
+function matchByName(skiaObj: SkiaMatchCandidate, jsObj: JSObjectInfo): SkiaJSCorrelation | null {
+  if (!skiaObj.name) return null;
+
+  if (jsObj.name && namesMatch(skiaObj.name, jsObj.name)) {
     return {
       skiaObjectId: skiaObj.id,
       jsObjectId: jsObj.objectId,
-      jsObjectName: jsObj.name || jsObj.className,
-      confidence: dimMatch.confidence,
-      matchType: 'dimension',
-      explanation: dimMatch.explanation,
+      jsObjectName: jsObj.name,
+      confidence: NAME_MATCH_CONFIDENCE,
+      matchType: 'name',
+      explanation: `Object name "${skiaObj.name}" matches JS object "${jsObj.name}"`,
     };
   }
-
-  // Color match
-  if (skiaObj.color) {
-    for (const color of jsObj.colorProps) {
-      if (colorsMatch(color, skiaObj.color)) {
-        return {
-          skiaObjectId: skiaObj.id,
-          jsObjectId: jsObj.objectId,
-          jsObjectName: jsObj.name || jsObj.className,
-          confidence: COLOR_MATCH_CONFIDENCE,
-          matchType: 'color',
-          explanation: `Color ${skiaObj.color} matches JS color property "${color}"`,
-        };
-      }
+  for (const str of jsObj.stringProps) {
+    if (namesMatch(skiaObj.name, str)) {
+      return correlationOf(
+        skiaObj,
+        jsObj,
+        NAME_STRING_MATCH_CONFIDENCE,
+        'name',
+        `Skia layer name matches JS string property`,
+      );
     }
   }
+  return null;
+}
 
-  // URL match (for image draw commands)
-  if (skiaObj.type === 'drawImage') {
-    const urlFromPaint = skiaObj.color; // stored in color field for images
-    if (urlFromPaint) {
-      for (const url of jsObj.urlProps) {
-        if (url === urlFromPaint || url.includes(urlFromPaint)) {
-          return {
-            skiaObjectId: skiaObj.id,
-            jsObjectId: jsObj.objectId,
-            jsObjectName: jsObj.name || jsObj.className,
-            confidence: URL_MATCH_CONFIDENCE,
-            matchType: 'url',
-            explanation: `Image URL matches JS property`,
-          };
-        }
-      }
-    }
-  }
-
-  // Name match
-  if (skiaObj.name) {
-    if (jsObj.name && namesMatch(skiaObj.name, jsObj.name)) {
-      return {
-        skiaObjectId: skiaObj.id,
-        jsObjectId: jsObj.objectId,
-        jsObjectName: jsObj.name,
-        confidence: NAME_MATCH_CONFIDENCE,
-        matchType: 'name',
-        explanation: `Object name "${skiaObj.name}" matches JS object "${jsObj.name}"`,
-      };
-    }
-    for (const str of jsObj.stringProps) {
-      if (namesMatch(skiaObj.name, str)) {
-        return {
-          skiaObjectId: skiaObj.id,
-          jsObjectId: jsObj.objectId,
-          jsObjectName: jsObj.name || jsObj.className,
-          confidence: NAME_STRING_MATCH_CONFIDENCE,
-          matchType: 'name',
-          explanation: `Skia layer name matches JS string property`,
-        };
-      }
-    }
-  }
-
-  // Geometry match (bounds overlap with numeric position props)
+/** Geometry strategy: bounds overlap numeric position props. */
+function matchByGeometry(
+  skiaObj: SkiaMatchCandidate,
+  jsObj: JSObjectInfo,
+): SkiaJSCorrelation | null {
   const geoMatch = matchGeometry(skiaObj.bounds, jsObj.numericProps);
-  if (geoMatch) {
-    return {
-      skiaObjectId: skiaObj.id,
-      jsObjectId: jsObj.objectId,
-      jsObjectName: jsObj.name || jsObj.className,
-      confidence: geoMatch.confidence,
-      matchType: 'geometry',
-      explanation: geoMatch.explanation,
-    };
-  }
+  if (!geoMatch) return null;
+  return correlationOf(skiaObj, jsObj, geoMatch.confidence, 'geometry', geoMatch.explanation);
+}
 
+/**
+ * Try to match a single Skia object with a JS object.
+ *
+ * Strategies are tried in this order and the first hit wins — the order is the
+ * confidence contract, so a text hit always beats a dimension hit for the same
+ * pair. Reordering this list changes which matchType callers see.
+ */
+function tryMatch(skiaObj: SkiaMatchCandidate, jsObj: JSObjectInfo): SkiaJSCorrelation | null {
+  const strategies = [
+    matchByText,
+    matchByDimension,
+    matchByColor,
+    matchByUrl,
+    matchByName,
+    matchByGeometry,
+  ];
+  for (const strategy of strategies) {
+    const hit = strategy(skiaObj, jsObj);
+    if (hit) return hit;
+  }
   return null;
 }
 

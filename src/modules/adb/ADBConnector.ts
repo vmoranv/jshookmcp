@@ -21,6 +21,40 @@ const execFileAsync = promisify(execFile);
 const ADB_AVAILABILITY_TTL_MS = 5 * 60_000;
 let adbAvailabilityCache: { value: boolean; expiresAt: number } | null = null;
 
+/** Section a `dumpsys package` line belongs to; '' is the package body. */
+type DumpsysSection = '' | 'permissions' | 'activities' | 'services' | 'receivers';
+
+/**
+ * Section header markers, checked in order — first match wins.
+ *
+ * The order matters only if a single line could carry two markers, which the
+ * shipped `dumpsys` formats do not produce; the list preserves the original
+ * if-chain order regardless so a future format change fails predictably.
+ */
+const DUMPSYS_SECTION_MARKERS: ReadonlyArray<{
+  section: Exclude<DumpsysSection, ''>;
+  needles: readonly string[];
+}> = [
+  { section: 'permissions', needles: ['requested permissions:', 'install permissions:'] },
+  { section: 'activities', needles: ['Activity Resolver Table', 'activities:'] },
+  { section: 'services', needles: ['Service Resolver Table', 'services:'] },
+  { section: 'receivers', needles: ['Receiver Resolver Table', 'receivers:'] },
+];
+
+/**
+ * Which APKInfo array a component section feeds.
+ *
+ * Section '' (the package body) has no entry: component lines outside a
+ * recognised section are ignored, matching the original three if-blocks which
+ * all required an explicit section.
+ */
+const COMPONENT_BUCKETS: Partial<Record<DumpsysSection, 'activities' | 'services' | 'receivers'>> =
+  {
+    activities: 'activities',
+    services: 'services',
+    receivers: 'receivers',
+  };
+
 // Lazy-load @devicefarmer/adbkit only when available (optional dependency).
 type AdbkitModule = typeof import('@devicefarmer/adbkit');
 let adbkit: AdbkitModule | null = null;
@@ -357,51 +391,32 @@ export class ADBConnector {
     if (targetSdkMatch) info.targetSdk = targetSdkMatch[1] as string;
 
     // Parse components
-    const sections = output.split('\n');
-    let currentSection = '';
-
-    for (const line of sections) {
-      if (line.includes('requested permissions:') || line.includes('install permissions:')) {
-        currentSection = 'permissions';
-        continue;
-      }
-      if (line.includes('Activity Resolver Table') || line.includes('activities:')) {
-        currentSection = 'activities';
-        continue;
-      }
-      if (line.includes('Service Resolver Table') || line.includes('services:')) {
-        currentSection = 'services';
-        continue;
-      }
-      if (line.includes('Receiver Resolver Table') || line.includes('receivers:')) {
-        currentSection = 'receivers';
+    let currentSection: DumpsysSection = '';
+    for (const line of output.split('\n')) {
+      const nextSection = DUMPSYS_SECTION_MARKERS.find((marker) =>
+        marker.needles.some((needle) => line.includes(needle)),
+      );
+      if (nextSection) {
+        currentSection = nextSection.section;
         continue;
       }
 
       const trimmed = line.trim();
+
+      // Permission lines appear both under an explicit section and in the main
+      // body; the component sections never contribute permissions.
       if (trimmed.startsWith('android.permission.') || trimmed.startsWith('com.')) {
         const perm = trimmed.split(' ')[0];
-        if (perm) {
-          if (currentSection === 'permissions') {
-            info.permissions.push(perm);
-          } else if (!currentSection) {
-            // Requested permissions appear in main section
-            info.permissions.push(perm);
-          }
+        if (perm && (currentSection === 'permissions' || currentSection === '')) {
+          info.permissions.push(perm);
         }
       }
 
-      if (currentSection === 'activities' && trimmed.includes(packageName)) {
-        const activityMatch = trimmed.match(/(\S+)/);
-        if (activityMatch) info.activities.push(activityMatch[1] as string);
-      }
-      if (currentSection === 'services' && trimmed.includes(packageName)) {
-        const serviceMatch = trimmed.match(/(\S+)/);
-        if (serviceMatch) info.services.push(serviceMatch[1] as string);
-      }
-      if (currentSection === 'receivers' && trimmed.includes(packageName)) {
-        const receiverMatch = trimmed.match(/(\S+)/);
-        if (receiverMatch) info.receivers.push(receiverMatch[1] as string);
+      // Component lines carry the fully-qualified name as their first token.
+      const componentBucket = COMPONENT_BUCKETS[currentSection];
+      if (componentBucket && trimmed.includes(packageName)) {
+        const nameMatch = trimmed.match(/(\S+)/);
+        if (nameMatch) info[componentBucket].push(nameMatch[1] as string);
       }
     }
 

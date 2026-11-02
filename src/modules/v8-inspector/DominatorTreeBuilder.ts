@@ -78,6 +78,141 @@ interface DFSState {
   parent: Map<number, number>;
 }
 
+/** State of the link-eval forest used by the semi-NCA variant. */
+interface LinkEvalForest {
+  /** ancestor[v] is v's forest parent; 0 is the "no ancestor" sentinel. */
+  ancestor: Map<number, number>;
+  /** label[v] is the min-semi vertex on the compressed path from v upward. */
+  label: Map<number, number>;
+  /** semi[v] is v's semi-dominator DFS number. */
+  semi: Map<number, number>;
+  /** Number of DFS-reachable vertices, used as the "infinity" semi value. */
+  n: number;
+}
+
+/**
+ * compress(v): flatten the path from v up to its forest root and copy the
+ * minimum-semi label downward so label[v] becomes the minimum-semi ancestor on
+ * the (now compressed) path.
+ */
+function compressLinkEval(forest: LinkEvalForest, v: number): void {
+  const { ancestor, label, semi, n } = forest;
+  const av = ancestor.get(v) ?? 0;
+  const aav = ancestor.get(av) ?? 0;
+  if (av === 0 || aav === 0) return;
+  // Recurse first so the parent path is already compressed.
+  compressLinkEval(forest, av);
+  // Compare against the parent's label — after the recursion, label[av] is the
+  // min-semi vertex on the path av→root, so this propagates the path minimum
+  // into label[v]. (Previously compared label[aav] against label[av], which is
+  // always false since av→root ⊇ aav→root, so label[v] was never updated —
+  // wrong idom on graphs with cross edges.)
+  if ((semi.get(label.get(av) ?? av) ?? n) < (semi.get(label.get(v) ?? v) ?? n)) {
+    label.set(v, label.get(av) ?? av);
+  }
+  ancestor.set(v, ancestor.get(av) ?? 0);
+}
+
+/**
+ * eval(v): return the vertex on the compressed path from v to its forest root
+ * whose semi-dominator is minimum — the heart of LT. With ancestor[v] = 0
+ * (root) the answer is label[v] = v itself, reproducing the trivial-graph
+ * behavior the previous stub relied on, but correct for any graph with
+ * cross/forward edges once link()/compress() populate ancestor.
+ */
+function evalLinkEval(forest: LinkEvalForest, v: number): number {
+  const { ancestor, label, semi, n } = forest;
+  if ((ancestor.get(v) ?? 0) === 0) {
+    return label.get(v) ?? v;
+  }
+  compressLinkEval(forest, v);
+  const av = ancestor.get(v) ?? 0;
+  const labelV = label.get(v) ?? v;
+  const labelAv = label.get(av) ?? av;
+  if ((semi.get(labelAv) ?? n) <= (semi.get(labelV) ?? n)) {
+    return labelAv;
+  }
+  return labelV;
+}
+
+/** Inputs for the Step-2 semi-dominator computation. */
+interface SemiDominatorStep {
+  /** Vertex being processed. */
+  w: number;
+  /** Its DFS index, used as the fallback semi value. */
+  i: number;
+  /** Incoming edges of `w`. */
+  predecessors: readonly number[];
+  pre: Map<number, number>;
+  vertex: number[];
+  semi: Map<number, number>;
+  bucket: Map<number, Set<number>>;
+  evalLT: (v: number) => number;
+}
+
+/**
+ * Step 2 of Lengauer-Tarjan: lower `semi[w]` to the smallest semi-dominator
+ * reachable from any predecessor, then file `w` under that semi-dominator's
+ * bucket for later idom resolution.
+ */
+function computeSemiDominator(step: SemiDominatorStep): void {
+  const { w, i, predecessors, pre, vertex, semi, bucket, evalLT } = step;
+
+  for (const v of predecessors) {
+    const preV = pre.get(v);
+    if (preV === undefined) continue;
+
+    const u = evalLT(v);
+    const semiW = semi.get(w) ?? i;
+    const semiU = semi.get(u) ?? pre.get(u) ?? i;
+
+    if (semiU < semiW) {
+      semi.set(w, semiU);
+    }
+  }
+
+  // Add w to bucket of its semi-dominator
+  const semiW = semi.get(w) ?? i;
+  const semiNode = vertex[semiW];
+  if (semiNode !== undefined) {
+    const bucketSet = bucket.get(semiNode) ?? new Set();
+    bucketSet.add(w);
+    bucket.set(semiNode, bucketSet);
+  }
+}
+
+/**
+ * Step 3 of Lengauer-Tarjan: resolve idom for everything parked in the bucket
+ * of `parentW`, then empty that bucket.
+ *
+ * `idom` is the local result map; `sharedIdom` is the instance copy that other
+ * methods read, so both must be written together.
+ */
+function resolveBucketForParent(
+  parentW: number,
+  semi: Map<number, number>,
+  bucket: Map<number, Set<number>>,
+  idom: Map<number, number>,
+  sharedIdom: Map<number, number>,
+  evalLT: (v: number) => number,
+): void {
+  const bucketParent = bucket.get(parentW) ?? new Set();
+  for (const v of bucketParent) {
+    const u = evalLT(v);
+    const semiV = semi.get(v) ?? 0;
+    const semiU = semi.get(u) ?? 0;
+
+    if (semiU < semiV) {
+      idom.set(v, u);
+      sharedIdom.set(v, u);
+    } else {
+      idom.set(v, parentW);
+      sharedIdom.set(v, parentW);
+    }
+  }
+  bucket.set(parentW, new Set());
+}
+
 /**
  * Builds dominator trees and detects memory leaks from heap snapshots
  */
@@ -328,44 +463,13 @@ export class DominatorTreeBuilder {
       ancestor.set(w, v);
     };
 
-    // compress(v): flatten the path from v up to its forest root and copy the
-    // minimum-semi label downward so label[v] becomes the minimum-semi
-    // ancestor on the (now compressed) path.
-    const compress = (v: number): void => {
-      const av = ancestor.get(v) ?? 0;
-      const aav = ancestor.get(av) ?? 0;
-      if (av === 0 || aav === 0) return;
-      // Recurse first so the parent path is already compressed.
-      compress(av);
-      // Compare against the parent's label — after the recursion, label[av]
-      // is the min-semi vertex on the path av→root, so this propagates the
-      // path minimum into label[v]. (Previously compared label[aav] against
-      // label[av], which is always false since av→root ⊇ aav→root, so
-      // label[v] was never updated — wrong idom on graphs with cross edges.)
-      if ((semi.get(label.get(av) ?? av) ?? n) < (semi.get(label.get(v) ?? v) ?? n)) {
-        label.set(v, label.get(av) ?? av);
-      }
-      ancestor.set(v, ancestor.get(av) ?? 0);
-    };
+    const forest: LinkEvalForest = { ancestor, label, semi, n };
 
     // eval(v): return the vertex on the compressed path from v to its forest
-    // root whose semi-dominator is minimum — the heart of LT. With ancestor[v]
-    // = 0 (root) the answer is label[v] = v itself, reproducing the trivial-
-    // graph behavior the previous stub relied on, but correct for any graph
-    // with cross/forward edges once link()/compress() populate ancestor.
-    const evalLT = (v: number): number => {
-      if ((ancestor.get(v) ?? 0) === 0) {
-        return label.get(v) ?? v;
-      }
-      compress(v);
-      const av = ancestor.get(v) ?? 0;
-      const labelV = label.get(v) ?? v;
-      const labelAv = label.get(av) ?? av;
-      if ((semi.get(labelAv) ?? n) <= (semi.get(labelV) ?? n)) {
-        return labelAv;
-      }
-      return labelV;
-    };
+    // root whose semi-dominator is minimum — the heart of LT. `compress` runs
+    // inside evalLinkEval, so the compression side effect happens here exactly
+    // as it did when both lived in this scope.
+    const evalLT = (v: number): number => evalLinkEval(forest, v);
 
     // Process nodes in reverse preorder (bottom-up)
     for (let i = n - 1; i >= 1; i--) {
@@ -375,50 +479,24 @@ export class DominatorTreeBuilder {
       const parentW = parent.get(w);
       if (parentW === undefined) continue;
 
-      // Step 2: Compute semi-dominator of w
-      const predecessors = this.incomingEdges.get(w) ?? [];
-      for (const v of predecessors) {
-        const preV = pre.get(v);
-        if (preV === undefined) continue;
-
-        const u = evalLT(v);
-        const semiW = semi.get(w) ?? i;
-        const semiU = semi.get(u) ?? pre.get(u) ?? i;
-
-        if (semiU < semiW) {
-          semi.set(w, semiU);
-        }
-      }
-
-      // Add w to bucket of its semi-dominator
-      const semiW = semi.get(w) ?? i;
-      const semiNode = vertex[semiW];
-      if (semiNode !== undefined) {
-        const bucketSet = bucket.get(semiNode) ?? new Set();
-        bucketSet.add(w);
-        bucket.set(semiNode, bucketSet);
-      }
+      // Step 2: Compute semi-dominator of w, then file w under that
+      // semi-dominator's bucket.
+      computeSemiDominator({
+        w,
+        i,
+        predecessors: this.incomingEdges.get(w) ?? [],
+        pre,
+        vertex,
+        semi,
+        bucket,
+        evalLT,
+      });
 
       // Step 3: Implicitly define idom for nodes in bucket of parent.
       // w's processing is done, so link parentW → w in the eval forest before
       // reading the bucket so later eval() calls through w see the new edge.
       link(parentW, w);
-
-      const bucketParent = bucket.get(parentW) ?? new Set();
-      for (const v of bucketParent) {
-        const u = evalLT(v);
-        const semiV = semi.get(v) ?? 0;
-        const semiU = semi.get(u) ?? 0;
-
-        if (semiU < semiV) {
-          idom.set(v, u);
-          this.idom.set(v, u);
-        } else {
-          idom.set(v, parentW);
-          this.idom.set(v, parentW);
-        }
-      }
-      bucket.set(parentW, new Set());
+      resolveBucketForParent(parentW, semi, bucket, idom, this.idom, evalLT);
     }
 
     // Step 4: Adjust idom for nodes that had deferred computation
