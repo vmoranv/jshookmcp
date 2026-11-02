@@ -36,7 +36,7 @@ function classifyStatus(
   return { status: 'FAIL', code };
 }
 
-export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`Timeout after ${ms}ms (${label})`)), ms);
     promise
@@ -51,7 +51,7 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): 
   });
 }
 
-export function parseContent(result: unknown): unknown {
+function parseContent(result: unknown): unknown {
   if (!isRecord(result) || !Array.isArray(result.content) || result.content.length === 0)
     return result;
   const first = result.content[0];

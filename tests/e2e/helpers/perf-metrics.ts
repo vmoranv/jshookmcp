@@ -1,6 +1,3 @@
-import { execFile as execFileCb } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
-import { promisify } from 'node:util';
 import type {
   ProcessMemoryDelta,
   ProcessMemorySample,
@@ -8,8 +5,6 @@ import type {
   ToolPerformanceSummaryEntry,
   ToolResult,
 } from '@tests/e2e/helpers/types';
-
-const execFile = promisify(execFileCb);
 
 function toBytesFromKiB(raw: string | undefined): number | null {
   if (!raw) return null;
@@ -99,41 +94,6 @@ export function diffProcessMemory(
     privateBytes: diffNullableNumber(before.privateBytes, after.privateBytes),
     virtualBytes: diffNullableNumber(before.virtualBytes, after.virtualBytes),
   };
-}
-
-export async function sampleProcessMemory(
-  pid: number | null | undefined,
-): Promise<ProcessMemorySample | null> {
-  if (!pid || !Number.isInteger(pid) || pid <= 0) return null;
-
-  try {
-    if (process.platform === 'linux') {
-      const status = await readFile(`/proc/${pid}/status`, 'utf8');
-      return parseLinuxProcStatus(status);
-    }
-
-    if (process.platform === 'darwin' || process.platform === 'freebsd') {
-      const { stdout } = await execFile('ps', ['-o', 'rss=', '-o', 'vsz=', '-p', String(pid)], {
-        timeout: 3000,
-      });
-      return parsePsMemory(stdout);
-    }
-
-    if (process.platform === 'win32') {
-      const command =
-        `$p = Get-Process -Id ${pid} -ErrorAction Stop; ` +
-        `[pscustomobject]@{rssBytes=[int64]$p.WorkingSet64; privateBytes=[int64]$p.PrivateMemorySize64; virtualBytes=[int64]$p.VirtualMemorySize64} | ConvertTo-Json -Compress`;
-      const { stdout } = await execFile('powershell', ['-NoProfile', '-Command', command], {
-        timeout: 5000,
-        windowsHide: true,
-      });
-      return parseWindowsProcessJson(stdout);
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
 }
 
 function asSummaryEntry(result: ToolResult): ToolPerformanceSummaryEntry | null {

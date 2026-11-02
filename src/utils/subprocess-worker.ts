@@ -824,7 +824,7 @@ function installConsoleCapture(send: (message: SubprocessWorkerOutboundMessage) 
  * ignore SIGTERM/SIGKILL on Windows, hence the taskkill escalation — the same
  * pattern ExternalToolRunner / GhidraAnalyzer use for their own children.
  */
-export async function killChildProcess(child: ChildProcess, graceMs: number): Promise<void> {
+async function killChildProcess(child: ChildProcess, graceMs: number): Promise<void> {
   if (child.exitCode !== null || child.signalCode !== null) return;
   child.kill('SIGTERM');
   await new Promise<void>((resolve) => {

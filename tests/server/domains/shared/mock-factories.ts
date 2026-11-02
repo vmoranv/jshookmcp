@@ -95,24 +95,6 @@ export function createPageMock(
 }
 
 /**
- * Factory to create a mock Puppeteer Browser.
- */
-export function createBrowserMock(
-  overrides: DeepPartial<PuppeteerBrowserMirror> = {},
-): PuppeteerBrowserMirror {
-  return {
-    newPage: vi.fn(async () => createPageMock()),
-    close: vi.fn(async () => {}),
-    disconnect: vi.fn(async () => {}),
-    version: vi.fn(async () => 'Chrome/120.0.0.0'),
-    targets: vi.fn(() => []),
-    process: vi.fn(() => ({ pid: 1234 })),
-    on: vi.fn(),
-    ...overrides,
-  } as unknown as PuppeteerBrowserMirror;
-}
-
-/**
  * Factory to create a mock ConsoleMonitor.
  */
 export function createConsoleMonitorMock(

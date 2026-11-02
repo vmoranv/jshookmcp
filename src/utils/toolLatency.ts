@@ -19,7 +19,7 @@
 import { RingBuffer } from '@utils/RingBuffer';
 
 /** Default number of recent samples retained per tool (ring capacity). */
-export const DEFAULT_TOOL_LATENCY_SAMPLES = 200;
+const DEFAULT_TOOL_LATENCY_SAMPLES = 200;
 
 /** Default number of slowest tools surfaced in the /health verbose summary. */
 export const DEFAULT_TOOL_LATENCY_TOP_N = 10;

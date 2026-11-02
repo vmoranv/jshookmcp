@@ -41,7 +41,7 @@ const SAMPLE_LENGTH = 128;
  * enforceOffloadDirectoryQuota); this is the backstop the write path enforces
  * independent of the age/size retention scheduler.
  */
-export const OFFLOAD_MAX_FILES = 2000;
+const OFFLOAD_MAX_FILES = 2000;
 
 /**
  * Object keys that must never be copied when sanitizing captured data. Hostile
