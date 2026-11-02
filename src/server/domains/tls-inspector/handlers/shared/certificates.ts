@@ -2,7 +2,7 @@ import { createHash, X509Certificate } from 'node:crypto';
 import { normalizeHex } from './common';
 import type { PeerCertificateSummary, ProbePeerCertificate } from './types';
 
-export function isNonEmptyObject(value: unknown): value is Record<string, unknown> {
+function isNonEmptyObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && Object.keys(value).length > 0;
 }
 
@@ -10,7 +10,7 @@ export function hasPeerCertificate(value: unknown): value is ProbePeerCertificat
   return isNonEmptyObject(value);
 }
 
-export function summarizePeerCertificate(
+function summarizePeerCertificate(
   cert: ProbePeerCertificate,
   depth: number,
 ): PeerCertificateSummary {
@@ -97,7 +97,7 @@ export interface ParsedCertificate {
   length: number;
 }
 
-export function parseDerCertificate(der: Buffer): ParsedCertificate {
+function parseDerCertificate(der: Buffer): ParsedCertificate {
   const sha256 = createHash('sha256').update(der).digest('hex').toUpperCase();
 
   try {

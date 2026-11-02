@@ -193,7 +193,7 @@ function parseClientHints(value: unknown): SessionProfileClientHints | undefined
   };
 }
 
-export function parseSessionProfile(value: unknown): SessionProfile | undefined {
+function parseSessionProfile(value: unknown): SessionProfile | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -251,7 +251,7 @@ function decodeAuthorizationCapability(
   return payload;
 }
 
-export function parseReplayAuthorization(
+function parseReplayAuthorization(
   args: Record<string, unknown>,
   requestId: string,
 ): NetworkAuthorizationInput | undefined {

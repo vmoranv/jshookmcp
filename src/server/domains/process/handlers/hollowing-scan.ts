@@ -146,7 +146,7 @@ export function parseProcMaps(raw: string): MapsEntry[] {
  * RWX regions are a strong hollowing indicator — well-formed executables
  * map code as R-X and data as RW-, never RWX.
  */
-export function detectRwxRegions(entries: MapsEntry[]): HollowingFinding[] {
+function detectRwxRegions(entries: MapsEntry[]): HollowingFinding[] {
   const findings: HollowingFinding[] = [];
   for (const e of entries) {
     if (e.perms === 'rwx' || e.perms === 'rwxp') {
@@ -173,7 +173,7 @@ export function detectRwxRegions(entries: MapsEntry[]): HollowingFinding[] {
  * Check if /proc/{pid}/exe points to a deleted file.
  * Linux marks deleted-but-still-mapped files with " (deleted)" suffix.
  */
-export function detectDeletedExe(exeLink: string): HollowingFinding[] {
+function detectDeletedExe(exeLink: string): HollowingFinding[] {
   const findings: HollowingFinding[] = [];
   if (exeLink.includes('(deleted)')) {
     findings.push({
@@ -416,7 +416,7 @@ const NORMAL_SECTION_NAMES = new Set([
  * Check PE sections for suspicious names.
  * Packed/hollowed binaries often have non-standard section names.
  */
-export function detectSuspiciousSections(pe: PeInfo): HollowingFinding[] {
+function detectSuspiciousSections(pe: PeInfo): HollowingFinding[] {
   const findings: HollowingFinding[] = [];
   for (const section of pe.sections) {
     const name = section.name;
@@ -481,7 +481,7 @@ export function detectSuspiciousSections(pe: PeInfo): HollowingFinding[] {
  * This is a best-effort static check without live memory comparison.
  * The full section-hash comparison is in hollowing-detection.ts.
  */
-export function detectPathMismatch(args: {
+function detectPathMismatch(args: {
   expectedImagePath?: string;
   peInfo?: PeInfo;
 }): HollowingFinding[] {
@@ -528,7 +528,7 @@ export function detectPathMismatch(args: {
  * Check if the PE entry point falls within the .text section.
  * If not, the binary may have been tampered with.
  */
-export function detectEntryPointAnomaly(pe: PeInfo): HollowingFinding[] {
+function detectEntryPointAnomaly(pe: PeInfo): HollowingFinding[] {
   const findings: HollowingFinding[] = [];
   const ep = pe.optionalHeader.entryPointAddress;
 

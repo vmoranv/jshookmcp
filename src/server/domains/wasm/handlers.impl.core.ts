@@ -19,7 +19,6 @@ export type {
   WasmVmpTraceEvalResult,
   WasmMemoryInspectEvalResult,
 } from './handlers/shared';
-export { isRecord, hasErrorResult } from './handlers/shared';
 
 export class WasmToolHandlers {
   private state: WasmSharedState;

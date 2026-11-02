@@ -165,7 +165,7 @@ export function hasInstalledLegacyPlugin(
   return installed.has(pluginId);
 }
 
-export function getLegacyPluginFix(pluginId: string): string | undefined {
+function getLegacyPluginFix(pluginId: string): string | undefined {
   return LEGACY_PLUGIN_FIXES[pluginId];
 }
 

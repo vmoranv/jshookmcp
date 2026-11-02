@@ -87,7 +87,7 @@ export function buildLineDiff(
   return diffLinesOut.join('\n');
 }
 
-export function buildFallbackLineDiff(oldLines: string[], newLines: string[]): string {
+function buildFallbackLineDiff(oldLines: string[], newLines: string[]): string {
   let start = 0;
   while (
     start < oldLines.length &&

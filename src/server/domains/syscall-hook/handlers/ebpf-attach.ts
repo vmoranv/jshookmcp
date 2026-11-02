@@ -80,7 +80,7 @@ function isArgBool(args: Record<string, unknown>, key: string): boolean {
  * but outputs raw JSONL (one JSON object per line) to stdout for machine
  * consumption.
  */
-export function buildBpftraceScript(pid: number, syscalls: string[], durationSec: number): string {
+function buildBpftraceScript(pid: number, syscalls: string[], durationSec: number): string {
   const pidFilter = pid > 0 ? `/pid == ${pid}/` : '';
   const tracepoints = syscalls.map((sc) => `tracepoint:syscalls:sys_enter_${sc}`).join(', ');
   const exitTracepoints = syscalls.map((sc) => `tracepoint:syscalls:sys_exit_${sc}`).join(', ');

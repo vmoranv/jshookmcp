@@ -8,7 +8,7 @@ export interface CapabilityEntryOptions {
   details?: Record<string, unknown>;
 }
 
-export function capabilityEntry(options: CapabilityEntryOptions): Record<string, unknown> {
+function capabilityEntry(options: CapabilityEntryOptions): Record<string, unknown> {
   return {
     capability: options.capability,
     status: options.status,

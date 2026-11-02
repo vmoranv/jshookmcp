@@ -315,23 +315,3 @@ export interface EmulatorRegionDescriptor {
   typicalSize: number;
   resolutionHint: string;
 }
-
-/**
- * Build emulator-aware region filter descriptions for memory_region_enumerate.
- * These describe what regions to look for and how to identify them.
- */
-export function getEmulatorRegionDescriptors(
-  emulatorName: string,
-): EmulatorRegionDescriptor[] | undefined {
-  const regions = getEmulatorMemoryLayout(emulatorName);
-  if (!regions) return undefined;
-
-  return regions.map((r) => ({
-    regionName: r.name,
-    description: r.description,
-    baseAddressHint:
-      r.baseOffset === 0 ? 'dynamic' : `0x${r.baseOffset.toString(16).toUpperCase()}`,
-    typicalSize: r.typicalSize,
-    resolutionHint: r.resolutionHint,
-  }));
-}

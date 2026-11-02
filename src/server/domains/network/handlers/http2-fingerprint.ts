@@ -28,16 +28,6 @@ const H2_FRAME_HEADER_BYTES = 9;
 // so it surfaces as a 'RAW' parsed frame and is decoded inline here.
 const HTTP2_FRAME_TYPE_PRIORITY = 0x2;
 
-// RFC 7540 §6.5.2 standard SETTINGS identifiers, for readability of output.
-export const HTTP2_SETTINGS = {
-  HEADER_TABLE_SIZE: 1,
-  ENABLE_PUSH: 2,
-  MAX_CONCURRENT_STREAMS: 3,
-  INITIAL_WINDOW_SIZE: 4,
-  MAX_FRAME_SIZE: 5,
-  MAX_HEADER_LIST_SIZE: 6,
-} as const;
-
 // SETTINGS ACK flag bit (RFC 7540 §6.5.1).
 const SETTINGS_ACK_FLAG = 0x1;
 

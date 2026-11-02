@@ -190,7 +190,7 @@ export async function resolveTargetSession(
  * forward to the real session. When `owned` is true the session is returned
  * unchanged (the caller created it and should really detach).
  */
-export function adoptSession(session: CDPSessionLike, owned: boolean): CDPSessionLike {
+function adoptSession(session: CDPSessionLike, owned: boolean): CDPSessionLike {
   if (owned) {
     return session;
   }

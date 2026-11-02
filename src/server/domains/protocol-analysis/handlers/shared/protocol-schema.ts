@@ -10,7 +10,7 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function parseFieldSpec(value: unknown, index: number): FieldSpec {
+function parseFieldSpec(value: unknown, index: number): FieldSpec {
   if (!isRecord(value)) {
     throw new Error(`fields[${index}] must be an object`);
   }

@@ -62,7 +62,7 @@ interface ReplayFetchInput {
  * via evaluateWithTimeout) and in-process with the global fetch (Node path),
  * so both paths share one implementation.
  */
-export async function replayFetchPipeline(input: ReplayFetchInput): Promise<BrowserFetchResult> {
+async function replayFetchPipeline(input: ReplayFetchInput): Promise<BrowserFetchResult> {
   const requestHeaders = { 'content-type': 'application/json', ...input.headers };
   try {
     const ac = new AbortController();

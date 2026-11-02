@@ -38,9 +38,6 @@ export const MAX_DISK_SCAN_ADDRESSES = 100_000_000;
 /** Bytes per record: 8-byte address (LE) + 8-byte value (LE) = 16 bytes. */
 export const DISK_RECORD_SIZE = 16;
 
-/** Estimated max file size: 100M × 16 = ~1.6 GB. */
-export const MAX_DISK_SCAN_FILE_SIZE = MAX_DISK_SCAN_ADDRESSES * DISK_RECORD_SIZE;
-
 /** Max concurrent stat/unlink pairs during orphan cleanup. */
 const ORPHAN_CLEANUP_CONCURRENCY = 8;
 

@@ -213,7 +213,7 @@ export function unifiedDiff(a: string[], b: string[], context = 3): string[] {
 }
 
 /** Normalize transient local/temp names so semantic diff ignores renumbering. */
-export function normalizeWatLines(lines: string[]): string[] {
+function normalizeWatLines(lines: string[]): string[] {
   return lines.map((l) => l.replace(/\$[lL]\d+\b/g, '$local'));
 }
 

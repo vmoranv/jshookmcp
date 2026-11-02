@@ -13,7 +13,7 @@ import type {
   TraceEvent as SummaryTraceEvent,
 } from '@server/domains/trace/TraceSummarizer';
 
-export const TRACE_DETAIL_THRESHOLD_BYTES = 25_600;
+const TRACE_DETAIL_THRESHOLD_BYTES = 25_600;
 
 export const asBoolean = (value: unknown, defaultValue: boolean): boolean =>
   typeof value === 'boolean' ? value : defaultValue;
@@ -151,7 +151,7 @@ export const readTraceSummaryObjectSizes = (
 export const readTraceSummaryNumber = (summary: Record<string, unknown>, key: string): number =>
   readNumberValue(summary[key]) ?? 0;
 
-export const readDbTraceEventRow = (row: unknown[]): DbTraceEvent => ({
+const readDbTraceEventRow = (row: unknown[]): DbTraceEvent => ({
   timestamp: readNumberValue(row[0]) ?? 0,
   category: readStringValue(row[1]) ?? '',
   eventType: readStringValue(row[2]) ?? '',

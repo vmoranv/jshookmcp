@@ -466,36 +466,3 @@ export function listTypeOverrides(): Array<{ offset: number; size: number; type:
     return { offset: offset!, size: size!, type };
   });
 }
-
-export function applyTypeOverrides(
-  fields: Array<{
-    offset: number;
-    size: number;
-    type: string;
-    name: string;
-    confidence: number;
-    value?: string;
-    notes?: string;
-  }>,
-): Array<{
-  offset: number;
-  size: number;
-  type: string;
-  name: string;
-  confidence: number;
-  value?: string;
-  notes?: string;
-}> {
-  return fields.map((field) => {
-    const override = getTypeOverride(field.offset, field.size);
-    if (override) {
-      return {
-        ...field,
-        type: override,
-        confidence: 1.0,
-        notes: field.notes ? `${field.notes} (overridden)` : 'overridden',
-      };
-    }
-    return field;
-  });
-}

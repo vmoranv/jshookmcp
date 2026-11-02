@@ -87,5 +87,3 @@ export class WebGPUHandlers {
     return this.pipelineDumpHandler.handle(args);
   }
 }
-
-export default WebGPUHandlers;

@@ -23,7 +23,7 @@ import { readEnvNullableString, readEnvString } from '@src/config/environment';
 
 export const execFileAsync = promisify(execFile);
 
-export function getJshookInstallRoot(): string {
+function getJshookInstallRoot(): string {
   return fileURLToPath(new URL('../../../../', import.meta.url));
 }
 
@@ -80,7 +80,7 @@ export interface RegistryEntry {
   };
 }
 
-export function normalizeInstallPathSegment(
+function normalizeInstallPathSegment(
   value: string | undefined,
   field: 'subpath' | 'entry',
 ): string {
@@ -222,7 +222,7 @@ export class RegistryFetchError extends Error {
   }
 }
 
-export function resolveCommand(command: string): string {
+function resolveCommand(command: string): string {
   if (process.platform !== 'win32') {
     return command;
   }

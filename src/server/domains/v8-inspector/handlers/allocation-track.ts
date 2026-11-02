@@ -358,7 +358,7 @@ function resolveStackFrame(
  * size contributes to the totals. Returns ok:false with a diagnostic when the
  * snapshot cannot be read or carries no allocation data.
  */
-export function parseAllocationSnapshot(chunks: string[]): ParsedAllocationSnapshot {
+function parseAllocationSnapshot(chunks: string[]): ParsedAllocationSnapshot {
   const empty: ParsedAllocationSnapshot = {
     ok: false,
     allocations: [],

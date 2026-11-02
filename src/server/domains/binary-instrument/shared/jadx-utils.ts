@@ -74,10 +74,7 @@ export async function resolveDecompiledClassFile(
   };
 }
 
-export function scoreClassCandidate(
-  requestedPackage: string[],
-  candidatePackage: string[],
-): number {
+function scoreClassCandidate(requestedPackage: string[], candidatePackage: string[]): number {
   let prefixMatches = 0;
   const prefixLimit = Math.min(requestedPackage.length, candidatePackage.length);
   while (

@@ -53,7 +53,7 @@ export interface ByteFrequencyEntry {
   ratio: number;
 }
 
-export const MAGIC_SIGNATURES = [
+const MAGIC_SIGNATURES = [
   { format: 'png', bytes: [0x89, 0x50, 0x4e, 0x47] },
   { format: 'jpeg', bytes: [0xff, 0xd8, 0xff] },
   { format: 'gif', bytes: [0x47, 0x49, 0x46] },

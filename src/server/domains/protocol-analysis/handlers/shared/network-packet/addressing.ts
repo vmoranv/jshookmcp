@@ -8,7 +8,7 @@ import type {
   ParsedMacAddress,
 } from './types';
 
-export function parseNamedOrNumericValue(
+function parseNamedOrNumericValue(
   value: unknown,
   label: string,
   map: Readonly<Record<string, number>>,
@@ -84,7 +84,7 @@ export function parseIpv4Address(value: unknown, label: string): Buffer {
   return Buffer.from(octets);
 }
 
-export function parseIpv6Groups(value: string, label: string): string[] {
+function parseIpv6Groups(value: string, label: string): string[] {
   if (value.length === 0) {
     return [];
   }
@@ -104,7 +104,7 @@ export function parseIpv6Groups(value: string, label: string): string[] {
   });
 }
 
-export function parseIpv6Address(value: unknown, label: string): Buffer {
+function parseIpv6Address(value: unknown, label: string): Buffer {
   if (typeof value !== 'string') {
     throw new Error(`${label} must be a valid IPv6 address`);
   }

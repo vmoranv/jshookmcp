@@ -33,10 +33,10 @@ import { logger } from '@utils/logger';
 import { int } from '@src/constants';
 
 /** Default port of the pip ghidra_bridge server (ghidra_bridge_port.py). */
-export const GHIDRA_BRIDGE_TCP_PORT = int('GHIDRA_BRIDGE_TCP_PORT', 4768);
+const GHIDRA_BRIDGE_TCP_PORT = int('GHIDRA_BRIDGE_TCP_PORT', 4768);
 
 /** Eval can be slow (decompilation); the Python client defaults to x100 its 2s. */
-export const GHIDRA_BRIDGE_TCP_TIMEOUT_MS = int('GHIDRA_BRIDGE_TCP_TIMEOUT_MS', 120_000);
+const GHIDRA_BRIDGE_TCP_TIMEOUT_MS = int('GHIDRA_BRIDGE_TCP_TIMEOUT_MS', 120_000);
 
 export interface GhidraBridgeTcpOptions {
   /** Loopback only — the bridge is unencrypted code-execution-as-a-service. */

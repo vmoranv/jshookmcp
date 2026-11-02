@@ -47,6 +47,6 @@ export function generateCode(
 }
 
 // Re-export core types for convenience
-export { parser, traverse, generate };
+export { generate };
 export type { NodePath };
 export * as t from '@babel/types';

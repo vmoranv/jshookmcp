@@ -2,8 +2,6 @@
  * Shared types, constants, and type-guard utilities for the network domain handlers.
  */
 
-import { DetailedDataManager } from '@utils/DetailedDataManager';
-
 // ── Constants ──
 
 /** Resource types excluded by default when no explicit filters are set. */
@@ -248,9 +246,3 @@ export const toCpuProfilePayload = (value: unknown): CpuProfilePayload | null =>
     endTime: value.endTime,
   };
 };
-
-// ── Shared Utility: DetailedDataManager singleton ──
-
-export function getDetailedDataManager(): DetailedDataManager {
-  return DetailedDataManager.getInstance();
-}

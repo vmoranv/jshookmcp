@@ -95,10 +95,7 @@ export function parsePayloadTemplateField(value: unknown, index: number): Payloa
   };
 }
 
-export function encodePayloadTemplateField(
-  field: PayloadTemplateField,
-  endian: PayloadEndian,
-): Buffer {
+function encodePayloadTemplateField(field: PayloadTemplateField, endian: PayloadEndian): Buffer {
   switch (field.type) {
     case 'u8':
     case 'u16':

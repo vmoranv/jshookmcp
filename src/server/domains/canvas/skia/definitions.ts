@@ -50,5 +50,3 @@ export const skiaTools: Tool[] = [
     },
   },
 ];
-
-export const skiaCaptureTools = skiaTools;
