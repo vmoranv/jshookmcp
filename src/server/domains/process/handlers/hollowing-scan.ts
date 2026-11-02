@@ -111,8 +111,13 @@ interface MapsEntry {
   pathname: string;
 }
 
+// Shape matches the shared parser in @native/platform/linux/mapsParser:
+// - perms is 4 chars where only r/w/x are constrained (the 4th is p/s/-,
+//   and `-` is common for regions without an exec bit)
+// - dev is any non-space token so uppercase hex (0BC4:D8AA) parses
+// Being stricter here silently dropped most real /proc/<pid>/maps lines.
 const MAPS_LINE_RE =
-  /^([0-9a-f]+)-([0-9a-f]+)\s+([r-][w-][x][sp-]?)\s+([0-9a-f]+)\s+([0-9a-f]+:[0-9a-f]+)\s+(\d+)\s*(.*)$/;
+  /^([0-9a-f]+)-([0-9a-f]+)\s+([r-][w-][x-][ps])\s+([0-9a-f]+)\s+(\S+)\s+(\d+)\s*(.*)$/i;
 
 function parseMapsLine(line: string): MapsEntry | null {
   const m = line.trim().match(MAPS_LINE_RE);
@@ -134,12 +139,23 @@ function parseMapsLine(line: string): MapsEntry | null {
  */
 export function parseProcMaps(raw: string): MapsEntry[] {
   return raw
-    .split('\n')
+    .split(/\r?\n/)
     .map(parseMapsLine)
     .filter((e): e is MapsEntry => e !== null);
 }
 
 // ── RWX detection ──
+
+/**
+ * True when the permission field grants read+write+execute.
+ *
+ * The kernel writes four characters (rwxp / rwxs / r--p / rw-p), so matching
+ * only the exact strings 'rwx' or 'rwxp' would miss shared mappings and every
+ * region whose 4th char is not 'p'. Compare the first three positions only.
+ */
+function hasRwxPerms(perms: string): boolean {
+  return perms.length >= 3 && perms[0] === 'r' && perms[1] === 'w' && perms[2] === 'x';
+}
 
 /**
  * Find memory regions with RWX (read-write-execute) permissions.
@@ -149,7 +165,7 @@ export function parseProcMaps(raw: string): MapsEntry[] {
 function detectRwxRegions(entries: MapsEntry[]): HollowingFinding[] {
   const findings: HollowingFinding[] = [];
   for (const e of entries) {
-    if (e.perms === 'rwx' || e.perms === 'rwxp') {
+    if (hasRwxPerms(e.perms)) {
       findings.push({
         type: 'rwx_memory_region',
         severity: 'high',
@@ -757,7 +773,7 @@ export function detectIatHooks(args: {
       const inRwx = mapsEntries.some((e) => {
         const start = parseInt(e.start, 16);
         const end = parseInt(e.end, 16);
-        return addr >= start && addr < end && (e.perms === 'rwx' || e.perms === 'rwxp');
+        return addr >= start && addr < end && hasRwxPerms(e.perms);
       });
 
       findings.push({
@@ -819,7 +835,7 @@ export function detectVadProtectionAnomaly(args: {
 
   for (const entry of args.mapsEntries) {
     // Only analyze RWX regions
-    if (entry.perms !== 'rwx' && entry.perms !== 'rwxp') continue;
+    if (!hasRwxPerms(entry.perms)) continue;
 
     const start = parseInt(entry.start, 16);
     const end = parseInt(entry.end, 16);
