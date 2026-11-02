@@ -13,12 +13,7 @@
  */
 
 import { detectInexact, detectInputDenormal, type FpExceptionFlags } from './FpExceptions';
-import {
-  RoundingMode,
-  roundToInt,
-  roundTiesToEven,
-  // applyPrecisionRounding unused but kept for future expansion
-} from './FpRounding';
+import { RoundingMode, roundToInt, roundTiesToEven } from './FpRounding';
 import {
   QNAN_F32,
   QNAN_F64,
