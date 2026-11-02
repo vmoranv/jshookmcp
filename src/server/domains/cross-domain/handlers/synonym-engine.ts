@@ -363,6 +363,19 @@ export function querySynonyms(query: string, maxResults = 10): SynonymMatchResul
 }
 
 /**
+ * Return the raw synonym graph.
+ *
+ * Exists so `scripts/audit-domain-integrity.mjs` can assert that every tool
+ * name in the graph is still registered. This list has already rotted once:
+ * three `mojo_*` tools, `native_emulator_launch` and `syscall_get_events` were
+ * renamed upstream while the graph kept recommending the old names, so
+ * `cross_domain_synonyms` answered with tools that could not be called.
+ */
+export function getSynonymGraphGroups(): readonly SynonymGroup[] {
+  return SYNONYM_GROUPS;
+}
+
+/**
  * Return the full synonym graph metadata (for inspection/debugging).
  */
 export function getSynonymGraphMeta(): {

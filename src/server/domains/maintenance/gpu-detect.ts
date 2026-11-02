@@ -1,8 +1,10 @@
 /**
  * GPU detection and classification: cloud GPU, VM GPU, local device.
  *
- * Detects GPU vendor/model via platform-specific commands and classifies
- * results with isCloudGpu / isVirtualMachine flags for VM/cloud triage.
+ * Classifies caller-supplied renderer strings with isCloudGpu /
+ * isVirtualMachine flags for VM/cloud triage. Parse helpers
+ * (parseLinuxOutput / parseMacOutput) turn raw tool output into GpuInfo
+ * lists for callers that collect it themselves.
  */
 
 // ── Cloud GPU models (NVIDIA datacenter) ──
