@@ -56,7 +56,7 @@ import { type PacKeys } from './decoder/PointerAuth';
 
 /** Fixed test key set for Pointer Authentication (self-consistent; not a real device key).
  *  Override per-session via setPacKeys / nemu_set_pac_key. */
-export const DEFAULT_PAC_KEYS: PacKeys = {
+const DEFAULT_PAC_KEYS: PacKeys = {
   ia: '84be85ce9804e94bec2802d4e0a488e9',
   ib: '84be85ce9804e94bec2802d4e0a488e9',
   da: '84be85ce9804e94bec2802d4e0a488e9',

@@ -26,7 +26,7 @@ export const MEM_INSPECT_ACTIONS = ['read', 'dump', 'chain', 'frame', 'scan'] as
 export type MemInspectAction = (typeof MEM_INSPECT_ACTIONS)[number];
 
 /** action='read' → nemu_read_memory */
-export const MemInspectReadSchema = z.object({
+const MemInspectReadSchema = z.object({
   action: z.literal('read'),
   sessionId: z.string(),
   address: z.number(),
@@ -37,7 +37,7 @@ export const MemInspectReadSchema = z.object({
 });
 
 /** action='dump' → nemu_data_dump */
-export const MemInspectDumpSchema = z.object({
+const MemInspectDumpSchema = z.object({
   action: z.literal('dump'),
   sessionId: z.string(),
   address: z.number(),
@@ -47,7 +47,7 @@ export const MemInspectDumpSchema = z.object({
 });
 
 /** action='chain' → nemu_pointer_chain */
-export const MemInspectChainSchema = z.object({
+const MemInspectChainSchema = z.object({
   action: z.literal('chain'),
   sessionId: z.string(),
   base: z.number(),
@@ -57,14 +57,14 @@ export const MemInspectChainSchema = z.object({
 });
 
 /** action='frame' → nemu_dump_frame */
-export const MemInspectFrameSchema = z.object({
+const MemInspectFrameSchema = z.object({
   action: z.literal('frame'),
   sessionId: z.string(),
   address: z.number(),
 });
 
 /** action='scan' → nemu_scan_memory */
-export const MemInspectScanSchema = z.object({
+const MemInspectScanSchema = z.object({
   action: z.literal('scan'),
   sessionId: z.string(),
   pattern: z.string(),

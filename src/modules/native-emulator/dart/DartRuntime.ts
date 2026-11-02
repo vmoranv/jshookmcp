@@ -41,10 +41,6 @@ export interface DartRegisters {
   heapBase: bigint;
 }
 
-/** Tagged pointer constants. */
-export const kHeapObjectTag = 0x1;
-export const kSmiTag = 0x0;
-
 /**
  * Remove the heap object tag from a pointer.
  * Dart heap pointers have LSB=1; this clears it to get the real address.

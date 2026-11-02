@@ -128,7 +128,7 @@ export const isCryptoSha2Reg = (f: SimdFields): boolean =>
 export const isCryptoSm3Sm4 = (f: SimdFields): boolean => f.high8 === 0xce && f.size === 1;
 
 /** SM4E two-register form: high8=0xCE, size=01, bit21=0, bit15=1, low11_10=00. */
-export const isCryptoSm4e = (f: SimdFields): boolean =>
+const isCryptoSm4e = (f: SimdFields): boolean =>
   f.high8 === 0xce && f.size === 1 && f.bit21 === 0 && f.bit15 === 1 && f.low11_10 === 0;
 
 /**
@@ -317,31 +317,6 @@ export const isNeonTable = (f: SimdFields): boolean =>
 // ────────────────────────────────────────────────────────────────────────────
 // Sub-decoders
 // ────────────────────────────────────────────────────────────────────────────
-
-/**
- * Decode the NEON copy `imm5` field (bits[20:16]) into [size, index]. The trailing
- * zeros of `imm5` encode the element size (0..3 → B/H/S/D), and the remaining bits
- * encode the lane index. Returns null for the reserved `imm5=00000` encoding.
- */
-export function decodeCopyImm5(imm5: number): { size: number; index: number } | null {
-  if ((imm5 & 0b1) === 1) return { size: 0, index: imm5 >> 1 };
-  if ((imm5 & 0b11) === 0b10) return { size: 1, index: imm5 >> 2 };
-  if ((imm5 & 0b111) === 0b100) return { size: 2, index: imm5 >> 3 };
-  if ((imm5 & 0b1111) === 0b1000) return { size: 3, index: imm5 >> 4 };
-  return null;
-}
-
-/**
- * Decode the NEON shift-immediate `immh` field (bits[22:19]) into the element size
- * (0..3 → B/H/S/D). The highest set bit position in `immh` selects the size; `immh=0000`
- * is reserved and should have been rejected by `isNeonShiftImm`.
- */
-export function shiftSize(immh: number): number {
-  if (immh & 0b1000) return 3;
-  if (immh & 0b0100) return 2;
-  if (immh & 0b0010) return 1;
-  return 0;
-}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Unified Classifier

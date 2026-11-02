@@ -543,24 +543,6 @@ export function sm4KeySchedule(keyBytes: Uint8Array): Uint8Array[] {
   });
 }
 
-/**
- * Full SM4 encryption of a 128-bit block (GB/T 32907 §7.2).
- * state and rkWords are both 4-element arrays of big-endian 32-bit words.
- * Returns 4 big-endian 32-bit state words.
- */
-export function sm4EncryptBlock(state: number[], rkWords: number[]): number[] {
-  let [x0, x1, x2, x3] = state;
-  for (let i = 0; i < 32; i++) {
-    const xn = sm4Round(x0!, x1!, x2!, x3!, rkWords[i]!);
-    x0 = x1!;
-    x1 = x2!;
-    x2 = x3!;
-    x3 = xn!;
-  }
-  // SM4 ciphertext: (X[35], X[34], X[33], X[32]) — reverse of final state
-  return [x3!, x2!, x1!, x0!];
-}
-
 // ── SM3 (GB/T 32905-2016) hash — ARMv8.2 FEAT_SM3 ─────────────────────────
 //
 // SM3 is a 256-bit cryptographic hash. The ARM instructions SM3SS1, SM3PARTW1,

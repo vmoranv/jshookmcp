@@ -65,11 +65,7 @@ export type {
  * empty/absent `files` map means a clean device: every fopen returns NULL.
  */
 /** Bump-allocator heap base — distinct from typical code/data vaddrs. */
-let HEAP_BASE = 0x41000000;
-/** Override the heap base at runtime (one-shot, before first allocation). */
-export function setBionicHeapBase(addr: number): void {
-  HEAP_BASE = addr;
-}
+const HEAP_BASE = 0x41000000;
 /** Allocation granularity (bytes); keeps returned pointers naturally aligned. */
 const HEAP_ALIGN = 16;
 
@@ -921,11 +917,6 @@ const SUPPORTED_BIONIC_SYMBOLS = new Set([
   ...BIONIC_SYMBOL_PROBE_LIBRARY.keys(),
   ...BIONIC_SYMBOL_PROBE_LIBRARY.dataSymbols.keys(),
 ]);
-
-/** Stable symbol catalog used by diagnostics without constructing a CpuEngine. */
-export function supportedBionicSymbols(): ReadonlySet<string> {
-  return SUPPORTED_BIONIC_SYMBOLS;
-}
 
 /** True when the built-in bionic library can auto-wire this import. */
 export function hasBionicSymbol(symbol: string): boolean {

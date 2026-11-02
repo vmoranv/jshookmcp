@@ -285,29 +285,3 @@ export class ObjectPoolRegistry {
     return this.pools.size;
   }
 }
-
-/**
- * Helper: resolve a PP-relative load instruction.
- *
- * When the LoadStore decoder sees `LDR x8, [PP, #offset]`, it should call
- * this helper to look up the value from the current ObjectPool.
- *
- * @param poolAddress - Current PP (x27) value
- * @param offset - Byte offset from the instruction
- * @param registry - ObjectPool registry
- * @returns The resolved value, or undefined if the pool is not registered
- */
-export function resolvePoolLoad(
-  poolAddress: bigint,
-  offset: number,
-  registry: ObjectPoolRegistry,
-): bigint | undefined {
-  const pool = registry.get(poolAddress);
-  if (!pool) return undefined;
-
-  try {
-    return pool.lookup(offset);
-  } catch {
-    return undefined;
-  }
-}

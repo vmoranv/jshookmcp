@@ -131,7 +131,7 @@ for (const [name, idx] of Object.entries(JNI_INDEX)) {
 }
 
 /** JNIInvokeInterface (JavaVM) slot indices: 3 reserved, then the calls. */
-export const JNI_INVOKE_INDEX = {
+const JNI_INVOKE_INDEX = {
   DestroyJavaVM: 3,
   AttachCurrentThread: 4,
   DetachCurrentThread: 5,
