@@ -24,7 +24,20 @@ import { Buffer } from 'node:buffer';
 import { StringsExtractor } from '@modules/dart-inspector/StringsExtractor';
 
 const FIXTURE_BYTES = 32 * 1024 * 1024;
-const BUDGET_MS = 10_000;
+/**
+ * Time budget for the 32 MB scan.
+ *
+ * This is a smoke ceiling, not a benchmark: it exists to catch an accidental
+ * O(n²) regression (which would land in the minutes), not to police a few
+ * percent of runner variance. The previous 10 s ceiling was breached once at
+ * 10_098 ms on a shared linux-full runner while the same commit passed on Node
+ * 24 and locally completed in ~1.4 s — i.e. the assertion was measuring runner
+ * load, not the code.
+ *
+ * 30 s keeps ~20× headroom over the observed local time while still failing
+ * loudly for a real complexity regression.
+ */
+const BUDGET_MS = 30_000;
 const SEED = 0xc0ffee;
 
 let tmpDir: string;
