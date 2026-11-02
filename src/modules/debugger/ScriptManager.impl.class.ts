@@ -1,6 +1,13 @@
 import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { setImmediate as waitForImmediate } from 'node:timers/promises';
+import {
+  buildSearchRegex,
+  getContextWindow,
+  scanScriptSource,
+  SEARCH_SCRIPT_YIELD_INTERVAL,
+  type ScriptSearchMatch,
+} from './ScriptManager.impl.search';
 import { logger } from '@utils/logger';
 import { matchesWildcardPattern } from '@utils/matchesWildcardPattern';
 import {
@@ -9,115 +16,13 @@ import {
 } from '@modules/debugger/ScriptManager.impl.extract-function-tree';
 import {
   SCRIPT_SEARCH_RESULT_LIMIT,
-  SCRIPT_CONTEXT_TRUNCATE_LINES_LARGE,
-  SCRIPT_CONTEXT_SNIPPET_HALF_LINES_LARGE,
   SCRIPT_CONTEXT_TRUNCATE_LINES_SMALL,
   SCRIPT_CONTEXT_SNIPPET_HALF_LINES_SMALL,
   SCRIPT_CONTEXT_HALF_LINES_SMALL,
 } from '@src/constants';
 
-/** Lines between cooperative yields inside one script scan. */
-const SEARCH_LINE_YIELD_INTERVAL = 250;
-/** Scripts between cooperative yields across the whole search. */
-const SEARCH_SCRIPT_YIELD_INTERVAL = 10;
-
-/** One hit from searchInScripts. */
-interface ScriptSearchMatch {
-  scriptId: string;
-  url: string;
-  line: number;
-  column: number;
-  matchText: string;
-  context: string;
-}
-
-/**
- * Build the search regex. A literal keyword is escaped so regex metacharacters
- * in the user's text match themselves; `g` is required by `matchAll`.
- *
- * The `RegExp` constructor is unavoidable here — compiling a caller-supplied
- * search term is the whole point of this function, and the non-regex path
- * escapes every metacharacter first. Flags are written as literals rather than
- * a variable so the call shape stays visible to static analysis.
- */
-function buildSearchRegex(keyword: string, isRegex: boolean, caseSensitive: boolean): RegExp {
-  if (isRegex) {
-    return caseSensitive ? new RegExp(keyword, 'g') : new RegExp(keyword, 'gi');
-  }
-  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return caseSensitive ? new RegExp(escaped, 'g') : new RegExp(escaped, 'gi');
-}
-
-/** Everything one script scan needs from the caller. */
-interface ScriptScanArgs {
-  script: { scriptId: string; url: string; source?: string };
-  searchRegex: RegExp;
-  contextLines: number;
-  maxMatches: number;
-  /** Accumulator shared across scripts; appended to in place. */
-  matches: ScriptSearchMatch[];
-  checkCancellation: () => void;
-}
-
-/**
- * Scan one script's source, appending hits to `matches`.
- *
- * Cancellation and yielding happen at exactly the points the inline loop used:
- * before each line, every 256 accumulated matches, and every
- * SEARCH_LINE_YIELD_INTERVAL lines. Moving this body out must not change when
- * those fire — the deadline tests assert on the resulting CDP call counts.
- */
-async function scanScriptSource(args: ScriptScanArgs): Promise<void> {
-  const { script, searchRegex, contextLines, maxMatches, matches, checkCancellation } = args;
-  const lines = script.source!.split('\n');
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
-
-    for (const match of line.matchAll(searchRegex)) {
-      if (matches.length >= maxMatches) break;
-      if (matches.length % 256 === 0) {
-        await waitForImmediate();
-        checkCancellation();
-      }
-
-      const context = getContextWindow(
-        lines,
-        line,
-        i,
-        match.index || 0,
-        contextLines,
-        CONTEXT_TRUNCATE_LINES_LARGE,
-        CONTEXT_SNIPPET_HALF_LINES_LARGE,
-      );
-
-      matches.push({
-        scriptId: script.scriptId,
-        url: script.url || 'inline',
-        line: i + 1,
-        column: match.index || 0,
-        matchText: match[0],
-        context,
-      });
-      if (matches.length >= maxMatches) break;
-    }
-
-    if (matches.length >= maxMatches) break;
-
-    if ((i + 1) % SEARCH_LINE_YIELD_INTERVAL === 0) {
-      await waitForImmediate();
-      checkCancellation();
-    }
-  }
-}
-
 /** Cap on the number of scripts scanned by searchInScripts. */
 const SEARCH_RESULT_LIMIT = SCRIPT_SEARCH_RESULT_LIMIT;
-/** Context truncation trigger for the searchInScripts path (chars). */
-const CONTEXT_TRUNCATE_LINES_LARGE = SCRIPT_CONTEXT_TRUNCATE_LINES_LARGE;
-/** Match-window half-width used when truncating the searchInScripts path. */
-const CONTEXT_SNIPPET_HALF_LINES_LARGE = SCRIPT_CONTEXT_SNIPPET_HALF_LINES_LARGE;
 /** Context truncation trigger for the keyword-index path (chars). */
 const CONTEXT_TRUNCATE_LINES_SMALL = SCRIPT_CONTEXT_TRUNCATE_LINES_SMALL;
 /** Match-window half-width used when truncating the keyword-index path. */
@@ -132,35 +37,6 @@ const CONTEXT_HALF_LINES_SMALL = SCRIPT_CONTEXT_HALF_LINES_SMALL;
  * around the match index with `...` ellipses. Shared by searchInScripts and
  * buildKeywordIndex.
  */
-function getContextWindow(
-  lines: string[],
-  line: string,
-  lineIndex: number,
-  matchIndex: number,
-  halfWidth: number,
-  truncateChars: number,
-  snippetHalfWidth: number,
-): string {
-  const startLine = Math.max(0, lineIndex - halfWidth);
-  const endLine = Math.min(lines.length - 1, lineIndex + halfWidth);
-  let contextLength = endLine - startLine;
-  for (let i = startLine; i <= endLine && contextLength <= truncateChars; i++) {
-    contextLength += lines[i]!.length;
-  }
-
-  if (contextLength > truncateChars) {
-    const snippetStart = Math.max(0, matchIndex - snippetHalfWidth);
-    const snippetEnd = Math.min(line.length, matchIndex + snippetHalfWidth);
-    return (
-      (snippetStart > 0 ? '...' : '') +
-      line.substring(snippetStart, snippetEnd) +
-      (snippetEnd < line.length ? '...' : '')
-    );
-  }
-
-  return lines.slice(startLine, endLine + 1).join('\n');
-}
-
 export interface ScriptInfo {
   scriptId: string;
   url: string;
