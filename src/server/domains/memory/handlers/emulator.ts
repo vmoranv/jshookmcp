@@ -306,12 +306,3 @@ export function listKnownEmulators(): Array<{
 }
 
 // ── Emulator Memory Region Descriptors ──
-
-export interface EmulatorRegionDescriptor {
-  regionName: string;
-  description: string;
-  /** Base address hint (hex string or empty for dynamic) */
-  baseAddressHint: string;
-  typicalSize: number;
-  resolutionHint: string;
-}

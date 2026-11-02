@@ -81,10 +81,3 @@ export interface ToolRunResult {
   diagnosticCode?: 'EMPTY_OUTPUT' | 'EMPTY_OUTPUT_ARTIFACT';
   diagnostics?: string[];
 }
-
-export interface ToolProbeResult {
-  available: boolean;
-  path?: string;
-  version?: string;
-  reason?: string;
-}

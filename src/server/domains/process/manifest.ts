@@ -36,9 +36,11 @@ const WIN32_ONLY_TOOLS = new Set([
   'process_detect_apc',
 ]);
 
-// `process_runtime_info` reads /proc/{pid}/{cmdline,environ,status} directly —
-// procfs exists on Linux only. Win32/macOS callers use process_get instead.
-const LINUX_ONLY_TOOLS = new Set(['process_runtime_info']);
+// NOTE: `process_runtime_info` reads procfs, which only exists on Linux. It is
+// deliberately NOT filtered by platform: the tool catalog must be identical on
+// every host (metadata / openapi are generated from a single sample), and the
+// handler already answers with a clear "use process_get" message elsewhere.
+const LINUX_ONLY_TOOLS = new Set<string>();
 
 const allRegistrations = defineMethodRegistrations<
   H,

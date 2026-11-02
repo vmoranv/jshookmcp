@@ -26,8 +26,6 @@ export interface HookCondition {
   callCount?: number;
 }
 
-export type HookHandler = (context: HookContext) => void | Promise<void>;
-
 export interface HookContext {
   target: string;
   args: unknown[];

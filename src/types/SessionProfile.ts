@@ -1,7 +1,3 @@
-import type { Page } from 'rebrowser-puppeteer-core';
-
-export type BrowserCookie = Awaited<ReturnType<Page['cookies']>>[number];
-
 export interface SessionProfileCookie {
   name: string;
   value: string;

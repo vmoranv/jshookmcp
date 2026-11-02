@@ -59,8 +59,6 @@ export const LEGACY_SHIM_DEGRADED_HOSTS = Object.freeze([
 
 export type LegacyShimDegradedHost = (typeof LEGACY_SHIM_DEGRADED_HOSTS)[number];
 
-export type LegacyShimHost = LegacyShimFullHost | LegacyShimDegradedHost;
-
 /** Predicate: is this host fully functional for the legacy shim? */
 export function isLegacyShimFullHost(host: string): host is LegacyShimFullHost {
   return (LEGACY_SHIM_FULL_HOSTS as readonly string[]).includes(host);

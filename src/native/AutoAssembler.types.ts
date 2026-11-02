@@ -14,9 +14,6 @@ export interface AAParsedCommand {
   line: number;
 }
 
-/** A resolved address value (label, symbol, or constant). */
-export type AAResolvedValue = bigint;
-
 /** Execution context provided by the host (handler layer). */
 export interface AAExecutionContext {
   pid: number;

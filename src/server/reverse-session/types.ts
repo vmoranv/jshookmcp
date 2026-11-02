@@ -1,5 +1,3 @@
-export type ReverseSessionAction = 'create' | 'status' | 'list' | 'plan' | 'run';
-
 export interface ReverseSessionTarget {
   platform: 'android' | 'native' | 'web' | 'unknown';
   packageName?: string;

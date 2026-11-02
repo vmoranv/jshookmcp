@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.vmoranv/jshookmcp",
-  "description": "Search-first MCP server for JavaScript reverse engineering: 735 tools across 36 domains.",
+  "description": "Search-first MCP server for JavaScript reverse engineering: 736 tools across 36 domains.",
   "version": "0.4.3",
   "websiteUrl": "https://vmoranv.github.io/jshookmcp/",
   "repository": {

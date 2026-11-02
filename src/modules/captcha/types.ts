@@ -202,22 +202,6 @@ export interface AICaptchaDetectionResult extends CaptchaDetectionResultBase {
 }
 
 /**
- * Configuration for CAPTCHA detection behavior.
- */
-export interface CaptchaDetectionConfig {
-  /** Enable automatic CAPTCHA detection */
-  autoDetectCaptcha?: boolean;
-  /** Automatically switch from headless to headed mode when CAPTCHA is detected */
-  autoSwitchHeadless?: boolean;
-  /** Timeout in milliseconds for waiting for CAPTCHA completion */
-  captchaTimeout?: number;
-  /** Default headless mode setting */
-  defaultHeadless?: boolean;
-  /** Ask user before switching back to headless mode */
-  askBeforeSwitchBack?: boolean;
-}
-
-/**
  * Page information used for AI-based CAPTCHA analysis.
  */
 export interface CaptchaPageInfo {

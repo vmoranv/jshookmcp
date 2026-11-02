@@ -17,13 +17,6 @@ export interface HttpHeader {
   value: string;
 }
 
-export interface HttpChunk {
-  size: number;
-  /** Raw chunk body hex (after size-line stripping). */
-  bodyHex: string;
-  extensions: string;
-}
-
 export interface ParsedHttpMessage {
   kind: HttpMessageKind;
   byteLength: number;

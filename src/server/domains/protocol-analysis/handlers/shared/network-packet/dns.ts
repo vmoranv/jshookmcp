@@ -17,21 +17,6 @@ import * as dnsPacket from 'dns-packet';
 // Types
 // ---------------------------------------------------------------------------
 
-export type DnsRecordType =
-  | 'A'
-  | 'NS'
-  | 'CNAME'
-  | 'SOA'
-  | 'PTR'
-  | 'MX'
-  | 'TXT'
-  | 'AAAA'
-  | 'SRV'
-  | 'OPT'
-  | 'RRSIG'
-  | 'DNSKEY'
-  | 'UNKNOWN';
-
 export interface DnsQuestion {
   name: string;
   qtype: number;

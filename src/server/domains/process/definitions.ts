@@ -345,5 +345,3 @@ export const processToolDefinitions: Tool[] = [
       .required('pid'),
   ),
 ];
-
-export type ProcessToolName = (typeof processToolDefinitions)[number]['name'];

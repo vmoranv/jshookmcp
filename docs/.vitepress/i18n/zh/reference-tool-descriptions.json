@@ -733,5 +733,6 @@
   "nemu_mem_inspect": "客户机内存检查族的单一收敛入口——一个工具、五个 `action` 子命令，每个子命令与一个既有的只读内存工具一一对应（既有工具保持不变）：read → nemu_read_memory（原始字节 base64 预览/数据）、dump → nemu_data_dump（u32/u64 字表并自动分类指针/字节码/ASCII）、chain → nemu_pointer_chain（逐跳跟随指针间接引用）、frame → nemu_dump_frame（解码 256 字节 CreateLitevm 帧结构）、scan → nemu_scan_memory（在地址范围内按字节模式搜索，pattern 为 base64）。每个子命令的参数与被包装工具完全一致；子命令级必填参数由处理器的 action 判别联合校验，默认值沿用被包装工具。所有子命令都是对仿真会话客户机内存的只读观察。",
   "memory_read_typed": "以显式字节序按类型读取进程内存。从 address 起用 koffi 的字节序敏感整型（uint64_le / int32_be 等）解码连续数值，无需手工字节交换；64 位值以十进制字符串返回，并同时给出二进制补码十六进制；float/double 按 IEEE-754 与指定字节序解码。最多支持 1024 个连续数值。适合结构体检查、大端网络载荷与游戏内存分析。",
   "frida_list_devices": "通过 frida-ls-devices 列出 frida 可见的设备（本地 / USB / 远程），返回的 id 可用于 frida_attach 的 device=id，或直接用 device=remote + host 直连远程设备。",
-  "frida_list_processes": "通过 frida-ps 列出 Frida 设备上的进程（默认本地设备；USB/远程传入 device + host）。注意 Android 上进程名是 App Label 而非包名——请用返回的 pid 进行 attach 以避免名称不匹配。"
+  "frida_list_processes": "通过 frida-ps 列出 Frida 设备上的进程（默认本地设备；USB/远程传入 device + host）。注意 Android 上进程名是 App Label 而非包名——请用返回的 pid 进行 attach 以避免名称不匹配。",
+  "process_runtime_info": "在 Linux 上读取 /proc/{pid} 运行时信息：完整命令行、完整环境变量块（路径、API key、设备 ID）以及状态摘要（VmRSS/VmPeak、线程数、能力集）。补充 process_get——后者只返回命令行。每个来源独立容错：某个文件读不到（权限不足、进程已退出）时该字段留空，而不是让整次调用失败。"
 }

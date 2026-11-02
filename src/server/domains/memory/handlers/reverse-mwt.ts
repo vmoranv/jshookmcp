@@ -42,19 +42,6 @@ export interface AccessedAddress {
   resolution: string;
 }
 
-export interface ReverseMWTResult {
-  /** Hex address of the instruction */
-  instructionAddress: string;
-  /** Full instruction text from Capstone (e.g. "mov rax, [rip + 0x1000]") */
-  instruction: string;
-  /** Raw instruction bytes (hex) */
-  instructionBytes: string;
-  /** Instruction size in bytes */
-  instructionSize: number;
-  /** Addresses accessed by this instruction */
-  accessedAddresses: AccessedAddress[];
-}
-
 // ── opStr parsing ──
 
 /** Regex for RIP-relative: [rip + 0xHEX] or [rip - 0xHEX] or [rip+0xHEX] */
