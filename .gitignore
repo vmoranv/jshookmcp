@@ -93,6 +93,14 @@ debugger-sessions/
 
 # Temporary test/MCP artifacts
 .tmp_mcp_artifacts/
+# Per-test artifact namespaces. `resolveArtifactPath({ customDir })` treats a
+# relative customDir as a path under the project root, so a test that passes
+# `customDir: 'evict-0'` writes real directories into the repo instead of a
+# temp dir. 128 such directories (evict-0..63 / lru-0..63) had accumulated
+# this way. Namespacing them here keeps a stray run from polluting git status;
+# the real fix is for a test to pass an absolute path under a temp dir.
+/evict-[0-9]*/
+/lru-[0-9]*/
 
 # Ad-hoc test scripts (not the main tests/ suite)
 test/
