@@ -103,8 +103,8 @@ export const VM_PROT = {
 } as const;
 
 /** VM region flavor constants */
-export const VM_REGION_BASIC_INFO_64 = 9;
-export const VM_REGION_BASIC_INFO_COUNT_64 = 9;
+const VM_REGION_BASIC_INFO_64 = 9;
+const VM_REGION_BASIC_INFO_COUNT_64 = 9;
 
 /** VM allocation flags */
 export const VM_FLAGS = {
@@ -482,7 +482,7 @@ export const EXCEPTION_BEHAVIOR = {
  * thread state in the exception message (caller must then thread_get_state
  * explicitly). We export x86_THREAD_STATE64 as the default for DarwinMach.
  */
-export const THREAD_FLAVOR = {
+const THREAD_FLAVOR = {
   NONE: 13,
   x86_THREAD_STATE32: 1,
   x86_THREAD_STATE64: 4,
@@ -494,7 +494,7 @@ export const THREAD_FLAVOR = {
 /**
  * mach_msg_type_name_t dispostions (mach/message.h) — used by mach_port_insert_right.
  */
-export const MACH_MSG_DISPOSITION = {
+const MACH_MSG_DISPOSITION = {
   MOVE_RECEIVE: 16,
   MOVE_SEND: 17,
   MOVE_SEND_ONCE: 18,
@@ -509,7 +509,7 @@ export const MACH_MSG_DISPOSITION = {
  * mach_exception_raise (64-bit code, requires MACH_EXCEPTION_CODES) = 2405;
  * exception_raise (32-bit code, DEFAULT behavior) = 2401. The reply ids are +100.
  */
-export const EXC_RAISE_MSG_IDS = {
+const EXC_RAISE_MSG_IDS = {
   RAISE_32: 2401, // exception_raise
   RAISE_64: 2405, // mach_exception_raise
   REPLY_32: 2501,
@@ -592,7 +592,7 @@ export function hostPageSize(): number {
 // address + thread, reads GP registers via thread_get_state, and replies with
 // RetCode=KERN_SUCCESS so the kernel resumes the target.
 
-export const MACH_MSG_OPTION = {
+const MACH_MSG_OPTION = {
   SEND_MSG: 0x00000001,
   RCV_MSG: 0x00000004,
   RCV_INTERRUPT: 0x00000040,
@@ -601,17 +601,14 @@ export const MACH_MSG_OPTION = {
 } as const;
 
 /** mach_msg_return_t success. */
-export const MACH_MSG_SUCCESS = 0;
+const MACH_MSG_SUCCESS = 0;
 /** RCV-side error codes occupy the 0x10004xxx range (osfmk/mach/message.h):
  *  MACH_RCV_INVALID_NAME=0x10004001, MACH_RCV_IN_SET=0x10004002,
  *  MACH_RCV_TIMED_OUT=0x10004003, MACH_RCV_INTERRUPTED=0x10004004, ... */
-export const MACH_RCV_ERROR_BASE = 0x10004000;
+const MACH_RCV_ERROR_BASE = 0x10004000;
 
 /** Reply sends back the MOVE_SEND_ONCE right the kernel carried in the raise. */
-export const MACH_MSG_TYPE_MOVE_SEND_ONCE = 5;
-
-/** mach_exception_raise_reply mig message id (raise=2405 → reply=2505). */
-export const EXC_RAISE_REPLY_ID = 2505;
+const MACH_MSG_TYPE_MOVE_SEND_ONCE = 5;
 
 export interface DecodedException {
   thread: number; // faulting thread port
@@ -631,7 +628,7 @@ export interface DecodedException {
  *       mach_port_t rcv_name, timeout_t timeout, mach_port_t notify)
  * All args are uint32 on the libSystem ABI.
  */
-export function machMsg(
+function machMsg(
   msg: Buffer,
   option: number,
   sendSize: number,
@@ -692,11 +689,6 @@ export function machPortReleaseReceive(name: number): number {
   return fn(machTaskSelf(), name, MACH_PORT_RIGHT_RECEIVE, -1) as number;
 }
 
-/** mach_port_deallocate(self, name) — release a port right. */
-export function machPortDeallocateRecv(name: number): number {
-  return machPortDeallocate(machTaskSelf(), name);
-}
-
 /**
  * thread_get_state(thread, flavor, old_state, *count) — read GP registers.
  * For x86-64 use flavor x86_THREAD_STATE64 (4); `state` is 168 bytes but we pass
@@ -734,7 +726,7 @@ export function threadGetState(thread: number, flavor: number, state: Buffer): n
  * Runtime-unverified on this host (needs macOS debugger entitlement + a faulting
  * target); offsets derived from the xnu mig layout.
  */
-export function decodeExceptionRaiseMsg(msg: Buffer): DecodedException {
+function decodeExceptionRaiseMsg(msg: Buffer): DecodedException {
   if (msg.length < 64) {
     throw new Error(`mach_exception_raise message truncated (${msg.length} < 64 bytes)`);
   }
@@ -762,7 +754,7 @@ export function decodeExceptionRaiseMsg(msg: Buffer): DecodedException {
  * send-once right carried in the raise's msgh_local_port. RetCode=KERN_SUCCESS
  * tells the kernel the exception was handled and the target may resume.
  */
-export function buildExceptionReply(localPort: number, retCode: number, replyId: number): Buffer {
+function buildExceptionReply(localPort: number, retCode: number, replyId: number): Buffer {
   // Head(24) + NDR(8) + RetCode(4) = 36 bytes
   const reply = Buffer.alloc(36);
   // msgh_bits = remote_type | (local_type<<8); reply remote = MOVE_SEND_ONCE.

@@ -14,7 +14,6 @@
 
 import type { LibraryHandle } from 'koffi';
 import { requireKoffi, type KoffiCallable } from './koffi-loader';
-import { logger } from '@utils/logger';
 import { OpenProcess, CloseHandle, isWindows, PROCESS_ACCESS } from './Win32API';
 
 // ── Constants ──
@@ -354,7 +353,7 @@ function buildTypeIndexCacheFromProcess(
 
 // ── Custom Error ──
 
-export class HandleElevationError extends Error {
+class HandleElevationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'HandleElevationError';
@@ -509,21 +508,3 @@ export function parseHandleBufferForTest(buffer: Buffer, filterPid?: number): Ra
 }
 
 // ── Cleanup ──
-
-/**
- * Unload all loaded libraries
- */
-export function unloadHandleEnumerator(): void {
-  if (kernel32) {
-    kernel32.unload();
-    kernel32 = null;
-  }
-  if (ntdll) {
-    ntdll.unload();
-    ntdll = null;
-  }
-  _NtQuerySystemInformation = null;
-  _NtQueryObject = null;
-  _DuplicateHandle = null;
-  logger.debug('Unloaded HandleEnumerator native libraries');
-}

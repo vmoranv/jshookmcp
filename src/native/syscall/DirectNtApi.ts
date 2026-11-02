@@ -11,7 +11,7 @@ export function ntSuccess(status: number): boolean {
 }
 
 /** Format an NTSTATUS code as a readable hex string (0xXXXXXXXX). */
-export function ntStatusToString(ntStatus: number): string {
+function ntStatusToString(ntStatus: number): string {
   return `NTSTATUS 0x${(ntStatus >>> 0).toString(16).padStart(8, '0')}`;
 }
 

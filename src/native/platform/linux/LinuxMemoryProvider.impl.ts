@@ -67,7 +67,7 @@ function normalizePattern(pattern: Buffer | string): Buffer {
   return Buffer.from(pattern, 'utf8');
 }
 
-export class LinuxMemoryProviderImpl implements PlatformMemoryAPI {
+class LinuxMemoryProviderImpl implements PlatformMemoryAPI {
   private readonly pid: number;
   readonly platform = 'linux';
 

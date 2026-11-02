@@ -1,1 +1,1 @@
-export { LinuxMemoryProviderImpl } from './LinuxMemoryProvider.impl';
+export { LinuxMemoryProvider } from './LinuxMemoryProvider.impl';
