@@ -17,39 +17,7 @@ export class PageCDPTimeoutGuard {
    * timeout — with this check we fail fast (~3 s) with a clear message.
    */
   async checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
-    // Use AbortSignal-based timeout so the interrupt is truly async at the node level.
-    const ac = new AbortController();
-    const timer = asyncSetTimeout(timeoutMs, undefined, { signal: ac.signal }).then(() => {
-      throw new Error('cdp_unreachable');
-    });
-    let cdp: import('rebrowser-puppeteer-core').CDPSession | null = null;
-    try {
-      cdp = await Promise.race([page.createCDPSession(), timer as unknown as Promise<never>]);
-      await Promise.race([
-        cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
-        timer as unknown as Promise<never>,
-      ]);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg === 'cdp_unreachable') {
-        throw new Error(
-          'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
-            "Call debugger_lifecycle({ action: 'disable' })() before this tool, or run it before " +
-            "debugger_lifecycle({ action: 'enable' })().",
-          { cause: err },
-        );
-      }
-      throw err;
-    } finally {
-      ac.abort();
-      if (cdp) {
-        try {
-          await cdp.detach();
-        } catch {
-          // Best-effort detach — session may already be closed
-        }
-      }
-    }
+    return checkPageCDPHealth(page, timeoutMs);
   }
 
   /**
@@ -229,4 +197,47 @@ interface CoveragePage {
     startCSSCoverage(options?: { resetOnNavigation?: boolean }): Promise<void>;
     stopCSSCoverage(): Promise<unknown>;
   };
+}
+
+/**
+ * Pre-flight CDP health check (standalone form).
+ *
+ * Same behaviour as {@link PageCDPTimeoutGuard.checkPageCDPHealth}, exposed as
+ * a plain function so callers that already hold a Page — PageController's
+ * evaluate wrappers — do not need to instantiate the guard.
+ */
+export async function checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
+  // Use AbortSignal-based timeout so the interrupt is truly async at the node level.
+  const ac = new AbortController();
+  const timer = asyncSetTimeout(timeoutMs, undefined, { signal: ac.signal }).then(() => {
+    throw new Error('cdp_unreachable');
+  });
+  let cdp: import('rebrowser-puppeteer-core').CDPSession | null = null;
+  try {
+    cdp = await Promise.race([page.createCDPSession(), timer as unknown as Promise<never>]);
+    await Promise.race([
+      cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
+      timer as unknown as Promise<never>,
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg === 'cdp_unreachable') {
+      throw new Error(
+        'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
+          "Call debugger_lifecycle({ action: 'disable' })() before this tool, or run it before " +
+          "debugger_lifecycle({ action: 'enable' })().",
+        { cause: err },
+      );
+    }
+    throw err;
+  } finally {
+    ac.abort();
+    if (cdp) {
+      try {
+        await cdp.detach();
+      } catch {
+        // Best-effort detach — session may already be closed
+      }
+    }
+  }
 }
