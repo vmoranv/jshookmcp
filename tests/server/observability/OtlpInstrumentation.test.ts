@@ -168,3 +168,116 @@ describe('OtlpInstrumentation', () => {
     await expect(otlp.flush()).resolves.toBeUndefined();
   });
 });
+
+/**
+ * Temporality regression guard — the 268× inflation bug.
+ *
+ * What went wrong in production: every call site emits a unit increment
+ * (`emitMetric(name, 1, 'counter')`), but the exporter defaulted to
+ * CUMULATIVE aggregation. The SDK then re-sent the RUNNING TOTAL on every
+ * 30s tick whether or not anything happened, so one `(process, tool)` pair
+ * re-uploaded the same number ~200 times. Measured on the ingress:
+ * 4,075,981 summed `calls` against 15,199 real ones. That row volume is what
+ * pushed the D1 database to its 500 MB ceiling.
+ *
+ * These tests drive a REAL OTLP exporter against a local capture server —
+ * a fake exporter would let the temporality default slip through again,
+ * because the temporality lives in the exporter, not in our facade.
+ */
+describe('OTLP metric temporality', () => {
+  it('re-exports increments, not a growing running total', async () => {
+    const payloads = await captureMetricPayloads(async (metricUrl) => {
+      const otlp = new OtlpInstrumentation({
+        metricUrl,
+        // Short interval so the test does not wait a minute; the assertion is
+        // about WHAT is sent, not how often.
+        metricExportIntervalMs: 120,
+      });
+      await waitForInit();
+      // Three increments of the same instrument with the same attribute set —
+      // exactly the shape every call site produces.
+      for (let i = 0; i < 3; i += 1) {
+        otlp.emitMetric('probe_delta_total', 1, 'counter', { tool: 'probe' });
+      }
+      await otlp.flush();
+      await new Promise((resolve) => setTimeout(resolve, 260));
+      await otlp.shutdown();
+    });
+
+    const values = payloads.flatMap(extractCounterValues).filter((v) => v !== undefined);
+    expect(values.length).toBeGreaterThan(0);
+    // Under CUMULATIVE the same counter reports 1, then 2, then 3 (a running
+    // total). Under DELTA each export reports only what happened since the
+    // last one, so no single datapoint may exceed the 3 increments emitted.
+    expect(Math.max(...(values as number[]))).toBeLessThanOrEqual(3);
+    // And the summed total must equal exactly the three increments — not a
+    // 1+2+3=6 running-total series.
+    const sum = (values as number[]).reduce((acc, v) => acc + v, 0);
+    expect(sum).toBeLessThanOrEqual(3);
+  });
+});
+
+/** One captured OTLP/JSON metrics request body. */
+type MetricPayload = Record<string, unknown>;
+
+/**
+ * Run `body` against a throwaway HTTP server that records OTLP metric bodies.
+ *
+ * The server answers 200 with an empty protobuf-ish body (the exporter reads
+ * `{}` as success), so the exporter's retry/backoff path stays out of the way.
+ */
+async function captureMetricPayloads(
+  body: (metricUrl: string) => Promise<void>,
+): Promise<MetricPayload[]> {
+  const { createServer } = await import('node:http');
+  const payloads: MetricPayload[] = [];
+  const server = createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => {
+      try {
+        payloads.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as MetricPayload);
+      } catch {
+        /* a non-JSON body is not what these assertions are about */
+      }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end('{}');
+    });
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  if (address === null || typeof address === 'string') {
+    server.close();
+    throw new Error('capture server failed to bind a port');
+  }
+  try {
+    await body(`http://127.0.0.1:${address.port}/v1/metrics`);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+  return payloads;
+}
+
+/**
+ * Pull every `asDouble`/`asInt` out of an OTLP/JSON metrics body.
+ *
+ * Deliberately schemaless (walks the whole tree) so it cannot silently stop
+ * matching when the SDK reshapes its envelope.
+ */
+function extractCounterValues(payload: unknown): (number | undefined)[] {
+  const found: (number | undefined)[] = [];
+  const walk = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const child of node) walk(child);
+      return;
+    }
+    if (node === null || typeof node !== 'object') return;
+    const record = node as Record<string, unknown>;
+    if (typeof record.asDouble === 'number') found.push(record.asDouble);
+    else if (record.asInt !== undefined) found.push(Number(record.asInt));
+    for (const value of Object.values(record)) walk(value);
+  };
+  walk(payload);
+  return found;
+}
