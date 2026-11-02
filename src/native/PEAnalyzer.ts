@@ -10,15 +10,8 @@
 
 import { promises as fs } from 'node:fs';
 import { logger } from '@utils/logger';
-import {
-  openProcessForMemory,
-  CloseHandle,
-  ReadProcessMemory,
-  EnumProcessModules,
-  GetModuleBaseName,
-  GetModuleFileNameEx,
-  GetModuleInformation,
-} from '@native/Win32API';
+import { enumerateProcessModules, type ProcessModuleEntry } from './processModules';
+import { openProcessForMemory, CloseHandle, ReadProcessMemory } from '@native/Win32API';
 import { classifyHookPattern, decodeHookTarget } from './platform/HookPatternScanner';
 import type {
   PEHeaders,
@@ -740,34 +733,8 @@ export class PEAnalyzer {
     return functions;
   }
 
-  private enumerateModulesInternal(
-    hProcess: bigint,
-  ): { name: string; base: string; path: string; size: number }[] {
-    const modules: { name: string; base: string; path: string; size: number }[] = [];
-
-    try {
-      const { modules: modHandles, count } = EnumProcessModules(hProcess);
-      for (let i = 0; i < count; i++) {
-        const hMod = modHandles[i]!;
-        const name = GetModuleBaseName(hProcess, hMod);
-        const info = GetModuleInformation(hProcess, hMod);
-
-        const modulePath = GetModuleFileNameEx(hProcess, hMod) ?? name;
-
-        if (info.success) {
-          modules.push({
-            name,
-            base: `0x${info.info.lpBaseOfDll.toString(16)}`,
-            path: modulePath,
-            size: info.info.SizeOfImage,
-          });
-        }
-      }
-    } catch (e) {
-      logger.debug(`Module enumeration failed: ${e}`);
-    }
-
-    return modules;
+  private enumerateModulesInternal(hProcess: bigint): ProcessModuleEntry[] {
+    return enumerateProcessModules(hProcess);
   }
 
   /**
