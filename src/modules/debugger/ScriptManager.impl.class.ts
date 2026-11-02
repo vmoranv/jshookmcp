@@ -34,12 +34,18 @@ interface ScriptSearchMatch {
 /**
  * Build the search regex. A literal keyword is escaped so regex metacharacters
  * in the user's text match themselves; `g` is required by `matchAll`.
+ *
+ * The `RegExp` constructor is unavoidable here — compiling a caller-supplied
+ * search term is the whole point of this function, and the non-regex path
+ * escapes every metacharacter first. Flags are written as literals rather than
+ * a variable so the call shape stays visible to static analysis.
  */
 function buildSearchRegex(keyword: string, isRegex: boolean, caseSensitive: boolean): RegExp {
-  const flags = caseSensitive ? 'g' : 'gi';
-  return isRegex
-    ? new RegExp(keyword, flags)
-    : new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+  if (isRegex) {
+    return caseSensitive ? new RegExp(keyword, 'g') : new RegExp(keyword, 'gi');
+  }
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return caseSensitive ? new RegExp(escaped, 'g') : new RegExp(escaped, 'gi');
 }
 
 /** Everything one script scan needs from the caller. */
