@@ -18,6 +18,8 @@
  * author guessed were sensitive.
  */
 
+import { readFile } from 'node:fs/promises';
+
 /** Selected fields from /proc/{pid}/status, normalized. Unknown fields are omitted. */
 export interface ProcStatusSummary {
   name?: string;
@@ -149,4 +151,44 @@ export function parseProcStatusSummary(content: string): ProcStatusSummary {
     }
   }
   return out;
+}
+
+/**
+ * Read /proc/{pid} runtime info. Fail-soft per file: an unreadable file
+ * (permission, process gone) leaves that field empty instead of aborting.
+ */
+export async function readProcessRuntimeSafe(
+  pid: number,
+): Promise<{ available: true; info: ProcessRuntimeInfo } | { available: false; error: string }> {
+  const base = `/proc/${pid}`;
+  let gotAny = false;
+  let lastError = '';
+  const cmdline: string[] = [];
+  const environ: Record<string, string> = {};
+  const status: ProcStatusSummary = {};
+  try {
+    const c = await readFile(`${base}/cmdline`, 'utf-8');
+    for (const a of parseProcCmdline(c)) cmdline.push(a);
+    gotAny = true;
+  } catch (err) {
+    lastError = String(err);
+  }
+  try {
+    const e = await readFile(`${base}/environ`, 'utf-8');
+    Object.assign(environ, parseProcEnviron(e));
+    gotAny = true;
+  } catch (err) {
+    lastError = String(err);
+  }
+  try {
+    const s = await readFile(`${base}/status`, 'utf-8');
+    Object.assign(status, parseProcStatusSummary(s));
+    gotAny = true;
+  } catch (err) {
+    lastError = String(err);
+  }
+  if (!gotAny) {
+    return { available: false, error: lastError };
+  }
+  return { available: true, info: { cmdline, environ, status } };
 }

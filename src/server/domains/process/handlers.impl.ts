@@ -98,6 +98,17 @@ export class ProcessHandlersBase {
     return this.processMgmt.handleProcessGet(args);
   }
 
+  // Bound by string name in manifest.ts defineMethodRegistrations — invisible
+  // to static analysis.
+  // fallow-ignore-next-line unused-class-member
+  async handleProcessRuntimeInfoTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProcessRuntimeInfo(args));
+  }
+
+  async handleProcessRuntimeInfo(args: Record<string, unknown>) {
+    return this.processMgmt.handleProcessRuntimeInfo(args);
+  }
+
   async handleProcessKillTool(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => await this.handleProcessKill(args));
   }

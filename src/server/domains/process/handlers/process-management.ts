@@ -9,6 +9,7 @@ import { logger } from '@utils/logger';
 import { argNumber, argStringArray } from '@server/domains/shared/parse-args';
 import { DEFAULT_DEBUG_PORT } from '@src/constants/server';
 import { isChromiumLikeExecutable } from '@modules/process/chromium-launch';
+import { readProcessRuntimeSafe } from '@modules/process/proc-runtime/proc-runtime-parser';
 import type { MemoryManager } from '@server/domains/shared/modules/native';
 import type { AuditEntry, MemoryOperationHost, ProcessHandlerDeps } from './shared-types';
 import {
@@ -264,6 +265,80 @@ export class ProcessManagementHandlers implements MemoryOperationHost {
       };
     } catch (error) {
       logger.error('Process get failed:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
+  }
+
+  /**
+   * Read /proc/{pid}/{cmdline,environ,status} for a Linux process.
+   *
+   * `process_get` already surfaces the command line; this exposes the two
+   * sources it does not: the environment block (paths, API keys, device IDs —
+   * frequently the fastest route to a target's config) and the /proc status
+   * summary (~VmRSS/VmPeak, threads, capability set).
+   */
+  async handleProcessRuntimeInfo(args: Record<string, unknown>) {
+    try {
+      const pid = validatePid(args.pid);
+      const result = await readProcessRuntimeSafe(pid);
+
+      if (!result.available) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: false,
+                  message:
+                    `Unable to read /proc/${pid}. This tool reads Linux procfs directly; ` +
+                    'on other platforms use process_get for the command line.',
+                  error: result.error,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      const { info } = result;
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                pid,
+                commandLine: info.cmdline,
+                environment: info.environ,
+                environmentVariableCount: Object.keys(info.environ).length,
+                status: info.status,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error('Process runtime info failed:', error);
       return {
         content: [
           {
