@@ -36,6 +36,12 @@ const WIN32_ONLY_TOOLS = new Set([
   'process_detect_apc',
 ]);
 
+// NOTE: `process_runtime_info` reads procfs, which only exists on Linux. It is
+// deliberately NOT filtered by platform: the tool catalog must be identical on
+// every host (metadata / openapi are generated from a single sample), and the
+// handler already answers with a clear "use process_get" message elsewhere.
+const LINUX_ONLY_TOOLS = new Set<string>();
+
 const allRegistrations = defineMethodRegistrations<
   H,
   (typeof processToolDefinitions)[number]['name']
@@ -48,6 +54,7 @@ const allRegistrations = defineMethodRegistrations<
     { tool: 'process_find', method: 'handleProcessFindTool' },
     { tool: 'process_list', method: 'handleProcessFindTool' },
     { tool: 'process_get', method: 'handleProcessGetTool' },
+    { tool: 'process_runtime_info', method: 'handleProcessRuntimeInfoTool' },
     { tool: 'process_kill', method: 'handleProcessKillTool' },
     { tool: 'process_windows', method: 'handleProcessWindowsTool' },
     { tool: 'process_check_debug_port', method: 'handleProcessCheckDebugPortTool' },
@@ -79,9 +86,14 @@ const allRegistrations = defineMethodRegistrations<
   ],
 });
 
-const registrations = IS_WIN32
-  ? allRegistrations
-  : allRegistrations.filter((r) => !WIN32_ONLY_TOOLS.has(r.tool.name));
+const IS_LINUX = EFFECTIVE_PLATFORM === 'linux';
+
+const registrations = allRegistrations.filter((r) => {
+  if (IS_WIN32) return !LINUX_ONLY_TOOLS.has(r.tool.name);
+  if (IS_LINUX) return !WIN32_ONLY_TOOLS.has(r.tool.name);
+  // macOS: no Win32 APIs, no procfs.
+  return !WIN32_ONLY_TOOLS.has(r.tool.name) && !LINUX_ONLY_TOOLS.has(r.tool.name);
+});
 
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   kind: 'domain-manifest',

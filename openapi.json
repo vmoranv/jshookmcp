@@ -14690,6 +14690,16 @@
         "required": ["pid"],
         "type": "object"
       },
+      "process_process_runtime_info": {
+        "properties": {
+          "pid": {
+            "description": "Process ID to read procfs for",
+            "type": "number"
+          }
+        },
+        "required": ["pid"],
+        "type": "object"
+      },
       "process_process_suspend": {
         "properties": {
           "pid": {
@@ -31668,7 +31678,7 @@
     },
     "/meta/search_tools": {
       "post": {
-        "description": "Search 735 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. Domains: browser (85) | memory (75) | native-emulator (57) | binary-instrument (46) | network (38) | tls-inspector (29) | process (28) | adb-bridge (26) | core (25) | debugger (21) | exploit-dev (21) | v8-inspector (21) | protocol-analysis (20) | platform (18) | maintenance (17) | streaming (17) | wasm (17) | dart-inspector (16) | syscall-hook (15) | instrumentation (13) | workflow (13) | coordination (12) | canvas (11) | proxy (11) | trace (10) | webgpu (10) | cross-domain (8) | mojo-ipc (8) | transform (8) | extension-registry (7) | graphql (7) | sourcemap (7) | native-bridge (6) | encoding (5) | tasks (4) | session (3). Query tip: before searching, distill your intent into key concepts (action verb + target + domain). The engine combines token matching, fuzzy names, profile context, and optional static embeddings.",
+        "description": "Search 736 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. Domains: browser (85) | memory (75) | native-emulator (57) | binary-instrument (46) | network (38) | process (29) | tls-inspector (29) | adb-bridge (26) | core (25) | debugger (21) | exploit-dev (21) | v8-inspector (21) | protocol-analysis (20) | platform (18) | maintenance (17) | streaming (17) | wasm (17) | dart-inspector (16) | syscall-hook (15) | instrumentation (13) | workflow (13) | coordination (12) | canvas (11) | proxy (11) | trace (10) | webgpu (10) | cross-domain (8) | mojo-ipc (8) | transform (8) | extension-registry (7) | graphql (7) | sourcemap (7) | native-bridge (6) | encoding (5) | tasks (4) | session (3). Query tip: before searching, distill your intent into key concepts (action verb + target + domain). The engine combines token matching, fuzzy names, profile context, and optional static embeddings.",
         "operationId": "search_tools",
         "requestBody": {
           "content": {
@@ -31692,7 +31702,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Search 735 tools across 36 capability domains.",
+        "summary": "Search 736 tools across 36 capability domains.",
         "tags": ["meta"]
       }
     },
@@ -36435,6 +36445,37 @@
           }
         },
         "summary": "Resume a previously suspended process.",
+        "tags": ["process"],
+        "x-domain": "process"
+      }
+    },
+    "/process/process_runtime_info": {
+      "post": {
+        "description": "Read /proc/{pid} runtime info on Linux: full command line, the complete environment block (paths, API keys, device IDs), and the status summary (VmRSS/VmPeak, thread count, capability set). Complements process_get, which returns only the command line. Fail-soft per source: an unreadable file (permission, process gone) leaves that field empty instead of failing the whole call.",
+        "operationId": "process_runtime_info",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/process_process_runtime_info"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool execution result returned as MCP tool result text content."
+          }
+        },
+        "summary": "Read /proc/{pid} runtime info on Linux: full command line, the complete environment block (paths, API keys, device ID...",
         "tags": ["process"],
         "x-domain": "process"
       }

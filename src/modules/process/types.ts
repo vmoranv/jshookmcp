@@ -59,11 +59,3 @@ export interface MemoryPatch {
   data: string;
   encoding?: 'hex' | 'base64';
 }
-
-export interface MemoryMonitor {
-  pid: number;
-  address: string;
-  interval: number;
-  lastValue: string;
-  timer: NodeJS.Timeout;
-}

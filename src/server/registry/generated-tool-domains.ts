@@ -556,6 +556,7 @@ export const GENERATED_TOOL_DOMAIN_MAP: Readonly<Record<string, string>> = {
   process_launch_debug: 'process',
   process_list: 'process',
   process_resume: 'process',
+  process_runtime_info: 'process',
   process_suspend: 'process',
   process_windows: 'process',
   profiler_cpu: 'network',

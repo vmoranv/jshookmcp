@@ -61,7 +61,7 @@ describe('process manifest platform filtering', () => {
     const manifest = await loadManifestWithPlatform('linux');
     const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
-    expect(manifest.registrations.length).toBe(25);
+    expect(manifest.registrations.length).toBe(26);
     for (const tool of CROSS_PLATFORM_TOOLS) {
       if (tool === 'inject_dll' || tool === 'inject_shellcode' || tool === 'check_debug_port') {
         continue;

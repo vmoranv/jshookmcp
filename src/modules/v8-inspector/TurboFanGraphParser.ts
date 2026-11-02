@@ -72,10 +72,6 @@ export interface TurboFanGraphPhase {
   edgeCount?: number;
 }
 
-export interface TurboFanRegisterAllocation {
-  [blockId: string]: unknown;
-}
-
 export interface TurboFanIRGraph {
   function: TurboFanFunctionMeta;
   sources: Record<string, TurboFanFunctionMeta>;

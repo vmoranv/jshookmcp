@@ -319,7 +319,7 @@ export const DOMAIN_TOOL_COUNT_MAP: Readonly<Record<string, number>> = {
   'native-emulator': 57,
   network: 38,
   platform: 18,
-  process: 28,
+  process: 29,
   'protocol-analysis': 20,
   proxy: 11,
   session: 3,

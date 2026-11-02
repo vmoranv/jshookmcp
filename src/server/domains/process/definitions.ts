@@ -27,6 +27,18 @@ export const processToolDefinitions: Tool[] = [
       .number('pid', 'Process ID to retrieve details for')
       .required('pid'),
   ),
+  tool('process_runtime_info', (t) =>
+    t
+      .desc(
+        'Read /proc/{pid} runtime info on Linux: full command line, the complete environment block ' +
+          '(paths, API keys, device IDs), and the status summary (VmRSS/VmPeak, thread count, capability set). ' +
+          'Complements process_get, which returns only the command line. Fail-soft per source: an unreadable ' +
+          'file (permission, process gone) leaves that field empty instead of failing the whole call.',
+      )
+      .number('pid', 'Process ID to read procfs for')
+      .required('pid')
+      .readOnly(),
+  ),
   tool('process_kill', (t) =>
     t
       .desc('Terminate a process by PID. Requires appropriate privileges.')
@@ -333,5 +345,3 @@ export const processToolDefinitions: Tool[] = [
       .required('pid'),
   ),
 ];
-
-export type ProcessToolName = (typeof processToolDefinitions)[number]['name'];

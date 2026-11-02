@@ -23,8 +23,6 @@ import { z } from 'zod';
 /** Subcommand discriminants, in union order. Mirrored by the tool's `action` enum. */
 export const MEM_INSPECT_ACTIONS = ['read', 'dump', 'chain', 'frame', 'scan'] as const;
 
-export type MemInspectAction = (typeof MEM_INSPECT_ACTIONS)[number];
-
 /** action='read' → nemu_read_memory */
 const MemInspectReadSchema = z.object({
   action: z.literal('read'),

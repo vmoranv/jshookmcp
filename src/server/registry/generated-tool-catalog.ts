@@ -21895,6 +21895,30 @@ export const GENERATED_TOOL_CATALOG = [
   },
   {
     tool: {
+      name: 'process_runtime_info',
+      description:
+        'Read /proc/{pid} runtime info on Linux: full command line, the complete environment block (paths, API keys, device IDs), and the status summary (VmRSS/VmPeak, thread count, capability set). Complements process_get, which returns only the command line. Fail-soft per source: an unreadable file (permission, process gone) leaves that field empty instead of failing the whole call.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          pid: {
+            type: 'number',
+            description: 'Process ID to read procfs for',
+          },
+        },
+        required: ['pid'],
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    domain: 'process',
+  },
+  {
+    tool: {
       name: 'process_suspend',
       description:
         'Suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. Requires admin/root on most platforms.',

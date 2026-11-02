@@ -22,13 +22,6 @@ export interface CheatEntry {
   offset?: string;
 }
 
-export interface CheatTableExport {
-  /** CE version number */
-  version: number;
-  /** All entries */
-  entries: CheatEntry[];
-}
-
 // ── Value type mapping (jshookmcp → CE VariableType) ──
 
 const VALUE_TYPE_TO_CE: Record<string, string> = {

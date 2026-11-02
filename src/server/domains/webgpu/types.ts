@@ -114,19 +114,6 @@ export interface GPUMemoryStats {
   trackedBytes: number;
 }
 
-export interface TimingStats {
-  timings: number[];
-  mean: number;
-  stddev: number;
-  min: number;
-  max: number;
-  anomalies?: Array<{
-    index: number;
-    value: number;
-    deviation: number;
-  }>;
-}
-
 export interface WebGPUDomainDependencies {
   pageController?: {
     getActivePage(): Promise<any>;

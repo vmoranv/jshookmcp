@@ -19,13 +19,14 @@
 - process + debugger
 - process + platform
 
-## 工具清单（28）
+## 工具清单（29）
 
 | 工具 | 说明 |
 | --- | --- |
 | `process_find` | 按名称模式搜索进程，返回匹配进程的 PID、名称、路径和窗口信息。 |
 | `process_list` | 列出所有正在运行的进程，等同于空模式的 process_find。 |
 | `process_get` | 获取指定 PID 进程的详细信息，包括命令行、父进程 PID 和调试端口状态。 |
+| `process_runtime_info` | 在 Linux 上读取 /proc/{pid} 运行时信息：完整命令行、完整环境变量块（路径、API key、设备 ID）以及状态摘要（VmRSS/VmPeak、线程数、能力集）。补充 process_get——后者只返回命令行。每个来源独立容错：某个文件读不到（权限不足、进程已退出）时该字段留空，而不是让整次调用失败。 |
 | `process_kill` | 终止指定 PID 的进程，需要适当的权限。 |
 | `process_windows` | 获取指定进程关联的全部窗口句柄。 |
 | `process_check_debug_port` | 检查目标进程是否已开启可用于 CDP 附加的调试端口。 |

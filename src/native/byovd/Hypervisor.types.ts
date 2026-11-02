@@ -523,14 +523,3 @@ export interface VmcsConfig {
 }
 
 // ── Legacy MSR Values Type ──
-
-/** VMX capability MSR values read via BYOVD driver (legacy subset). */
-export interface VmxMsrValues {
-  vmxBasic: bigint;
-  cr0Fixed0: bigint;
-  cr0Fixed1: bigint;
-  cr4Fixed0: bigint;
-  cr4Fixed1: bigint;
-  eptVpidCap: bigint;
-  procBasedCtls2: bigint;
-}

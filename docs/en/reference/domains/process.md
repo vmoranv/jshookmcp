@@ -19,13 +19,14 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 - process + debugger
 - process + platform
 
-## Full tool list (28)
+## Full tool list (29)
 
 | Tool | Description |
 | --- | --- |
 | `process_find` | Search for processes by name pattern. Returns a list of matching processes with PID, name, path, and window information. |
 | `process_list` | List all running processes. This is an alias for process_find with an empty pattern. |
 | `process_get` | Get detailed information about a specific process by PID, including command line, parent PID, and debug port status. |
+| `process_runtime_info` | Read /proc/{pid} runtime info on Linux: full command line, the complete environment block (paths, API keys, device IDs), and the status summary (VmRSS/VmPeak, thread count, capability set). Complements process_get, which returns only the command line. Fail-soft per source: an unreadable file (permission, process gone) leaves that field empty instead of failing the whole call. |
 | `process_kill` | Terminate a process by PID. Requires appropriate privileges. |
 | `process_windows` | Get all window handles for a process. |
 | `process_check_debug_port` | Check if a process has a debug port enabled for CDP attachment. |

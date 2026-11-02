@@ -11,8 +11,6 @@
  */
 import type { EvidenceEdge, EvidenceGraphSnapshot } from '@server/evidence/types';
 
-export type EvidenceExportFormat = 'json' | 'mermaid' | 'dot';
-
 export interface GraphRenderOptions {
   /** Maximum nodes to render before truncating (defaults to 200). */
   maxNodes?: number;

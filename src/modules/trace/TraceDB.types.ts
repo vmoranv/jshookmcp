@@ -166,12 +166,6 @@ export interface HeapSnapshotRecord {
   summary: string;
 }
 
-/** Key-value metadata for a trace session. */
-export interface TraceMetadata {
-  key: string;
-  value: string;
-}
-
 /** Options for creating a TraceDB instance. */
 export interface TraceDBOptions {
   /** Path to the SQLite database file */
