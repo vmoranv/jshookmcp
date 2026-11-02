@@ -119,40 +119,6 @@ export class JITInspector {
     };
   }
 
-  async forceDeoptimization(functionRef: string): Promise<void> {
-    const supportsNativesSyntax = await this.versionDetector.supportsNativesSyntax();
-    if (!supportsNativesSyntax) {
-      return;
-    }
-
-    const session = await this.createSession();
-    if (!session) {
-      return;
-    }
-
-    try {
-      await session.send('Runtime.evaluate', {
-        expression: `
-          (() => {
-            try {
-              const candidate = eval(${JSON.stringify(functionRef)});
-              if (typeof candidate === 'function') {
-                %DeoptimizeFunction(candidate);
-              }
-            } catch (error) {
-              return undefined;
-            }
-            return undefined;
-          })()
-        `,
-        returnByValue: true,
-        awaitPromise: false,
-      });
-    } finally {
-      await session.detach().catch(() => undefined);
-    }
-  }
-
   async getOptimizedFunctions(): Promise<JITInfo[]> {
     return [...this.optimizedFunctionsCache];
   }

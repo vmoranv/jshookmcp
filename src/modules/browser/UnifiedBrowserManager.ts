@@ -413,10 +413,6 @@ export class UnifiedBrowserManager implements IBrowserManager {
     return this.driver;
   }
 
-  setDriver(driver: BrowserDriver): void {
-    this.driver = driver;
-  }
-
   getStatus(): BrowserStatus {
     const browser = this.getBrowser();
     const running = browser !== null && browser.isConnected();

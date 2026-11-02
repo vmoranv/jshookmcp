@@ -20,7 +20,6 @@ import {
   shouldCollectUrlImpl,
   navigateWithRetryImpl,
   getPerformanceMetricsImpl,
-  collectPageMetadataImpl,
 } from '@modules/collector/CodeCollectorUtilsInternal';
 import {
   resolveConnectOptionsImpl,
@@ -671,9 +670,6 @@ export class CodeCollector {
   }
   async getPerformanceMetrics(page: Page): Promise<Record<string, number>> {
     return getPerformanceMetricsImpl(page);
-  }
-  async collectPageMetadata(page: Page): Promise<Record<string, unknown>> {
-    return collectPageMetadataImpl(page);
   }
   private async resolveConnectOptions(
     endpointOrOptions: string | ChromeConnectOptions,

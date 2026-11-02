@@ -142,22 +142,6 @@ export class StreamingCollector {
     return score;
   }
 
-  async *streamCompressed(
-    files: CodeFile[],
-    options: StreamOptions = {},
-  ): AsyncGenerator<{
-    chunk: StreamChunk;
-    compressed: boolean;
-    compressionRatio?: number;
-  }> {
-    for await (const chunk of this.streamFiles(files, options)) {
-      yield {
-        chunk,
-        compressed: false,
-      };
-    }
-  }
-
   async *streamFiltered(
     files: CodeFile[],
     filter: (file: CodeFile) => boolean,
