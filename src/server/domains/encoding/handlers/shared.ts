@@ -4,6 +4,7 @@
  */
 
 import { readFile, realpath } from 'node:fs/promises';
+import { MAGIC_SIGNATURES } from '@server/domains/encoding/handlers.impl.core.runtime.shared';
 import { isAbsolute, resolve, sep } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
@@ -52,26 +53,6 @@ export interface ByteFrequencyEntry {
   count: number;
   ratio: number;
 }
-
-const MAGIC_SIGNATURES = [
-  { format: 'png', bytes: [0x89, 0x50, 0x4e, 0x47] },
-  { format: 'jpeg', bytes: [0xff, 0xd8, 0xff] },
-  { format: 'gif', bytes: [0x47, 0x49, 0x46] },
-  { format: 'wasm', bytes: [0x00, 0x61, 0x73, 0x6d] },
-  { format: 'zip/apk', bytes: [0x50, 0x4b, 0x03, 0x04] },
-  { format: 'pdf', bytes: [0x25, 0x50, 0x44, 0x46] },
-  { format: 'gzip', bytes: [0x1f, 0x8b] },
-  { format: 'elf', bytes: [0x7f, 0x45, 0x4c, 0x46] },
-  { format: 'pe/dos', bytes: [0x4d, 0x5a] },
-  { format: 'mach-o-32be', bytes: [0xfe, 0xed, 0xfa, 0xce] },
-  { format: 'mach-o-32le', bytes: [0xce, 0xfa, 0xed, 0xfe] },
-  { format: 'mach-o-64be', bytes: [0xfe, 0xed, 0xfa, 0xcf] },
-  { format: 'mach-o-64le', bytes: [0xcf, 0xfa, 0xed, 0xfe] },
-  { format: 'bmp', bytes: [0x42, 0x4d] },
-  { format: 'webp', bytes: [0x57, 0x45, 0x42, 0x50], offset: 8 },
-  { format: 'zstd', bytes: [0x28, 0xb5, 0x2f, 0xfd] },
-  { format: 'cbor-self-described', bytes: [0xd9, 0xd9, 0xf7] },
-] satisfies ReadonlyArray<MagicSignature>;
 
 export const DETECT_SOURCE_SET: ReadonlySet<DetectSource> = new Set([
   'base64',
