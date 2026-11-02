@@ -401,6 +401,22 @@ export function createPerToolScorecardSuite(allSuites: readonly BenchSuite[]): B
         tool: '*all*',
         origin: 'homemade',
         reference: 'coverage + e2e + retrieval layers must come from real runs, not static guesses',
+        // These three artefacts come from separate benchmark runs, not from
+        // `pnpm test`. Demanding them on a plain local run makes `pnpm test`
+        // fail for anyone who has not run `bench:coverage` / `bench:e2e`
+        // first, which is most contributors. CI always produces them, so the
+        // gate stays strict there — locally it degrades to "not measured"
+        // instead of "failed".
+        skip: () =>
+          !process.env.CI &&
+          !/^(1|true)$/i.test(String(process.env.COVERAGE_FULL ?? '')) &&
+          !(
+            existsSync(COVERAGE_FILE) &&
+            existsSync(E2E_RESULTS_FILE) &&
+            existsSync(RETRIEVAL_FILE)
+          ),
+        skipReason:
+          'bench artefacts absent (coverage/e2e/retrieval) — run pnpm bench:coverage, bench:e2e first; CI enforces this',
         run: async () => {
           const cov = loadCoverageMeta();
           return {
