@@ -21,7 +21,7 @@ export { SharedStateBoardHandlers } from './state-board';
 
 // ── Types ──
 
-export interface TaskHandoff {
+interface TaskHandoff {
   id: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   description: string;
@@ -1000,14 +1000,14 @@ const INDEXEDDB_CAPTURE_SCRIPT = `(async () => {
   return out;
 })()`;
 
-export interface IndexedDBStoreSummary {
+interface IndexedDBStoreSummary {
   name: string;
   count: number;
   keyPath?: string | string[];
   autoIncrement?: boolean;
 }
 
-export interface IndexedDBDatabaseSummary {
+interface IndexedDBDatabaseSummary {
   name: string;
   version?: number;
   stores?: IndexedDBStoreSummary[];
@@ -1015,7 +1015,7 @@ export interface IndexedDBDatabaseSummary {
   error?: string;
 }
 
-export interface IndexedDBRecordData {
+interface IndexedDBRecordData {
   database: string;
   store: string;
   key: unknown;
@@ -1023,7 +1023,7 @@ export interface IndexedDBRecordData {
   records: Array<{ key: unknown; value: unknown }>;
 }
 
-export interface PageSnapshot {
+interface PageSnapshot {
   id: string;
   url: string;
   cookies: Array<{ name: string; value: string; domain: string; path: string }>;

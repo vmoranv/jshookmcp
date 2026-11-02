@@ -10,6 +10,8 @@ export interface HookSymbolDescriptor {
 }
 
 export class HookGenerator {
+  // Called by server/domains/binary-instrument/handlers/hooks-generation.ts. Static analysis cannot see it.
+  // fallow-ignore-next-line unused-class-member
   generateFridaHookScript(
     symbols: ReadonlyArray<string | HookSymbolDescriptor>,
     options?: HookGeneratorOptions,
@@ -96,13 +98,6 @@ export class HookGenerator {
 
     lines.push('console.log("[binary-instrument] hooks=" + JSON.stringify(installedHooks));');
     return lines.join('\n');
-  }
-
-  generateInterceptorScript(targetFuncs: string[]): string {
-    return this.generateFridaHookScript(targetFuncs, {
-      includeArgs: true,
-      includeRetAddr: false,
-    });
   }
 
   private toDescriptor(symbol: string | HookSymbolDescriptor): HookSymbolDescriptor {

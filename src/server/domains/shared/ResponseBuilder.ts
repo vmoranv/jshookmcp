@@ -9,7 +9,7 @@ import type {
 
 export type { ToolResponse };
 
-export type AdditionalContentBlock =
+type AdditionalContentBlock =
   | ImageContent
   | AudioContent
   | EmbeddedResource

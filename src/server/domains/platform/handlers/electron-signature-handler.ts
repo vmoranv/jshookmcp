@@ -37,7 +37,7 @@ const CSSLOT_SIGNATURE = 256;
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-export type SignatureType = 'authenticode' | 'mach-o' | 'none';
+type SignatureType = 'authenticode' | 'mach-o' | 'none';
 
 export interface CertificateInfo {
   subject: string;
@@ -50,7 +50,7 @@ export interface CertificateInfo {
   ca?: boolean;
 }
 
-export interface SignatureVerification {
+interface SignatureVerification {
   exePath: string;
   signed: boolean;
   signatureType: SignatureType;

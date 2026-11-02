@@ -23,7 +23,7 @@ function resolve_repo_root(): string {
   return resolve(here, '..', '..');
 }
 
-export interface ToolRef {
+interface ToolRef {
   tool: string;
   domain: string;
   methods: string[];

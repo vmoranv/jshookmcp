@@ -115,7 +115,7 @@ interface WorkerState {
   healthy: boolean;
 }
 
-export interface WorkerPoolImplOptions {
+interface WorkerPoolImplOptions {
   maxWorkers?: number;
   workerScript?: string;
   defaultTimeoutMs?: number;
@@ -123,7 +123,7 @@ export interface WorkerPoolImplOptions {
   workerEval?: boolean;
 }
 
-export interface WorkerPoolStats {
+interface WorkerPoolStats {
   workerCount: number;
   activeTasks: number;
   queuedTasks: number;

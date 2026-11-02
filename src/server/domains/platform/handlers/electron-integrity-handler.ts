@@ -24,13 +24,13 @@ const SUPPORTED_HASH_ALGORITHMS: ReadonlyMap<string, string> = new Map([
   ['SHA512', 'sha512'],
 ]);
 
-export interface AsarIntegrityEntry {
+interface AsarIntegrityEntry {
   algorithm: string;
   /** Base64-encoded hash embedded in the binary. */
   hash: string;
 }
 
-export interface IntegrityVerification {
+interface IntegrityVerification {
   modulePath: string;
   asarPath: string | null;
   embeddedAlgorithm: string;

@@ -13,7 +13,7 @@ import { argNumber } from '@server/domains/shared/parse-args';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export type SyscallPatternKind =
+type SyscallPatternKind =
   | 'anti_debug'
   | 'fingerprint'
   | 'file_enum'
@@ -21,7 +21,7 @@ export type SyscallPatternKind =
   | 'process_spawn'
   | 'registry_probe';
 
-export interface DetectedPattern {
+interface DetectedPattern {
   kind: SyscallPatternKind;
   name: string;
   description: string;

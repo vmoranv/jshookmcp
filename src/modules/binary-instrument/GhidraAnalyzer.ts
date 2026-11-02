@@ -133,28 +133,6 @@ export class GhidraAnalyzer {
   }
 
   /**
-   * Batch-analyze multiple binaries in sequence.
-   * Returns a map of binaryPath → GhidraAnalysisResult.
-   * Failed analyses get an empty result (not an exception).
-   */ async analyzeBatch(
-    binaryPaths: string[],
-    options?: { timeout?: number; forceRefresh?: boolean },
-  ): Promise<Map<string, GhidraAnalysisResult>> {
-    const results = new Map<string, GhidraAnalysisResult>();
-    for (const path of binaryPaths) {
-      try {
-        const result = await this.analyze(path, options);
-        results.set(path, result);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.warn(`[binary-instrument] Batch analysis failed for ${path}`, { message });
-        results.set(path, { functions: [], imports: [], exports: [], strings: [] });
-      }
-    }
-    return results;
-  }
-
-  /**
    * Decompile a single named function via a fresh headless run (kimi-cu
    * report P2-6: replaces the plugin_ghidra_bridge HTTP dependency with the
    * stateless analyzeHeadless path — no bridge server, no plugin, ~5-10s

@@ -32,15 +32,15 @@ import type { ToolResponse } from '@server/types';
 import type { PageController } from '@server/domains/canvas/dependencies';
 import { asJsonResponse } from '@server/domains/shared/response';
 
-export type ViolationSeverity = 'critical' | 'high' | 'medium' | 'low';
+type ViolationSeverity = 'critical' | 'high' | 'medium' | 'low';
 
-export interface InvariantCheck {
+interface InvariantCheck {
   id: string;
   description: string;
   passed: boolean;
 }
 
-export interface InvariantViolation {
+interface InvariantViolation {
   id: string;
   severity: ViolationSeverity;
   description: string;
@@ -48,14 +48,14 @@ export interface InvariantViolation {
   fix: string;
 }
 
-export interface SafeCleanupRecommendation {
+interface SafeCleanupRecommendation {
   kind: string;
   description: string;
   /** Optional engine hint (which engine this is most relevant to). */
   engine?: string;
 }
 
-export interface CanvasMemoryMetrics {
+interface CanvasMemoryMetrics {
   engine: string | null;
   canvases: number;
   webglContexts: number;
@@ -70,7 +70,7 @@ export interface CanvasMemoryMetrics {
   contextLossEvents: number;
 }
 
-export interface CanvasMemoryInvariantsResult {
+interface CanvasMemoryInvariantsResult {
   success: boolean;
   metrics: CanvasMemoryMetrics | null;
   checks: InvariantCheck[];

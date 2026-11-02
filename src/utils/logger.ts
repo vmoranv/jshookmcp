@@ -12,8 +12,8 @@ const ANSI = {
 
 const colorize = (color: string, text: string) => `${color}${text}${ANSI.reset}`;
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-export type LogListener = (level: LogLevel, message: string, args: unknown[]) => void;
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogListener = (level: LogLevel, message: string, args: unknown[]) => void;
 
 class Logger {
   private level: LogLevel;

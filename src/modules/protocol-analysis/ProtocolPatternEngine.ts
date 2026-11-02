@@ -1,7 +1,6 @@
 import type {
   EncryptionInfo,
   FieldSpec,
-  PatternDetectionResult,
   PatternSpec,
   ProtocolField,
   ProtocolPattern,
@@ -9,15 +8,12 @@ import type {
 import {
   buildDelimitedFields,
   buildFixedWidthFields,
-  decodeFloat,
-  decodeInteger,
   inferByteOrder,
   inferDelimiter,
   isHexPayload,
   labelMagicFields,
   parseHexPayload,
   parsePayloads,
-  printableRatio,
 } from './ProtocolPatternUtils';
 
 export class ProtocolPatternEngine {
@@ -47,58 +43,6 @@ export class ProtocolPatternEngine {
     if (Array.isArray(specOrFields)) {
       return legacyPattern;
     }
-  }
-
-  detectPattern(hexPayload: string): PatternDetectionResult | null {
-    const payload = parseHexPayload(hexPayload);
-    if (!payload) {
-      return null;
-    }
-
-    let bestMatch: PatternDetectionResult | null = null;
-
-    for (const pattern of this.patterns.values()) {
-      const totalChecks = pattern.fields.length + (pattern.fieldDelimiter ? 1 : 0);
-      if (totalChecks === 0) {
-        continue;
-      }
-
-      let matches = 0;
-      if (
-        pattern.fieldDelimiter &&
-        this.payloadContainsDelimiter(payload, pattern.fieldDelimiter)
-      ) {
-        matches += 1;
-      }
-
-      for (const field of pattern.fields) {
-        if (this.matchesField(payload, field, pattern.byteOrder ?? 'be')) {
-          matches += 1;
-        }
-      }
-
-      const confidence = Number((matches / totalChecks).toFixed(2));
-      if (confidence <= 0) {
-        continue;
-      }
-
-      const candidate: PatternDetectionResult = {
-        pattern,
-        confidence,
-        matches,
-        total: totalChecks,
-      };
-
-      if (
-        !bestMatch ||
-        candidate.confidence > bestMatch.confidence ||
-        (candidate.confidence === bestMatch.confidence && candidate.matches > bestMatch.matches)
-      ) {
-        bestMatch = candidate;
-      }
-    }
-
-    return bestMatch;
   }
 
   autoDetect(hexPayloads: string[]): PatternSpec | null {
@@ -287,37 +231,6 @@ export class ProtocolPatternEngine {
         return 'string';
       default:
         return 'string';
-    }
-  }
-
-  private payloadContainsDelimiter(payload: Buffer, delimiter: string): boolean {
-    const delimiterBuffer = this.parseDelimiter(delimiter);
-    if (delimiterBuffer.length === 0) {
-      return false;
-    }
-
-    return payload.includes(delimiterBuffer);
-  }
-
-  private matchesField(payload: Buffer, field: FieldSpec, byteOrder: 'le' | 'be'): boolean {
-    if (field.offset < 0 || field.length <= 0 || payload.length < field.offset + field.length) {
-      return false;
-    }
-
-    const slice = payload.subarray(field.offset, field.offset + field.length);
-    switch (field.type) {
-      case 'bytes':
-        return slice.length === field.length;
-      case 'bool':
-        return slice.length === 1 && (slice[0] === 0 || slice[0] === 1);
-      case 'string':
-        return printableRatio(slice) >= 0.6;
-      case 'int':
-        return decodeInteger(slice, byteOrder) !== null;
-      case 'float':
-        return decodeFloat(slice, byteOrder) !== null;
-      default:
-        return false;
     }
   }
 

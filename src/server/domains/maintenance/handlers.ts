@@ -18,10 +18,7 @@ import { runEnvironmentDoctor } from '@utils/environmentDoctor';
 import { classifyGpuInputs } from '@server/domains/maintenance/gpu-detect';
 import { TOKEN_BUDGET_MAX_TOKENS } from '@src/constants/server';
 
-export type SnapshotManagerFactory = (options: {
-  storeDir: string;
-  workTree: string;
-}) => SnapshotManager;
+type SnapshotManagerFactory = (options: { storeDir: string; workTree: string }) => SnapshotManager;
 
 interface CoreMaintenanceHandlerDeps {
   tokenBudget: TokenBudgetManager;

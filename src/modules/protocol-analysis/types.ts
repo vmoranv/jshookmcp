@@ -46,6 +46,8 @@ export interface ProtocolPattern {
   encryption?: EncryptionInfo;
 }
 
+// Return type produced by ProtocolPatternUtils matching helpers. Static analysis cannot see it.
+// fallow-ignore-next-line unused-type
 export interface PatternDetectionResult {
   pattern: PatternSpec;
   confidence: number;

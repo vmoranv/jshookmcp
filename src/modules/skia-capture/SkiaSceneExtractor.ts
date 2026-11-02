@@ -40,13 +40,13 @@ export interface SceneNode {
   bounds?: Rect;
 }
 
-export interface ModernSceneTree {
+interface ModernSceneTree {
   rootNodes: SceneNode[];
   totalNodes: number;
   extractedAt: string;
 }
 
-export interface ModernSkiaRendererInfo {
+interface ModernSkiaRendererInfo {
   backend: 'cpu' | 'gpu' | 'vulkan' | 'metal' | 'opengl' | 'direct3d';
   version?: string;
   gpu?: string;
