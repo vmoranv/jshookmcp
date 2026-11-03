@@ -134,6 +134,55 @@ jobs:
           VITEST_MAX_WORKERS: 4
         run: pnpm run test:coverage
 
+      - name: Publish unit-coverage measurement for the scorecard
+        # `test:coverage` runs with COVERAGE_FULL=true, so vite writes
+        # coverage/coverage-final.json as part of the run. The per-tool
+        # scorecard reads that file for its handler-fn column; without this
+        # copy step the column is "not measured" on every CI build, which is
+        # exactly how it sat empty for months. Copying (not re-running) keeps
+        # the cost at zero — the file already exists.
+        run: |
+          if [ -f coverage/coverage-final.json ]; then
+            mkdir -p artifacts/benchmarks-ci
+            cp coverage/coverage-final.json artifacts/benchmarks-ci/coverage-final.json
+            echo "[ci] unit-coverage measurement staged for the scorecard"
+          else
+            echo "::warning::coverage/coverage-final.json missing — scorecard handler-fn will read as unmeasured"
+          fi
+
+      - name: Upload unit-coverage measurement
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-coverage
+          path: artifacts/benchmarks-ci/coverage-final.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Run e2e real-task layer
+        # Produces artifacts/benchmarks/e2e-results.json, the input for the
+        # scorecard's e2e-tasks column. Non-blocking on purpose: the target is
+        # a public GitHub Pages site, so a transient 5xx or a runner without a
+        # usable browser must not fail the build. `continue-on-error` keeps the
+        # measurement honest (a missing file reads as "not measured") without
+        # turning flaky network into a red build.
+        # E2E_TARGET_URL is the same URL the local `pnpm test:e2e` default uses.
+        continue-on-error: true
+        timeout-minutes: 20
+        env:
+          VITEST_MAX_WORKERS: 2
+          E2E_TARGET_URL: https://vmoranv.github.io/jshookmcp/
+        run: pnpm run bench:e2e
+
+      - name: Upload e2e measurement
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results
+          path: artifacts/benchmarks/e2e-results.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Build project
         run: pnpm run build
 
