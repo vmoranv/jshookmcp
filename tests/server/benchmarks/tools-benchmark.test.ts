@@ -43,6 +43,7 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   'per-tool-scorecard': 90,
   'tls-inspector': 90,
   'tls-inspector-full': 85,
+  'misc-residual': 80,
   'dart-inspector': 90,
   maintenance: 90,
   'electron-fuses': 90,

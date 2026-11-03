@@ -25,6 +25,7 @@ import { crossDomainSuite } from './cross-domain.suite';
 import { nativeBridgeSuite } from './native-bridge.suite';
 import { processSuite } from './process.suite';
 import { traceSuite } from './trace.suite';
+import { miscResidualSuite } from './misc-residual.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -53,4 +54,5 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   nativeBridgeSuite,
   processSuite,
   traceSuite,
+  miscResidualSuite,
 ];
