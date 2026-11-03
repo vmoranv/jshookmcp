@@ -68,6 +68,10 @@ export class SessionProfileManager {
         httpOnly: c.httpOnly,
         secure: c.secure,
         session: c.session,
+        // puppeteer 25's network.CookieParam narrows sameSite to
+        // Lax|None|Strict, but the CDP-originated profile can carry 'Default'.
+        // Passing undefined leaves the attribute off entirely, which is what
+        // CDP's 'Default' meant — it is not a downgrade to an unsafe policy.
         sameSite: c.sameSite === 'Default' ? undefined : c.sameSite,
         sourceScheme: c.sourceScheme,
       })),
