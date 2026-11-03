@@ -23,16 +23,8 @@ export class SourcemapToolHandlers {
     this.sourcemap = new SourcemapHandlers(state);
   }
 
-  async handleExtensionListInstalledTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleExtensionListInstalled(args));
-  }
-
   handleExtensionListInstalled(args: Record<string, unknown>) {
     return this.extension.handleExtensionListInstalled(args);
-  }
-
-  async handleExtensionExecuteInContextTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleExtensionExecuteInContext(args));
   }
 
   handleExtensionExecuteInContext(args: Record<string, unknown>) {
