@@ -21,12 +21,25 @@
  * session. The batch schedule (default 2s) plus the shutdown flush in
  * closeServer() bound the span-loss window; the periodic metric reader
  * (default 30s) is force-flushed through the same shutdown path.
+ *
+ * TEMPORALITY: DELTA, not the SDK's CUMULATIVE default.
+ * ------------------------------------------------
+ * Every call site emits a unit increment (`emitMetric(name, 1, 'counter')`),
+ * i.e. the application-side value is already a per-event delta. Under
+ * CUMULATIVE aggregation the SDK re-exported the running total every interval
+ * whether or not anything happened, so one `(process, tool)` pair re-sent the
+ * same number ~200× — measured on the production ingress as 268× aggregate
+ * inflation (4,075,981 summed `calls` vs 15,199 real) and the direct cause of
+ * a 505 MB D1 database hitting the free-tier ceiling and rejecting every
+ * write. DELTA makes each export carry only the increments accumulated since
+ * the previous one, so an idle process sends nothing at all.
  */
 import type { InstrumentationContract, MetricType, SpanLike } from './InstrumentationContract';
 import {
   DEFAULT_TELEMETRY_AUTHORIZATION,
   DEFAULT_TELEMETRY_ENDPOINT,
 } from '@src/constants/telemetry';
+import { LruMap } from '@utils/LruMap';
 
 export interface OtlpInstrumentationOptions {
   /**
@@ -49,7 +62,16 @@ export interface OtlpInstrumentationOptions {
    * so the 30s window is only lost on a hard crash.
    */
   spanScheduleDelayMs?: number;
-  /** Periodic metric reader interval. */
+  /**
+   * Periodic metric reader interval. 60s default.
+   *
+   * Combined with DELTA temporality this is the ceiling on how often a live
+   * process can touch the ingress at all: a process that emits nothing during
+   * an interval exports nothing, and a process that did emit sends exactly one
+   * request carrying one datapoint set per instrument. The previous 30s was
+   * tuned against CUMULATIVE, where every tick was a full re-send regardless
+   * of activity.
+   */
   metricExportIntervalMs?: number;
   /**
    * Called once when the SDK import or provider construction fails. The
@@ -87,6 +109,11 @@ interface BufferedMetric {
 const MAX_BUFFERED_SPANS = 512;
 const MAX_BUFFERED_METRICS = 1024;
 const FLUSH_TIMEOUT_MS = 5_000;
+
+/** Ceiling for one metric export attempt; clamped down when the interval is shorter. */
+const METRIC_EXPORT_TIMEOUT_MS = 10_000;
+/** Default metric export interval. See `metricExportIntervalMs` for the reasoning. */
+const DEFAULT_METRIC_EXPORT_INTERVAL_MS = 60_000;
 
 /** OTLP attribute values: primitives (and arrays thereof) only. */
 function sanitizeAttrs(attrs: Record<string, unknown> | undefined): Record<string, unknown> {
@@ -208,15 +235,28 @@ export class OtlpInstrumentation implements InstrumentationContract {
         : new metricExpModule.OTLPMetricExporter({
             ...(targets.metricUrl ? { url: targets.metricUrl } : {}),
             ...(targets.headers ? { headers: targets.headers } : {}),
+            // DELTA: see the module header. This must stay paired with the
+            // per-event `+1` emits at every call site — a CUMULATIVE reader
+            // over this same emission pattern was the 268× amplifier.
+            temporalityPreference: metricExpModule.AggregationTemporalityPreference.DELTA,
             ...agentOptions,
           });
+      const intervalMs = Math.max(
+        1,
+        this.options.metricExportIntervalMs ?? DEFAULT_METRIC_EXPORT_INTERVAL_MS,
+      );
       const metricProvider = new MeterProvider({
         resource,
         readers: [
           new PeriodicExportingMetricReader({
             exporter: metricExporter,
-            exportIntervalMillis: this.options.metricExportIntervalMs ?? 30_000,
-            exportTimeoutMillis: 10_000,
+            exportIntervalMillis: intervalMs,
+            // The SDK REJECTS interval < timeout by throwing from the
+            // constructor, which this class catches and turns into a
+            // permanent no-op — so an operator who tuned the interval down
+            // for debugging silently lost ALL telemetry instead of getting
+            // "too short" behaviour. Clamp the timeout to the interval.
+            exportTimeoutMillis: Math.min(METRIC_EXPORT_TIMEOUT_MS, intervalMs),
           }),
         ],
       });
@@ -394,6 +434,20 @@ interface SpanHandle {
   addEvent(name: string, attrs?: Record<string, unknown>): void;
 }
 
+/**
+ * Instrument-name cache ceilings.
+ *
+ * Metric names come from `MetricNames` (a closed set of ~11), so in a healthy
+ * process these maps hold a handful of entries and the ceiling never binds.
+ * It binds only when something starts minting dynamic names — a future plugin
+ * or workflow emitting `workflow.<user-supplied-id>.runs`. Under CUMULATIVE
+ * that leak was invisible (the SDK aggregated quietly); under DELTA every
+ * distinct name is its own time series in every export, so an unbounded name
+ * space would turn into unbounded upload size. Bounded via LruMap so the
+ * oldest instrument is dropped rather than kept alive forever.
+ */
+const MAX_INSTRUMENT_NAMES = 256;
+
 /** Lazily creates instruments per (name, type) — attr sets vary per call. */
 class MeterFacade {
   private readonly meter: {
@@ -401,9 +455,9 @@ class MeterFacade {
     createHistogram: (n: string) => HistogramLike;
     createGauge: (n: string) => GaugeLike;
   };
-  private readonly counters = new Map<string, CounterLike>();
-  private readonly histograms = new Map<string, HistogramLike>();
-  private readonly gauges = new Map<string, GaugeLike>();
+  private readonly counters = new LruMap<string, CounterLike>(MAX_INSTRUMENT_NAMES);
+  private readonly histograms = new LruMap<string, HistogramLike>(MAX_INSTRUMENT_NAMES);
+  private readonly gauges = new LruMap<string, GaugeLike>(MAX_INSTRUMENT_NAMES);
 
   constructor(meter: unknown) {
     this.meter = meter as never;
@@ -477,7 +531,13 @@ export function resolveExporterTargets(options: OtlpInstrumentationOptions): Exp
       ...(options.traceUrl ? { traceUrl: options.traceUrl } : {}),
       ...(options.metricUrl ? { metricUrl: options.metricUrl } : {}),
       ...(options.headers ? { headers: options.headers } : {}),
-      baseUrl: options.traceUrl,
+      // Either signal URL identifies the destination for proxy/NO_PROXY
+      // resolution. Keying off traceUrl alone meant a metrics-only
+      // configuration resolved NO_PROXY against an EMPTY host, so a loopback
+      // or intranet metrics endpoint was routed through the operator's proxy
+      // (and a NO_PROXY exception could never match, since it had no host to
+      // compare against).
+      baseUrl: options.traceUrl ?? options.metricUrl,
     };
   }
   const envEndpoint =
