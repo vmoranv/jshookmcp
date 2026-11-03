@@ -27,7 +27,10 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   'binary-instrument': 85,
   wasm: 85,
   'core-analysis': 85,
-  'existing-tests-coverage': 80,
+  // Deterministic static-scan assertions with no env gating — every case must
+  // pass. At the old 80% floor a 5-case suite tolerated one silent failure, which
+  // is exactly the shape of the domain-dir/nested-scan undercount regressions.
+  'existing-tests-coverage': 100,
   platform: 90,
   'memory-pure-ts': 90,
   'per-tool-scorecard': 90,

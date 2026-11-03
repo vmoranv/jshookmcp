@@ -589,7 +589,7 @@ Actions:
 - platform_capabilities: Report platform tool backend availability.
 - v8_bytecode_decompile: Decompile or extract strings from V8 bytecode files.
 
-## process (28)
+## process (29)
 - check_debug_port: Check if a process is being debugged using NtQueryInformationProcess (ProcessDebugPort).
 - electron_attach: Attach to an Electron CDP port and optionally evaluate in a matching page.
 - enumerate_modules: List all loaded modules (DLLs) in a process with their base addresses.
@@ -616,6 +616,7 @@ Actions:
 - process_launch_debug: Launch an executable with remote debugging port enabled.
 - process_list: List all running processes. This is an alias for process_find with an empty pattern.
 - process_resume: Resume a previously suspended process. Cross-platform: NtResumeProcess (Win32), SIGCONT (Linux), task_resume (macOS).
+- process_runtime_info: Read /proc/{pid} runtime info on Linux: full command line, the complete environment block (paths, API keys, device IDs), and the status summary (VmRSS/VmPeak, thread count, capability set). Complements process_get, which returns only the command line. Fail-soft per source: an unreadable file (permission, process gone) leaves that field empty instead of failing the whole call.
 - process_suspend: Suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. Requires admin/root on most platforms.
 - process_windows: Get all window handles for a process.
 
@@ -832,4 +833,4 @@ Actions:
 - workflow_run_inspect: Inspect the global workflow run store: list recent run_extension_workflow / run_macro runs, get a run entry by runId, or fetch the last successful run summary (runId, status, durationMs, stepResultKeys) for a workflow or macro id.
 - workflow_suggest: Suggest the next extension workflow to run from the chainsWith / prerequisites chain metadata declared by loaded workflows. Pass the workflow ids already executed in this session; the server stays stateless. Candidates chained from an executed workflow rank first (the reason names the chain), workflows with all prerequisites satisfied rank before those with missing ones, already-executed workflows are never suggested, and executed ids that match no loaded workflow are returned in unmatched. Workflows without chain metadata are never suggested, so an empty catalog of metadata yields empty suggestions.
 
-TOTAL: 735 tools in 36 domains
+TOTAL: 736 tools in 36 domains

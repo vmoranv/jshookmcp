@@ -1,14 +1,14 @@
 # Tool Benchmarks
 
-Quantifiable benchmark evaluation for the 735 MCP tools (36 domains).
+Quantifiable benchmark evaluation for the 736 MCP tools (36 domains).
 
 - **[CATALOG.md](./CATALOG.md)** — every domain → external benchmark (RFC/spec/official vectors) or homemade suite, with integration status.
 - **[existing-tests-coverage.suite.ts](./existing-tests-coverage.suite.ts)** — the audit/test-asset benchmark layer (breadth).
-- **[tool-inventory.md](./tool-inventory.md)** — the full 735-tool inventory grouped by domain, generated from `src/server/registry/generated-tool-catalog.ts`.
+- **[tool-inventory.md](./tool-inventory.md)** — the full 736-tool inventory grouped by domain, generated from `src/server/registry/generated-tool-catalog.ts`.
 - **[harness.ts](./harness.ts)** — case runner + scorecard renderer (per-case pass/fail/skip with references).
-- **[suites/](./suites/)** — runnable suites (13 suites / 83 cases today).
-- **existing-tests-coverage** — converts the existing handler-test + e2e asset into a per-tool coverage matrix (614/735 unit, 153/735 e2e).
-- **per-tool-scorecard** — one MEASURED 0-100 score + grade + evaluation for every one of the 735 tools.
+- **[suites/](./suites/)** — runnable suites (19 suites / 110 cases today, 109 passing + 1 env-gated skip).
+- **existing-tests-coverage** — converts the existing handler-test + e2e asset into a per-tool coverage matrix (649/736 unit, 153/736 e2e).
+- **per-tool-scorecard** — per-tool NATIVE metrics (correctness / throughput / handler-fn / e2e-tasks / retrieval) for every one of the 736 tools; no composite score, no letter grades.
 
 ## Commands
 
