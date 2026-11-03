@@ -12,6 +12,7 @@ import { existingTestsSuite } from '../existing-tests-coverage.suite';
 import { platformSuite } from './platform.suite';
 import { memorySuite } from './memory.suite';
 import { tlsSuite } from './tls-inspector.suite';
+import { tlsInspectorFullSuite } from './tls-inspector-full.suite';
 import { dartSuite } from './dart-inspector.suite';
 import { maintenanceSuite } from './maintenance.suite';
 import { electronFusesSuite } from './electron-fuses.suite';
@@ -32,6 +33,7 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   platformSuite,
   memorySuite,
   tlsSuite,
+  tlsInspectorFullSuite,
   dartSuite,
   maintenanceSuite,
   electronFusesSuite,
