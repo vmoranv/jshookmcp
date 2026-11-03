@@ -1,6 +1,6 @@
 # Tool Benchmark Catalog
 
-735 tools across 36 registry domains → their benchmark sources.
+736 tools across 36 registry domains → their benchmark sources.
 
 Legend: **[外部]** = public benchmark / spec / official test vectors that can quantifiably
 evaluate the tool category. **[自制]** = homemade fixture suite (ground truth designed by us).
@@ -8,9 +8,9 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: 13 suites / 83 cases / 100% pass — see `artifacts/benchmarks/scorecard.md`.
+Runnable suites today: 19 suites / 110 cases (109 pass, 1 env-gated skip) — see `artifacts/benchmarks/scorecard.md`.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
-735 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
+736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
 | Column | Unit | Measured by |
 |---|---|---|
