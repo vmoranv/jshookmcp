@@ -266,7 +266,7 @@ describe('BrowserModeManager', () => {
     const fakeBrowser = {
       newPage: vi.fn().mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage),
       close: vi.fn(async () => {}),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 12345 }),
     } as unknown as Browser;
     const deferred = createDeferred<Browser>();
@@ -296,7 +296,7 @@ describe('BrowserModeManager', () => {
     const fakeBrowser = {
       newPage: vi.fn(),
       close: vi.fn(async () => {}),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 12345 }),
     } as unknown as Browser;
     launchMock.mockReturnValue(deferred.promise);
@@ -329,7 +329,7 @@ describe('BrowserModeManager', () => {
     const browser = {
       newPage: vi.fn(async () => page),
       close: vi.fn(async () => {}),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 12345 }),
     } as unknown as Browser;
 
@@ -401,7 +401,7 @@ describe('BrowserModeManager', () => {
     const browser = {
       newPage: vi.fn(async () => headedPage),
       close: vi.fn(async () => undefined),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 54321 }),
     } as unknown as Browser;
     launchMock.mockResolvedValue(browser);

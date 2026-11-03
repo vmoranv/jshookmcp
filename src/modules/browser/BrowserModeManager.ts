@@ -99,7 +99,7 @@ export class BrowserModeManager {
   }
 
   async launch(): Promise<Browser> {
-    if (this.browser?.isConnected()) {
+    if (this.browser?.connected) {
       return this.browser;
     }
 
@@ -192,7 +192,7 @@ export class BrowserModeManager {
   }
 
   async newPage(): Promise<Page> {
-    const browser = this.browser?.isConnected() ? this.browser : await this.launch();
+    const browser = this.browser?.connected ? this.browser : await this.launch();
 
     const page = await browser.newPage();
     this.currentPage = page;

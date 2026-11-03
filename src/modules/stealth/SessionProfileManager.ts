@@ -68,7 +68,7 @@ export class SessionProfileManager {
         httpOnly: c.httpOnly,
         secure: c.secure,
         session: c.session,
-        sameSite: c.sameSite,
+        sameSite: c.sameSite === 'Default' ? undefined : c.sameSite,
         sourceScheme: c.sourceScheme,
       })),
       userAgent: pageMeta.userAgent,

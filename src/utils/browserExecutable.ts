@@ -24,14 +24,14 @@ function resolveFromEnvironment(): string | undefined {
   return undefined;
 }
 
-let cachedExecutablePath: ((name: string) => string) | null = null;
+let cachedExecutablePath: typeof import('rebrowser-puppeteer-core').executablePath | null = null;
 async function resolveFromPuppeteer(): Promise<string | undefined> {
   try {
     if (!cachedExecutablePath) {
       const puppeteer = await import('rebrowser-puppeteer-core');
       cachedExecutablePath = puppeteer.executablePath;
     }
-    const candidate = cachedExecutablePath('chrome');
+    const candidate = await cachedExecutablePath('chrome');
     if (candidate && existsSync(candidate)) {
       return candidate;
     }

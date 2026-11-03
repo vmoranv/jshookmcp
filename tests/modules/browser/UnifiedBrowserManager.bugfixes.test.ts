@@ -22,7 +22,7 @@ vi.mock('@src/utils/logger', () => ({
 
 vi.mock('@src/modules/browser/BrowserModeManager', () => {
   class BrowserModeManager {
-    private browser = { isConnected: vi.fn(() => true) };
+    private browser = { connected: true };
     launch = vi.fn(async () =>
       chromeState.launchImpl ? chromeState.launchImpl(this) : this.browser,
     );
@@ -66,7 +66,7 @@ describe('UnifiedBrowserManager bug fixes', () => {
     const gate = deferred<any>();
     chromeState.launchImpl = async () => {
       await gate.promise;
-      return { isConnected: vi.fn(() => true) };
+      return { connected: true };
     };
 
     const manager = new UnifiedBrowserManager({ driver: 'chrome' });
