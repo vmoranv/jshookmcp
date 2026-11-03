@@ -1,49 +1,28 @@
 /**
- * Misc-domain residual suite — tools outside the domain-themed suites that are
- * still answerable with no browser, device, or bridge attached.
- *
- * Ground truth per case:
- *  - mojo_verify_live: the emitted script is bound to the requested platform and
- *    an unknown platform is rejected (B-class symbol DB, verified: false)
- *  - exploit-dev: heap-spray geometry and pwntools template contracts
- *  - cross-domain: health reports the evidence bridge + enabled domains; the
- *    synonym engine resolves a natural-language query to ranked tools
- *  - process_runtime_info: reads /proc on Linux, refuses honestly elsewhere
- *
- * Cases that need a live browser, an Android device, or a bound analysis
- * context stay listed with `skip` so the scorecard records them as unmeasured
- * rather than silently absent.
- *
- * Tools already covered by a domain suite (http2_frame_parse,
- * exploit_build_format_string, exploit_build_ret2dlresolve,
- * exploit_discover_one_gadget) are deliberately not duplicated here.
- */
-/**
  * Misc-domain residual suite — tools that no domain-themed suite covers.
  *
  * Two kinds of case live here, and only the first kind carries weight:
  *
- *  - LIVE (6): the first and only vector case for their tool, so they raise that
+ *  - LIVE (7): the first and only vector case for their tool, so they raise that
  *    tool's correctness row off "no vector case". All run without a browser,
  *    device, or bridge: mojo_verify_live emits a script, exploit-dev's
  *    heap-spray / pwntools builders are offline, cross-domain health + synonym
- *    resolution are pure, and process_runtime_info is /proc or an honest refusal.
+ *    resolution are pure, sourcemap_diff reads two inline `data:` maps, and
+ *    process_runtime_info is /proc or an honest refusal.
  *
- *  - PLACEHOLDER (~10): tools that need a live browser, an Android device, or a
- *    bound analysis context. They are NOT marked as the tool's vector case,
- *    because the scorecard would then print "0/1 vectors" — indistinguishable
- *    from a tool whose single vector genuinely failed. Making them live vectors
- *    would equally poison the ratio of an already-covered tool (sourcemap_diff
- *    would read 0/2). They exist so the suite's count is auditable and the
- *    reason each tool is unmeasured is recorded in one place.
+ *  - PLACEHOLDER (9): tools that need a live browser, an Android device, or a
+ *    bound analysis context. They are skipped with an explicit reason and are
+ *    NOT the tool's vector case: marking one as such would print
+ *    "0/1 vectors", indistinguishable from a single vector that genuinely
+ *    failed. Turning it into a real measurement instead would dilute an
+ *    already-covered tool's ratio (a failing extra case reads 1/2). The list
+ *    exists so the count is auditable and the reason each tool is unmeasured
+ *    is recorded in one place.
  *
  * Tools already covered by a domain suite (http2_frame_parse,
  * exploit_build_format_string, exploit_build_ret2dlresolve,
  * exploit_discover_one_gadget) are deliberately not listed here at all.
  */
-import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { ProcessToolHandlers } from '@server/domains/process/handlers.impl';
 import { ExploitDevHandlers } from '@server/domains/exploit-dev/handlers';
 import { MojoIPCHandlers } from '@server/domains/mojo-ipc/handlers.impl';
@@ -53,42 +32,41 @@ import {
 } from '@server/domains/cross-domain/handlers.impl';
 import { CrossDomainEvidenceBridge } from '@server/domains/cross-domain/handlers/evidence-graph-bridge.impl';
 import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
+import { SourcemapToolHandlers } from '@server/domains/sourcemap/handlers';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { body, type BenchCase, type BenchSuite } from '../harness';
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const exploitHandlers = new ExploitDevHandlers({} as unknown as MCPServerContext);
 const mojoHandlers = new MojoIPCHandlers();
 
 /**
- * The tool is already the subject of a case in a domain suite, so its scorecard
- * correctness row is already sourced. A placeholder here is therefore invisible
- * to `measureVectorBenches` (it counts every case for a tool), which keeps the
- * domain suite's verdict as the tool's only one.
+ * Fields a placeholder omits; `placeholder()` fills them with a no-op runner.
  */
-function coveredByDomainSuite(tool: string): boolean {
-  const suitesDir = join(ROOT, 'tests/benchmarks/suites');
-  const files = readdirSync(suitesDir).filter(
-    (f) => f.endsWith('.suite.ts') && f !== 'misc-residual.suite.ts',
-  );
-  const re = new RegExp(`tool:\\s*'${tool}'`);
-  return files.some((f) => re.test(readFileSync(join(suitesDir, f), 'utf8')));
+type PlaceholderSpec = Omit<BenchCase, 'skip' | 'run' | 'validate'>;
+
+/** A skipped case that records why the tool is unmeasured in this suite. */
+function placeholder(spec: PlaceholderSpec): BenchCase {
+  return {
+    ...spec,
+    skip: () => true,
+    run: async () => ({}),
+    validate: () => true,
+  };
 }
 
-/**
- * A placeholder case. Kept out of `measureVectorBenches` while its tool is still
- * covered elsewhere; the moment the domain case disappears it becomes a real
- * "unmeasured" vector, which is the honest state.
- */
-function placeholder(c: BenchCase): BenchCase {
-  const covered = coveredByDomainSuite(c.tool);
+/** Encode a v3 source map as an inline `data:` URI (same convention as sourcemap.suite). */
+function inlineMap(map: Record<string, unknown>): string {
+  return `data:application/json;base64,${Buffer.from(JSON.stringify(map)).toString('base64')}`;
+}
+
+function v3Map(sourceNames: string[]): Record<string, unknown> {
   return {
-    ...c,
-    skip: () => true,
-    skipReason: covered
-      ? `${c.skipReason} (covered by its domain suite; not the tool's vector case)`
-      : c.skipReason,
+    version: 3,
+    file: 'bundle.js',
+    sources: sourceNames,
+    names: [],
+    // "AAAA" per line = [0,0,0,0]: gen col 0 -> first source, line 0, col 0
+    mappings: sourceNames.map(() => 'AAAA').join(';'),
   };
 }
 
@@ -106,7 +84,7 @@ export const miscResidualSuite: BenchSuite = {
   name: 'misc-residual',
   domain: '*multi*',
   description:
-    'Residual tools with no domain-themed suite: mojo live script, spray/pwntools contracts, cross-domain health + synonym resolution, honest process-runtime reporting',
+    'Residual tools with no domain-themed suite: mojo live script, spray/pwntools contracts, sourcemap diff, cross-domain health + synonym resolution, honest process-runtime reporting',
   cases: [
     {
       name: 'mojo_verify_live/generates-platform-script',
@@ -197,6 +175,32 @@ export const miscResidualSuite: BenchSuite = {
       },
     },
     {
+      name: 'sourcemap_diff/source-count-delta',
+      tool: 'sourcemap_diff',
+      origin: 'external-vector',
+      reference:
+        "ECMA-426 VLQ: two inline v3 maps with 2 vs 3 sources must report each map's source count",
+      run: () =>
+        new SourcemapToolHandlers({} as never).handleSourcemapDiff({
+          sourceMapUrl: inlineMap(v3Map(['src/a.ts', 'src/b.ts'])),
+          sourceMapUrlB: inlineMap(v3Map(['src/a.ts', 'src/b.ts', 'src/c.ts'])),
+        }),
+      validate: (v) => {
+        const b = body(v);
+        const mapA = b.mapA as Record<string, unknown> | undefined;
+        const mapB = b.mapB as Record<string, unknown> | undefined;
+        if (!mapA || !mapB) {
+          return `both map summaries required: ${JSON.stringify(b).slice(0, 200)}`;
+        }
+        if (Number(mapA.sources) !== 2) return `mapA.sources expected 2, got ${mapA.sources}`;
+        if (Number(mapB.sources) !== 3) return `mapB.sources expected 3, got ${mapB.sources}`;
+        // The delta is the whole point of the tool: an all-zero diff means the
+        // second map was never actually compared.
+        const diff = (b.diff ?? {}) as Record<string, unknown>;
+        return JSON.stringify(diff) !== '{}' ? true : 'diff must report the 2 -> 3 source change';
+      },
+    },
+    {
       name: 'cross_domain_health/reports-bridge-and-domains',
       tool: 'cross_domain_health',
       origin: 'homemade',
@@ -237,23 +241,11 @@ export const miscResidualSuite: BenchSuite = {
     ...(
       [
         {
-          name: 'sourcemap_diff/needs-two-maps',
-          tool: 'sourcemap_diff',
-          origin: 'homemade',
-          reference: 'ECMA-426 VLQ diff across two maps',
-          skipReason:
-            'the diff path resolves both map URLs through the collector; parsing is measured',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
-        },
-        {
           name: 'restore_page_snapshot/requires-browser',
           tool: 'restore_page_snapshot',
           origin: 'homemade',
           reference: 'restoring a page snapshot navigates a live browser page',
           skipReason: 'requires a live browser session',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
         {
           name: 'browser_jsdom_serialize/requires-jsdom-session',
@@ -261,8 +253,6 @@ export const miscResidualSuite: BenchSuite = {
           origin: 'homemade',
           reference: 'serialization consumes a jsdom session created by browser_jsdom_parse',
           skipReason: 'covered by the offline-tools jsdom cases through browser_jsdom_parse',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
         {
           name: 'browser_jsdom_cookies/requires-jsdom-session',
@@ -270,8 +260,6 @@ export const miscResidualSuite: BenchSuite = {
           origin: 'homemade',
           reference: 'cookie get/set operates on a jsdom session cookie jar',
           skipReason: 'covered by the offline-tools jsdom cases through browser_jsdom_parse',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
         {
           name: 'browser_passkey_seed/requires-browser',
@@ -279,8 +267,6 @@ export const miscResidualSuite: BenchSuite = {
           origin: 'homemade',
           reference: 'seeding a WebAuthn credential needs the browser page controller',
           skipReason: 'requires a live browser session',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
         {
           name: 'page_session_storage/requires-browser',
@@ -288,8 +274,6 @@ export const miscResidualSuite: BenchSuite = {
           origin: 'homemade',
           reference: 'sessionStorage access requires a live page',
           skipReason: 'requires a live browser session',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
         {
           name: 'v8_weakrefs_inspect/requires-browser',
@@ -297,8 +281,6 @@ export const miscResidualSuite: BenchSuite = {
           origin: 'homemade',
           reference: 'weakref inspection requires a CDP target session',
           skipReason: 'requires a live browser CDP session',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
         {
           name: 'adb_dumpsys/requires-device',
@@ -306,8 +288,6 @@ export const miscResidualSuite: BenchSuite = {
           origin: 'homemade',
           reference: 'dumpsys parsing needs a live adb connection',
           skipReason: 'requires a connected Android device/emulator',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
         {
           name: 'adb_getprop/requires-device',
@@ -315,8 +295,6 @@ export const miscResidualSuite: BenchSuite = {
           origin: 'homemade',
           reference: 'getprop parsing needs a live adb connection',
           skipReason: 'requires a connected Android device/emulator',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
         {
           name: 'llm_suggest_names/honest-no-context',
@@ -325,10 +303,8 @@ export const miscResidualSuite: BenchSuite = {
           reference:
             'with no analysis context bound, the tool must say so rather than invent names',
           skipReason: 'requires a live globalContext bound by the analysis domain ensure()',
-          run: async () => ({}),
-          validate: (v: unknown) => (body(v) ? true : 'unreachable'),
         },
-      ] satisfies BenchCase[]
+      ] satisfies PlaceholderSpec[]
     ).map(placeholder),
     {
       name: 'process_runtime_info/requires-linux-procfs',
