@@ -41,6 +41,9 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   'electron-fuses': 90,
   'sourcemap-tc39': 80,
   'offline-tools': 80,
+  // 6 live cases + 10 device/browser placeholders. A single live regression must
+  // not be masked by the placeholders, so the floor matches one-failure headroom.
+  'misc-residual': 85,
 };
 
 const results: BenchSuiteResult[] = [];

@@ -18,6 +18,7 @@ import { maintenanceSuite } from './maintenance.suite';
 import { electronFusesSuite } from './electron-fuses.suite';
 import { sourcemapTc39Suite } from './sourcemap-tc39.suite';
 import { offlineToolsSuite } from './offline-tools.suite';
+import { miscResidualSuite } from './misc-residual.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -39,4 +40,5 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   electronFusesSuite,
   sourcemapTc39Suite,
   offlineToolsSuite,
+  miscResidualSuite,
 ];
