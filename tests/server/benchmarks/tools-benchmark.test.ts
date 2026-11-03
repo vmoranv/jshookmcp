@@ -31,6 +31,13 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   // pass. At the old 80% floor a 5-case suite tolerated one silent failure, which
   // is exactly the shape of the domain-dir/nested-scan undercount regressions.
   'existing-tests-coverage': 100,
+  'session-progress': 90,
+  'tasks-lifecycle': 90,
+  'coordination-lifecycle': 90,
+  'cross-domain': 90,
+  'native-bridge': 90,
+  'process-static': 90,
+  'trace-query': 90,
   platform: 90,
   'memory-pure-ts': 90,
   'per-tool-scorecard': 90,

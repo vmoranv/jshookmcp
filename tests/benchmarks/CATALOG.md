@@ -8,7 +8,7 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: 19 suites / 110 cases (109 pass, 1 env-gated skip) — see `artifacts/benchmarks/scorecard.md`.
+Runnable suites today: 26 suites / 137 cases (136 pass, 1 env-gated skip) — see `artifacts/benchmarks/scorecard.md`.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
 736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
@@ -18,7 +18,7 @@ Runnable suites today: 19 suites / 110 cases (109 pass, 1 env-gated skip) — se
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | full e2e run (`pnpm bench:e2e`) — 442/479 real tasks passed, 115 tools covered |
-| retrieval | MRR@10 / NDCG@10 / P@1 / Success@3 (%) | live 102-query eval vs ToolSearchEngine — **MRR@10 78.4% · NDCG@10 81.1% · P@1 64.7% · S@3 93.1% · S@5 99.0%** |
+| retrieval | MRR@10 / NDCG@10 / P@1 / Success@3 (%) | live 109-query eval vs ToolSearchEngine — **MRR@10 79.8% · NDCG@10 82.2% · P@1 67.0% · S@3 93.6% · S@5 99.1%** |
 
 Environment-gated files (browser display, Camoufox, root) that self-skip stay honestly
 unmeasured rather than counted.
@@ -64,11 +64,11 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** No public engine-detection benchmark. Three.js/Babylon/Laya unit suites validate *engines*, not detectors. 📋
 - **[自制]** detector fixtures: minimal Three.js/Babylon pages asserting engine fingerprint + shader dump + draw-call hook capture. 📋
 
-## coordination (12 tools)
+## coordination (12 tools) — ✅ suite `coordination-lifecycle`
 
 - **[外部]** [node-lru-cache](https://github.com/isaacs/node-lru-cache) test suite — state_board LRU eviction semantics (incl. the known MRU-promotion-on-update gap). 📋
 - **[外部]** Playwright `storageState` JSON schema — page snapshot save/restore roundtrip. 📋
-- **[自制]** TTL contracts (0=permanent, default 24h), task handoff lifecycle. 📋
+- **[自制] ✅** `coordination-lifecycle` suite: task handoff create & complete lifecycle, session insights accumulation & category aggregation, state_board set/get/delete and list/clear operations.
 
 ## core (25 tools — see `core-analysis` suite)
 
@@ -76,10 +76,11 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [SOURCERER / JSDeobfuscation datasets](https://github.com/jscrub-tools) & obfuscator.io sample corpus — deobfuscation eval. 📋
 - **[自制] ✅** `core-analysis` suite: obfuscator.io-style string-array sample detection, clean-code negative control, planted-secrets security scan, source→sink taint path, AST match counts, opaque predicate solving.
 
-## cross-domain (8 tools)
+## cross-domain (8 tools) — ✅ suite `cross-domain`
 
 - **[外部]** [W3C PROV-DM / PROV-JSON](https://www.w3.org/TR/prov-dm/) + [prov-check](https://github.com/pgroth/prov-check) constraints — evidence graph export validity. 📋
 - **[外部]** [BFCL tool-retrieval category](https://gorilla.cs.berkeley.edu) (Berkeley Function Calling Leaderboard) — cross_domain_synonym / workflow suggestion quality; repo-internal datasets at `scripts/search-tune/datasets` remain primary. 📋
+- **[自制] ✅** `cross-domain` suite: synonym intent resolution with recommended tools mapping, evidence bridge node/edge export and stats calculation, workflow capabilities evaluation across enabled domains.
 
 ## dart-inspector (16 tools) — ✅ suite `dart-inspector`
 
@@ -138,9 +139,9 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 - **[自制]** roundtrip: mojo_encode_message → mojo_decode_message identity; Chromium mojo test-message hex fixtures from the Chromium source tree (`mojo/public/js` tests). 📋
 
-## native-bridge (6 tools)
+## native-bridge (6 tools) — ✅ suite `native-bridge`
 
-- **[自制]** bridge protocol handshake/health with mock backends; native_symbol_sync export formats (json/csv/idc/sqlite) golden files. 📋
+- **[自制] ✅** `native-bridge` suite: bridge protocol loopback health probe (reachable=false when offline), static tool setup guides (Rizin, Binary Ninja), SSRF endpoint validation.
 
 ## native-emulator (57 tools)
 
@@ -163,10 +164,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** Authenticode/Mach-O signature structure vectors (step-cli test data). 📋
 - miniapp pkg fixtures (wxapkg header samples). 📋
 
-## process (28 tools)
+## process (29 tools) — ✅ suite `process-static` (offline subset)
 
 - **[外部]** PE/ELF corpora from [LIEF](https://github.com/lief-project/LIEF) test suite — hollowing static scan. 📋
-- **[自制]** /proc-style maps fixtures for process_hollowing_scan (pure-TS path). 📋
+- **[自制] ✅** `process-static` suite: /proc-style maps fixtures for process_hollowing_scan (pure-TS anonymous RWX VAD anomaly detection), active node process enumeration.
 - Win32-native members (inject/APC/handle enum) are admin-gated → skip in CI by design.
 
 ## protocol-analysis (20 tools) — ✅ suite `protocol-analysis`
@@ -181,9 +182,9 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [mockttp](https://github.com/httptoolkit/mockttp) test suite (direct dependency) — rule semantics. 📋
 - **[自制]** rule lifecycle (add→match→remove) against a local loopback target. 📋
 
-## session (3 tools)
+## session (3 tools) — ✅ suite `session-progress`
 
-- **[自制]** ledger idempotency, per-kind 500-entry cap, coverage query ordering. 📋
+- **[自制] ✅** `session-progress` suite: ledger idempotency, per-kind 500-entry cap, deterministic coverage ordering, kind-scoped clear.
 
 ## sourcemap (7 tools) — ✅ suites `sourcemap` + `sourcemap-tc39`
 
@@ -202,10 +203,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** bpftrace test suite (Linux-only, root-gated). 📋
 - **[自制]** event filter/trace-diff/NDJSON export on synthetic event arrays (pure compute). 📋
 
-## tasks (4 tools)
+## tasks (4 tools) — ✅ suite `tasks-lifecycle`
 
 - **[外部]** [MCP official conformance](https://github.com/modelcontextprotocol/conformance) `tasks-lifecycle` scenario (SEP-1686) — spawn server + run conformance runner in CI. 📋
-- **[自制]** TTL pruning, cancellation states, result polling windows. 📋
+- **[自制] ✅** `tasks-lifecycle` suite: working→completed lifecycle transition, terminal cancellation guard, poll-until-terminal result retrieval, lastUpdatedAt sorted listing with status filter.
 
 ## tls-inspector (29 tools) — ✅ suite `tls-inspector`
 
@@ -214,10 +215,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** REAL X.509 minted by system OpenSSL, wrapped in the RFC 8446 §4.4.2 Certificate-message wire layout — parse roundtrip incl. SHA-256 fingerprint + subject.
 - **[外部]** [FoxIO-LLC/ja4](https://github.com/FoxIO-LLC/ja4) pcap test-cases for full fingerprint parity. 📋
 
-## trace (10 tools)
+## trace (10 tools) — ✅ suite `trace-query`
 
 - **[外部]** Chrome Trace Event format spec (Chromium catapult docs) — export_trace validity. 📋
-- **[自制]** record→SQL query→time-travel roundtrip on synthetic debugger traces. 📋
+- **[自制] ✅** `trace-query` suite: seeded SQLite trace database query execution, compact category aggregation and timeline summarization.
 
 ## transform (8 tools) — ✅ suite `transform`
 

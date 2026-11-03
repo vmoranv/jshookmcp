@@ -17,6 +17,13 @@ import { maintenanceSuite } from './maintenance.suite';
 import { electronFusesSuite } from './electron-fuses.suite';
 import { sourcemapTc39Suite } from './sourcemap-tc39.suite';
 import { offlineToolsSuite } from './offline-tools.suite';
+import { sessionSuite } from './session.suite';
+import { tasksSuite } from './tasks.suite';
+import { coordinationSuite } from './coordination.suite';
+import { crossDomainSuite } from './cross-domain.suite';
+import { nativeBridgeSuite } from './native-bridge.suite';
+import { processSuite } from './process.suite';
+import { traceSuite } from './trace.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -37,4 +44,11 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   electronFusesSuite,
   sourcemapTc39Suite,
   offlineToolsSuite,
+  sessionSuite,
+  tasksSuite,
+  coordinationSuite,
+  crossDomainSuite,
+  nativeBridgeSuite,
+  processSuite,
+  traceSuite,
 ];
