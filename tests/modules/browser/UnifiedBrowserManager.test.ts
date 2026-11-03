@@ -36,7 +36,7 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
   class BrowserModeManager {
     modeConfigForTest: any;
     launchOptionsForTest: any;
-    private browser = { isConnected: vi.fn(() => true) };
+    private browser = { connected: true };
     private page = { id: 'primary-browser-page' };
     launch = vi.fn(async () =>
       chromeState.launchImpl ? chromeState.launchImpl(this) : this.browser,
@@ -241,7 +241,7 @@ describe('UnifiedBrowserManager', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(closeSettled).toBe(false);
 
-    resolveLaunch({ isConnected: vi.fn(() => true) });
+    resolveLaunch({ connected: true });
     await launchPromise;
     await expect(closeResult).resolves.toBe('closed');
     expect(chromeState.instances[0]!.close).toHaveBeenCalledTimes(1);

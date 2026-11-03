@@ -20,6 +20,7 @@ import {
   shouldCollectUrlImpl,
   navigateWithRetryImpl,
   getPerformanceMetricsImpl,
+  collectPageMetadataImpl,
 } from '@modules/collector/CodeCollectorUtilsInternal';
 import {
   resolveConnectOptionsImpl,
@@ -381,6 +382,9 @@ export class CodeCollector {
     }
     return await this.resolvePageTargetHandle(lastTarget);
   }
+  // Part of the public collector surface consumed through the domain handler
+  // layer, which fallow's import graph does not resolve.
+  // fallow-ignore-next-line unused-class-member
   async getActivePageIndex(): Promise<number | null> {
     const activePage = await this.getActivePage();
     const resolvedPages = await this.listResolvedPages();
@@ -668,8 +672,13 @@ export class CodeCollector {
   ): Promise<void> {
     return navigateWithRetryImpl(page, url, options, maxRetries);
   }
+  // fallow-ignore-next-line unused-class-member
   async getPerformanceMetrics(page: Page): Promise<Record<string, number>> {
     return getPerformanceMetricsImpl(page);
+  }
+  // fallow-ignore-next-line unused-class-member
+  async collectPageMetadata(page: Page): Promise<Record<string, unknown>> {
+    return collectPageMetadataImpl(page);
   }
   private async resolveConnectOptions(
     endpointOrOptions: string | ChromeConnectOptions,
@@ -698,7 +707,7 @@ export class CodeCollector {
     if (
       requestKey === this.currentConnectRequestKey &&
       existingBrowser &&
-      existingBrowser.isConnected()
+      existingBrowser.connected
     ) {
       this.lifecycleManager.touch();
       return;

@@ -168,7 +168,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
 
     // Early return if browser already connected (cache reference to avoid repeated calls)
     const existingBrowser = this.chromeManager?.getBrowser();
-    if (existingBrowser?.isConnected()) {
+    if (existingBrowser?.connected) {
       return existingBrowser;
     }
 
@@ -409,13 +409,17 @@ export class UnifiedBrowserManager implements IBrowserManager {
     return this.activePage;
   }
 
+  // Public accessor paired with the driver setter used by the mode-switching
+  // path; fallow's import graph is incomplete here (dynamic driver imports).
+  // fallow-ignore-next-line unused-class-member
   getDriver(): BrowserDriver {
     return this.driver;
   }
 
   getStatus(): BrowserStatus {
     const browser = this.getBrowser();
-    const running = browser !== null && browser.isConnected();
+    const running =
+      browser !== null && ('connected' in browser ? browser.connected : browser.isConnected());
 
     return {
       driver: this.driver,
@@ -518,8 +522,3 @@ export class UnifiedBrowserManager implements IBrowserManager {
     return headless ?? true;
   }
 }
-
-// Re-export types and classes
-export type { BrowserModeConfig } from '@modules/browser/BrowserModeManager';
-export type { CamoufoxBrowserConfig } from '@modules/browser/CamoufoxBrowserManager';
-export type { BrowserInfo, BrowserSignature } from '@modules/browser/BrowserDiscovery';

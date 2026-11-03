@@ -39,7 +39,7 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
     launch = vi.fn(async () =>
       chromeState.launchImpl
         ? await chromeState.launchImpl(this)
-        : (this.browser ?? (this.browser = { isConnected: vi.fn(() => true) })),
+        : (this.browser ?? (this.browser = { connected: true })),
     );
     newPage = vi.fn(async () => this.page);
     goto = vi.fn(async (_url: string, targetPage?: any) => targetPage ?? this.page);
@@ -190,7 +190,7 @@ describe('UnifiedBrowserManager coverage', () => {
     const second = manager.launch();
 
     expect(chromeState.ctor).toHaveBeenCalledTimes(1);
-    deferred.resolve({ isConnected: vi.fn(() => true) });
+    deferred.resolve({ connected: true });
 
     await expect(Promise.all([first, second])).resolves.toHaveLength(2);
   });
@@ -255,7 +255,7 @@ describe('UnifiedBrowserManager coverage', () => {
   it('connects to an existing Chrome browser and disconnects on close', async () => {
     const browser = {
       disconnect: vi.fn(async () => {}),
-      isConnected: vi.fn(() => true),
+      connected: true,
     };
     connectMock.mockResolvedValue(browser);
 
