@@ -3,7 +3,7 @@
  */
 
 import { isIP, Socket as NetSocket } from 'node:net';
-import { checkServerIdentity, connect as createTlsConnection } from 'node:tls';
+import { connect as createTlsConnection } from 'node:tls';
 import {
   argBool,
   argEnum,
@@ -21,18 +21,15 @@ import type {
 import {
   applyTlsValidationPolicy,
   attachBufferedSession,
-  buildPeerCertificateChain,
   errorMessage,
-  hasPeerCertificate,
   loadProbeCaBundle,
   makeSessionId,
-  normalizeAlpnProtocol,
-  normalizeSocketServername,
   serializeSessionState,
   serializeSocketAddresses,
   TLS_VERSION_SET,
   validateNetworkTarget,
 } from './shared';
+import { buildTlsSessionMetadata } from './tls-metadata-helper';
 import { TlsInspectorTlsProbeHandlers } from './tls-probe-handlers';
 
 const TLS_VERSION_ORDER: ProbeTlsVersion[] = ['TLSv1', 'TLSv1.1', 'TLSv1.2', 'TLSv1.3'];
@@ -293,76 +290,13 @@ export class TlsInspectorSessionHandlers extends TlsInspectorTlsProbeHandlers {
 
       const onSecureConnect = (): void => {
         const handshakeMs = Date.now() - startedAt;
-        const peerCertificate = socket.getPeerCertificate(true);
-        const hasLeafCertificate = hasPeerCertificate(peerCertificate);
-        const certificateChain = hasLeafCertificate
-          ? buildPeerCertificateChain(peerCertificate)
-          : [];
-        const leafCertificate = certificateChain[0] ?? null;
-        const hostnameError =
-          skipHostnameCheck || !hasLeafCertificate
-            ? undefined
-            : checkServerIdentity(target.validationTarget, peerCertificate);
-        const hostnameValidation = {
-          checked: !skipHostnameCheck,
-          target: skipHostnameCheck ? null : target.validationTarget,
-          matched: skipHostnameCheck ? null : hostnameError === undefined,
-          error:
-            !skipHostnameCheck && !hasLeafCertificate
-              ? 'Peer certificate was not presented by the server'
-              : (hostnameError?.message ?? null),
-        };
-
-        const authorizationReasons = [
-          socket.authorized
-            ? 'Certificate chain validated against the active trust store.'
-            : `Certificate chain validation failed: ${socket.authorizationError ?? 'unknown_authority'}`,
-          skipHostnameCheck
-            ? 'Hostname validation was skipped by request.'
-            : hostnameValidation.matched
-              ? 'Hostname validation passed.'
-              : `Hostname validation failed: ${hostnameValidation.error ?? 'unknown_error'}`,
-          !socket.authorized && allowInvalidCertificates
-            ? 'Policy allowed the session to continue despite certificate trust failure.'
-            : null,
-        ].filter((reason): reason is string => Boolean(reason));
-
-        const cipher = socket.getCipher();
-        const metadata: TlsSession['metadata'] = {
+        const metadata = buildTlsSessionMetadata({
+          socket,
           target,
           policy,
-          transport: {
-            protocol: socket.getProtocol() ?? null,
-            alpnProtocol: normalizeAlpnProtocol(socket.alpnProtocol),
-            cipher: {
-              name: cipher.name,
-              standardName: cipher.standardName,
-              version: cipher.version,
-            },
-            localAddress: socket.localAddress ?? null,
-            localPort: socket.localPort ?? null,
-            remoteAddress: socket.remoteAddress ?? null,
-            remotePort: socket.remotePort ?? null,
-            servernameSent: normalizeSocketServername(socket.servername),
-            sessionReused: socket.isSessionReused(),
-          },
-          authorization: {
-            socketAuthorized: socket.authorized,
-            authorizationError:
-              typeof socket.authorizationError === 'string'
-                ? socket.authorizationError
-                : (socket.authorizationError?.message ?? null),
-            hostnameValidation,
-            policyAllowed:
-              (socket.authorized || allowInvalidCertificates) &&
-              (skipHostnameCheck || hostnameValidation.matched === true),
-            reasons: authorizationReasons,
-          },
-          certificates: {
-            leaf: leafCertificate,
-            chain: certificateChain,
-          },
-        };
+          skipHostnameCheck,
+          allowInvalidCertificates,
+        });
 
         if (!metadata.authorization.policyAllowed) {
           socket.destroy();
