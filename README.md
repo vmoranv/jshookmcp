@@ -10,6 +10,8 @@
 [![MCP](https://img.shields.io/badge/MCP-current-8A2BE2.svg)](https://modelcontextprotocol.io/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-F69220.svg)](https://pnpm.io/)
 
+<a href="https://trendshift.io/repositories/31180?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-31180" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/31180/daily?language=TypeScript" alt="vmoranv%2Fjshookmcp | Trendshift" width="250" height="55"/></a>
+
 **A search-first, profile-aware reverse-engineering workspace for AI agents.**
 
 **Hook the page, capture the network, deobfuscate the bundle, disassemble the WASM, instrument the process — and let one MCP server keep the whole attack surface in reach without drowning the model in schemas.**
