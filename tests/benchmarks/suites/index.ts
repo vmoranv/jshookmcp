@@ -27,6 +27,7 @@ import { processSuite } from './process.suite';
 import { traceSuite } from './trace.suite';
 import { miscResidualSuite } from './misc-residual.suite';
 import { workflowSuite } from './workflow.suite';
+import { adbBridgeSuite } from './adb-bridge.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -57,4 +58,5 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   traceSuite,
   miscResidualSuite,
   workflowSuite,
+  adbBridgeSuite,
 ];

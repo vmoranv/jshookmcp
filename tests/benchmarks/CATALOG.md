@@ -8,13 +8,13 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: 29 suites / 189 cases (179 pass, 10 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`.
+Runnable suites today: 30 suites / 195 cases (185 pass, 10 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
 736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **123 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **126 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -38,11 +38,11 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 ---
 
-## adb-bridge (26 tools)
+## adb-bridge (26 tools) — ✅ suite `adb-bridge-parsers`
 
+- **[自制] ✅** `adb-bridge-parsers` suite: golden transcripts for getprop property parsing, device fingerprint curation (SDK/ABI/bootloader), logcat threadtime line parsing, priority filter evaluation, proc/maps parser, and input text escaping.
 - **[外部]** [AndroidWorld](https://github.com/google-research/AndroidWorld) — 116 task-level Android automation benchmark (device-in-the-loop). 📋
 - **[外部]** [MobileAgentBench](https://github.com/MobileAgentBench/MobileAgentBench) — UI-agent task success on real apps. 📋
-- **[自制]** dumpsys/getprop/logcat/uiautomator **parser** correctness is testable offline with captured shell transcripts (golden files). 📋
 - Requires a live device/emulator for end-to-end; parsing layers are offline-testable.
 
 ## binary-instrument (46 tools)

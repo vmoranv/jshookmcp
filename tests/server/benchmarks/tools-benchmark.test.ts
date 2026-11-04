@@ -53,6 +53,7 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   // placeholders are never counted against the ratio.
   'misc-residual': 85,
   'workflow-lifecycle': 85,
+  'adb-bridge-parsers': 90,
 };
 
 const results: BenchSuiteResult[] = [];
