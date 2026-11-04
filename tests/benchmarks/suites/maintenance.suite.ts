@@ -6,15 +6,19 @@
  * official library ships; sampled entries must classify to their vendor.
  */
 import { CoreMaintenanceHandlers } from '@server/domains/maintenance/handlers';
+import { TokenBudgetManager } from '@utils/TokenBudgetManager';
+import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import { body, type BenchSuite } from '../harness';
 import { readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const realTokenBudget = new TokenBudgetManager();
+const realCacheManager = new UnifiedCacheManager();
 const handlers = new CoreMaintenanceHandlers({
-  tokenBudget: {} as never,
-  unifiedCache: {} as never,
+  tokenBudget: realTokenBudget,
+  unifiedCache: realCacheManager,
 } as never);
 
 interface BenchEntry {
@@ -123,6 +127,71 @@ export const maintenanceSuite: BenchSuite = {
           return 'NVIDIA entry classified as apple';
         if (a!.includes('nvidia') && !a!.includes('apple'))
           return 'Apple entry classified as nvidia';
+        return true;
+      },
+    },
+    {
+      name: 'get_token_budget_stats/stats-structure-contract',
+      tool: 'get_token_budget_stats',
+      origin: 'homemade',
+      reference:
+        'invokes handleGetTokenBudgetStats and verifies presence of maxTokens and usagePercentage',
+      run: async () => {
+        return handlers.handleGetTokenBudgetStats();
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (typeof b.maxTokens !== 'number')
+          return `expected maxTokens number, got: ${typeof b.maxTokens}`;
+        if (typeof b.usagePercentage !== 'number')
+          return `expected usagePercentage number, got: ${typeof b.usagePercentage}`;
+        return true;
+      },
+    },
+    {
+      name: 'manual_token_cleanup/cleanup-contract',
+      tool: 'manual_token_cleanup',
+      origin: 'homemade',
+      reference:
+        'invokes handleManualTokenCleanup and reports structured before/after/freed results',
+      run: async () => {
+        return handlers.handleManualTokenCleanup();
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.message !== 'Manual cleanup completed')
+          return `expected completion message, got: ${b.message}`;
+        if (!b.freed) return `expected freed stats field, got: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'reset_token_budget/reset-contract',
+      tool: 'reset_token_budget',
+      origin: 'homemade',
+      reference: 'invokes handleResetTokenBudget and resets usage back to 0',
+      run: async () => {
+        return handlers.handleResetTokenBudget();
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.currentUsage !== 0) return `expected currentUsage=0, got: ${b.currentUsage}`;
+        return true;
+      },
+    },
+    {
+      name: 'get_cache_stats/global-stats-contract',
+      tool: 'get_cache_stats',
+      origin: 'homemade',
+      reference:
+        'invokes handleGetCacheStats via real UnifiedCacheManager and returns totalSize and totalEntries',
+      run: async () => {
+        return handlers.handleGetCacheStats();
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (typeof b.totalEntries !== 'number')
+          return `expected totalEntries number, got: ${typeof b.totalEntries}`;
         return true;
       },
     },

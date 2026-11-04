@@ -168,5 +168,116 @@ export const coordinationSuite: BenchSuite = {
         return true;
       },
     },
+    {
+      name: 'update_task_handoff/status-and-risk-update',
+      tool: 'update_task_handoff',
+      origin: 'homemade',
+      reference:
+        'update_task_handoff updates status, decision, risks, and nextSteps on active task',
+      run: async () => {
+        const created = body(
+          await coordination.handleCreateTaskHandoffTool({
+            description: 'task to be updated',
+            targetDomain: 'core',
+          }),
+        );
+        const taskId = String(created.taskId ?? '');
+        const updated = body(
+          await coordination.handleUpdateTaskHandoffTool({
+            taskId,
+            status: 'in_progress',
+            decision: 'switch to AST-based deobfuscator',
+            risks: ['eval-dependent string array'],
+          }),
+        );
+        return { created, updated };
+      },
+      validate: (v) => {
+        const b = body(v);
+        const updated = b.updated as Record<string, unknown>;
+        if (updated.status !== 'in_progress')
+          return `expected status=in_progress, got ${updated.status}`;
+        if (updated.decision !== 'switch to AST-based deobfuscator')
+          return `expected updated decision, got ${updated.decision}`;
+        return true;
+      },
+    },
+    {
+      name: 'get_task_context/query-by-id-and-aggregate',
+      tool: 'get_task_context',
+      origin: 'homemade',
+      reference: 'get_task_context returns specific task details when taskId is passed',
+      run: async () => {
+        const created = body(
+          await coordination.handleCreateTaskHandoffTool({
+            description: 'context query task',
+            targetDomain: 'debugger',
+          }),
+        );
+        const taskId = String(created.taskId ?? '');
+        const context = body(await coordination.handleGetTaskContextTool({ taskId }));
+        return { created, context };
+      },
+      validate: (v) => {
+        const b = body(v);
+        const context = b.context as Record<string, unknown>;
+        const handoff = context.handoff as Record<string, unknown> | undefined;
+        if (!handoff || handoff.description !== 'context query task') {
+          return `expected handoff with description 'context query task', got: ${JSON.stringify(context)}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'state_board_io/export-and-import',
+      tool: 'state_board_io',
+      origin: 'homemade',
+      reference: 'state_board_io export dumps entries, import restores them',
+      run: async () => {
+        await stateBoard.handleDispatchTool({ action: 'set', key: 'io_key', value: 'io_val' });
+        const exported = body(await stateBoard.handleIODispatchTool({ action: 'export' }));
+        await stateBoard.handleDispatchTool({ action: 'clear' });
+        const imported = body(
+          await stateBoard.handleIODispatchTool({
+            action: 'import',
+            data: exported.data ?? exported,
+          }),
+        );
+        const verify = body(await stateBoard.handleDispatchTool({ action: 'get', key: 'io_key' }));
+        return { exported, imported, verify };
+      },
+      validate: (v) => {
+        const b = body(v);
+        const verify = b.verify as Record<string, unknown>;
+        if (verify.value !== 'io_val')
+          return `imported key io_key expected value 'io_val', got: ${JSON.stringify(verify)}`;
+        return true;
+      },
+    },
+    {
+      name: 'state_board_watch/start-and-poll',
+      tool: 'state_board_watch',
+      origin: 'homemade',
+      reference: 'state_board_watch registers watch and polls without error',
+      run: async () => {
+        const started = body(
+          await stateBoard.handleWatchDispatchTool({
+            action: 'start',
+            key: 'watch_target',
+            pollIntervalMs: 500,
+          }),
+        );
+        const watchId = String(started.watchId ?? '');
+        const polled = body(await stateBoard.handleWatchDispatchTool({ action: 'poll', watchId }));
+        const stopped = body(await stateBoard.handleWatchDispatchTool({ action: 'stop', watchId }));
+        return { started, polled, stopped };
+      },
+      validate: (v) => {
+        const b = body(v);
+        const started = b.started as Record<string, unknown>;
+        if (!started.watchId) return `expected watchId returned, got: ${JSON.stringify(started)}`;
+        return true;
+      },
+    },
   ],
 };
