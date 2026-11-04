@@ -6,7 +6,7 @@ Quantifiable benchmark evaluation for the 736 MCP tools (36 domains).
 - **[existing-tests-coverage.suite.ts](./existing-tests-coverage.suite.ts)** — the audit/test-asset benchmark layer (breadth).
 - **[tool-inventory.md](./tool-inventory.md)** — the full 736-tool inventory grouped by domain, generated from `src/server/registry/generated-tool-catalog.ts`.
 - **[harness.ts](./harness.ts)** — case runner + scorecard renderer (per-case pass/fail/skip with references).
-- **[suites/](./suites/)** — runnable suites (19 suites / 110 cases today, 109 passing + 1 env-gated skip).
+- **[suites/](./suites/)** — runnable suites (26 suites / 137 cases today, 136 passing + 1 env-gated skip).
 - **existing-tests-coverage** — converts the existing handler-test + e2e asset into a per-tool coverage matrix (649/736 unit, 153/736 e2e).
 - **per-tool-scorecard** — per-tool NATIVE metrics (correctness / throughput / handler-fn / e2e-tasks / retrieval) for every one of the 736 tools; no composite score, no letter grades.
 
@@ -27,7 +27,7 @@ score, no letter grades:
 | throughput | µs/call | measured wall time of those executions |
 | handler-fn | % | V8 function-level coverage from a real `vitest --coverage` run |
 | e2e-tasks | count | real-task e2e files (≥90% pass-rate) that exercise the tool |
-| retrieval | MRR@10 / P@1 / … (%) | live evaluation over the 102-query search-quality set |
+| retrieval | MRR@10 / P@1 / … (%) | live evaluation over the 109-query search-quality set |
 
 No layer falls back to a static guess: an unmeasured layer shows "—" / "not measured"
 and the Missing column names exactly which command produces it.

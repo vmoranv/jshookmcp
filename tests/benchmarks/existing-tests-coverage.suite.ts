@@ -140,16 +140,64 @@ interface DomainCoverage {
   covered: number;
   uncovered: string[];
   e2eCovered: number;
+  /** Split of `covered`: executed assertions vs. merely skipped in a bench suite. */
+  exercised?: number;
+  referencedOnly?: number;
+  skippedOnly?: string[];
+}
+
+/**
+ * Tools whose ONLY benchmark appearance is a skipped case.
+ *
+ * A `skip` case never runs an assertion, so counting it as "covered" inflates
+ * the breadth number: `misc-residual` reports 100% because 9 of its 11 cases
+ * skip, yet those 9 tools exercise nothing. This scans the suites for tools
+ * that appear exclusively under `skip:` predicates and reports them
+ * separately, so the headline percentage only counts tools with a real
+ * assertion behind them.
+ */
+function loadSkippedOnlyTools(): Set<string> {
+  const skippedOnly = new Set<string>();
+  const suitesDir = join(ROOT, 'tests/benchmarks/suites');
+  if (!existsSync(suitesDir)) return skippedOnly;
+
+  for (const file of readdirSync(suitesDir)) {
+    if (!file.endsWith('.suite.ts')) continue;
+    const text = readFileSync(join(suitesDir, file), 'utf8');
+    const exercised = new Set<string>();
+    const alwaysSkipped = new Set<string>();
+
+    // Split into case blocks on `name:` boundaries so `tool:` and `skip:` are
+    // attributed to the same case.
+    const blocks = text.split(/\n\s*\{\s*\n\s*name:\s*'/).slice(1);
+    for (const block of blocks) {
+      const tool = block.match(/\btool:\s*'([a-z0-9_]+)'/)?.[1];
+      if (!tool || tool.startsWith('*')) continue;
+      // Only an UNCONDITIONAL skip means the case never runs. A conditional
+      // skip (env-gated, platform-gated) still executes in the default run,
+      // so it must not be demoted — treat it as exercised.
+      const skip = block.match(/\bskip:\s*(\([^)]*\)\s*=>[^,}]+)/)?.[1] ?? '';
+      const unconditional = /^\s*\([^)]*\)\s*=>\s*true\s*$/.test(skip.trim());
+      if (unconditional) alwaysSkipped.add(tool);
+      else exercised.add(tool);
+    }
+    for (const tool of alwaysSkipped) if (!exercised.has(tool)) skippedOnly.add(tool);
+  }
+  return skippedOnly;
 }
 
 function computeCoverage(): {
   domains: DomainCoverage[];
   totalTools: number;
   totalCovered: number;
+  totalTotalE2eCovered?: never;
   totalE2eCovered: number;
+  totalExercised: number;
+  totalSkippedOnly: number;
 } {
   const toolRefs = loadToolRefs();
   const { unit, e2e } = loadTestAssets();
+  const skippedOnly = loadSkippedOnlyTools();
   const byDomain = new Map<string, ToolRef[]>();
   for (const ref of toolRefs) {
     const list = byDomain.get(ref.domain) ?? [];
@@ -160,6 +208,8 @@ function computeCoverage(): {
   let totalTools = 0;
   let totalCovered = 0;
   let totalE2eCovered = 0;
+  let totalExercised = 0;
+  let totalSkippedOnly = 0;
   for (const [domain, refs] of [...byDomain.entries()].toSorted()) {
     const asset = unit.get(domain) ?? '';
     const uncovered: string[] = [];
@@ -176,9 +226,24 @@ function computeCoverage(): {
     }
     totalCovered += covered;
     totalE2eCovered += e2eCovered;
-    domains.push({ domain, total: refs.length, covered, uncovered, e2eCovered });
+    // Split the covered set: a tool whose only bench appearance is a skipped
+    // case has a reference but no executed assertion behind it.
+    const skippedHere = refs.filter((r) => skippedOnly.has(r.tool)).map((r) => r.tool);
+    const exercisedHere = covered - skippedHere.length;
+    totalExercised += exercisedHere;
+    totalSkippedOnly += skippedHere.length;
+    domains.push({
+      domain,
+      total: refs.length,
+      covered,
+      uncovered,
+      e2eCovered,
+      exercised: exercisedHere,
+      referencedOnly: skippedHere.length,
+      skippedOnly: skippedHere,
+    });
   }
-  return { domains, totalTools, totalCovered, totalE2eCovered };
+  return { domains, totalTools, totalCovered, totalE2eCovered, totalExercised, totalSkippedOnly };
 }
 
 let cache: ReturnType<typeof computeCoverage> | null = null;
@@ -188,19 +253,23 @@ function coverage(): ReturnType<typeof computeCoverage> {
 }
 
 function writeReport(): string {
-  const { domains, totalTools, totalCovered, totalE2eCovered } = coverage();
+  const { domains, totalTools, totalCovered, totalE2eCovered, totalExercised, totalSkippedOnly } =
+    coverage();
+  const pct = (n: number) => (totalTools ? ((n / totalTools) * 100).toFixed(1) : '0');
   const lines: string[] = [
     '# Existing Test Asset → Tool Coverage Matrix',
     '',
-    `Unit-test coverage: **${totalCovered}/${totalTools}** tools (${totalTools ? ((totalCovered / totalTools) * 100).toFixed(1) : '0'}%) referenced by domain handler tests.`,
+    `Unit-test coverage: **${totalCovered}/${totalTools}** tools (${pct(totalCovered)}%) referenced by domain handler tests.`,
+    `  - of which **exercised** by a benchmark assertion: **${totalExercised}/${totalTools}** (${pct(totalExercised)}%)`,
+    `  - of which appear **only as a skipped case**: **${totalSkippedOnly}** — referenced, but no assertion runs`,
     `e2e real-task coverage: **${totalE2eCovered}/${totalTools}** tools invoked by name in tests/e2e.`,
     '',
-    '| Domain | Tools | Unit-tested | e2e-touched | Unit % |',
-    '|---|---:|---:|---:|---:|',
+    '| Domain | Tools | Unit-tested | → exercised | → skipped-only | e2e-touched | Unit % |',
+    '|---|---:|---:|---:|---:|---:|---:|',
   ];
   for (const d of domains) {
     lines.push(
-      `| ${d.domain} | ${d.total} | ${d.covered} | ${d.e2eCovered} | ${d.total ? ((d.covered / d.total) * 100).toFixed(0) : '0'}% |`,
+      `| ${d.domain} | ${d.total} | ${d.covered} | ${d.exercised ?? 0} | ${d.referencedOnly ?? 0} | ${d.e2eCovered} | ${d.total ? ((d.covered / d.total) * 100).toFixed(0) : '0'}% |`,
     );
   }
   lines.push('');
@@ -216,7 +285,7 @@ function writeReport(): string {
   writeFileSync(join(outDir, 'existing-test-coverage.md'), `${lines.join('\n')}\n`);
   writeFileSync(
     join(outDir, 'existing-test-coverage.json'),
-    `${JSON.stringify({ generatedAt: new Date().toISOString(), domains, totalTools, totalCovered, totalE2eCovered }, null, 2)}\n`,
+    `${JSON.stringify({ generatedAt: new Date().toISOString(), domains, totalTools, totalCovered, totalExercised, totalSkippedOnly, totalE2eCovered }, null, 2)}\n`,
   );
   return lines.join('\n');
 }
@@ -233,8 +302,22 @@ export const existingTestsSuite: BenchSuite = {
       origin: 'homemade',
       reference: 'registry manifests × tests/server/domains + tests/e2e static reference scan',
       run: async () => {
-        const { totalTools, totalCovered, totalE2eCovered, domains } = coverage();
-        return { totalTools, totalCovered, totalE2eCovered, domains };
+        const {
+          totalTools,
+          totalCovered,
+          totalE2eCovered,
+          totalExercised,
+          totalSkippedOnly,
+          domains,
+        } = coverage();
+        return {
+          totalTools,
+          totalCovered,
+          totalE2eCovered,
+          totalExercised,
+          totalSkippedOnly,
+          domains,
+        };
       },
       validate: (v) => {
         const b = body(v);
@@ -245,6 +328,38 @@ export const existingTestsSuite: BenchSuite = {
         return ratio >= 0.5
           ? true
           : `unit-test asset covers only ${(ratio * 100).toFixed(1)}% of tools (${covered}/${total}) — extend domain tests or record an explicit waiver`;
+      },
+    } satisfies BenchCase,
+    {
+      name: 'existing-tests/exercised-vs-skipped-accounting',
+      tool: '*all*',
+      origin: 'homemade',
+      reference:
+        'the covered set must split into exercised (a real assertion runs) and skipped-only (the only bench case skips)',
+      // Regression: skipped cases used to count as coverage, so a suite where
+      // 9 of 11 cases skip reported 100% and its tools read as "covered" while
+      // no assertion ever executed.
+      run: async () => {
+        const { totalCovered, totalExercised, totalSkippedOnly, domains } = coverage();
+        const withSkips = domains.filter((d) => (d.referencedOnly ?? 0) > 0);
+        return {
+          totalCovered,
+          totalExercised,
+          totalSkippedOnly,
+          withSkips: withSkips.map((d) => `${d.domain}:${d.referencedOnly}`).join(','),
+        };
+      },
+      validate: (v) => {
+        const b = body(v);
+        const covered = Number(b.totalCovered ?? 0);
+        const exercised = Number(b.totalExercised ?? 0);
+        const skipped = Number(b.totalSkippedOnly ?? 0);
+        if (exercised + skipped !== covered) {
+          return `exercised(${exercised}) + skippedOnly(${skipped}) must equal covered(${covered})`;
+        }
+        return exercised < covered
+          ? true
+          : 'expected at least one skipped-only tool (misc-residual skips 9) — the split is not being applied';
       },
     } satisfies BenchCase,
     {

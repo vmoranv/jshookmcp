@@ -19,6 +19,7 @@ import type { Tool } from '@modelcontextprotocol/server';
 import {
   buildSearchQualityFixture,
   resolveSearchQualityToolDomain,
+  type SearchEvalCase,
 } from '@tests/server/search/fixtures/search-quality.fixture';
 import {
   aggregateSearchMetrics,
@@ -86,6 +87,60 @@ vi.mock('@src/constants', async (importOriginal) => ({
   SEARCH_SELF_RAG_ENABLED: false,
 }));
 
+interface PerToolEvidence {
+  /** Queries whose relevant expectations include this tool. */
+  queries: number;
+  /** Queries where the tool landed in the top-3. */
+  hitAt3: number;
+  /** Queries where the tool landed in the top-10. */
+  hitAt10: number;
+  /** Best (1-based) rank the tool ever achieved across those queries. */
+  bestRank: number | null;
+  /** Mean reciprocal rank over the queries that expect this tool. */
+  mrr: number;
+}
+
+/**
+ * Per-tool retrieval evidence.
+ *
+ * The engine-wide MRR/NDCG/P@1 describe the search layer, not any single tool.
+ * Copying them onto every tool row would assert evidence that tool never had —
+ * the previous code did exactly that for four hard-coded tool names. This
+ * counts, per expected tool, how many queries actually asked for it and where
+ * it actually ranked.
+ */
+function buildPerToolEvidence(
+  rankedByCase: ReadonlyMap<string, readonly RankedResult[]>,
+  cases: readonly SearchEvalCase[],
+): Record<string, PerToolEvidence> {
+  const acc = new Map<string, { queries: number; ranks: number[] }>();
+  for (const testCase of cases) {
+    const ranked = rankedByCase.get(testCase.id) ?? [];
+    // Only graded-relevant expectations count (gain >= 2), matching the
+    // relevance definition the metrics already use.
+    for (const exp of testCase.expectations) {
+      if (exp.gain < 2) continue;
+      const idx = ranked.findIndex((r) => r.name === exp.tool);
+      const entry = acc.get(exp.tool) ?? { queries: 0, ranks: [] };
+      entry.queries += 1;
+      if (idx >= 0) entry.ranks.push(idx + 1);
+      acc.set(exp.tool, entry);
+    }
+  }
+
+  const out: Record<string, PerToolEvidence> = {};
+  for (const [tool, { queries, ranks }] of acc) {
+    out[tool] = {
+      queries,
+      hitAt3: ranks.filter((r) => r <= 3).length,
+      hitAt10: ranks.filter((r) => r <= 10).length,
+      bestRank: ranks.length > 0 ? Math.min(...ranks) : null,
+      mrr: ranks.length > 0 ? ranks.reduce((s, r) => s + 1 / r, 0) / queries : 0,
+    };
+  }
+  return out;
+}
+
 describe('retrieval benchmark (native metrics)', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -128,6 +183,11 @@ describe('retrieval benchmark (native metrics)', () => {
         successAt5: agg.successAt5,
         objectiveScore: agg.objectiveScore,
         worstCases: summarizeFailedCases(rankedByCase, fixture.cases).slice(0, 5),
+        // Per-tool evidence: which queries actually exercise each tool, and at
+        // what rank it landed. The scorecard's retrieval column is per-tool, so
+        // an engine-level number copied onto every row would claim evidence the
+        // tool never had. Only tools whose relevant expectations ran are listed.
+        perTool: buildPerToolEvidence(rankedByCase, fixture.cases),
       };
 
       const outDir = resolve(ROOT, 'artifacts/benchmarks');
@@ -135,6 +195,14 @@ describe('retrieval benchmark (native metrics)', () => {
       writeFileSync(
         resolve(outDir, 'retrieval-metrics.json'),
         `${JSON.stringify(report, null, 2)}\n`,
+      );
+      // Per-tool evidence: each expected tool gets its own query count, best
+      // rank, and MRR so the scorecard can surface real tool-level retrieval
+      // quality rather than pasting the engine-level aggregate on every row.
+      const perTool = buildPerToolEvidence(rankedByCase, fixture.cases);
+      writeFileSync(
+        resolve(outDir, 'retrieval-per-tool.json'),
+        `${JSON.stringify(perTool, null, 2)}\n`,
       );
       const md = [
         '# Retrieval Benchmark (native metrics)',

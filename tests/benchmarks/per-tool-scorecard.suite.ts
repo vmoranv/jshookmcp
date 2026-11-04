@@ -12,8 +12,12 @@
  *                               in a real `vitest --coverage` run (pnpm bench:coverage)
  *   e2e-tasks    count         — real-task e2e files that passed while invoking the tool
  *                               (pnpm bench:e2e → artifacts/benchmarks/e2e-results.json)
- *   retrieval    MRR@10/P@1    — live evaluation on the search-quality query set
- *                               (tests/server/benchmarks/retrieval-metrics.test.ts)
+ *   retrieval    MRR / best rank — PER-TOOL evidence from the search-quality
+ *                               query set (tests/server/benchmarks/retrieval-metrics.test.ts
+ *                               → artifacts/benchmarks/retrieval-per-tool.json).
+ *                               The engine-wide aggregate describes the search
+ *                               layer, not any single tool, so it is never copied
+ *                               onto a tool row.
  *
  * Output: artifacts/benchmarks/per-tool-scorecard.{md,json}
  */
@@ -152,15 +156,28 @@ interface Loaders {
   e2eByTool: Map<string, number>;
   e2eAvailable: boolean;
   retrieval: { mrrAt10: number; pAt1: number } | null;
+  perToolEvidence: Record<string, PerToolRetrievalEvidence> | null;
   methodMap: Map<string, string[]>;
 }
 
-const RETRIEVAL_TOOLS = new Set([
-  'tool_search',
-  'search_tools',
-  'cross_domain_synonym',
-  'workflow_suggest',
-]);
+const RETRIEVAL_PER_TOOL_EVIDENCE_FILE = join(ROOT, 'artifacts/benchmarks/retrieval-per-tool.json');
+
+interface PerToolRetrievalEvidence {
+  queries: number;
+  hitAt3: number;
+  hitAt10: number;
+  bestRank: number | null;
+  mrr: number;
+}
+
+function loadPerToolRetrievalEvidence(): Record<string, PerToolRetrievalEvidence> | null {
+  if (!existsSync(RETRIEVAL_PER_TOOL_EVIDENCE_FILE)) return null;
+  try {
+    return JSON.parse(readFileSync(RETRIEVAL_PER_TOOL_EVIDENCE_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
 
 function loadE2eCoverage(): { byTool: Map<string, number>; available: boolean } {
   const byTool = new Map<string, number>();
@@ -254,10 +271,11 @@ function summarizeTool(
   const e2eTasks = loaders.e2eAvailable
     ? `${e2eCount} task${e2eCount === 1 ? '' : 's'}`
     : 'not measured';
-  const retrievalStr =
-    loaders.retrieval && RETRIEVAL_TOOLS.has(tool)
-      ? `MRR@10 ${(loaders.retrieval.mrrAt10 * 100).toFixed(1)}% / P@1 ${(loaders.retrieval.pAt1 * 100).toFixed(1)}% (engine-level)`
-      : '—';
+  const retrievalEvidence = loaders.perToolEvidence;
+  const perTool = retrievalEvidence?.[tool];
+  const retrievalStr = perTool
+    ? `MRR ${(perTool.mrr * 100).toFixed(1)}% · ${perTool.queries}q · best@${perTool.bestRank ?? '—'} · hit@3 ${perTool.hitAt3}/${perTool.queries}`
+    : '—';
 
   const missing: string[] = [];
   if (!exec) missing.push('no vector case');
@@ -299,6 +317,7 @@ function perToolMetrics(): ToolMetrics[] {
     e2eByTool: new Map(),
     e2eAvailable: false,
     retrieval: loadRetrievalMetrics(),
+    perToolEvidence: loadPerToolRetrievalEvidence(),
     methodMap: loadMethodMap(),
   };
   const e2e = loadE2eCoverage();

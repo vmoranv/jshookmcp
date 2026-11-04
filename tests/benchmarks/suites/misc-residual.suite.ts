@@ -40,15 +40,18 @@ const exploitHandlers = new ExploitDevHandlers({} as unknown as MCPServerContext
 const mojoHandlers = new MojoIPCHandlers();
 
 /**
- * Fields a placeholder omits; `placeholder()` fills them with a no-op runner.
+ * Fields a placeholder must spell out itself; `placeholder()` only fills the
+ * no-op runner/validator. `skip: () => true` MUST stay a literal property of
+ * each object: existing-tests-coverage's skipped-only scanner attributes tools
+ * by reading the case blocks statically, and a skip injected by this wrapper
+ * is invisible to it (the tool would read as exercised without ever running).
  */
-type PlaceholderSpec = Omit<BenchCase, 'skip' | 'run' | 'validate'>;
+type PlaceholderSpec = Omit<BenchCase, 'run' | 'validate'>;
 
 /** A skipped case that records why the tool is unmeasured in this suite. */
 function placeholder(spec: PlaceholderSpec): BenchCase {
   return {
     ...spec,
-    skip: () => true,
     run: async () => ({}),
     validate: () => true,
   };
@@ -245,6 +248,7 @@ export const miscResidualSuite: BenchSuite = {
           tool: 'restore_page_snapshot',
           origin: 'homemade',
           reference: 'restoring a page snapshot navigates a live browser page',
+          skip: () => true,
           skipReason: 'requires a live browser session',
         },
         {
@@ -252,6 +256,7 @@ export const miscResidualSuite: BenchSuite = {
           tool: 'browser_jsdom_serialize',
           origin: 'homemade',
           reference: 'serialization consumes a jsdom session created by browser_jsdom_parse',
+          skip: () => true,
           skipReason: 'covered by the offline-tools jsdom cases through browser_jsdom_parse',
         },
         {
@@ -259,6 +264,7 @@ export const miscResidualSuite: BenchSuite = {
           tool: 'browser_jsdom_cookies',
           origin: 'homemade',
           reference: 'cookie get/set operates on a jsdom session cookie jar',
+          skip: () => true,
           skipReason: 'covered by the offline-tools jsdom cases through browser_jsdom_parse',
         },
         {
@@ -266,6 +272,7 @@ export const miscResidualSuite: BenchSuite = {
           tool: 'browser_passkey_seed',
           origin: 'homemade',
           reference: 'seeding a WebAuthn credential needs the browser page controller',
+          skip: () => true,
           skipReason: 'requires a live browser session',
         },
         {
@@ -273,6 +280,7 @@ export const miscResidualSuite: BenchSuite = {
           tool: 'page_session_storage',
           origin: 'homemade',
           reference: 'sessionStorage access requires a live page',
+          skip: () => true,
           skipReason: 'requires a live browser session',
         },
         {
@@ -280,6 +288,7 @@ export const miscResidualSuite: BenchSuite = {
           tool: 'v8_weakrefs_inspect',
           origin: 'homemade',
           reference: 'weakref inspection requires a CDP target session',
+          skip: () => true,
           skipReason: 'requires a live browser CDP session',
         },
         {
@@ -287,6 +296,7 @@ export const miscResidualSuite: BenchSuite = {
           tool: 'adb_dumpsys',
           origin: 'homemade',
           reference: 'dumpsys parsing needs a live adb connection',
+          skip: () => true,
           skipReason: 'requires a connected Android device/emulator',
         },
         {
@@ -294,6 +304,7 @@ export const miscResidualSuite: BenchSuite = {
           tool: 'adb_getprop',
           origin: 'homemade',
           reference: 'getprop parsing needs a live adb connection',
+          skip: () => true,
           skipReason: 'requires a connected Android device/emulator',
         },
         {
@@ -302,6 +313,7 @@ export const miscResidualSuite: BenchSuite = {
           origin: 'homemade',
           reference:
             'with no analysis context bound, the tool must say so rather than invent names',
+          skip: () => true,
           skipReason: 'requires a live globalContext bound by the analysis domain ensure()',
         },
       ] satisfies PlaceholderSpec[]

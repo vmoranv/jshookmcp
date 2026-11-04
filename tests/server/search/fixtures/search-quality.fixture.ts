@@ -34,6 +34,13 @@ export type SearchCaseTag =
   | 'sourcemap'
   | 'streaming'
   | 'proxy'
+  | 'session'
+  | 'tasks'
+  | 'coordination'
+  | 'cross-domain'
+  | 'native-bridge'
+  | 'process'
+  | 'trace'
   | 'realtime';
 
 export interface SearchExpectation {
@@ -238,6 +245,29 @@ const DOMAIN_RULES: readonly DomainRule[] = [
   {
     domain: 'debugger',
     prefixes: ['antidebug_'],
+  },
+  {
+    domain: 'session',
+    prefixes: ['session_'],
+  },
+  {
+    domain: 'tasks',
+    prefixes: ['tasks_'],
+  },
+  {
+    domain: 'cross-domain',
+    prefixes: ['cross_domain_'],
+  },
+  {
+    domain: 'native-bridge',
+    prefixes: [
+      'native_bridge_',
+      'ghidra_bridge',
+      'ida_bridge',
+      'rizin_bridge',
+      'binary_ninja_bridge',
+      'native_symbol_',
+    ],
   },
 ];
 
@@ -584,6 +614,29 @@ const TOOLS: readonly Tool[] = [
     'Add an interception rule: forward, mock_response, redirect, or block.',
   ),
   makeTool('proxy_list_rules', 'List active proxy interception rules tracked by this handler.'),
+  // session, tasks, coordination, cross-domain, native-bridge, process, trace additions
+  makeTool(
+    'session_progress_record',
+    'Record progress markers and evidence in the active session.',
+  ),
+  makeTool('tasks_get', 'Get status and details of background MCP tasks.'),
+  makeTool(
+    'create_task_handoff',
+    'Create a handoff packet to transfer task context across agent sessions.',
+  ),
+  makeTool(
+    'cross_domain_synonym',
+    'Query cross-domain synonyms to map natural language intent to domain tools.',
+  ),
+  makeTool(
+    'native_bridge_status',
+    'Check loopback connection health to Ghidra, IDA, Rizin, and Binary Ninja.',
+  ),
+  makeTool(
+    'process_find',
+    'Search for running processes by name pattern with PID and executable path.',
+  ),
+  makeTool('query_trace_sql', 'Run SQLite queries against recorded execution traces.'),
 ];
 
 // ── evaluation cases ──
@@ -1701,6 +1754,70 @@ const CASES: readonly SearchEvalCase[] = [
     expectations: [{ tool: 'mojo_monitor', gain: 3 }],
     idealTool: 'mojo_monitor',
     tags: ['exact', 'mojo-ipc'],
+  },
+  // ── newly covered domains: session, tasks, coordination, cross-domain, native-bridge, process, trace ──
+  {
+    id: 'session-record-progress',
+    title: 'session: "record session progress" → session_progress_record in top-3',
+    query: 'record session progress',
+    topK: 10,
+    expectations: [{ tool: 'session_progress_record', gain: 3 }],
+    idealTool: 'session_progress_record',
+    tags: ['session'],
+  },
+  {
+    id: 'tasks-get-status',
+    title: 'tasks: "get background task status" → tasks_get in top-3',
+    query: 'get background task status',
+    topK: 10,
+    expectations: [{ tool: 'tasks_get', gain: 3 }],
+    idealTool: 'tasks_get',
+    tags: ['tasks'],
+  },
+  {
+    id: 'coordination-task-handoff',
+    title: 'coordination: "create task handoff" → create_task_handoff in top-3',
+    query: 'create task handoff for agent',
+    topK: 10,
+    expectations: [{ tool: 'create_task_handoff', gain: 3 }],
+    idealTool: 'create_task_handoff',
+    tags: ['coordination'],
+  },
+  {
+    id: 'cross-domain-synonym-query',
+    title: 'cross-domain: "cross domain synonyms" → cross_domain_synonym in top-3',
+    query: 'cross domain synonym search',
+    topK: 10,
+    expectations: [{ tool: 'cross_domain_synonym', gain: 3 }],
+    idealTool: 'cross_domain_synonym',
+    tags: ['cross-domain'],
+  },
+  {
+    id: 'native-bridge-status-check',
+    title: 'native-bridge: "check native bridge status" → native_bridge_status in top-3',
+    query: 'check status of ida and ghidra native bridge',
+    topK: 10,
+    expectations: [{ tool: 'native_bridge_status', gain: 3 }],
+    idealTool: 'native_bridge_status',
+    tags: ['native-bridge'],
+  },
+  {
+    id: 'process-find-query',
+    title: 'process: "find running process" → process_find in top-3',
+    query: 'find running process by name',
+    topK: 10,
+    expectations: [{ tool: 'process_find', gain: 3 }],
+    idealTool: 'process_find',
+    tags: ['process'],
+  },
+  {
+    id: 'trace-query-sql',
+    title: 'trace: "query trace with SQL" → query_trace_sql in top-3',
+    query: 'query trace events with SQL',
+    topK: 10,
+    expectations: [{ tool: 'query_trace_sql', gain: 3 }],
+    idealTool: 'query_trace_sql',
+    tags: ['trace'],
   },
 ];
 
