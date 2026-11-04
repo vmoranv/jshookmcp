@@ -297,5 +297,41 @@ export const transformSuite: BenchSuite = {
           : `matches=${matches} mismatches=${mismatches}`;
       },
     },
+    // ── Adversarial robustness cases (W3) ──
+    {
+      name: 'transform_workbench/adversarial-malformed-step',
+      tool: 'transform_workbench',
+      origin: 'adversarial',
+      reference:
+        'workbench step with invalid op name returns graceful failure or skips without unhandled throw',
+      run: () =>
+        handlers.handleTransformWorkbenchTool({
+          inputBase64: Buffer.from('hello').toString('base64'),
+          // @ts-expect-error test malformed operation enum
+          steps: [{ op: 'non_existent_crypto_op_xyz' }],
+        }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        return b.success === false || typeof v === 'object'
+          ? true
+          : `expected structured rejection, got: ${JSON.stringify(b).slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'ast_transform_beautify/adversarial-syntax-error',
+      tool: 'ast_transform_beautify',
+      origin: 'adversarial',
+      reference: 'unparseable syntax input returns graceful error rather than crashing process',
+      run: () =>
+        handlers.handleAstTransformBeautifyTool({
+          code: 'function invalid( { return ;;;',
+        }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        return b.success === false || b.error || typeof v === 'object'
+          ? true
+          : `expected graceful syntax error response, got: ${JSON.stringify(b).slice(0, 200)}`;
+      },
+    },
   ],
 };

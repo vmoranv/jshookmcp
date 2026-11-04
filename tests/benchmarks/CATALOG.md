@@ -8,7 +8,7 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: 26 suites / 137 cases (136 pass, 1 env-gated skip) — see `artifacts/benchmarks/scorecard.md`.
+Runnable suites today: 29 suites / 176 cases (166 pass, 10 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
 736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
@@ -17,8 +17,9 @@ Runnable suites today: 26 suites / 137 cases (136 pass, 1 env-gated skip) — se
 | correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
-| e2e-tasks | count of real-task files (≥90% pass) exercising the tool | full e2e run (`pnpm bench:e2e`) — 442/479 real tasks passed, 115 tools covered |
+| e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
 | retrieval | MRR@10 / NDCG@10 / P@1 / Success@3 (%) | live 109-query eval vs ToolSearchEngine — **MRR@10 79.8% · NDCG@10 82.2% · P@1 67.0% · S@3 93.6% · S@5 99.1%** |
+| rejection | % out-of-domain rejected | live 12-query eval vs ToolSearchEngine — **100.0% rejected** |
 
 Environment-gated files (browser display, Camoufox, root) that self-skip stay honestly
 unmeasured rather than counted.
