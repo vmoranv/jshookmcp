@@ -41,6 +41,10 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   'electron-fuses': 90,
   'sourcemap-tc39': 80,
   'offline-tools': 80,
+  // 7 live cases + 9 skipped placeholders. One live failure lands at 85.7%,
+  // so an 85 floor tolerates exactly one regression and no more — the skipped
+  // placeholders are never counted against the ratio.
+  'misc-residual': 85,
 };
 
 const results: BenchSuiteResult[] = [];

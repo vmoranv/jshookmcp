@@ -1,0 +1,227 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`jscrambler-core differential baseline > all-off: empty program 1`] = `
+{
+  "code": "",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: function declaration 1`] = `
+{
+  "code": "function f(x) {
+  return x * 2;
+}",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: logic chain 1`] = `
+{
+  "code": "var r = 1 && 2 || 3 && 4;",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: nested ternary 1`] = `
+{
+  "code": "var v = a ? b ? 1 : 2 : 3;",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: plain assignment 1`] = `
+{
+  "code": "var a = 1;
+var b = a + 2;",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: self-defending pattern 1`] = `
+{
+  "code": "function g() {}
+var s = "" + g;",
+  "confidence": 0.2,
+  "success": true,
+  "transformations": [
+    "Removed self-defending code",
+  ],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: string array + index 1`] = `
+{
+  "code": "var arr = ['aa', 'bb'];
+console.log(arr[0], arr[1]);",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: syntax error 1`] = `
+{
+  "code": "var = ;",
+  "confidence": 0,
+  "success": false,
+  "transformations": [],
+  "warnings": [
+    "SyntaxError: Unexpected token (1:4)",
+  ],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: template literal 1`] = `
+{
+  "code": "var t = \`a\${1 + 2}b\`;",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-off: unreachable code 1`] = `
+{
+  "code": "function h() {
+  return 1;
+  var dead = 2;
+}",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: empty program 1`] = `
+{
+  "code": "",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: function declaration 1`] = `
+{
+  "code": "function f(x) {
+  return x * 2;
+}",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: logic chain 1`] = `
+{
+  "code": "var r = 1 && 2 || 3 && 4;",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: nested ternary 1`] = `
+{
+  "code": "var v = a ? b ? 1 : 2 : 3;",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: plain assignment 1`] = `
+{
+  "code": "var a = 1;
+var b = a + 2;",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: self-defending pattern 1`] = `
+{
+  "code": "function g() {}
+var s = "" + g;",
+  "confidence": 0.2,
+  "success": true,
+  "transformations": [
+    "Removed self-defending code",
+  ],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: string array + index 1`] = `
+{
+  "code": "var arr = ['aa', 'bb'];
+console.log(arr[0], arr[1]);",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: syntax error 1`] = `
+{
+  "code": "var = ;",
+  "confidence": 0,
+  "success": false,
+  "transformations": [],
+  "warnings": [
+    "SyntaxError: Unexpected token (1:4)",
+  ],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: template literal 1`] = `
+{
+  "code": "var t = \`a\${3}b\`;",
+  "confidence": 0.2,
+  "success": true,
+  "transformations": [
+    "Simplified 1 expressions",
+  ],
+  "warnings": [],
+}
+`;
+
+exports[`jscrambler-core differential baseline > all-on: unreachable code 1`] = `
+{
+  "code": "function h() {
+  return 1;
+  var dead = 2;
+}",
+  "confidence": 0,
+  "success": true,
+  "transformations": [],
+  "warnings": [],
+}
+`;
