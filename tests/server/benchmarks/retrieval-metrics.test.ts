@@ -1,7 +1,8 @@
 /**
  * Retrieval benchmark — native retrieval metrics (MRR@10 / NDCG@10 / P@1 / P@3 /
  * P@5 / Success@3 / Success@5) for the tool-search layer, measured against the
- * repo's own search-quality eval set (103 queries with graded relevance).
+ * repo's own search-quality eval set (graded relevance; case count is asserted
+ * live by the floor below, never restated in prose).
  *
  * This is a REAL evaluation run: every query is executed against the live
  * ToolSearchEngine; metrics are computed with the same evaluateCase/aggregate

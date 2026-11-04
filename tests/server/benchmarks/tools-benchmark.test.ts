@@ -59,6 +59,20 @@ const results: BenchSuiteResult[] = [];
 describe('tool benchmark gate', () => {
   it('runs all tool benchmark suites and meets thresholds', { timeout: 120_000 }, async () => {
     const failures: string[] = [];
+
+    // Drift guard: every gated suite must carry an EXPLICIT floor. The `?? 80`
+    // fallback below exists for resilience, but a suite silently inheriting it
+    // is exactly how a new suite lands without a calibrated threshold (the
+    // stale-20-suite scorecard incident, 2026-11). Failing here forces the
+    // author to write the floor down — same policy as the maintenance rule
+    // that floors may only be tightened with a written reason.
+    const suitesWithoutFloor = GATE_SUITES.map((s) => s.name).filter(
+      (name) => !(name in SUITE_THRESHOLDS),
+    );
+    if (suitesWithoutFloor.length > 0) {
+      failures.push(`suites without an explicit floor: ${suitesWithoutFloor.join(', ')}`);
+    }
+
     for (const suite of GATE_SUITES) {
       const result = await runBenchSuite(suite);
       results.push(result);
