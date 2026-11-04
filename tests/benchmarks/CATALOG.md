@@ -8,13 +8,13 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: 30 suites / 195 cases (185 pass, 10 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`.
+Runnable suites today: 31 suites / 200 cases (190 pass, 10 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
 736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **126 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **131 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -227,10 +227,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** RC4 canonical vector (`Key`/`Plaintext`/BBF316E8D940AF0AD3).
 - **[自制] ✅** XOR involutivity, entropy step, beautify semantic preservation (executes + observable behavior), crypto sandbox fidelity + implementation equivalence.
 
-## v8-inspector (21 tools)
+## v8-inspector (21 tools) — ✅ suite `v8-inspector-heap`
 
+- **[自制] ✅** `v8-inspector-heap` suite: synthetic V8 heapsnapshot fixtures testing class histogram generation, snapshot structural diff, dominator-tree retainer tracing, and object pair comparison.
 - **[外部]** `.heapsnapshot` format spec + DevTools sample snapshots — snapshot parse/analyze/diff. 📋
-- **[自制]** synthetic heapsnapshot fixture (nodes/edges arrays) for offline parser benchmarks. 📋
 
 ## wasm (17 tools) — ✅ suite `wasm`
 
