@@ -52,6 +52,7 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   // so an 85 floor tolerates exactly one regression and no more — the skipped
   // placeholders are never counted against the ratio.
   'misc-residual': 85,
+  'workflow-lifecycle': 85,
 };
 
 const results: BenchSuiteResult[] = [];

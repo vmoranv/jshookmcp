@@ -26,6 +26,7 @@ import { nativeBridgeSuite } from './native-bridge.suite';
 import { processSuite } from './process.suite';
 import { traceSuite } from './trace.suite';
 import { miscResidualSuite } from './misc-residual.suite';
+import { workflowSuite } from './workflow.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -55,4 +56,5 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   processSuite,
   traceSuite,
   miscResidualSuite,
+  workflowSuite,
 ];

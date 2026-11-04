@@ -253,7 +253,7 @@ export const encodingSuite: BenchSuite = {
     {
       name: 'binary_encode/malformed-input-type',
       tool: 'binary_encode',
-      origin: 'homemade',
+      origin: 'adversarial',
       reference: 'malformed input type → graceful error (generic object)',
       run: () =>
         (handlers.handleBinaryEncodeTool as (args: unknown) => Promise<unknown>)({
@@ -272,7 +272,7 @@ export const encodingSuite: BenchSuite = {
     {
       name: 'binary_decode/malformed-base64',
       tool: 'binary_decode',
-      origin: 'homemade',
+      origin: 'adversarial',
       reference: 'malformed base64 → graceful error (not-found after length-check)',
       run: () =>
         handlers.handleBinaryDecodeTool({
@@ -290,7 +290,7 @@ export const encodingSuite: BenchSuite = {
     {
       name: 'binary_decode/malformed-triflers',
       tool: 'binary_decode',
-      origin: 'homemade',
+      origin: 'adversarial',
       reference: 'completely unrelated string → graceful error with feedback',
       run: () =>
         handlers.handleBinaryDecodeTool({

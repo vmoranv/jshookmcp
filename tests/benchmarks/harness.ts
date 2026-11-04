@@ -201,7 +201,7 @@ export function renderScorecard(results: readonly BenchSuiteResult[]): string {
   lines.push(
     '| Suite | Domain | Score | Passed | Fail | Error | Skip | External vectors | Homemade | Adversarial | ms |',
   );
-  lines.push('|---|---|---:|---:|---:|---:|---:|---:|---:|---:|');
+  lines.push('|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|');
   for (const r of results) {
     const ext = r.cases.filter(
       (c) => c.origin === 'external-vector' && c.status !== 'skipped',

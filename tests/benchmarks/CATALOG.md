@@ -242,9 +242,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [WebGPU CTS](https://github.com/gpuweb/cts) — WGSL compile/disassemble conformance subset. 📋
 - **[自制]** pipeline/shader capture fixtures on a headless WebGPU page. 📋
 
-## workflow (13 tools)
+## workflow (13 tools) — ✅ suite `workflow-lifecycle`
 
-- **[自制]** retry/backoff semantics (Temporal `RetryPolicy` methodology transplant: fake timers + failure injection), conditional predicates truth table, chain-metadata suggestion ordering. 📋
+- **[自制] ✅** `workflow-lifecycle` suite: retry policy set/get contract, run inspect store availability, conditional step parameter evaluation, workflow suggest empty-catalog fallback.
+- **[外部]** Temporal `RetryPolicy` spec / conformance — planned deep vectors. 📋
 - Repo-internal search-quality datasets (`scripts/search-tune/datasets`) already benchmark js_bundle_search-adjacent routing.
 
 ---
