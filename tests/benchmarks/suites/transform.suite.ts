@@ -307,8 +307,7 @@ export const transformSuite: BenchSuite = {
       run: () =>
         handlers.handleTransformWorkbenchTool({
           inputBase64: Buffer.from('hello').toString('base64'),
-          // @ts-expect-error test malformed operation enum
-          steps: [{ op: 'non_existent_crypto_op_xyz' }],
+          steps: [{ op: 'non_existent_crypto_op_xyz' as never }],
         }),
       validate: (v: unknown) => {
         const b = body(v);
