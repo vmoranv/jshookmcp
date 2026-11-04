@@ -14,7 +14,18 @@ import { AdvancedToolHandlers } from '@server/domains/network/handlers';
 import { body, expectSuccess, type BenchSuite } from '../harness';
 
 const collector = { getActivePage: async () => null } as never;
-const monitor = {} as never;
+const monitor = {
+  getNetworkRequests: () => [
+    {
+      url: 'https://example.com/api',
+      method: 'GET',
+      headers: {
+        'user-agent': 'curl/7.88.1',
+        accept: '*/*',
+      },
+    },
+  ],
+} as never;
 const handlers = new AdvancedToolHandlers(collector, monitor);
 
 // ── Programmatically build a deterministic TLS 1.3-capable ClientHello ──
@@ -269,6 +280,86 @@ export const networkSuite: BenchSuite = {
         if (parts[0] !== '3:100') return `settings part should be "3:100", got "${parts[0]}"`;
         if (parts[1] !== '100') return `window_update part should be "100", got "${parts[1]}"`;
         if (!/^[0-9a-f]{64}$/.test(String(b.hash ?? ''))) return 'missing sha256 hash field';
+        return true;
+      },
+    },
+    {
+      name: 'http2_frame_build/settings-build-contract',
+      tool: 'http2_frame_build',
+      origin: 'homemade',
+      reference:
+        'builds a binary HTTP/2 SETTINGS frame and verifies typeCode, flags, and output hex',
+      run: () =>
+        handlers.handleHttp2FrameBuild({
+          frameType: 'SETTINGS',
+          settings: [{ id: 3, value: 100 }],
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.typeCode !== 4) return `expected typeCode=4, got: ${b.typeCode}`;
+        if (!b.frameHex) return 'expected frameHex output';
+        return true;
+      },
+    },
+    {
+      name: 'grpc_frame_build/length-prefix-assembly',
+      tool: 'grpc_frame_build',
+      origin: 'homemade',
+      reference:
+        'assembles 1-byte compression flag + 4-byte BE length prefixed gRPC message payload',
+      run: () =>
+        handlers.handleGrpcFrameBuild({
+          messages: [{ payloadHex: '68656c6c6f' }], // "hello"
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.messageCount !== 1) return `expected messageCount=1, got: ${b.messageCount}`;
+        if (b.hex !== '000000000568656c6c6f') {
+          return `expected assembled hex 000000000568656c6c6f, got: ${b.hex}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'http_request_build/raw-http1-request-generator',
+      tool: 'http_request_build',
+      origin: 'homemade',
+      reference:
+        'builds RFC 7230 compliant HTTP/1.1 wire string with computed Content-Length and Host headers',
+      run: () =>
+        handlers.handleHttpRequestBuild({
+          method: 'POST',
+          target: '/api/test',
+          host: 'example.com',
+          headers: { 'X-Custom-Header': 'Bench' },
+          body: 'ping',
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const req = String(b.requestText ?? b.rawRequest ?? '');
+        if (!req.startsWith('POST /api/test HTTP/1.1\r\n')) {
+          return `invalid request line: ${req.slice(0, 100)}`;
+        }
+        if (!req.includes('Host: example.com')) return 'missing Host header';
+        if (!req.includes('Content-Length: 4')) return 'missing Content-Length header';
+        if (!req.includes('X-Custom-Header: Bench')) return 'missing custom header';
+        if (!req.endsWith('\r\n\r\nping')) return 'missing request body payload';
+        return true;
+      },
+    },
+    {
+      name: 'network_bot_detect_analyze/scoring-pipeline',
+      tool: 'network_bot_detect_analyze',
+      origin: 'homemade',
+      reference: 'scores User-Agent and TLS/H2 fingerprint signals against supplied knownBad lists',
+      run: () =>
+        handlers.handleNetworkBotDetectAnalyze({
+          knownBadUserAgents: ['curl'],
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (typeof b.averageBotScore !== 'number')
+          return `expected averageBotScore number, got: ${typeof b.averageBotScore}`;
         return true;
       },
     },
