@@ -56,7 +56,7 @@ const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
     domainBoosts: [{ domain: 'wasm', weight: 1.6 }],
   },
   {
-    pattern: '(?:browser|page|tab|navigate|click|screenshot|浏览器|页面|标签)',
+    pattern: '(?:browser|page|\\btab\\b|navigate|click|screenshot|浏览器|页面|标签)',
     flags: 'i',
     domainBoosts: [{ domain: 'browser', weight: 1.4 }],
   },
@@ -277,7 +277,7 @@ const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
     ],
   },
   {
-    pattern: '(?:bundle|webpack|chunk|source.*map|deobfusc|源码|打包|混淆|反混淆)',
+    pattern: '(?:bundle|webpack|\bchunk\b|source.*map|deobfusc|源码|打包|混淆|反混淆)',
     flags: 'i',
     boosts: [
       { tool: 'js_bundle_search', bonus: 18 },
