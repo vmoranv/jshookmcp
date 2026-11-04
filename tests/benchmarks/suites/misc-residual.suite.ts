@@ -1,18 +1,29 @@
 /**
- * Misc-domain residual suite — the 22 tools still missing from the breadth matrix.
+ * Misc-domain residual suite — tools that no domain-themed suite covers.
  *
- * Ground truth:
- *  - http2_frame_parse: RFC 9113 §6.5 SETTINGS layout (type 0x04, flags, stream 0)
- *  - sourcemap_diff: ECMA-426 VLQ; two maps differing in `sources` count the delta
- *  - mojo_verify_live: the verify script is generated per platform/channel
- *  - exploit-dev: heap-spray / format-string / ret2dlresolve / pwntools structural contracts
- *  - llm_suggest_names / cross_domain_health: honest capability reporting with no API key
- *  - the remaining tools need a live browser, device, or bridge → explicit skip
+ * Two kinds of case live here, and only the first kind carries weight:
+ *
+ *  - LIVE (7): the first and only vector case for their tool, so they raise that
+ *    tool's correctness row off "no vector case". All run without a browser,
+ *    device, or bridge: mojo_verify_live emits a script, exploit-dev's
+ *    heap-spray / pwntools builders are offline, cross-domain health + synonym
+ *    resolution are pure, sourcemap_diff reads two inline `data:` maps, and
+ *    process_runtime_info is /proc or an honest refusal.
+ *
+ *  - PLACEHOLDER (9): tools that need a live browser, an Android device, or a
+ *    bound analysis context. They are skipped with an explicit reason and are
+ *    NOT the tool's vector case: marking one as such would print
+ *    "0/1 vectors", indistinguishable from a single vector that genuinely
+ *    failed. Turning it into a real measurement instead would dilute an
+ *    already-covered tool's ratio (a failing extra case reads 1/2). The list
+ *    exists so the count is auditable and the reason each tool is unmeasured
+ *    is recorded in one place.
+ *
+ * Tools already covered by a domain suite (http2_frame_parse,
+ * exploit_build_format_string, exploit_build_ret2dlresolve,
+ * exploit_discover_one_gadget) are deliberately not listed here at all.
  */
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { AdvancedToolHandlers } from '@server/domains/network/handlers';
+import { ProcessToolHandlers } from '@server/domains/process/handlers.impl';
 import { ExploitDevHandlers } from '@server/domains/exploit-dev/handlers';
 import { MojoIPCHandlers } from '@server/domains/mojo-ipc/handlers.impl';
 import {
@@ -21,24 +32,46 @@ import {
 } from '@server/domains/cross-domain/handlers.impl';
 import { CrossDomainEvidenceBridge } from '@server/domains/cross-domain/handlers/evidence-graph-bridge.impl';
 import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
+import { SourcemapToolHandlers } from '@server/domains/sourcemap/handlers';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import { body, type BenchSuite } from '../harness';
+import { body, type BenchCase, type BenchSuite } from '../harness';
 
-const tmp = mkdtempSync(join(tmpdir(), 'jshook-bench-misc-'));
-process.once('exit', () => {
-  try {
-    rmSync(tmp, { recursive: true, force: true });
-  } catch {
-    /* tmpdir */
-  }
-});
-
-const networkHandlers = new AdvancedToolHandlers(
-  { getActivePage: async () => null } as never,
-  {} as never,
-);
 const exploitHandlers = new ExploitDevHandlers({} as unknown as MCPServerContext);
 const mojoHandlers = new MojoIPCHandlers();
+
+/**
+ * Fields a placeholder must spell out itself; `placeholder()` only fills the
+ * no-op runner/validator. `skip: () => true` MUST stay a literal property of
+ * each object: existing-tests-coverage's skipped-only scanner attributes tools
+ * by reading the case blocks statically, and a skip injected by this wrapper
+ * is invisible to it (the tool would read as exercised without ever running).
+ */
+type PlaceholderSpec = Omit<BenchCase, 'run' | 'validate'>;
+
+/** A skipped case that records why the tool is unmeasured in this suite. */
+function placeholder(spec: PlaceholderSpec): BenchCase {
+  return {
+    ...spec,
+    run: async () => ({}),
+    validate: () => true,
+  };
+}
+
+/** Encode a v3 source map as an inline `data:` URI (same convention as sourcemap.suite). */
+function inlineMap(map: Record<string, unknown>): string {
+  return `data:application/json;base64,${Buffer.from(JSON.stringify(map)).toString('base64')}`;
+}
+
+function v3Map(sourceNames: string[]): Record<string, unknown> {
+  return {
+    version: 3,
+    file: 'bundle.js',
+    sources: sourceNames,
+    names: [],
+    // "AAAA" per line = [0,0,0,0]: gen col 0 -> first source, line 0, col 0
+    mappings: sourceNames.map(() => 'AAAA').join(';'),
+  };
+}
 
 function crossDomainFixture() {
   const bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
@@ -50,89 +83,20 @@ function crossDomainFixture() {
   return new CrossDomainHandlers(bridge, new CrossDomainWorkflowClassifier(ctx, true), ctx);
 }
 
-/** Minimal identity source map with `sourceCount` sources and one mapping per line. */
-function makeSourceMap(sourceCount: number): Record<string, unknown> {
-  const sources = Array.from({ length: sourceCount }, (_, i) => `src/file${i}.ts`);
-  return {
-    version: 3,
-    file: 'bundle.js',
-    sources,
-    sourcesContent: sources.map((s) => `// ${s}\nconst x = 1;\n`),
-    names: [],
-    // "AAAA" per line = [0,0,0,0]: gen col 0 → first source, line 0, col 0
-    mappings: Array.from({ length: sourceCount }, () => 'AAAA').join(';'),
-  };
-}
-
-const RET2DLRESOLVE_TEST_ELF_HEX = Buffer.from([0x7f, 0x45, 0x4c, 0x46]).toString('hex');
-
 export const miscResidualSuite: BenchSuite = {
   name: 'misc-residual',
   domain: '*multi*',
   description:
-    'Residual per-domain tools: RFC 9113 frame parse, sourcemap diff, mojo live script, exploit structural contracts, honest capability reporting',
+    'Residual tools with no domain-themed suite: mojo live script, spray/pwntools contracts, sourcemap diff, cross-domain health + synonym resolution, honest process-runtime reporting',
   cases: [
-    {
-      name: 'http2_frame_parse/rfc9113-settings',
-      tool: 'http2_frame_parse',
-      origin: 'external-vector',
-      reference:
-        'RFC 9113 §6.5: 9-byte header (len 6, type 0x04 SETTINGS, flags 0, stream 0) + one id/value pair parses to typeCode 4 and streamId 0',
-      run: () =>
-        networkHandlers.handleHttp2FrameParse({
-          frameHex: '000006040000000000000300000064',
-        }),
-      validate: (v) => {
-        const b = body(v);
-        if (Number(b.typeCode) !== 4) return `typeCode expected 4 (SETTINGS), got ${b.typeCode}`;
-        if (String(b.frameType).toUpperCase() !== 'SETTINGS') {
-          return `frameType expected SETTINGS, got ${b.frameType}`;
-        }
-        if (Number(b.streamId) !== 0) return `streamId expected 0, got ${b.streamId}`;
-        return Number(b.payloadBytes) === 6
-          ? true
-          : `payloadBytes expected 6, got ${b.payloadBytes}`;
-      },
-    },
-    {
-      name: 'sourcemap_diff/source-count-delta',
-      tool: 'sourcemap_diff',
-      origin: 'external-vector',
-      reference:
-        'ECMA-426 VLQ: two maps with 2 vs 3 sources must report the delta in the per-map summaries',
-      run: async () => {
-        // The loader only accepts http(s) or data: URIs (every other protocol
-        // is blocked), so the fixtures travel as base64 data URIs.
-        const toDataUri = (map: Record<string, unknown>) =>
-          `data:application/json;base64,${Buffer.from(JSON.stringify(map)).toString('base64')}`;
-        const { SourcemapToolHandlers } =
-          await import('@server/domains/sourcemap/handlers.impl.core');
-        const handlers = new SourcemapToolHandlers({} as never);
-        return handlers.handleSourcemapDiff({
-          sourceMapUrl: toDataUri(makeSourceMap(2)),
-          sourceMapUrlB: toDataUri(makeSourceMap(3)),
-        });
-      },
-      validate: (v) => {
-        const b = body(v);
-        const mapA = b.mapA as Record<string, unknown> | undefined;
-        const mapB = b.mapB as Record<string, unknown> | undefined;
-        if (!mapA || !mapB)
-          return `both map summaries required: ${JSON.stringify(b).slice(0, 200)}`;
-        if (Number(mapA.sources) !== 2) return `mapA.sources expected 2, got ${mapA.sources}`;
-        return Number(mapB.sources) === 3 ? true : `mapB.sources expected 3, got ${mapB.sources}`;
-      },
-    },
     {
       name: 'mojo_verify_live/generates-platform-script',
       tool: 'mojo_verify_live',
       origin: 'homemade',
       reference:
-        'verify-live emits a runnable script bound to the requested platform and channel; a bad platform is rejected',
+        'verify-live emits a Frida script bound to the requested platform/channel, reports it as unverified, and rejects an unknown platform',
       run: async () => {
-        const linux = body(
-          await mojoHandlers.handleMojoVerifyLiveTool({ platform: 'linux', channel: 'stable' }),
-        );
+        const linux = body(await mojoHandlers.handleMojoVerifyLiveTool({ platform: 'linux' }));
         const win = body(
           await mojoHandlers.handleMojoVerifyLiveTool({
             platform: 'win32',
@@ -148,9 +112,15 @@ export const miscResidualSuite: BenchSuite = {
         const linux = b.linux as Record<string, unknown>;
         const win = b.win as Record<string, unknown>;
         const bad = b.bad as Record<string, unknown>;
-        if (linux.success === false) return `linux script failed: ${linux.error}`;
-        if (win.success === false) return `win32 script failed: ${win.error}`;
-        if (JSON.stringify(linux) === JSON.stringify(win)) {
+        const linuxScript = String(linux.fridaScript ?? '');
+        const winScript = String(win.fridaScript ?? '');
+        if (!linuxScript.includes('Frida') && !linuxScript.includes('Module.')) {
+          return `linux script is not a Frida probe: ${linuxScript.slice(0, 120)}`;
+        }
+        if (linux.verified !== false || win.verified !== false) {
+          return 'verify-live must report verified=false (it probes, it does not confirm)';
+        }
+        if (linuxScript === winScript) {
           return 'platform/channel must change the generated script';
         }
         return bad.success === false
@@ -159,90 +129,33 @@ export const miscResidualSuite: BenchSuite = {
       },
     },
     {
-      name: 'exploit_build_heap_spray/structural-contract',
+      name: 'exploit_build_heap_spray/block-geometry',
       tool: 'exploit_build_heap_spray',
       origin: 'homemade',
       reference:
-        'spray description for a given total/block size must report the block count and a NOP sled that fills the block',
-      run: () =>
-        exploitHandlers.handleBuildHeapSpray({
-          target: 'v8',
-          arch: 'x64',
-          totalSize: 0x10000,
-          blockSize: 0x1000,
-          nopByte: 0x90,
-        }),
+        'a 64KB spray in 4KB pages must report 16 allocations covering exactly the requested total',
+      run: async () =>
+        body(
+          await exploitHandlers.handleBuildHeapSpray({
+            target: 'v8',
+            arch: 'x64',
+            totalSize: 0x10000,
+            blockSize: 0x1000,
+            nopByte: 0x90,
+          }),
+        ),
       validate: (v) => {
         const b = body(v);
-        if (b.success === false) return `spray failed: ${b.error}`;
-        const text = JSON.stringify(b).toLowerCase();
-        if (!text.includes('0x') && !/\d/.test(text)) return 'spray output carries no sizes';
-        return text.includes('90') || text.includes('nop')
+        if (Number(b.allocationCount) !== 16) {
+          return `allocationCount expected 16 (0x10000/0x1000), got ${b.allocationCount}`;
+        }
+        if (Number(b.totalMemory) !== 0x10000) {
+          return `totalMemory expected 0x10000, got ${b.totalMemory}`;
+        }
+        const code = String(b.code ?? '');
+        return code.includes('const sprayCount = 16')
           ? true
-          : 'spray output must reference the 0x90 NOP byte';
-      },
-    },
-    {
-      name: 'exploit_build_format_string/structural-contract',
-      tool: 'exploit_build_format_string',
-      origin: 'homemade',
-      reference:
-        'a %n write at a given offset must produce a format string containing positional directives and the target address',
-      run: () =>
-        exploitHandlers.handleBuildFormatString({
-          vulnOffset: 7,
-          targetAddress: '0x7fffffffe000',
-          targetValue: '0x41414141',
-          arch: 'x64',
-        }),
-      validate: (v) => {
-        const b = body(v);
-        if (b.success === false) return `format-string build failed: ${b.error}`;
-        // The payload comes back hex-encoded (Buffer.toString('hex')), so the
-        // directives have to be checked on the decoded bytes.
-        const decoded = Buffer.from(String(b.payload ?? ''), 'hex').toString('binary');
-        if (!decoded.includes('%')) return 'decoded payload must contain a % directive';
-        // 0x41414141 has two non-zero 16-bit chunks → two %hn writes.
-        if (Number(b.writeCount) !== 2) return `writeCount expected 2, got ${b.writeCount}`;
-        if (!decoded.includes('%hn')) return 'payload must use %hn writes';
-        return b.reliability === 'high' ? true : `reliability expected high, got ${b.reliability}`;
-      },
-    },
-    {
-      name: 'exploit_build_ret2dlresolve/structural-contract',
-      tool: 'exploit_build_ret2dlresolve',
-      origin: 'homemade',
-      reference:
-        'ret2dlresolve against a non-ELF blob must be reported as a structured failure, not a fake chain',
-      run: () =>
-        exploitHandlers.handleBuildRet2dlresolve({
-          arch: 'x64',
-          elfHex: RET2DLRESOLVE_TEST_ELF_HEX,
-          fakeStructsAddr: '0x404000',
-          targetFunction: 'system',
-        }),
-      validate: (v) => {
-        const b = body(v);
-        // The 4-byte ELF magic is not a valid ELF header, so the builder must
-        // refuse; a chain here would mean the validator does not run.
-        if (b.success === true) return 'a truncated ELF must not yield a chain';
-        return typeof b.error === 'string' && b.error.length > 0
-          ? true
-          : 'failure must carry an error message';
-      },
-    },
-    {
-      name: 'exploit_discover_one_gadget/known-library-list',
-      tool: 'exploit_discover_one_gadget',
-      origin: 'homemade',
-      reference:
-        'listKnown returns the caller-queryable libc id table (no bundled gadget fingerprints)',
-      run: () => exploitHandlers.handleDiscoverOneGadget({ listKnown: true }),
-      validate: (v) => {
-        const b = body(v);
-        if (b.success !== true) return `listKnown failed: ${b.error}`;
-        const ids = (b.knownLibcIds as unknown[]) ?? [];
-        return ids.length > 0 ? true : 'knownLibcIds must be non-empty';
+          : `generated code must allocate 16 blocks: ${code.slice(0, 120)}`;
       },
     },
     {
@@ -265,6 +178,32 @@ export const miscResidualSuite: BenchSuite = {
       },
     },
     {
+      name: 'sourcemap_diff/source-count-delta',
+      tool: 'sourcemap_diff',
+      origin: 'external-vector',
+      reference:
+        "ECMA-426 VLQ: two inline v3 maps with 2 vs 3 sources must report each map's source count",
+      run: () =>
+        new SourcemapToolHandlers({} as never).handleSourcemapDiff({
+          sourceMapUrl: inlineMap(v3Map(['src/a.ts', 'src/b.ts'])),
+          sourceMapUrlB: inlineMap(v3Map(['src/a.ts', 'src/b.ts', 'src/c.ts'])),
+        }),
+      validate: (v) => {
+        const b = body(v);
+        const mapA = b.mapA as Record<string, unknown> | undefined;
+        const mapB = b.mapB as Record<string, unknown> | undefined;
+        if (!mapA || !mapB) {
+          return `both map summaries required: ${JSON.stringify(b).slice(0, 200)}`;
+        }
+        if (Number(mapA.sources) !== 2) return `mapA.sources expected 2, got ${mapA.sources}`;
+        if (Number(mapB.sources) !== 3) return `mapB.sources expected 3, got ${mapB.sources}`;
+        // The delta is the whole point of the tool: an all-zero diff means the
+        // second map was never actually compared.
+        const diff = (b.diff ?? {}) as Record<string, unknown>;
+        return JSON.stringify(diff) !== '{}' ? true : 'diff must report the 2 -> 3 source change';
+      },
+    },
+    {
       name: 'cross_domain_health/reports-bridge-and-domains',
       tool: 'cross_domain_health',
       origin: 'homemade',
@@ -273,7 +212,7 @@ export const miscResidualSuite: BenchSuite = {
       run: () => crossDomainFixture().handleHealthTool(),
       validate: (v) => {
         const b = body(v);
-        if (b.success === false) return `health failed: ${b.error}`;
+        if (b.evidenceBridgeReady !== true) return 'evidenceBridgeReady must be true';
         const graph = b.evidenceGraph as Record<string, unknown> | undefined;
         if (!graph)
           return `health must carry evidenceGraph stats: ${JSON.stringify(b).slice(0, 200)}`;
@@ -300,113 +239,96 @@ export const miscResidualSuite: BenchSuite = {
         return tools.length > 0 ? true : 'top match must recommend at least one tool';
       },
     },
-    {
-      name: 'llm_suggest_names/honest-no-context',
-      tool: 'llm_suggest_names',
-      origin: 'homemade',
-      reference:
-        'with no analysis context bound, the tool reports that it cannot suggest names rather than inventing them',
-      skip: () => true,
-      skipReason: 'requires a live globalContext bound by the analysis domain ensure()',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
-    {
-      name: 'adb_dumpsys/requires-device',
-      tool: 'adb_dumpsys',
-      origin: 'homemade',
-      reference: 'dumpsys parsing needs a live adb connection',
-      skip: () => true,
-      skipReason: 'requires a connected Android device/emulator',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
-    {
-      name: 'adb_getprop/requires-device',
-      tool: 'adb_getprop',
-      origin: 'homemade',
-      reference: 'getprop parsing needs a live adb connection',
-      skip: () => true,
-      skipReason: 'requires a connected Android device/emulator',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
-    {
-      name: 'restore_page_snapshot/requires-browser',
-      tool: 'restore_page_snapshot',
-      origin: 'homemade',
-      reference: 'restoring a page snapshot navigates a live browser page',
-      skip: () => true,
-      skipReason: 'requires a live browser session',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
-    {
-      name: 'browser_jsdom_serialize/requires-jsdom-session',
-      tool: 'browser_jsdom_serialize',
-      origin: 'homemade',
-      reference: 'serialization consumes a jsdom session created by browser_jsdom_parse',
-      skip: () => true,
-      skipReason: 'covered by the offline-tools jsdom cases through browser_jsdom_parse',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
-    {
-      name: 'browser_jsdom_cookies/requires-jsdom-session',
-      tool: 'browser_jsdom_cookies',
-      origin: 'homemade',
-      reference: 'cookie get/set operates on a jsdom session cookie jar',
-      skip: () => true,
-      skipReason: 'covered by the offline-tools jsdom cases through browser_jsdom_parse',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
-    {
-      name: 'browser_passkey_seed/requires-browser',
-      tool: 'browser_passkey_seed',
-      origin: 'homemade',
-      reference: 'seeding a WebAuthn credential needs the browser page controller',
-      skip: () => true,
-      skipReason: 'requires a live browser session',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
-    {
-      name: 'page_session_storage/requires-browser',
-      tool: 'page_session_storage',
-      origin: 'homemade',
-      reference: 'sessionStorage access requires a live page',
-      skip: () => true,
-      skipReason: 'requires a live browser session',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
-    {
-      name: 'v8_weakrefs_inspect/requires-browser',
-      tool: 'v8_weakrefs_inspect',
-      origin: 'homemade',
-      reference: 'weakref inspection requires a CDP target session',
-      skip: () => true,
-      skipReason: 'requires a live browser CDP session',
-      run: async () => ({}),
-      validate: (v) => (body(v) ? true : 'unreachable'),
-    },
+    // ── Placeholders: tools that need an external substrate. See the header
+    //    comment for why these are not marked as their tool's vector case. ──
+    ...(
+      [
+        {
+          name: 'restore_page_snapshot/requires-browser',
+          tool: 'restore_page_snapshot',
+          origin: 'homemade',
+          reference: 'restoring a page snapshot navigates a live browser page',
+          skip: () => true,
+          skipReason: 'requires a live browser session',
+        },
+        {
+          name: 'browser_jsdom_serialize/requires-jsdom-session',
+          tool: 'browser_jsdom_serialize',
+          origin: 'homemade',
+          reference: 'serialization consumes a jsdom session created by browser_jsdom_parse',
+          skip: () => true,
+          skipReason: 'covered by the offline-tools jsdom cases through browser_jsdom_parse',
+        },
+        {
+          name: 'browser_jsdom_cookies/requires-jsdom-session',
+          tool: 'browser_jsdom_cookies',
+          origin: 'homemade',
+          reference: 'cookie get/set operates on a jsdom session cookie jar',
+          skip: () => true,
+          skipReason: 'covered by the offline-tools jsdom cases through browser_jsdom_parse',
+        },
+        {
+          name: 'browser_passkey_seed/requires-browser',
+          tool: 'browser_passkey_seed',
+          origin: 'homemade',
+          reference: 'seeding a WebAuthn credential needs the browser page controller',
+          skip: () => true,
+          skipReason: 'requires a live browser session',
+        },
+        {
+          name: 'page_session_storage/requires-browser',
+          tool: 'page_session_storage',
+          origin: 'homemade',
+          reference: 'sessionStorage access requires a live page',
+          skip: () => true,
+          skipReason: 'requires a live browser session',
+        },
+        {
+          name: 'v8_weakrefs_inspect/requires-browser',
+          tool: 'v8_weakrefs_inspect',
+          origin: 'homemade',
+          reference: 'weakref inspection requires a CDP target session',
+          skip: () => true,
+          skipReason: 'requires a live browser CDP session',
+        },
+        {
+          name: 'adb_dumpsys/requires-device',
+          tool: 'adb_dumpsys',
+          origin: 'homemade',
+          reference: 'dumpsys parsing needs a live adb connection',
+          skip: () => true,
+          skipReason: 'requires a connected Android device/emulator',
+        },
+        {
+          name: 'adb_getprop/requires-device',
+          tool: 'adb_getprop',
+          origin: 'homemade',
+          reference: 'getprop parsing needs a live adb connection',
+          skip: () => true,
+          skipReason: 'requires a connected Android device/emulator',
+        },
+        {
+          name: 'llm_suggest_names/honest-no-context',
+          tool: 'llm_suggest_names',
+          origin: 'homemade',
+          reference:
+            'with no analysis context bound, the tool must say so rather than invent names',
+          skip: () => true,
+          skipReason: 'requires a live globalContext bound by the analysis domain ensure()',
+        },
+      ] satisfies PlaceholderSpec[]
+    ).map(placeholder),
     {
       name: 'process_runtime_info/requires-linux-procfs',
       tool: 'process_runtime_info',
       origin: 'homemade',
       reference: 'runtime info reads /proc/{pid}; a non-Linux host must answer honestly',
-      run: () =>
-        import('@server/domains/process/handlers.impl').then(async (m) => {
-          const handlers = new m.ProcessToolHandlers();
-          return handlers.handleProcessRuntimeInfoTool({ pid: process.pid });
-        }),
+      run: () => new ProcessToolHandlers().handleProcessRuntimeInfoTool({ pid: process.pid }),
       validate: (v) => {
         const b = body(v);
         if (process.platform === 'linux') {
           return b.success === true ? true : `linux read failed: ${b.error ?? b.message}`;
         }
-        // Off Linux the tool must refuse rather than fabricate fields.
         return b.success === false
           ? true
           : 'on non-Linux platforms the tool must report success=false';
