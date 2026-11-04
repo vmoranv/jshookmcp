@@ -13,7 +13,12 @@ const root = process.cwd();
 const outDir = resolve(root, 'artifacts/benchmarks');
 mkdirSync(outDir, { recursive: true });
 
-console.log('[bench:e2e] building + running e2e real-task tests (3 rounds for pass^k)…');
+console.log('[bench:e2e] building server and running e2e real-task tests (3 rounds for pass^k)…');
+spawnSync('node', ['scripts/build.mjs'], {
+  cwd: root,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
 
 const ROUNDS = 3;
 const allResults = [];
@@ -21,16 +26,30 @@ const allResults = [];
 for (let round = 1; round <= ROUNDS; round++) {
   const roundFile = resolve(root, `tests/e2e/e2e-results-round${round}.json`);
   console.log(`[bench:e2e] round ${round}/${ROUNDS}…`);
-  spawnSync('corepack', ['pnpm', 'run', 'test:e2e'], {
-    cwd: root,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-    env: {
-      ...process.env,
-      E2E_JSON_OUT: roundFile,
-      E2E_PASSK_ROUND: String(round),
+  spawnSync(
+    'corepack',
+    [
+      'pnpm',
+      'exec',
+      'vitest',
+      'run',
+      '--config',
+      'tests/e2e/vitest.e2e.config.ts',
+      '--reporter=json',
+      `--outputFile=${roundFile}`,
+    ],
+    {
+      cwd: root,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+      env: {
+        ...process.env,
+        E2E_TARGET_URL: process.env.E2E_TARGET_URL ?? 'https://vmoranv.github.io/jshookmcp/',
+        PUPPETEER_HEADLESS: process.env.PUPPETEER_HEADLESS ?? 'true',
+        E2E_PASSK_ROUND: String(round),
+      },
     },
-  });
+  );
 
   if (existsSync(roundFile)) {
     allResults.push(JSON.parse(readFileSync(roundFile, 'utf8')));
