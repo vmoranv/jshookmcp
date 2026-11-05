@@ -30,7 +30,9 @@ const ListTasksParamsSchema = z.object({ cursor: z.string().optional() });
 import type { TaskManager, TaskRecord } from './TaskManager';
 
 const MAX_RESULT_WAIT_MS = 30_000;
-const RESULT_POLL_INTERVAL_MS = 100;
+// Match the domain-side poll granularity (10ms) so SDK tasks/result also wakes
+// promptly after a task settles instead of sleeping up to 100ms.
+const RESULT_POLL_INTERVAL_MS = 10;
 const TERMINAL_STATUSES = new Set<TaskRecord['status']>(['completed', 'failed', 'cancelled']);
 
 function sleep(ms: number): Promise<void> {

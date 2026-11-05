@@ -679,6 +679,12 @@ const __bootstrap = async () => {
     }
   }
 
+  // Start the QuickJS-WASM import at worker spawn (off the first job's critical
+  // path). getQuickJS() memoizes the promise, so runHarness's await reuses it.
+  // The .catch keeps a failed preload from becoming an unhandled rejection;
+  // the real error still surfaces through runHarness's awaited getQuickJS().
+  getQuickJS().catch(() => {});
+
   parentPort.on('message', async (msg) => {
     const { jobId, request = msg['pay' + 'load'] } = msg;
     try {
@@ -717,21 +723,31 @@ export interface TransformSharedState {
 }
 
 export function createTransformSharedState(collector: CodeCollector): TransformSharedState {
+  const cryptoHarnessPool = new WorkerPool<Record<string, unknown>, WorkerHarnessMessage>({
+    name: 'crypto-harness',
+    workerScript: CRYPTO_TEST_WORKER_SCRIPT,
+    minWorkers: 0,
+    maxWorkers: TRANSFORM_CRYPTO_POOL_MAX_WORKERS,
+    idleTimeoutMs: TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS,
+    resourceLimits: {
+      maxOldGenerationSizeMb: TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB,
+      maxYoungGenerationSizeMb: TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB,
+      stackSizeMb: 8,
+    },
+  });
+
+  // Pre-warm one worker at construction so the QuickJS-WASM import (kicked off
+  // by the worker bootstrap's eager getQuickJS()) compiles off the first tool
+  // call's critical path. Optional-chained: the WorkerPool test mock exposes
+  // only submit/close, and the fire-and-forget .catch avoids an unhandled
+  // rejection. The idle TTL (30s) governs teardown; close() still cleans up.
+  const warm = cryptoHarnessPool.warmup?.(1);
+  if (warm && typeof warm.catch === 'function') void warm.catch(() => {});
+
   return {
     collector,
     chains: new Map<string, TransformChainDefinition>(),
-    cryptoHarnessPool: new WorkerPool({
-      name: 'crypto-harness',
-      workerScript: CRYPTO_TEST_WORKER_SCRIPT,
-      minWorkers: 0,
-      maxWorkers: TRANSFORM_CRYPTO_POOL_MAX_WORKERS,
-      idleTimeoutMs: TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS,
-      resourceLimits: {
-        maxOldGenerationSizeMb: TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB,
-        maxYoungGenerationSizeMb: TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB,
-        stackSizeMb: 8,
-      },
-    }),
+    cryptoHarnessPool,
   };
 }
 

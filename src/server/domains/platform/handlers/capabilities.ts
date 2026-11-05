@@ -7,9 +7,11 @@ import { probeView8Availability } from '@server/domains/platform/handlers/v8-byt
 export async function handlePlatformCapabilities(
   runner: ExternalToolRunner,
 ): Promise<ReturnType<typeof toTextResponse>> {
-  const probes = await runner.probeAll();
+  // The two external probes are independent — run them concurrently so their
+  // subprocess latencies overlap instead of compounding serially.
+  const [probes, probedView8] = await Promise.all([runner.probeAll(), probeView8Availability()]);
   const miniappProbe = probes['miniapp.unpacker'];
-  const view8Availability = (await probeView8Availability()) ?? {
+  const view8Availability = probedView8 ?? {
     available: false,
     reason: 'view8 probe returned no result',
   };

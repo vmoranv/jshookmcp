@@ -13,7 +13,9 @@ import type { ToolArgs, ToolResponse } from '@server/types';
 
 /** Upper bound for a single tasks_result poll — keeps one tool call under MCP client timeouts. */
 const MAX_WAIT_MS = 30_000;
-const POLL_INTERVAL_MS = 100;
+// Poll granularity for waiting on a terminal task state. 10ms keeps a completed
+// task's result available promptly instead of sleeping up to 100ms past settle.
+const POLL_INTERVAL_MS = 10;
 
 const TERMINAL_STATUSES = new Set<TaskStatus>(['completed', 'failed', 'cancelled']);
 
