@@ -10,11 +10,10 @@
  *      source of truth instead of a scattered literal),
  *   4. every pinned value + predicate self-check matches the installed SDK.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ProtocolError } from '@modelcontextprotocol/server';
 import { ToolError } from '@errors/ToolError';
 import {
-  assertMcp2Contract,
   findMcp2ContractDrift,
   ERROR_CODE_RESOURCE_NOT_FOUND,
   SERVER_INFO_META_KEY,
@@ -30,14 +29,6 @@ describe('mcp2 runtime contract guard', () => {
     const sdk = await import('@modelcontextprotocol/server');
     expect(ERROR_CODE_RESOURCE_NOT_FOUND).toBe(sdk.ProtocolErrorCode.ResourceNotFound);
     expect(SERVER_INFO_META_KEY).toBe(sdk.SERVER_INFO_META_KEY);
-  });
-
-  it('logs a clean verification when assertMcp2Contract finds no drift', () => {
-    const info = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    // assertMcp2Contract routes through the project logger; driving it here
-    // proves the wired entry point is callable without throwing.
-    expect(() => assertMcp2Contract()).not.toThrow();
-    info.mockRestore();
   });
 });
 

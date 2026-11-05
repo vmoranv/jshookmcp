@@ -89,13 +89,4 @@ describe('AxmlParser', () => {
       expect(result === null || typeof result === 'string').toBe(true);
     });
   });
-
-  describe('Integration with real AndroidManifest.xml', () => {
-    it('should handle realistic AXML structure patterns', () => {
-      // This test validates that the parser can handle realistic AXML patterns
-      // Real AXML files will be tested through the binary-instrument domain integration
-      expect(parseAxml).toBeDefined();
-      expect(typeof parseAxml).toBe('function');
-    });
-  });
 });

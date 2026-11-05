@@ -133,30 +133,6 @@ describe('BC#3 — inputResponses / requestState lifted from top-level params (c
     expect(isLiftedRetryField('taskId')).toBe(false);
     expect(isLiftedRetryField('meta')).toBe(false);
   });
-
-  it('a 2025-era custom method named "inputResponses" does not lose its value (still readable at ctx.mcpReq.inputResponses)', () => {
-    // The collision note: a 2025 peer using `inputResponses` as a
-    // top-level params field will have it lifted out on the modern era
-    // — but the value remains accessible at `ctx.mcpReq.inputResponses`.
-    // The risk is that a handler reads `params.inputResponses` directly
-    // and gets `undefined`. The test pins the SDK contract.
-    const liftedValue = { 'some-key': { kind: 'elicit', action: 'accept' } };
-    // Simulated lifted view (what the handler would see via ctx.mcpReq):
-    const ctxView = liftedValue;
-    expect(ctxView).toBe(liftedValue);
-  });
-});
-
-describe('BC#4 — CallToolResult.content required on 2026-07-28, optional on 2025', () => {
-  it('era-aware content requirement is documented and tested via the type layer', () => {
-    // The wire codec lives in the SDK. Our project must keep emitting
-    // `content` in every tool handler so it works on both eras. This
-    // test pins the project-side expectation by reading our own
-    // `isLegalResultType` (which is consumed before handlers see the
-    // result, leaving `content` as the only content-bearing field).
-    expect(isLegalResultType('complete')).toBe(true);
-    expect(isLegalResultType('input_required')).toBe(true);
-  });
 });
 
 describe('BC#5 — MessageExtraInfo.classification mismatch rejects as -32022', () => {

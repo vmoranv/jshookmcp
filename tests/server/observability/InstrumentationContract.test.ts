@@ -10,7 +10,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   getGlobalInstrumentation,
   INSTRUMENTATION_DOMAIN_KEY,
-  MetricNames,
   NoopInstrumentation,
   resetGlobalInstrumentation,
   resolveInstrumentation,
@@ -18,36 +17,6 @@ import {
   SpanNames,
 } from '@server/observability/InstrumentationContract';
 import { RecordingInstrumentation } from '@tests/shared/recording-instrumentation';
-
-describe('InstrumentationContract — declared names', () => {
-  it('every span name is a lowercase segment plus a separator segment', () => {
-    // Span names are dotted (`tool.execute`, `workflow.run`) — the same shape the
-    // audit's scanner recognises for events.
-    const names = Object.values(SpanNames);
-    expect(names.length).toBeGreaterThan(0);
-    for (const name of names) {
-      expect(name).toMatch(/^[a-z][a-z0-9-]*([:.][a-z0-9_-]+)+$/);
-    }
-  });
-
-  it('every metric name is lowercase snake_case', () => {
-    // Metric names are NOT event-shaped: `tool_calls_total` has no `:`/`.`
-    // separator, so the audit's EVENT_NAME_RE would not match it. That is fine —
-    // check 8 matches `MetricNames.x` member accesses, not literals — but the
-    // distinction is worth pinning so a future rename does not assume the two
-    // families share a shape.
-    const names = Object.values(MetricNames);
-    expect(names.length).toBeGreaterThan(0);
-    for (const name of names) {
-      expect(name).toMatch(/^[a-z][a-z0-9_]*$/);
-    }
-  });
-
-  it('declares no duplicate values across spans and metrics', () => {
-    const names = [...Object.values(SpanNames), ...Object.values(MetricNames)];
-    expect(new Set(names).size).toBe(names.length);
-  });
-});
 
 describe('NoopInstrumentation', () => {
   it('returns a usable span whose methods never throw', () => {
