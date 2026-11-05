@@ -29,6 +29,13 @@ import { miscResidualSuite } from './misc-residual.suite';
 import { workflowSuite } from './workflow.suite';
 import { adbBridgeSuite } from './adb-bridge.suite';
 import { v8InspectorSuite } from './v8-inspector.suite';
+import { instrumentationSuite } from './instrumentation.suite';
+import { extensionRegistrySuite } from './extension-registry.suite';
+import { streamingSuite } from './streaming.suite';
+import { proxySuite } from './proxy.suite';
+import { syscallHookSuite } from './syscall-hook.suite';
+import { webgpuSuite } from './webgpu.suite';
+import { canvasSuite } from './canvas.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -61,4 +68,11 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   workflowSuite,
   adbBridgeSuite,
   v8InspectorSuite,
+  instrumentationSuite,
+  extensionRegistrySuite,
+  streamingSuite,
+  proxySuite,
+  syscallHookSuite,
+  webgpuSuite,
+  canvasSuite,
 ];
