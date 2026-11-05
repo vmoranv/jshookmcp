@@ -133,24 +133,38 @@ async function tryView8Interpreter(interpreter: string): Promise<View8Availabili
   }
 }
 
+// view8 availability is static for the process (installed Python packages, not
+// runtime state). Memoize the probe so platform_capabilities doesn't spawn
+// python/python3 on every call. Mirrors ToolRegistry's process-wide probe cache.
+let view8AvailabilityCache: Promise<View8Availability> | null = null;
+
+/** Test hook: clear the memoized view8 availability result. */
+export function resetView8AvailabilityCacheForTesting(): void {
+  view8AvailabilityCache = null;
+}
+
 export async function probeView8Availability(): Promise<View8Availability> {
-  const python = await tryView8Interpreter('python');
-  if (python.available) {
-    return python;
-  }
+  if (view8AvailabilityCache) return view8AvailabilityCache;
+  view8AvailabilityCache = (async () => {
+    const python = await tryView8Interpreter('python');
+    if (python.available) {
+      return python;
+    }
 
-  const python3 = await tryView8Interpreter('python3');
-  if (python3.available) {
-    return python3;
-  }
+    const python3 = await tryView8Interpreter('python3');
+    if (python3.available) {
+      return python3;
+    }
 
-  return {
-    available: false,
-    reason:
-      python.reason && python3.reason
-        ? `${python.reason}; ${python3.reason}`
-        : (python.reason ?? python3.reason ?? 'view8 is not available'),
-  };
+    return {
+      available: false,
+      reason:
+        python.reason && python3.reason
+          ? `${python.reason}; ${python3.reason}`
+          : (python.reason ?? python3.reason ?? 'view8 is not available'),
+    };
+  })();
+  return view8AvailabilityCache;
 }
 
 /**
