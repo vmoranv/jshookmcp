@@ -156,7 +156,11 @@ export function installCachedToolListHandler(server: McpServer): void {
   });
 }
 
-export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): RegisteredTool {
+export function registerSingleTool(
+  ctx: MCPServerContext,
+  toolDef: Tool,
+  options?: { isModern?: boolean },
+): RegisteredTool {
   const builtTool = toolDef as BuiltTool;
   if (builtTool.autocompleteHandlers) {
     ctx.toolAutocompleteHandlers.set(toolDef.name, builtTool.autocompleteHandlers);
@@ -190,15 +194,19 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
       // scope already binds `ctx` to the MCPServerContext. ToolRequestExtra is
       // a structural subset of the v2 ServerContext, so the shape is correct.
       async (args: ToolArgs, extra?: ToolRequestExtra) => {
-        return runWithToolRequestContext(extra, async () => {
-          try {
-            const augmentedArgs = attachToolRequestMeta(args, extra);
-            // If taskStore is provided (SDK handles polling), we can use it internally if needed
-            return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
-          } catch (error) {
-            return handleToolError(toolDef.name, error);
-          }
-        });
+        return runWithToolRequestContext(
+          extra,
+          async () => {
+            try {
+              const augmentedArgs = attachToolRequestMeta(args, extra);
+              // If taskStore is provided (SDK handles polling), we can use it internally if needed
+              return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
+            } catch (error) {
+              return handleToolError(toolDef.name, error);
+            }
+          },
+          options,
+        );
       },
     );
 
@@ -218,14 +226,18 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
     toolDef.name,
     { description, ...registrationMetadata },
     async (_args: unknown, extra?: ToolRequestExtra) => {
-      return runWithToolRequestContext(extra, async () => {
-        try {
-          const augmentedArgs = attachToolRequestMeta({}, extra);
-          return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
-        } catch (error) {
-          return handleToolError(toolDef.name, error);
-        }
-      });
+      return runWithToolRequestContext(
+        extra,
+        async () => {
+          try {
+            const augmentedArgs = attachToolRequestMeta({}, extra);
+            return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
+          } catch (error) {
+            return handleToolError(toolDef.name, error);
+          }
+        },
+        options,
+      );
     },
   );
 

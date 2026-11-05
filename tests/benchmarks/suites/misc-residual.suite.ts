@@ -314,7 +314,8 @@ export const miscResidualSuite: BenchSuite = {
           reference:
             'with no analysis context bound, the tool must say so rather than invent names',
           skip: () => true,
-          skipReason: 'requires a live globalContext bound by the analysis domain ensure()',
+          skipReason:
+            'requires a bind() deps bag without __runtimeCore (isolated harness only; MCPServer always injects it)',
         },
       ] satisfies PlaceholderSpec[]
     ).map(placeholder),

@@ -14,7 +14,7 @@
  */
 
 import { logger } from '@utils/logger';
-import { asErrorResponse } from '@server/domains/shared/response';
+import { asErrorResponse, asTextResponse } from '@server/domains/shared/response';
 import { getToolDomain } from '@server/ToolCatalog';
 import { classifyErrorKind } from '@server/observability/ToolCallTraceRecorder';
 import { fastValidateToolArgs } from '@server/registry/compiled-validators';
@@ -655,6 +655,23 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
     const fleetRouter = browserCoordinator
       ? ctx.getDomainInstance<BrowserFleetRouter>('browserFleetRouter')
       : null;
+    // MCP 2.0 modern requests are stateless by design. Stateful browser
+    // resources are admitted into a shared fleet keyed by session; silently
+    // collapsing a missing identity to 'default' would leak leases/pools
+    // across concurrent clients. Require an explicit session id on this leg
+    // instead. Legacy /mcp and stdio keep their historical default.
+    if (browserCoordinator && fleetRouter && getToolRequestContext()?.isModern && !sessionId) {
+      return asTextResponse(
+        JSON.stringify({
+          success: false,
+          error: 'Explicit session identity required for stateful browser tools on /mcp/v2',
+          hint:
+            'Provide a session via the mcp-session-id header or _meta.sessionId. ' +
+            'The modern endpoint does not fall back to a shared default session.',
+        }),
+        true,
+      );
+    }
     let fleetRoute: BrowserFleetRoute | null = null;
     if (browserCoordinator && fleetRouter) {
       fleetRoute = await fleetRouter.admitLocalSession(sessionId?.trim() || 'default');

@@ -368,7 +368,10 @@ function buildMetaToolDefinitions(ctx: MCPServerContext): ResolvedMetaToolDef[] 
 
 // ── registration ──
 
-export function registerSearchMetaTools(ctx: MCPServerContext): void {
+export function registerSearchMetaTools(
+  ctx: MCPServerContext,
+  options?: { isModern?: boolean },
+): void {
   const defs = buildMetaToolDefinitions(ctx);
 
   for (const def of defs) {
@@ -381,32 +384,36 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
         inputSchema: shape as unknown as Record<string, z.ZodType>,
       },
       async (args: Record<string, unknown>, extra?: ToolRequestExtra) => {
-        return runWithToolRequestContext(extra, async () => {
-          try {
-            const augmentedArgs = attachToolRequestMeta(args, extra);
-            // Tool-execution gate (ordered rules + doom-loop) — the same
-            // shared entry the domain-tool path reaches via
-            // executeToolWithTracking, keyed on the meta tool's own name.
-            // Static import is safe: ToolCallContextGuard depends only on
-            // the meta-names leaf module, never on this barrel.
-            // call_tool is a proxy: its dispatched target is gated separately
-            // (dispatch gate for meta tools, executeToolWithTracking for
-            // domain tools). call_tool's own key must stay out of the
-            // doom-loop tracker — the tracker keeps one lastKey slot per
-            // session, so recording it between the dispatched target's
-            // records would reset the inner streak on every call.
-            const gateResponse = runToolExecutionGate(ctx, def.name, augmentedArgs, {
-              recordDoomLoop: def.name !== 'call_tool',
-            });
-            if (gateResponse) return gateResponse;
-            const response = await def.handler(ctx, augmentedArgs);
-            getRuntimeState(ctx)?.recordToolCall(def.name, augmentedArgs);
-            return response;
-          } catch (error) {
-            logger.error(`${def.name} failed`, error);
-            return asErrorResponse(error);
-          }
-        });
+        return runWithToolRequestContext(
+          extra,
+          async () => {
+            try {
+              const augmentedArgs = attachToolRequestMeta(args, extra);
+              // Tool-execution gate (ordered rules + doom-loop) — the same
+              // shared entry the domain-tool path reaches via
+              // executeToolWithTracking, keyed on the meta tool's own name.
+              // Static import is safe: ToolCallContextGuard depends only on
+              // the meta-names leaf module, never on this barrel.
+              // call_tool is a proxy: its dispatched target is gated separately
+              // (dispatch gate for meta tools, executeToolWithTracking for
+              // domain tools). call_tool's own key must stay out of the
+              // doom-loop tracker — the tracker keeps one lastKey slot per
+              // session, so recording it between the dispatched target's
+              // records would reset the inner streak on every call.
+              const gateResponse = runToolExecutionGate(ctx, def.name, augmentedArgs, {
+                recordDoomLoop: def.name !== 'call_tool',
+              });
+              if (gateResponse) return gateResponse;
+              const response = await def.handler(ctx, augmentedArgs);
+              getRuntimeState(ctx)?.recordToolCall(def.name, augmentedArgs);
+              return response;
+            } catch (error) {
+              logger.error(`${def.name} failed`, error);
+              return asErrorResponse(error);
+            }
+          },
+          options,
+        );
       },
     );
 

@@ -11,6 +11,7 @@ import { memoryScanToolDefinitions } from './definitions';
 import type { MemoryScanHandlers } from './handlers.impl';
 import { UnifiedProcessManager } from '@server/domains/shared/modules/native';
 import { readEnvString } from '@src/config/environment';
+import { getRuntimeCore } from '@server/domains/shared/runtime-core';
 
 const DOMAIN = 'memory' as const;
 const DEP_KEY = 'memoryScanHandlers' as const;
@@ -24,12 +25,14 @@ const EFFECTIVE_PLATFORM =
 const IS_WIN32 = EFFECTIVE_PLATFORM === 'win32';
 type H = MemoryScanHandlers;
 
-let globalContext: MCPServerContext | null = null;
+// `globalProcessManager` is a process-wide lazy singleton (owns OS handles, not
+// request state) — correct to share. The progress eventBus comes from the
+// injected `deps.__runtimeCore` (set once by MCPServer.initDomainProxies())
+// instead of a per-ensure mutable global.
 let globalProcessManager: UnifiedProcessManager | null = null;
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { MemoryScanHandlers } = await import('./handlers.impl');
-  globalContext = ctx;
   const ctxAny = ctx as unknown as Record<string, unknown>;
   if (ctxAny[DEP_KEY]) return ctxAny[DEP_KEY] as H;
 
@@ -140,12 +143,13 @@ import { createProgressDebouncer } from '@server/EventBus';
 function bindByKey(invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) {
   return (deps: Record<string, unknown>) => {
     const handler = deps[DEP_KEY] as H;
+    const runtime = getRuntimeCore(deps);
     return (args: Record<string, unknown>) => {
       const meta = args._meta as { progressToken?: string | number } | undefined;
       let onProgress: ((progress: number, total?: number) => void) | undefined;
 
-      if (meta?.progressToken !== undefined && globalContext) {
-        onProgress = createProgressDebouncer(globalContext.eventBus, meta.progressToken);
+      if (meta?.progressToken !== undefined && runtime) {
+        onProgress = createProgressDebouncer(runtime.eventBus, meta.progressToken);
       }
       return invoke(handler, { ...args, onProgress });
     };

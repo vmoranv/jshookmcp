@@ -3,13 +3,16 @@ import { ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
 import { coreTools } from '@server/domains/analysis/definitions';
 import type { CoreAnalysisHandlers } from '@server/domains/analysis/index';
 import { LLMDeobfuscator } from '@modules/deobfuscator/LLMDeobfuscator';
+import { getRuntimeCore, type RuntimeCoreRef } from '@server/domains/shared/runtime-core';
 
 const DOMAIN = 'core' as const;
 const DEP_KEY = 'coreAnalysisHandlers' as const;
 type H = CoreAnalysisHandlers;
 const t = toolLookup(coreTools);
 
-let globalContext: MCPServerContext | null = null;
+// Runtime bridges (eventBus / samplingBridge) are injected once via
+// `deps.__runtimeCore` — see MCPServer.initDomainProxies(). No mutable
+// module-level context: concurrent /mcp/v2 exchanges must not overwrite it.
 
 import { createProgressDebouncer } from '@server/EventBus';
 
@@ -17,17 +20,20 @@ import { createProgressDebouncer } from '@server/EventBus';
  * Analysis-domain bind helper that threads `_meta.progressToken` into
  * a throttled `onProgress` callback — same pattern as memory/manifest.ts.
  */
-function bindWithProgress(invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) {
+function bindWithProgress(
+  invoke: (h: H, a: Record<string, unknown>, runtime: RuntimeCoreRef | null) => Promise<unknown>,
+) {
   return (deps: Record<string, unknown>) => {
     const handler = deps[DEP_KEY] as H;
+    const runtime = getRuntimeCore(deps);
     return (args: Record<string, unknown>) => {
       const meta = args._meta as { progressToken?: string | number } | undefined;
       let onProgress: ((progress: number, total?: number) => void) | undefined;
 
-      if (meta?.progressToken !== undefined && globalContext) {
-        onProgress = createProgressDebouncer(globalContext.eventBus, meta.progressToken);
+      if (meta?.progressToken !== undefined && runtime) {
+        onProgress = createProgressDebouncer(runtime.eventBus, meta.progressToken);
       }
-      return invoke(handler, { ...args, onProgress });
+      return invoke(handler, { ...args, onProgress }, runtime);
     };
   };
 }
@@ -51,7 +57,6 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   const { getJscramblerPool } = await import('@modules/deobfuscator/jscrambler-worker');
   const { getDecodeStringArrayPool } =
     await import('@modules/deobfuscator/decode-string-array-worker');
-  globalContext = ctx;
   await ensureBrowserCore(ctx);
 
   // Dynamic import: load shared modules and analysis handler lazily
@@ -177,8 +182,8 @@ const manifest = {
     {
       tool: t('llm_suggest_names'),
       domain: DOMAIN,
-      bind: bindWithProgress(async (_h, args) => {
-        if (!globalContext) {
+      bind: bindWithProgress(async (_h, args, runtime) => {
+        if (!runtime) {
           return {
             content: [
               {
@@ -188,7 +193,7 @@ const manifest = {
             ],
           };
         }
-        const deob = new LLMDeobfuscator(globalContext.samplingBridge);
+        const deob = new LLMDeobfuscator(runtime.samplingBridge);
         if (!deob.isAvailable()) {
           return {
             content: [
