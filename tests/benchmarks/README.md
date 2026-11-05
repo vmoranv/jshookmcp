@@ -6,7 +6,7 @@ Quantifiable benchmark evaluation for the 736 MCP tools (36 domains).
 - **[existing-tests-coverage.suite.ts](./existing-tests-coverage.suite.ts)** — the audit/test-asset benchmark layer (breadth).
 - **[tool-inventory.md](./tool-inventory.md)** — the full 736-tool inventory grouped by domain, generated from `src/server/registry/generated-tool-catalog.ts`.
 - **[harness.ts](./harness.ts)** — case runner + scorecard renderer (per-case pass/fail/skip with references).
-- **[suites/](./suites/)** — runnable suites (26 suites / 137 cases today, 136 passing + 1 env-gated skip).
+- **[suites/](./suites/)** — runnable suites (38 suites / 252 cases today, 243 passing + 9 env-gated/placeholder skips).
 - **existing-tests-coverage** — converts the existing handler-test + e2e asset into a per-tool coverage matrix (649/736 unit, 153/736 e2e).
 - **per-tool-scorecard** — per-tool NATIVE metrics (correctness / throughput / handler-fn / e2e-tasks / retrieval) for every one of the 736 tools; no composite score, no letter grades.
 
@@ -14,9 +14,10 @@ Quantifiable benchmark evaluation for the 736 MCP tools (36 domains).
 
 ```bash
 pnpm bench:tools        # run all suites → artifacts/benchmarks/scorecard.{md,json}
+pnpm bench:bootstrap    # ensure the 2 gitignored measurement files exist (honest placeholders, never fabricate numbers)
 pnpm bench:coverage     # measure the unit layer: full vitest run + V8 fn-level coverage
 pnpm bench:e2e          # measure the e2e layer: real-task runs → e2e-results.json
-```
+pnpm bench:e2e:local    # deterministic self-hosted e2e (fixture server + 3-round pass^k)
 
 The per-tool scorecard reports NATIVE metrics in each metric's own unit — no composite
 score, no letter grades:
@@ -35,6 +36,21 @@ and the Missing column names exactly which command produces it.
 The same suites run as a gate inside `pnpm test` (server project):
 `tests/server/benchmarks/tools-benchmark.test.ts` — fails when a suite drops below its floor.
 
+## Coverage is intentionally partial (read this before quoting numbers)
+
+The scorecard is a renderer over external measurement artefacts, not a live
+tracer. A tool gets a correctness/throughput number **iff** at least one bench
+case names it. As of 2026-11-05: **171/736** tools have a correctness vector,
+**162/736** have a measured latency, and **164/736** are fully measured. The
+remaining tools are honestly `"—"` / `"not measured"` — never a static guess.
+
+Low coverage is a conscious tradeoff, not an accident: ~11 domains need a live
+browser / native FFI / device / root / GPU and cannot be measured offline
+(a skipped case is NOT a measurement). `pnpm bench:bootstrap` creates honest
+`measured:false` placeholder files on a fresh checkout so the gate can render
+`"not measured"` instead of crashing; real runs overwrite them. To raise
+coverage, add an offline-pure `suites/<domain>.suite.ts` (see CATALOG 📋 rows).
+
 ## CI integration (`.github/workflows/ci.yml`, `linux-full` job)
 
 The scorecard's three non-vector layers come from separate commands. Under `CI=true`
@@ -44,6 +60,7 @@ if any measurement file is missing. So CI produces them in this order:
 
 | Step | Produces | Consumed as |
 |---|---|---|
+| `pnpm run bench:bootstrap` (fresh checkout) | honest `measured:false` placeholders, only when absent | keeps the gate renderable; real runs overwrite |
 | `pnpm run bench:e2e:local` (starts fixture + 3-round pass^k) | `artifacts/benchmarks/e2e-results.json` | e2e-tasks column |
 | standalone `retrieval-metrics.test.ts` | `artifacts/benchmarks/retrieval-metrics.json` | retrieval column |
 | `pnpm run test:coverage` | `coverage/coverage-final.json` | handler-fn column |

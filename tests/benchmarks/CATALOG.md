@@ -8,7 +8,7 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: 31 suites / 211 cases (201 pass, 10 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`.
+Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`. 7 offline-pure suites (instrumentation, extension-registry, streaming, proxy, syscall-hook, webgpu, canvas) graduated from 📋 to ✅ in the 2026-11-05 coverage wave, adding 32 tools with real vector measurements.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
 736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
@@ -54,13 +54,15 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 ## browser (85 tools)
 
-- **[外部]** [WebArena](https://webarena.dev) / [VisualWebArena](https://jykoh.com/vwa) / [WorkArena](https://github.com/ServiceNow/WorkArena) / [WebChoreArena](https://openreview.net/forum?id=d0xqdsR41U) — task success rates for the page_* / browser_* automation family (self-hosted sites, functional correctness checks). 📋
+- **[外部]** [WebArena](https://webarena.dev) / [VisualWebArena](https://jykoh.com/vwa) / [WorkArena](https://github.com/ServiceNow/WorkArena) / [WebChoreArena](https://openreview.net/forum?id=d0xqdsR41U) — task success rates for the `page_*` / `browser_*` automation family (self-hosted sites, functional correctness checks). 📋
 - **[外部]** [BrowserGym](https://github.com/ServiceNow/BrowserGym) — unified action-space harness; our page_* primitives map onto its action space. 📋
 - **[外部]** [CreepJS](https://abrahamjuliot.github.io/creepjs/) + fingerprint-suite datasets — stealth_inject / stealth_verify / fingerprint tooling efficacy. 📋
 - **[外部]** [web-vitals reference implementation](https://github.com/GoogleChrome/web-vitals) — browser_get_metrics Web Vitals semantics. 📋
 - **[自制]** page_* primitive semantics (click/type/select/wait) are deterministic against a local fixture page (the repo already ships one for e2e: `tests/e2e`). 📋
 
-## canvas (11 tools)
+## canvas (11 tools) — ✅ suite `canvas` (offline subset)
+
+- **[自制] ✅** `canvas` suite: `canvas_scene_search` pure-compute (name/type/property/AABB match sets + path). Other 10 tools are pageController-bound (live browser) — remain 📋.
 
 - **[外部]** No public engine-detection benchmark. Three.js/Babylon/Laya unit suites validate *engines*, not detectors. 📋
 - **[自制]** detector fixtures: minimal Three.js/Babylon pages asserting engine fingerprint + shader dump + draw-call hook capture. 📋
@@ -108,7 +110,9 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [ROPium](https://github.com/teerder/ROPium) evaluation binaries — gadget finder recall. 📋
 - **[自制] ✅** offset roundtrip, %hn format-string structure, ret2dlresolve validation contract.
 
-## extension-registry (7 tools)
+## extension-registry (7 tools) — ✅ suite `extension-registry` (offline subset)
+
+- **[自制] ✅** `extension-registry` suite: install→list→info→execute→reload→uninstall lifecycle against a temp-dir fixture plugin. `webhook` is env-gated — remains 📋.
 
 - **[外部]** [Standard Webhooks](https://github.com/standard-webhooks/standard-webhooks) HMAC signing vectors — webhook action. 📋
 - **[自制]** install/reload/uninstall lifecycle against a fixture plugin dir. 📋
@@ -118,7 +122,9 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [graphql-scalars](https://github.com/Urigo/graphql-scalars) / graphql-js introspection fixtures; [InQL](https://github.com/doyensec/inql) test targets. 📋
 - **[自制]** suggestion-error schema enumeration against a local graphql-js server fixture. 📋
 
-## instrumentation (13 tools)
+## instrumentation (13 tools) — ✅ suite `instrumentation` (offline subset)
+
+- **[自制] ✅** `instrumentation` suite: 9 offline-pure tools (session create/status/list/destroy, snapshot export/diff/merge, operation register/list/status/stop, artifact record/query, evidence query/export/chain). 4 browser-bound tools remain 📋.
 
 - **[外部]** HAR 1.2 record/replay (Playwright `routeFromHAR` semantics) — instrumentation_network_replay. 📋
 - **[自制]** session diff/merge/export identity properties; hook-preset capture on fixture pages. 📋
@@ -178,7 +184,9 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) + pcapng spec samples — pcap_read/pcapng_read corpus. 📋
 - **[自制] ✅** Ethernet build determinism, ICMP checksum validity, pcap write→read roundtrip, DNS-vs-HTTP fingerprint discrimination.
 
-## proxy (11 tools)
+## proxy (11 tools) — ✅ suite `proxy` (offline subset)
+
+- **[自制] ✅** `proxy` suite: 5 offline-pure tools (status, export_ca, list_rules, get_requests, clear_logs). mockttp/live-proxy tools remain 📋.
 
 - **[外部]** [mockttp](https://github.com/httptoolkit/mockttp) test suite (direct dependency) — rule semantics. 📋
 - **[自制]** rule lifecycle (add→match→remove) against a local loopback target. 📋
@@ -194,12 +202,16 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** ECMA-426 / source-map v3 VLQ segment semantics (`AAAA;AACA` canonical deltas) + bidirectional lookup contract (mozilla/source-map reference semantics; official fixtures: [tc39/source-map-tests](https://github.com/tc39/source-map-tests)). 📋 full fixture corpus
 - **[自制] ✅** closest-preceding fallback, reverse lookup roundtrip, coverage counts.
 
-## streaming (17 tools)
+## streaming (17 tools) — ✅ suite `streaming` (offline subset)
+
+- **[自制] ✅** `streaming` suite: 5 offline-pure tools (ws_get_frames/connections/export_capture, grpc_get_calls/export_capture) with seeded in-memory state. Live-monitor tools remain 📋.
 
 - **[外部]** WHATWG SSE event-stream parsing examples; RFC 6455 WebSocket frame vectors ([autobahn testsuite](https://github.com/crossbario/autobahn-testsuite)). 📋
 - **[自制]** monitor fixtures over local echo servers. 📋
 
-## syscall-hook (15 tools)
+## syscall-hook (15 tools) — ✅ suite `syscall-hook` (offline subset)
+
+- **[自制] ✅** `syscall-hook` suite: 4 offline-pure tools (correlate_js, trace_compare, get_stats, ebpf_trace script-generation). Monitor/root-gated tools remain 📋.
 
 - **[外部]** bpftrace test suite (Linux-only, root-gated). 📋
 - **[自制]** event filter/trace-diff/NDJSON export on synthetic event arrays (pure compute). 📋
@@ -238,7 +250,9 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [official spec test suite](https://github.com/WebAssembly/spec/tree/main/test/core) + [wabt](https://github.com/WebAssembly/wabt)/[binaryen](https://github.com/WebAssembly/binaryen) test corpora — full coverage when wabt installed. 📋
 - **[自制] ✅** capability honesty (wabt/runtime absence fails loudly, never silently).
 
-## webgpu (10 tools)
+## webgpu (10 tools) — ✅ suite `webgpu` (offline subset)
+
+- **[自制] ✅** `webgpu` suite: 2 offline-pure tools (shader_disassemble WGSL AST + SPIR-V reflection; shader_compile spirv static reflection). 8 GPU-device-bound tools remain 📋.
 
 - **[外部]** [WebGPU CTS](https://github.com/gpuweb/cts) — WGSL compile/disassemble conformance subset. 📋
 - **[自制]** pipeline/shader capture fixtures on a headless WebGPU page. 📋
@@ -261,20 +275,20 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 ### Fixed by the tc39 conformance run (2026-10-31)
 
-7. ✅ VLQ decoding now rejects negative absolute positions and out-of-range source/name
+1. ✅ VLQ decoding now rejects negative absolute positions and out-of-range source/name
    indices (previously silently accepted — official invalid-map negative samples).
-8. ✅ 32-bit boundary values decode correctly (multiplication accumulation + arithmetic
+2. ✅ 32-bit boundary values decode correctly (multiplication accumulation + arithmetic
    sign decode; `<<`/`>>` corrupted legal tc39 boundary mappings).
-9. ✅ `sources` null entries are legal placeholders (array length preserved — previously
+3. ✅ `sources` null entries are legal placeholders (array length preserved — previously
    filtered, shrinking index ranges); non-string `sources`/`names`/`sourcesContent`/
    `file`/`sourceRoot`/`ignoreList` entries and bad `ignoreList` indices are rejected.
-10. ✅ Empty indexed-map `sections` is legal (tc39 index-map-empty-sections is valid).
-11. ✅ Segment field-count validation (2 or 3 fields are invalid per tc39).
+4. ✅ Empty indexed-map `sections` is legal (tc39 index-map-empty-sections is valid).
+5. ✅ Segment field-count validation (2 or 3 fields are invalid per tc39).
 Also fixed: `scripts/search-tune/metrics.ts` wrong relative import path (pre-existing).
 
 ### Open findings (recorded, not yet arbitrated)
 
-6. `dart_snapshot_header_parse` reads the 32-byte version hash at offset 0x0C where the
+1. `dart_snapshot_header_parse` reads the 32-byte version hash at offset 0x0C where the
    dart-sdk/r2flutter reference layout puts the int64 snapshot kind (hash at 0x14) — an
    official-layout fixture decodes with kind="unknown". Needs arbitration against a real
    libapp.so before changing the handler (the suite currently asserts magic + features only).

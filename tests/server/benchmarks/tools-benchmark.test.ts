@@ -55,6 +55,16 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   'workflow-lifecycle': 85,
   'adb-bridge-parsers': 90,
   'v8-inspector-heap': 90,
+  // Wave-1 offline-pure suites (7 zero-coverage domains graduated 📋 → ✅).
+  // Calibrated at 90: every case is deterministic offline, so any failure is a
+  // real regression, not an env-gated skip. Floors may only be tightened.
+  instrumentation: 90,
+  'extension-registry': 90,
+  streaming: 90,
+  proxy: 90,
+  'syscall-hook': 90,
+  webgpu: 90,
+  canvas: 90,
 };
 
 const results: BenchSuiteResult[] = [];
