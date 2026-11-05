@@ -149,6 +149,14 @@ jobs:
       # The e2e layer is served locally by scripts/serve-e2e-fixture.mjs
       # (deterministic, no external network) — see the e2e step below.
 
+      - name: Bootstrap measurement artifacts (fresh checkout)
+        # artifacts/ is gitignored, so on a clean CI checkout the two files the
+        # scorecard gate reads do not exist yet. bench-bootstrap.mjs writes
+        # HONEST placeholders (measured:false, no fabricated metrics) ONLY when
+        # a real measurement is absent; the e2e/retrieval/bench:tools steps
+        # below overwrite them with real data. Never overwrites real results.
+        run: pnpm run bench:bootstrap
+
       - name: Run e2e real-task layer (self-hosted target, before the gate)
         # Produces artifacts/benchmarks/e2e-results.json, the input for the
         # scorecard's e2e-tasks column.
