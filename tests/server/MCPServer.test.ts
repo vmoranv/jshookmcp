@@ -303,7 +303,7 @@ describe('MCPServer', () => {
   it('registers selected tools plus meta tools on construction', () => {
     const server = new MCPServer(baseConfig);
     const mcp = mocks.mcpInstances[0];
-    const names = mcp.tools.map((t: { name: string }) => t.name);
+    const names: string[] = mcp.tools.map((t: { name: string }) => t.name);
 
     expect(names).toContain('tool_alpha');
     expect(names).toContain('tool_beta');
@@ -311,6 +311,14 @@ describe('MCPServer', () => {
     expect(names).not.toContain('boost_profile');
     expect(names).not.toContain('unboost_profile');
     expect(server).toBeDefined();
+
+    // Regression guard: the constructor must run registerTools() exactly ONCE.
+    // The 2026-10-31 constructor-phase refactor accidentally left a second
+    // call inside initEventSubscriptions(), which made the real MCP SDK throw
+    // "Tool search_tools is already registered" at startup (the mock here just
+    // appends, so it surfaced only as duplicate names). Uniqueness pins it.
+    const duplicates = names.filter((n, i) => names.indexOf(n) !== i);
+    expect(duplicates).toEqual([]);
   });
 
   it('forwards warn/error/info logs to the MCP client but drops debug', async () => {

@@ -674,8 +674,6 @@ export class MCPServer implements MCPServerContext {
         return { completion: { values: [], total: 0, hasMore: false } };
       }
     });
-
-    this.registerTools();
   }
 
   // ── MCPServerContext method implementations ──
