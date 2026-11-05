@@ -12,8 +12,22 @@ import { resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 
 const root = process.cwd();
-const env = { ...process.env, BENCH_SCORECARD: '1' };
 
+// Ensure the two gitignored measurement files exist on a fresh checkout. The
+// bootstrap writes HONEST placeholders (no fabricated numbers) only when a real
+// measurement is absent, so the scorecard's later layers read "not measured"
+// instead of crashing the gate. Real runs (bench:e2e / retrieval benchmark)
+// overwrite them; bootstrap never does.
+const bootstrap = spawnSync(process.execPath, ['scripts/bench-bootstrap.mjs'], {
+  cwd: root,
+  stdio: 'inherit',
+});
+if (bootstrap.status !== 0) {
+  console.error('[bench:tools] bootstrap failed');
+  process.exit(bootstrap.status ?? 1);
+}
+
+const env = { ...process.env, BENCH_SCORECARD: '1' };
 const res = spawnSync(
   'corepack',
   [
