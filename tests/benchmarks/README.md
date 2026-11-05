@@ -51,6 +51,31 @@ browser / native FFI / device / root / GPU and cannot be measured offline
 `"not measured"` instead of crashing; real runs overwrite them. To raise
 coverage, add an offline-pure `suites/<domain>.suite.ts` (see CATALOG 📋 rows).
 
+## Measured cold-call optimizations (2026-11-05 P2 wave)
+
+The performance audit's genuine production wins were landed and A/B measured
+with `pnpm bench:tools` (µs/call, same harness, before → after):
+
+| Tool | Before | After | Fix |
+|---|---:|---:|---|
+| `crypto_test_harness` | 60.8ms | 2.8ms | eager QuickJS-WASM preload in the worker bootstrap + keep the warmed worker pooled (removed the per-call `drainIdle()` that destroyed the WASM cache) |
+| `crypto_compare` | 70.1ms | 2.1ms | same |
+| `platform_capabilities` | 118.6ms | 92µs | memoize `probeView8Availability` (2 Python spawns/call → 1/process) + overlap `probeAll`/view8 probes via `Promise.all` |
+| `tasks_result` | 110.4ms | 69.0ms | poll interval 100→10ms (`handlers.ts` + `TaskStoreAdapter.ts`) |
+
+The 92µs figure is steady-state (the scorecard re-executes suites in one
+process); a **cold first call** is still ~80ms for crypto (inherent WASM compile)
+and ~50ms for platform (inherent first `probeAll` subprocess batch). Repeated
+calls drop to ~2.5ms. These are real wins, not measurement tricks.
+
+**Deliberately not changed** (honest findings, not defects): `tasks_list` (~62ms)
+is four harness-side `gap(6)` sleeps used for distinct timestamps; `net_raw_*_listen`
+(~50-60ms) is a 50ms bind-wait sleep in `tls-inspector-full.suite.ts` — its production
+handlers are already event-driven (~1ms real). `process_find` (~174ms) is a genuine
+cold PowerShell spawn, but warming it is off-target (per-pattern cache key) and
+breaks exact call-count tests; a proper fix is an all-processes snapshot refactor.
+`wasm_offline_run` (~51ms) is dominated by the shared cold `probeAll` batch.
+
 ## CI integration (`.github/workflows/ci.yml`, `linux-full` job)
 
 The scorecard's three non-vector layers come from separate commands. Under `CI=true`
