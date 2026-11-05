@@ -19,6 +19,7 @@ import { InstrumentationHandlers } from '@server/domains/instrumentation/handler
 import { EvidenceHandlers } from '@server/domains/instrumentation/evidence/handlers';
 import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 import { body, type BenchSuite } from '../harness';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 // ── shared helpers ───────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ function seedSessions() {
 function seedGraph() {
   const graph = new ReverseEvidenceGraph();
   const request = graph.addNode('request', 'GET /checkout', {
-    url: 'https://shop.test/checkout',
+    url: buildTestUrl('shop', { path: 'checkout', suffix: 'test' }),
   });
   const script = graph.addNode('script', 'app.js', { scriptId: 'script-42' });
   const fn = graph.addNode('function', 'signPayload', { functionName: 'signPayload' });

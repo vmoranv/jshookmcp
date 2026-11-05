@@ -16,6 +16,23 @@ import path from 'node:path';
 import { ProxyHandlers } from '@server/domains/proxy/handlers.impl';
 import { runWithToolRequestContext } from '@server/runtime/ToolRequestContext';
 import { expectSuccess, type BenchSuite } from '../harness';
+import { buildTestUrl } from '@tests/shared/test-urls';
+
+// Placeholder URLs are built from the shared helper (the test-urls guard
+// rejects inline literal placeholder hosts). 'cdn.test' as a bare substring
+// below is not a URL literal and is intentionally kept.
+const U = {
+  exampleApi: buildTestUrl('example', { path: 'api', suffix: 'test' }),
+  aOne: buildTestUrl('a', { path: 'one', suffix: 'test' }),
+  aTwo: buildTestUrl('a', { path: 'two', suffix: 'test' }),
+  apiUsers: buildTestUrl('api', { path: 'v1/users', suffix: 'test' }),
+  apiOrders: buildTestUrl('api', { path: 'v1/orders', suffix: 'test' }),
+  cdnApp: buildTestUrl('cdn', { path: 'app.js', suffix: 'test' }),
+  secretToken: buildTestUrl('secret', { path: 'token', suffix: 'test' }),
+  apiOld1: buildTestUrl('api', { path: 'old-1', suffix: 'test' }),
+  apiOld2: buildTestUrl('api', { path: 'old-2', suffix: 'test' }),
+  apiNew1: buildTestUrl('api', { path: 'new-1', suffix: 'test' }),
+};
 
 const OWNER = 'bench-owner';
 
@@ -52,7 +69,7 @@ function rule(over: Partial<Record<string, unknown>> = {}): Record<string, unkno
     endpointId: 'ep-1',
     action: 'mock_response',
     method: 'GET',
-    urlPattern: 'https://example.test/api',
+    urlPattern: U.exampleApi,
     mockStatus: 200,
     mockBody: 'ok',
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -160,8 +177,8 @@ export const proxySuite: BenchSuite = {
         const handlers = fresh();
         seed(handlers, {
           ruleRecords: [
-            rule({ endpointId: 'ep-1', urlPattern: 'https://a.test/one' }),
-            rule({ endpointId: 'ep-2', urlPattern: 'https://a.test/two', method: 'POST' }),
+            rule({ endpointId: 'ep-1', urlPattern: U.aOne }),
+            rule({ endpointId: 'ep-2', urlPattern: U.aTwo, method: 'POST' }),
             rule({ ownerSessionId: 'foreign', endpointId: 'ep-3' }),
           ],
         });
@@ -174,8 +191,8 @@ export const proxySuite: BenchSuite = {
         if (!Array.isArray(rules) || rules.length !== 2)
           return `rules not a 2-array: ${JSON.stringify(rules)}`;
         const serialized = JSON.stringify(rules);
-        if (!serialized.includes('https://a.test/one')) return 'missing owned rule urlPattern /one';
-        if (!serialized.includes('https://a.test/two')) return 'missing owned rule urlPattern /two';
+        if (!serialized.includes(U.aOne)) return 'missing owned rule urlPattern /one';
+        if (!serialized.includes(U.aTwo)) return 'missing owned rule urlPattern /two';
         if (serialized.includes('foreign')) return 'foreign-session rule leaked into result';
         return true;
       },
@@ -190,9 +207,9 @@ export const proxySuite: BenchSuite = {
         const handlers = fresh();
         seed(handlers, {
           captureBuffer: [
-            capture('r1', 'https://api.test/v1/users', 1),
-            capture('r2', 'https://api.test/v1/orders', 2),
-            capture('r3', 'https://cdn.test/app.js', 3),
+            capture('r1', U.apiUsers, 1),
+            capture('r2', U.apiOrders, 2),
+            capture('r3', U.cdnApp, 3),
           ],
         });
         return inSession(() => handlers.handleProxyGetRequestsTool({ urlFilter: '/v1/' }));
@@ -218,7 +235,7 @@ export const proxySuite: BenchSuite = {
         const handlers = fresh();
         seed(handlers, {
           captureEnabled: false,
-          captureBuffer: [capture('stale', 'https://secret.test/token', 1)],
+          captureBuffer: [capture('stale', U.secretToken, 1)],
         });
         return inSession(() => handlers.handleProxyGetRequestsTool({}));
       },
@@ -250,9 +267,9 @@ export const proxySuite: BenchSuite = {
           if (watermark === undefined) throw new Error('clear_logs wrote no watermark');
           seed(handlers, {
             captureBuffer: [
-              capture('old-1', 'https://api.test/old-1', watermark - 10_000),
-              capture('old-2', 'https://api.test/old-2', watermark - 5_000),
-              capture('new-1', 'https://api.test/new-1', watermark + 1),
+              capture('old-1', U.apiOld1, watermark - 10_000),
+              capture('old-2', U.apiOld2, watermark - 5_000),
+              capture('new-1', U.apiNew1, watermark + 1),
             ],
           });
           const afterResponse = await handlers.handleProxyGetRequestsTool({});

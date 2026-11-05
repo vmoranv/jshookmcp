@@ -22,6 +22,12 @@ import { getProjectRoot } from '@utils/outputPaths';
 import { expectSuccess, type BenchSuite } from '../harness';
 import { readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { buildTestUrl } from '@tests/shared/test-urls';
+
+const WS_URL_ONE = buildTestUrl('example', { path: 'one', scheme: 'wss', suffix: 'test' });
+const WS_URL_TWO = buildTestUrl('example', { path: 'two', scheme: 'wss', suffix: 'test' });
+const WS_URL_THREE = buildTestUrl('example', { path: 'three', scheme: 'wss', suffix: 'test' });
+const GRPC_HOST = 'api.example.test';
 
 // Stub collector: the query/export tools never call it (only the monitor-enable
 // path does), so a minimal getActivePage stub is sufficient, mirroring
@@ -89,7 +95,7 @@ function seedWs(state: StreamingSharedState): void {
   }
   state.wsConnections.set('ws-1', {
     requestId: 'ws-1',
-    url: 'wss://example.test/one',
+    url: WS_URL_ONE,
     status: 'open',
     framesCount: 2,
     createdTimestamp: 999,
@@ -98,7 +104,7 @@ function seedWs(state: StreamingSharedState): void {
   });
   state.wsConnections.set('ws-2', {
     requestId: 'ws-2',
-    url: 'wss://example.test/two',
+    url: WS_URL_TWO,
     status: 'open',
     framesCount: 2,
     createdTimestamp: 998,
@@ -106,7 +112,7 @@ function seedWs(state: StreamingSharedState): void {
   });
   state.wsConnections.set('ws-3', {
     requestId: 'ws-3',
-    url: 'wss://example.test/three',
+    url: WS_URL_THREE,
     status: 'connecting',
     framesCount: 1,
     createdTimestamp: 997,
@@ -150,9 +156,9 @@ function grpcCall(
 // Deterministic gRPC fixture: 3 captured calls, two distinct URLs, with
 // distinct message counts and one bodyError so summaries are non-uniform.
 const GRPC_CALLS: GrpcCallRecord[] = [
-  grpcCall('g1', 'https://api.example.test/svc.A/Method', 200, 2),
-  grpcCall('g2', 'https://api.example.test/svc.B/Method', 200, 0),
-  grpcCall('g3', 'https://other.example.test/svc.C/Method', 500, 1),
+  grpcCall('g1', buildTestUrl('api.example', { path: 'svc.A/Method', suffix: 'test' }), 200, 2),
+  grpcCall('g2', buildTestUrl('api.example', { path: 'svc.B/Method', suffix: 'test' }), 200, 0),
+  grpcCall('g3', buildTestUrl('other.example', { path: 'svc.C/Method', suffix: 'test' }), 500, 1),
 ];
 GRPC_CALLS[2]!.bodyError = 'getResponseBody failed';
 
@@ -324,7 +330,7 @@ export const streamingSuite: BenchSuite = {
       tool: 'grpc_get_calls',
       origin: 'homemade',
       reference:
-        '3 seeded calls; unfiltered page returns 3 with responseMessageCount 2/0/1 and one bodyError; urlFilter=api.example.test narrows to exactly 2 calls',
+        '3 seeded calls; unfiltered page returns 3 with responseMessageCount 2/0/1 and one bodyError; urlFilter narrows to exactly 2 calls',
       run: () => {
         seedGrpc(seedState());
         return handlers.handleGrpcGetCallsTool({ limit: 100 });
@@ -345,17 +351,19 @@ export const streamingSuite: BenchSuite = {
       tool: 'grpc_get_calls',
       origin: 'homemade',
       reference:
-        'urlFilter=api\\.example\\.test must keep only the 2 calls whose URL contains api.example.test and report totalAfterFilter=2',
+        'urlFilter on the api host must keep only the 2 matching calls and report totalAfterFilter=2',
       run: () => {
         seedGrpc(seedState());
-        return handlers.handleGrpcGetCallsTool({ urlFilter: 'api\\.example\\.test', limit: 100 });
+        return handlers.handleGrpcGetCallsTool({
+          urlFilter: GRPC_HOST.replaceAll('.', '\\.'),
+          limit: 100,
+        });
       },
       validate: (v) => {
         const b = expectSuccess(v);
         const calls = asStringArray(b.calls);
         if (calls.length !== 2) return `expected 2 filtered calls, got ${calls.length}`;
-        if (calls.some((c) => !String(c.url).includes('api.example.test')))
-          return 'urlFilter leaked a call';
+        if (calls.some((c) => !String(c.url).includes(GRPC_HOST))) return 'urlFilter leaked a call';
         const page = b.page as Record<string, unknown> | undefined;
         if (!page || page.totalAfterFilter !== 2) return 'page.totalAfterFilter != 2';
         return true;
