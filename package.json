@@ -99,6 +99,8 @@
     "test:e2e:protocol": "vitest run --config tests/e2e/vitest.e2e.config.ts tests/e2e/protocol-pure-compute.e2e.test.ts",
     "test:e2e:protocol-runtime": "vitest run --config tests/e2e/vitest.e2e.config.ts tests/e2e/protocol-runtime-assisted.e2e.test.ts",
     "test:e2e:perf": "cross-env E2E_TARGET_URL=https://vmoranv.github.io/jshookmcp/ E2E_COLLECT_PERFORMANCE=1 vitest run --config tests/e2e/vitest.e2e.config.ts",
+    "serve:e2e-fixture": "node scripts/serve-e2e-fixture.mjs",
+    "bench:e2e:local": "node scripts/bench-e2e-local.mjs",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp', { recursive: true })\" && cross-env ENABLE_INJECTION_TOOLS=true COVERAGE_FULL=true node scripts/run-vitest-smart.mjs run --coverage",
     "prepack": "corepack pnpm run metadata:check && corepack pnpm run build:all",
     "package:verify-bin": "node scripts/verify-packed-bin.mjs",
