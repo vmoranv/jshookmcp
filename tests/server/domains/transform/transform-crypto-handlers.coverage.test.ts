@@ -202,6 +202,23 @@ describe('CryptoHandlers', () => {
       expect(body.allPassed).toBe(true);
     });
 
+    it('keeps the warmed worker pooled (no drainIdle) so QuickJS-WASM stays cached', async () => {
+      mockSubmit.mockResolvedValue({
+        ok: true,
+        results: [{ input: 'a', output: 'b', duration: 5 }],
+      });
+
+      await handler.handleCryptoTestHarness({
+        code: 'function fn(x){return x}',
+        functionName: 'fn',
+        testInputs: ['a'],
+      });
+
+      // Regression guard: draining idle workers after every call destroyed the
+      // per-worker QuickJS cache and forced a full WASM re-import on the next call.
+      expect(mockPool.drainIdle).not.toHaveBeenCalled();
+    });
+
     it('reports failed tests', async () => {
       mockSubmit.mockResolvedValue({
         ok: true,
@@ -276,6 +293,21 @@ describe('CryptoHandlers', () => {
       expect(body.matches).toBe(1);
       expect(body.mismatches).toBe(0);
       expect(body.results[0].match).toBe(true);
+    });
+
+    it('keeps both workers pooled (no drainIdle) after a compare', async () => {
+      mockSubmit
+        .mockResolvedValueOnce({ ok: true, results: [{ input: 'a', output: 'x', duration: 5 }] })
+        .mockResolvedValueOnce({ ok: true, results: [{ input: 'a', output: 'x', duration: 4 }] });
+
+      await handler.handleCryptoCompare({
+        code1: 'function fn(x){return x}',
+        code2: 'function fn(x){return x}',
+        functionName: 'fn',
+        testInputs: ['a'],
+      });
+
+      expect(mockPool.drainIdle).not.toHaveBeenCalled();
     });
 
     it('detects mismatches', async () => {
