@@ -598,8 +598,45 @@ export interface IsomorphicTrip {
 }
 
 /**
- * Determine execution complexity weight (Gas cost) based on computational intensity.
- * Prevents autonomous agents from exhausting host resources with heavy operations.
+ * Tools measured (per-tool benchmark scorecard) to spawn subprocesses, native
+ * probes, QuickJS-WASM worker pools, cold heavy imports, or deliberate poll
+ * waits — i.e. real host-resource consumers that the name-only heuristic
+ * under-rated at 1 gas. Static membership table; `Record` (not `Set`) because
+ * the keys are fixed literals. A rename that misses this table re-opens a
+ * budget hole, so keep the list synced with artifacts/benchmarks/scorecard.md.
+ */
+const RESOURCE_HEAVY_MEASURED_TOOLS: Record<string, true> = {
+  platform_capabilities: true, // ToolRegistry.probeAll() -> N execFile + python probes
+  wasm_offline_run: true, // probeAll() then WebAssembly.instantiate
+  wasm_capabilities: true, // same probeAll() batch
+  process_find: true, // powershell Get-Process spawn (cold cache)
+  crypto_test_harness: true, // QuickJS-WASM worker pool warmup
+  crypto_compare: true, // two QuickJS-WASM harness submissions
+  tasks_result: true, // deliberate 100ms poll-until-terminal
+  tasks_list: true, // harness-side sleeps
+  net_raw_tcp_listen: true, // live socket
+  net_raw_udp_listen: true, // live socket
+  browser_jsdom_parse: true, // cold import('jsdom')
+  browser_jsdom_query: true, // cold import('jsdom')
+  browser_jsdom_execute: true, // cold import('jsdom') + user code
+};
+
+/**
+ * Determine a CONSERVATIVE host-resource cost ceiling for one tool call.
+ *
+ * This is NOT a latency estimate and NOT a cyclomatic-complexity score. It is a
+ * coarse, deliberately one-sided weight used by `recordExecutionCost` to stop
+ * autonomous agents from exhausting host resources (subprocess spawns, native
+ * FFI, WASM runtimes, worker pools, cold heavy imports) within a sliding window.
+ * Over-rating a cheap tool is SAFE (slightly earlier throttle); under-rating an
+ * expensive tool is the real defect because it leaves the budget hole open.
+ *
+ * Weights are calibrated against the measured benchmark scorecard. The original
+ * name-only heuristic rated 11 subprocess/worker/poll-heavy tools at 1 gas
+ * despite 60-240ms measured cold cost; those are now promoted via the explicit
+ * RESOURCE_HEAVY_MEASURED_TOOLS table. Tools proven fast (e.g. several
+ * `exploit_build_*` / `nemu_*` members) keep their high tier: it is a resource
+ * ceiling, not a latency claim, and lowering it would create a hole.
  */
 export function getToolExecutionComplexity(toolName: string): number {
   if (
@@ -612,6 +649,12 @@ export function getToolExecutionComplexity(toolName: string): number {
     toolName.includes('nemu_') ||
     toolName.includes('exploit_')
   ) {
+    return 25;
+  }
+  // Tier 25 (measured): tools that spawn subprocesses / WASM runtimes / worker
+  // pools / block on polls. The old gas=1 rating left a real resource-exhaustion
+  // hole; the explicit table keeps the list auditable against the scorecard.
+  if (RESOURCE_HEAVY_MEASURED_TOOLS[toolName] === true) {
     return 25;
   }
   if (
