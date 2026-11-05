@@ -6,7 +6,7 @@ import { EventEmitter } from 'node:events';
  * Fills branches not covered by ProcessManager.test.ts, ProcessManager.impl.comprehensive.test.ts,
  * or ProcessManager.edge-cases.test.ts:
  * - findProcesses with JSON.parse throws
- * - computeProcessDiff: process changed (same PID different name)
+ * - shared process snapshot refresh after TTL expiry (fresh process data)
  * - findPidByListeningPort: catch block (exec throws)
  * - findPidByListeningPort: stdout null (returns null)
  * - findPidByListeningPort: stdout is array (uses first element)
@@ -105,16 +105,16 @@ describe('ProcessManager (Windows) - coverage expansion', () => {
       expect(results).toEqual([]);
     });
 
-    it('computes process diff: process changed (same PID different name)', async () => {
-      // First call returns a process
+    it('refreshes the shared snapshot after TTL expiry (name change visible)', async () => {
+      // Fixture names contain the filter pattern 'test' so the JS-side name
+      // filter keeps them (the mock returns rows regardless of the command).
       state.execAsync
         .mockResolvedValueOnce({
-          stdout: JSON.stringify([{ Id: 1, ProcessName: 'old-name', Path: 'C:/old.exe' }]),
+          stdout: JSON.stringify([{ Id: 1, ProcessName: 'test-old', Path: 'C:/old.exe' }]),
           stderr: '',
         })
-        // Second call returns same PID but different name (triggers changed array)
         .mockResolvedValueOnce({
-          stdout: JSON.stringify([{ Id: 1, ProcessName: 'new-name', Path: 'C:/new.exe' }]),
+          stdout: JSON.stringify([{ Id: 1, ProcessName: 'test-new', Path: 'C:/new.exe' }]),
           stderr: '',
         });
 
@@ -126,23 +126,23 @@ describe('ProcessManager (Windows) - coverage expansion', () => {
       await vi.advanceTimersByTimeAsync(4000);
       const second = await manager.findProcesses('test');
 
-      expect(first[0]?.name).toBe('old-name');
-      expect(second[0]?.name).toBe('new-name');
+      expect(first[0]?.name).toBe('test-old');
+      expect(second[0]?.name).toBe('test-new');
 
       vi.useRealTimers();
     });
 
-    it('computes process diff: process removed', async () => {
+    it('refreshes the shared snapshot after TTL expiry (removed process gone)', async () => {
       state.execAsync
         .mockResolvedValueOnce({
           stdout: JSON.stringify([
-            { Id: 1, ProcessName: 'proc1', Path: 'C:/p1.exe' },
-            { Id: 2, ProcessName: 'proc2', Path: 'C:/p2.exe' },
+            { Id: 1, ProcessName: 'test-proc1', Path: 'C:/p1.exe' },
+            { Id: 2, ProcessName: 'test-proc2', Path: 'C:/p2.exe' },
           ]),
           stderr: '',
         })
         .mockResolvedValueOnce({
-          stdout: JSON.stringify([{ Id: 1, ProcessName: 'proc1', Path: 'C:/p1.exe' }]),
+          stdout: JSON.stringify([{ Id: 1, ProcessName: 'test-proc1', Path: 'C:/p1.exe' }]),
           stderr: '',
         });
 

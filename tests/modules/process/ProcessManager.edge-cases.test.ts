@@ -155,51 +155,53 @@ describe('ProcessManager — edge cases', () => {
       expect(cmd).not.toContain(')');
     });
 
-    it('computes diff between cache snapshots: detects added processes', async () => {
-      // First call - no processes
-      state.execAsync.mockResolvedValueOnce({
-        stdout: JSON.stringify([]),
-        stderr: '',
-      });
-      const manager = new ProcessManager();
-      await manager.findProcesses('test');
-
-      // Force cache expiry by clearing cache indirectly via a different pattern
-      // and then recall with same pattern after TTL
-      // We simulate by calling with fresh data after cache expires
-      state.execAsync.mockResolvedValueOnce({
-        stdout: JSON.stringify([{ Id: 100, ProcessName: 'new-proc', Path: 'C:/new.exe' }]),
-        stderr: '',
-      });
-
-      // Wait for cache to expire (TTL is 3000ms)
-      // We test the diff logic by making two sequential calls with different data
-      // The first call builds initial cache, second would compute diff if TTL expired
-      const results = await manager.findProcesses('other-pattern');
-      expect(results).toHaveLength(1);
-    });
-
-    it('computes diff between cache snapshots: detects removed and changed processes', async () => {
-      // Setup initial cache
-      state.execAsync.mockResolvedValueOnce({
+    it('one shared snapshot serves different patterns within the TTL', async () => {
+      // Both matching and non-matching rows live in ONE all-processes snapshot;
+      // different patterns must NOT trigger a second PowerShell spawn.
+      state.execAsync.mockResolvedValue({
         stdout: JSON.stringify([
-          { Id: 1, ProcessName: 'proc1', Path: 'C:/proc1.exe' },
-          { Id: 2, ProcessName: 'proc2', Path: 'C:/proc2.exe' },
+          { Id: 1, ProcessName: 'test-one', Path: 'C:/one.exe' },
+          { Id: 2, ProcessName: 'other-two', Path: 'C:/two.exe' },
         ]),
         stderr: '',
       });
       const manager = new ProcessManager();
-      await manager.findProcesses('test');
+      const first = await manager.findProcesses('test');
+      const second = await manager.findProcesses('other');
 
-      // Update cache with changed and removed items
-      state.execAsync.mockResolvedValueOnce({
-        stdout: JSON.stringify([{ Id: 1, ProcessName: 'proc1-changed', Path: 'C:/proc1-new.exe' }]),
-        stderr: '',
-      });
+      expect(first).toHaveLength(1);
+      expect(first[0]?.name).toBe('test-one');
+      expect(second).toHaveLength(1);
+      expect(second[0]?.name).toBe('other-two');
+      // THE refactor win: one subprocess spawn, not one per pattern.
+      expect(state.execAsync).toHaveBeenCalledTimes(1);
+    });
 
-      const results2 = await manager.findProcesses('other-pattern');
-      expect(results2).toHaveLength(1);
-      // Diff logic coverage inside class
+    it('refreshes the shared snapshot after TTL expiry', async () => {
+      state.execAsync
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify([{ Id: 1, ProcessName: 'test-old', Path: 'C:/old.exe' }]),
+          stderr: '',
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify([
+            { Id: 1, ProcessName: 'test-new', Path: 'C:/new.exe' },
+            { Id: 2, ProcessName: 'test-extra', Path: 'C:/extra.exe' },
+          ]),
+          stderr: '',
+        });
+
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+      const manager = new ProcessManager();
+      const first = await manager.findProcesses('test');
+      await vi.advanceTimersByTimeAsync(4000);
+      const second = await manager.findProcesses('test');
+
+      expect(first.map((p) => p.name)).toEqual(['test-old']);
+      expect(second.map((p) => p.name)).toEqual(['test-new', 'test-extra']);
+      expect(state.execAsync).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
     });
   });
 
