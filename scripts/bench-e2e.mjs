@@ -97,6 +97,10 @@ for (const f of mergedPassedFiles) {
   }
 }
 const lastReport = allResults[allResults.length - 1] ?? {};
+// The build (scripts/build.mjs) runs between the initial mkdir and this write;
+// on a fresh checkout the output directory may not survive that step (or the
+// caller's cwd may differ). Re-create it so the measurement is never lost.
+mkdirSync(outDir, { recursive: true });
 writeFileSync(
   join(outDir, 'e2e-results.json'),
   `${JSON.stringify(
