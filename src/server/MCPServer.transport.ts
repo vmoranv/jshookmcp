@@ -216,12 +216,20 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
       if (!checkRateLimit(req, res, authenticated, rateLimitConfig)) return;
       const dispatch = (parsedBody?: unknown) => {
         modernHandlerPromise ??= (async () => {
-          const [{ createMcpHandler }, { toNodeHandler }, { createModernMcpServer }] =
-            await Promise.all([
-              import('@modelcontextprotocol/server'),
-              import('@modelcontextprotocol/node'),
-              import('@server/MCPServer.modern'),
-            ]);
+          const [
+            { createMcpHandler },
+            { toNodeHandler },
+            { createModernMcpServer },
+            { assertMcp2Contract },
+          ] = await Promise.all([
+            import('@modelcontextprotocol/server'),
+            import('@modelcontextprotocol/node'),
+            import('@server/MCPServer.modern'),
+            import('@server/mcp2/contract'),
+          ]);
+          // Verify the pinned 2026-07-28 spec vocabulary still matches the
+          // installed SDK before the modern leg serves its first request.
+          assertMcp2Contract();
           const mcp = createMcpHandler(
             (requestContext) => createModernMcpServer(ctx, requestContext),
             {

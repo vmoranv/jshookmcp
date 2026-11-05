@@ -4,6 +4,7 @@ import { ZodError, z } from 'zod';
 import { logger } from '@utils/logger';
 import { ToolError, type ToolErrorCode } from '@errors/ToolError';
 import type { ToolArgs } from '@server/types';
+import { ERROR_CODE_RESOURCE_NOT_FOUND } from '@server/mcp2/error-codes';
 import { buildZodShape } from '@server/MCPServer.schema';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { attachToolRequestMeta } from '@server/runtime/tool-request-meta';
@@ -17,7 +18,7 @@ function mapErrorCode(code: ToolErrorCode): number {
     case 'VALIDATION':
       return ProtocolErrorCode.InvalidParams; // -32602
     case 'NOT_FOUND':
-      return -32002; // Custom ResourceNotFound, standard is -32601 but we use -32002 as requested
+      return ERROR_CODE_RESOURCE_NOT_FOUND; // Custom ResourceNotFound, standard is -32601 but we use -32002 as requested
     case 'TIMEOUT':
       // Implementation-defined wire codes (-32000..-32019 grandfathered by the spec).
       // v2 moved the SDK-local RequestTimeout/ConnectionClosed to string SdkErrorCode.
