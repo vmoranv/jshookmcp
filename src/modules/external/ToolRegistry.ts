@@ -140,10 +140,29 @@ const DEFAULT_SPECS = [
   },
 ] satisfies ExternalToolSpec[];
 
+/**
+ * Probe results are process-wide, not per-registry. Several domains each
+ * construct their own `new ToolRegistry()` (platform, wasm, environmentDoctor);
+ * with a per-instance cache every new handler re-ran the full N-subprocess
+ * `probeAll()` batch (~120-240ms cold). Sharing the cache across instances means
+ * the second domain reuses the first domain's probes within the TTL.
+ *
+ * `force=true` (used by environmentDoctor) still refreshes globally. The TTL
+ * matches EXTERNAL_TOOL_PROBE_CACHE_TTL_MS so behaviour is otherwise identical.
+ */
+const sharedProbeCache = new Map<ExternalToolName, ProbeResult>();
+let sharedProbeCacheExpiry = 0;
+let sharedProbeInFlight: Promise<void> | null = null;
+
+/** Test hook: clear the process-wide probe cache. */
+export function resetSharedProbeCacheForTesting(): void {
+  sharedProbeCache.clear();
+  sharedProbeCacheExpiry = 0;
+  sharedProbeInFlight = null;
+}
+
 export class ToolRegistry {
   private specs = new Map<ExternalToolName, ExternalToolSpec>();
-  private probeCache = new Map<ExternalToolName, ProbeResult>();
-  private probeCacheExpiry = 0;
   private readonly PROBE_CACHE_TTL = EXTERNAL_TOOL_PROBE_CACHE_TTL_MS;
 
   constructor(additionalSpecs?: ExternalToolSpec[]) {
@@ -183,41 +202,70 @@ export class ToolRegistry {
   }
 
   /**
-   * Probe all registered tools for availability. Results are cached.
+   * Probe all registered tools for availability. Results are cached PROCESS-WIDE
+   * (shared across every ToolRegistry instance) for the TTL window, so a second
+   * domain that constructs its own registry does not re-run the whole N-subprocess
+   * batch. A concurrent call joins the in-flight batch instead of spawning a
+   * duplicate one. `force=true` bypasses the cache and refreshes it globally.
    */
   async probeAll(force = false): Promise<Record<ExternalToolName, ProbeResult>> {
     const now = Date.now();
-    if (!force && this.probeCache.size > 0 && now < this.probeCacheExpiry) {
-      return Object.fromEntries(this.probeCache) as Record<ExternalToolName, ProbeResult>;
+    const names = Array.from(this.specs.keys());
+
+    const fromSharedCache = (): Record<ExternalToolName, ProbeResult> | null => {
+      if (sharedProbeCacheExpiry === 0 || now >= sharedProbeCacheExpiry) return null;
+      // This instance may carry additionalSpecs not in the shared cache; only a
+      // full hit is a valid reuse, otherwise probe to fill the gaps.
+      if (!names.every((n) => sharedProbeCache.has(n))) return null;
+      const out: Record<string, ProbeResult> = {};
+      for (const n of names) out[n] = sharedProbeCache.get(n)!;
+      return out as Record<ExternalToolName, ProbeResult>;
+    };
+
+    if (!force) {
+      const cached = fromSharedCache();
+      if (cached) return cached;
+      // Another registry may already be probing the same default set; join it.
+      if (sharedProbeInFlight) {
+        await sharedProbeInFlight;
+        const afterWait = fromSharedCache();
+        if (afterWait) return afterWait;
+      }
     }
 
     const results: Record<string, ProbeResult> = {};
-    const promises: Promise<void>[] = [];
+    const run = async (): Promise<void> => {
+      const promises: Promise<void>[] = [];
+      for (const [name, spec] of this.specs) {
+        promises.push(
+          probeCommand(spec.command, spec.versionArgs)
+            .then((result) => {
+              results[name] = result;
+            })
+            .catch((error: unknown) => {
+              // A single probe must never fail the whole batch (that would also
+              // prevent the cache from ever becoming valid, forcing a full
+              // re-probe on every call). Degrade to unavailable, surface reason.
+              const reason = error instanceof Error ? error.message : String(error);
+              results[name] = { available: false, reason: `Probe threw: ${reason}` };
+            }),
+        );
+      }
+      await Promise.all(promises);
+      // Commit to the shared cache atomically, then set the expiry. Refresh the
+      // expiry even when some probes failed, so partial results are reused.
+      for (const [n, r] of Object.entries(results)) {
+        sharedProbeCache.set(n as ExternalToolName, r);
+      }
+      sharedProbeCacheExpiry = now + this.PROBE_CACHE_TTL;
+    };
 
-    for (const [name, spec] of this.specs) {
-      promises.push(
-        probeCommand(spec.command, spec.versionArgs)
-          .then((result) => {
-            results[name] = result;
-            this.probeCache.set(name, result);
-          })
-          .catch((error: unknown) => {
-            // A single probe must never fail the whole batch (that would also
-            // prevent the cache from ever becoming valid, forcing a full
-            // re-probe on every call). Degrade the tool to unavailable and
-            // surface the error in its result instead.
-            const reason = error instanceof Error ? error.message : String(error);
-            const failure: ProbeResult = { available: false, reason: `Probe threw: ${reason}` };
-            results[name] = failure;
-            this.probeCache.set(name, failure);
-          }),
-      );
-    }
-
-    // Refresh the expiry even when some probes failed, so partial results are
-    // reused within the TTL instead of triggering a full re-probe every call.
-    await Promise.all(promises);
-    this.probeCacheExpiry = now + this.PROBE_CACHE_TTL;
+    // Publish the in-flight promise before awaiting so a concurrent caller on a
+    // different instance can join this exact batch.
+    sharedProbeInFlight = run().finally(() => {
+      sharedProbeInFlight = null;
+    });
+    await sharedProbeInFlight;
 
     const available = Object.values(results).filter((r) => r.available).length;
     logger.info(`[ToolRegistry] Probed ${this.specs.size} tools: ${available} available`);
@@ -225,19 +273,15 @@ export class ToolRegistry {
     return results as Record<ExternalToolName, ProbeResult>;
   }
 
-  /**
-   * Get cached probe result for a specific tool.
-   */
+  /** Get the (process-wide) cached probe result for a specific tool. */
   getCachedProbe(name: ExternalToolName): ProbeResult | undefined {
-    return this.probeCache.get(name);
+    return sharedProbeCache.get(name);
   }
 
-  /**
-   * Register a new tool spec at runtime.
-   */
+  /** Register a new tool spec at runtime. */
   register(spec: ExternalToolSpec): void {
     this.specs.set(spec.name, spec);
-    this.probeCache.delete(spec.name); // Invalidate cache for this tool
+    sharedProbeCache.delete(spec.name); // Invalidate cache for this tool
     logger.debug(`[ToolRegistry] Registered tool: ${spec.name} -> ${spec.command}`);
   }
 }

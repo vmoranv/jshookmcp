@@ -9,7 +9,7 @@ vi.mock('@src/modules/external/ToolProbe', () => ({
   probeCommand: probeState.probeCommand,
 }));
 
-import { ToolRegistry } from '@modules/external/ToolRegistry';
+import { ToolRegistry, resetSharedProbeCacheForTesting } from '@modules/external/ToolRegistry';
 
 function available(path = '/bin/tool', version = '1.0.0'): ProbeResult {
   return { available: true, path, version };
@@ -18,6 +18,9 @@ function available(path = '/bin/tool', version = '1.0.0'): ProbeResult {
 describe('ToolRegistry', () => {
   beforeEach(() => {
     probeState.probeCommand.mockReset();
+    // probeAll() now caches process-wide; isolate each test from the previous
+    // one's cached results so the call-count assertions stay meaningful.
+    resetSharedProbeCacheForTesting();
   });
 
   afterEach(() => {
@@ -140,5 +143,20 @@ describe('ToolRegistry', () => {
       .find((r) => r && r.available === false);
     expect(failed?.reason).toContain('boom');
     expect(second).toBeDefined();
+  });
+
+  it('shares probe results across separate registry instances within the TTL', async () => {
+    probeState.probeCommand.mockResolvedValue(available());
+    const firstRegistry = new ToolRegistry();
+    const secondRegistry = new ToolRegistry();
+
+    const first = await firstRegistry.probeAll();
+    const callsAfterFirst = probeState.probeCommand.mock.calls.length;
+    const second = await secondRegistry.probeAll();
+
+    // Second instance reuses the first instance's process-wide cache: no extra probes.
+    expect(probeState.probeCommand).toHaveBeenCalledTimes(callsAfterFirst);
+    expect(second).toEqual(first);
+    expect(secondRegistry.getCachedProbe('wabt.wasm2wat')).toMatchObject({ available: true });
   });
 });
