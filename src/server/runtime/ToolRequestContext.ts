@@ -31,6 +31,13 @@ export interface ToolRequestContextValue {
   sessionId: string | null;
   requestId: RequestId | null;
   signal?: AbortSignal;
+  /**
+   * True only for tool calls served by the modern `/mcp/v2` (legacy:'reject')
+   * endpoint, whose per-request SDK server is built by createModernMcpServer.
+   * Used to require explicit session identity before admitting stateful
+   * browser resources; legacy/stdio traffic keeps the historical default.
+   */
+  isModern: boolean;
 }
 
 const requestContext = new AsyncLocalStorage<ToolRequestContextValue>();
@@ -64,11 +71,13 @@ export function resolveToolRequestSessionId(extra?: ToolRequestExtra): string | 
 export function runWithToolRequestContext<T>(
   extra: ToolRequestExtra | undefined,
   callback: () => T,
+  options?: { isModern?: boolean },
 ): T {
   return requestContext.run(
     {
       sessionId: resolveToolRequestSessionId(extra),
       requestId: extra?.mcpReq?.id ?? null,
+      isModern: options?.isModern ?? false,
       ...(extra?.mcpReq?.signal ? { signal: extra.mcpReq.signal } : {}),
     },
     callback,

@@ -1,7 +1,8 @@
 /**
  * Retrieval benchmark — native retrieval metrics (MRR@10 / NDCG@10 / P@1 / P@3 /
  * P@5 / Success@3 / Success@5) for the tool-search layer, measured against the
- * repo's own search-quality eval set (103 queries with graded relevance).
+ * repo's own search-quality eval set (graded relevance; case count is asserted
+ * live by the floor below, never restated in prose).
  *
  * This is a REAL evaluation run: every query is executed against the live
  * ToolSearchEngine; metrics are computed with the same evaluateCase/aggregate
@@ -21,6 +22,7 @@ import {
   resolveSearchQualityToolDomain,
   type SearchEvalCase,
 } from '@tests/server/search/fixtures/search-quality.fixture';
+import { buildSearchRejectionCases } from '@tests/server/search/fixtures/search-rejection.fixture';
 import {
   aggregateSearchMetrics,
   evaluateCase,
@@ -234,6 +236,82 @@ describe('retrieval benchmark (native metrics)', () => {
       expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.6);
       expect(agg.pAt1).toBeGreaterThanOrEqual(0.5);
       expect(agg.successAt3).toBeGreaterThanOrEqual(0.6);
+    },
+  );
+
+  it(
+    'rejects out-of-domain queries instead of handing back a confident wrong tool',
+    { timeout: 120_000 },
+    async () => {
+      const rejectionCases = buildSearchRejectionCases();
+      const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+      const engine = new ToolSearchEngine();
+
+      const observations = [];
+      for (const c of rejectionCases) {
+        const found = await engine.search(c.query, 10);
+        observations.push({
+          name: c.name,
+          query: c.query,
+          reason: c.reason,
+          rejected: found.length === 0,
+          top1: found[0]?.name ?? null,
+          top1Score: found[0]?.score ?? null,
+        });
+      }
+      const rejectedCount = observations.filter((o) => o.rejected).length;
+      const rejectionAccuracy = rejectedCount / rejectionCases.length;
+
+      const report = {
+        generatedAt: new Date().toISOString(),
+        dataset: 'search-rejection fixture (tests/server/search/fixtures)',
+        cases: rejectionCases.length,
+        rejectedCount,
+        rejectionAccuracy,
+        // The engine's out-of-domain gate returns [] for rejected queries; any
+        // survivor is recorded with its top hit so the failure is triageable.
+        survivors: observations.filter((o) => !o.rejected),
+      };
+      const outDir = resolve(ROOT, 'artifacts/benchmarks');
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, 'retrieval-rejection.json'),
+        `${JSON.stringify(report, null, 2)}\n`,
+      );
+      const md = [
+        '# Retrieval Rejection Benchmark',
+        '',
+        `Dataset: ${report.dataset} · ${report.cases} out-of-domain queries, executed live against ToolSearchEngine`,
+        '',
+        '| Metric | Value |',
+        '|---|---:|',
+        `| Rejection accuracy (empty result for unrelated intent) | ${(rejectionAccuracy * 100).toFixed(1)}% |`,
+        `| Survivors (should be 0) | ${rejectionCases.length - rejectedCount} |`,
+        '',
+        ...(report.survivors.length > 0
+          ? [
+              '| Surviving query | Top-1 returned | Top-1 score |',
+              '|---|---|---:|',
+              ...report.survivors.map(
+                (s) => `| ${s.name} — ${s.query} | ${s.top1} | ${s.top1Score} |`,
+              ),
+              '',
+            ]
+          : []),
+      ].join('\n');
+      writeFileSync(resolve(outDir, 'retrieval-rejection.md'), `${md}\n`);
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `[retrieval-rejection] ${rejectedCount}/${rejectionCases.length} rejected (${(rejectionAccuracy * 100).toFixed(1)}%)`,
+      );
+
+      // Gate floors — the rejection layer is measured like every other layer:
+      // fixed floors, never prose. The set floor keeps the negative-control
+      // set from silently shrinking; the accuracy floor matches the guide's
+      // rejection-quality bar (0.85).
+      expect(rejectionCases.length).toBeGreaterThanOrEqual(10);
+      expect(rejectionAccuracy).toBeGreaterThanOrEqual(0.85);
     },
   );
 });

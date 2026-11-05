@@ -242,5 +242,109 @@ export const protocolSuite: BenchSuite = {
         return true;
       },
     },
+    {
+      name: 'payload_template_build/structured-fields',
+      tool: 'payload_template_build',
+      origin: 'homemade',
+      reference:
+        'builds binary payload from field types (u16, u32, string) with big-endian encoding',
+      run: () =>
+        handlers.handlePayloadTemplateBuild({
+          fields: [
+            { name: 'magic', type: 'u16', value: 0x1234 },
+            { name: 'length', type: 'u32', value: 4 },
+            { name: 'cmd', type: 'string', value: 'PING' },
+          ],
+          endian: 'big',
+        }),
+      validate: (v: unknown) => {
+        const b = v as {
+          hexPayload?: string;
+          byteLength?: number;
+          success?: boolean;
+          error?: string;
+        };
+        if (b.success === false) return `failed: ${b.error}`;
+        // 0x1234 (2B) + 0x00000004 (4B) + 50494e47 (4B) = 10B
+        if (b.byteLength !== 10) return `expected byteLength=10, got ${b.byteLength}`;
+        if (b.hexPayload !== '12340000000450494e47') {
+          return `hex mismatch, got: ${b.hexPayload}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'payload_mutate/bit-flip-and-increment',
+      tool: 'payload_mutate',
+      origin: 'homemade',
+      reference: 'applies flip_bit and increment_integer mutations sequentially to hex payload',
+      run: () =>
+        handlers.handlePayloadMutate({
+          hexPayload: '0000',
+          mutations: [
+            { strategy: 'set_byte', offset: 0, value: 0x10 },
+            { strategy: 'increment_integer', offset: 1, delta: 5, width: 1 },
+          ],
+        }),
+      validate: (v: unknown) => {
+        const b = v as { mutatedHex?: string; success?: boolean; error?: string };
+        if (b.success === false) return `failed: ${b.error}`;
+        if (b.mutatedHex !== '1005') return `expected mutatedHex=1005, got: ${b.mutatedHex}`;
+        return true;
+      },
+    },
+    {
+      name: 'arp_build/request-packet',
+      tool: 'arp_build',
+      origin: 'homemade',
+      reference: 'builds RFC 826 ARP request with sender/target hardware and protocol addresses',
+      run: () =>
+        handlers.handleArpBuild({
+          operation: 'request',
+          senderMac: '00:11:22:33:44:55',
+          senderIp: '192.168.1.100',
+          targetIp: '192.168.1.1',
+        }),
+      validate: (v: unknown) => {
+        const b = v as {
+          byteLength?: number;
+          arpPayloadHex?: string;
+          success?: boolean;
+          error?: string;
+        };
+        if (b.success === false) return `failed: ${b.error}`;
+        if (b.byteLength !== 28) return `expected standard ARP 28 bytes, got ${b.byteLength}`;
+        return true;
+      },
+    },
+    {
+      name: 'raw_ip_packet_build/ipv4-with-checksum',
+      tool: 'raw_ip_packet_build',
+      origin: 'homemade',
+      reference: 'builds standard 20-byte IPv4 header with calculated IP checksum and payload',
+      run: () =>
+        handlers.handleRawIpPacketBuild({
+          version: 'ipv4',
+          sourceIp: '192.168.1.10',
+          destinationIp: '8.8.8.8',
+          protocol: 'udp',
+          payloadHex: '1234',
+          ttl: 64,
+        }),
+      validate: (v: unknown) => {
+        const b = v as {
+          version?: string;
+          byteLength?: number;
+          checksumHex?: string;
+          success?: boolean;
+        };
+        if (b.success === false) return 'failed building raw IP packet';
+        if (b.version !== 'ipv4') return `expected ipv4, got ${b.version}`;
+        if (b.byteLength !== 22)
+          return `expected 22 bytes (20B header + 2B payload), got ${b.byteLength}`;
+        if (!b.checksumHex) return 'missing checksumHex';
+        return true;
+      },
+    },
   ],
 };

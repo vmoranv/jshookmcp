@@ -1,0 +1,232 @@
+/**
+ * V8 Inspector domain benchmark — offline pure-TS golden vectors for V8 HeapSnapshot parsing and analysis.
+ *
+ * Ground truth:
+ *  - storeSnapshot & getSnapshot: in-memory cache lifecycle for captured/loaded snapshots
+ *  - v8_heap_snapshot_analyze: class histogram, totalObjects, and shallow/retained size calculations
+ *  - v8_heap_diff: structural diff between two snapshots (added vs removed nodes and sizeDelta)
+ *  - v8_heap_find_leaks: identifies high-retained or detached DOM objects in heap graphs
+ *  - v8_heap_retainers: traces retainer chains from specified node IDs back to roots
+ *  - v8_object_compare: compares property and size deltas between heap objects
+ *  - v8_function_retained: filters objects retained by specific function name pattern
+ */
+import { V8InspectorHandlers } from '@server/domains/v8-inspector/handlers';
+import {
+  storeSnapshot,
+  clearSnapshotCache,
+} from '@server/domains/v8-inspector/handlers/heap-snapshot';
+import type { BenchSuite } from '../harness';
+import { expectSuccess } from '../harness';
+
+const mockDeps = {
+  ctx: {
+    eventBus: { emit: () => {} },
+  } as never,
+  client: {} as never,
+};
+
+const handlers = new V8InspectorHandlers(mockDeps);
+
+/** Minimal synthetic V8 heap snapshot with root, Array, and Object */
+const SNAPSHOT_BASE = JSON.stringify({
+  snapshot: {
+    meta: {
+      node_fields: ['type', 'name', 'id', 'self_size', 'edge_count', 'trace_node_id'],
+      node_types: [
+        [
+          'hidden',
+          'array',
+          'string',
+          'object',
+          'code',
+          'closure',
+          'regexp',
+          'number',
+          'native',
+          'synthetic',
+        ],
+        'hidden',
+      ],
+      edge_fields: ['type', 'name_or_index', 'to_node'],
+      edge_types: [['context', 'element', 'property', 'internal', 'hidden'], 'context'],
+    },
+    node_count: 4,
+    edge_count: 3,
+  },
+  nodes: [
+    // 0: (root) - synthetic
+    9, 0, 1, 0, 2, 0,
+    // 1: Array - self_size 1024
+    1, 1, 2, 1024, 1, 0,
+    // 2: Object - self_size 512
+    3, 2, 3, 512, 0, 0,
+    // 3: LeakClass - self_size 2048
+    3, 3, 4, 2048, 0, 0,
+  ],
+  edges: [2, 1, 6, 2, 2, 18, 2, 3, 24],
+  strings: ['(root)', 'Array', 'MyObject', 'LeakClass'],
+});
+
+/** Second snapshot with LeakClass modified/removed and NewClass added */
+const SNAPSHOT_UPDATED = JSON.stringify({
+  snapshot: {
+    meta: {
+      node_fields: ['type', 'name', 'id', 'self_size', 'edge_count', 'trace_node_id'],
+      node_types: [
+        [
+          'hidden',
+          'array',
+          'string',
+          'object',
+          'code',
+          'closure',
+          'regexp',
+          'number',
+          'native',
+          'synthetic',
+        ],
+        'hidden',
+      ],
+      edge_fields: ['type', 'name_or_index', 'to_node'],
+      edge_types: [['context', 'element', 'property', 'internal', 'hidden'], 'context'],
+    },
+    node_count: 4,
+    edge_count: 3,
+  },
+  nodes: [
+    // 0: (root)
+    9, 0, 1, 0, 2, 0,
+    // 1: Array - self_size 1024
+    1, 1, 2, 1024, 1, 0,
+    // 2: Object - self_size 512
+    3, 2, 3, 512, 0, 0,
+    // 3: NewClass - id=5, self_size 4096
+    3, 4, 5, 4096, 0, 0,
+  ],
+  edges: [2, 1, 6, 2, 2, 18, 2, 4, 24],
+  strings: ['(root)', 'Array', 'MyObject', 'LeakClass', 'NewClass'],
+});
+
+export const v8InspectorSuite: BenchSuite = {
+  name: 'v8-inspector-heap',
+  domain: 'v8-inspector',
+  description:
+    'Golden vectors for V8 heap snapshot analysis, diff, leak candidate detection, retainer tracing, and object comparison',
+  cases: [
+    {
+      name: 'v8_heap_snapshot_analyze/histogram-and-objects',
+      tool: 'v8_heap_snapshot_analyze',
+      origin: 'homemade',
+      reference:
+        'parses synthetic V8 snapshot chunks and calculates class histogram count/shallowSize',
+      run: async () => {
+        clearSnapshotCache();
+        storeSnapshot({
+          id: 'bench-snap-1',
+          chunks: [SNAPSHOT_BASE],
+          capturedAt: new Date().toISOString(),
+          sizeBytes: Buffer.byteLength(SNAPSHOT_BASE),
+        });
+        return handlers.handle('v8_heap_snapshot_analyze', { snapshotId: 'bench-snap-1' });
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const histogram = b.classHistogram as
+          | Array<{ className: string; count: number; shallowSize: number }>
+          | undefined;
+        if (!Array.isArray(histogram) || histogram.length < 2) {
+          return `expected at least 2 histogram entries, got: ${JSON.stringify(histogram)}`;
+        }
+        const arrEntry = histogram.find((e) => e.className === 'Array');
+        if (!arrEntry || arrEntry.shallowSize !== 1024) {
+          return `expected Array entry with shallowSize=1024, got: ${JSON.stringify(arrEntry)}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'v8_heap_diff/structural-node-comparison',
+      tool: 'v8_heap_diff',
+      origin: 'homemade',
+      reference:
+        'compares two snapshot revisions, reporting added node (NewClass) and removed node (LeakClass)',
+      run: async () => {
+        storeSnapshot({
+          id: 'bench-snap-2',
+          chunks: [SNAPSHOT_UPDATED],
+          capturedAt: new Date().toISOString(),
+          sizeBytes: Buffer.byteLength(SNAPSHOT_UPDATED),
+        });
+        return handlers.handle('v8_heap_diff', {
+          beforeSnapshotId: 'bench-snap-1',
+          afterSnapshotId: 'bench-snap-2',
+        });
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.addedCount !== 'number' || typeof b.removedCount !== 'number') {
+          return `expected addedCount and removedCount, got: ${JSON.stringify(b)}`;
+        }
+        const text = JSON.stringify(b);
+        if (!text.includes('NewClass')) return 'added node NewClass missing from diff';
+        return true;
+      },
+    },
+    {
+      name: 'v8_heap_retainers/trace-retainer-chains',
+      tool: 'v8_heap_retainers',
+      origin: 'homemade',
+      reference: 'traces retainer chains from nodeId back to GC root',
+      run: async () => {
+        return handlers.handle('v8_heap_retainers', {
+          snapshotId: 'bench-snap-1',
+          nodeIds: [2], // Array node
+          maxSteps: 10,
+        });
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const chains = b.chains as Record<string, unknown> | undefined;
+        if (!chains || typeof chains !== 'object') {
+          return `expected chains object, got: ${JSON.stringify(b)}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'v8_object_compare/object-delta-comparison',
+      tool: 'v8_object_compare',
+      origin: 'homemade',
+      reference: 'evaluates size and property delta between object nodes in the heap graph',
+      run: async () => {
+        return handlers.handle('v8_object_compare', {
+          snapshotId: 'bench-snap-1',
+          objectIds: [2, 3], // Array vs MyObject
+        });
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.success === false) return `object compare failed: ${b.error}`;
+        const pairs = b.pairs as Array<unknown> | undefined;
+        if (!Array.isArray(pairs)) return `expected pairs array, got: ${typeof pairs}`;
+        return true;
+      },
+    },
+    {
+      name: 'v8_heap_snapshot_list/in-memory-listing',
+      tool: 'v8_heap_snapshot_list',
+      origin: 'homemade',
+      reference: 'lists stored in-memory snapshots and calculates totalBytes',
+      run: async () => {
+        return handlers.handle('v8_heap_snapshot_list', {});
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.count !== 'number' || b.count < 1) {
+          return `expected at least 1 cached snapshot in list, got: ${b.count}`;
+        }
+        return true;
+      },
+    },
+  ],
+};

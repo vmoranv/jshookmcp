@@ -118,5 +118,35 @@ export const platformSuite: BenchSuite = {
         return true;
       },
     },
+    {
+      name: 'platform_capabilities/capabilities-probe-contract',
+      tool: 'platform_capabilities',
+      origin: 'homemade',
+      reference: 'invokes handlePlatformCapabilitiesTool and returns structured capability flags',
+      run: async () => {
+        return handlers.handlePlatformCapabilitiesTool();
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (typeof b !== 'object' || b === null)
+          return `expected structured object from platform_capabilities, got: ${typeof b}`;
+        return true;
+      },
+    },
+    {
+      name: 'electron_inspect_app/inspect-dir-structure',
+      tool: 'electron_inspect_app',
+      origin: 'homemade',
+      reference: 'invokes handleElectronInspectAppTool on mock appDir and extracts main entry',
+      run: async () => {
+        return handlers.handleElectronInspectAppTool({ appPath: appDir });
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.mainEntry !== 'main.js')
+          return `expected mainEntry=main.js, got: ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
   ],
 };

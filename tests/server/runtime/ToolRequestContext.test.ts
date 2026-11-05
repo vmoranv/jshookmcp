@@ -37,8 +37,24 @@ describe('ToolRequestContext', () => {
         expect(getToolRequestContext()).toEqual({
           sessionId: 'session-a',
           requestId: 'request-a',
+          isModern: false,
         });
       },
+    );
+    expect(getToolRequestContext()).toBeNull();
+  });
+
+  it('carries the modern flag through the AsyncLocalStorage scope', async () => {
+    await runWithToolRequestContext(
+      { sessionId: 'session-v2', mcpReq: { id: 'request-v2' } },
+      async () => {
+        await Promise.resolve();
+        expect(getToolRequestContext()).toMatchObject({
+          sessionId: 'session-v2',
+          isModern: true,
+        });
+      },
+      { isModern: true },
     );
     expect(getToolRequestContext()).toBeNull();
   });

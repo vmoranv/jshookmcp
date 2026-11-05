@@ -8,6 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { JSDOM } from 'jsdom';
 import type { JSDOM as JSDOMType } from 'jsdom';
 
 import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
@@ -147,16 +148,6 @@ export class JsdomHandlers {
       }
       if (referrer) {
         (options as Record<string, unknown>).referrer = referrer;
-      }
-
-      const { JSDOM } = await import('jsdom');
-
-      // Re-check after the async import: concurrent calls could both pass the
-      // pre-import check above before either inserts (check-then-act race).
-      if (this.sessions.size >= MAX_SESSIONS) {
-        return R.fail(
-          `JSDOM session limit reached (${MAX_SESSIONS}). Close existing sessions first with browser_jsdom_serialize + drop.`,
-        ).build();
       }
 
       const dom = new JSDOM(html, options);

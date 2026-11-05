@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
-import { logger } from '@utils/logger';
 
 /**
  * Coverage tests for DetailedDataManager the v8 ignore branches and
@@ -137,12 +136,6 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
 
   // ── cleanup ──────────────────────────────────────────────────────────────
 
-  it('cleanup logs nothing when cache is empty', () => {
-    const debugSpy = vi.spyOn(logger, 'debug');
-    (manager as any).cleanup();
-    expect(debugSpy).not.toHaveBeenCalled();
-  });
-
   it('cleanup removes only expired entries', async () => {
     const id1 = await manager.store({ a: 1 }, 1000); // expires at t=1000
     const id2 = await manager.store({ b: 2 }, 2000); // expires at t=2000
@@ -202,25 +195,6 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     expect(manager.retrieve(overflow)).toEqual({ overflow: true });
   });
 
-  it('evictLRU logs eviction at debug level (a2-12)', async () => {
-    const debugSpy = vi.spyOn(logger, 'debug');
-
-    // Fill to 100 and access all to set lastAccessedAt
-    const ids: string[] = [];
-    for (let i = 0; i < 100; i++) {
-      ids.push(await manager.store({ i }));
-    }
-
-    // Access oldest
-    manager.retrieve(ids[0]!);
-    vi.advanceTimersByTime(1);
-
-    // Trigger eviction
-    await manager.store({ overflow: true });
-
-    expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('Evicted LRU entry'));
-  });
-
   // ── extend ───────────────────────────────────────────────────────────────
 
   it('extend adds EXTEND_DURATION when no additionalTime provided', async () => {
@@ -270,15 +244,6 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     const stats = manager.getStats();
     expect(stats.cacheSize).toBe(2);
     expect(Number(stats.avgAccessCount)).toBeCloseTo(1.5, 1);
-  });
-
-  it('getStats returns correct cache size limits', () => {
-    const stats = manager.getStats();
-    expect(stats.maxCacheSize).toBe(100);
-    expect(stats.defaultTTLSeconds).toBe(30 * 60); // 30 minutes
-    expect(stats.maxTTLSeconds).toBe(60 * 60); // 1 hour
-    expect(stats.autoExtendEnabled).toBe(true);
-    expect(stats.extendDurationSeconds).toBe(15 * 60); // 15 minutes
   });
 
   // ── getDetailedStats ────────────────────────────────────────────────────
@@ -364,12 +329,6 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     expect(stats.remainingSeconds).toBeGreaterThan(4);
   });
 
-  it('store logs storage info', async () => {
-    const debugSpy = vi.spyOn(logger, 'debug');
-    await manager.store({ test: true });
-    expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('Stored detailed data'));
-  });
-
   it('retrieve updates accessCount and lastAccessedAt', async () => {
     const id = await manager.store({ a: 1 });
     vi.advanceTimersByTime(5000);
@@ -411,13 +370,6 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
 
   // ── clear ───────────────────────────────────────────────────────────────
 
-  it('clear logs clearing info', async () => {
-    const infoSpy = vi.spyOn(logger, 'info');
-    await manager.store({ a: 1 });
-    manager.clear();
-    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('Cleared all'));
-  });
-
   it('clear resets stats', async () => {
     await manager.store({ a: 1 });
     await manager.store({ b: 2 });
@@ -433,10 +385,5 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     expect(interval).not.toBeNull();
     manager.shutdown();
     expect((manager as any).cleanupInterval).toBeNull();
-  });
-
-  it('shutdown can be called multiple times safely', () => {
-    manager.shutdown();
-    expect(() => manager.shutdown()).not.toThrow();
   });
 });

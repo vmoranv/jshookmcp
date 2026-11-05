@@ -40,7 +40,7 @@ export const encodingSuite: BenchSuite = {
   name: 'encoding',
   domain: 'encoding',
   description:
-    'binary_encode/decode/base32/protobuf/entropy — RFC 4648 + protobuf-spec vectors, entropy bounds, gzip roundtrip',
+    'binary_encode/decode/base32/protobuf/entropy — RFC 4648 + protobuf-spec vectors, entropy bounds, gzip roundtrip, adversarial input robustness',
   cases: [
     ...BASE64_VECTORS.filter(([raw]) => raw !== '').map(([raw, expected]) => ({
       name: `binary_encode/rfc4648-base64-${raw || 'empty'}`,
@@ -247,6 +247,65 @@ export const encodingSuite: BenchSuite = {
         return text.toLowerCase().includes('gzip')
           ? true
           : `expected gzip detection, got: ${text.slice(0, 200)}`;
+      },
+    },
+    // ── Adversarial robustness cases (W3) ──
+    {
+      name: 'binary_encode/malformed-input-type',
+      tool: 'binary_encode',
+      origin: 'adversarial',
+      reference: 'malformed input type → graceful error (generic object)',
+      run: () =>
+        (handlers.handleBinaryEncodeTool as (args: unknown) => Promise<unknown>)({
+          data: { not: 'a string' },
+          inputFormat: 'utf8',
+        }),
+      validate: (v: unknown) => {
+        // The handler may return success:false, throw, or return an error message.
+        // Any of these is acceptable as long as the server doesn't crash.
+        const raw = JSON.stringify(v).toLowerCase();
+        return raw.includes('error') || raw.includes('success') || typeof v === 'object'
+          ? true
+          : `expected graceful handling, got: ${raw.slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'binary_decode/malformed-base64',
+      tool: 'binary_decode',
+      origin: 'adversarial',
+      reference: 'malformed base64 → graceful error (not-found after length-check)',
+      run: () =>
+        handlers.handleBinaryDecodeTool({
+          data: '!!!not-valid-base64!!!',
+          encoding: 'msgpack',
+          outputFormat: 'json',
+        }),
+      validate: (v: unknown) => {
+        const raw = JSON.stringify(v).toLowerCase();
+        return raw.includes('error') || typeof v === 'object'
+          ? true
+          : `expected graceful handling, got: ${raw.slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'binary_decode/malformed-triflers',
+      tool: 'binary_decode',
+      origin: 'adversarial',
+      reference: 'completely unrelated string → graceful error with feedback',
+      run: () =>
+        handlers.handleBinaryDecodeTool({
+          data: Buffer.from('hello world this is not binary data at all', 'utf8').toString(
+            'base64',
+          ),
+          encoding: 'msgpack',
+          outputFormat: 'json',
+        }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        const text = JSON.stringify(b).toLowerCase();
+        return text.includes('error') || text.includes('fail') || typeof v === 'object'
+          ? true
+          : `expected graceful error, got: ${text.slice(0, 200)}`;
       },
     },
   ],

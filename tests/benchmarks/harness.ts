@@ -10,7 +10,7 @@
  * See CATALOG.md for the full 36-domain mapping of tools → benchmark source.
  */
 
-export type BenchmarkOrigin = 'external-vector' | 'homemade';
+export type BenchmarkOrigin = 'external-vector' | 'homemade' | 'adversarial';
 
 export interface BenchCase {
   /** Stable case id, e.g. "binary_encode/rfc4648-vector-3". */
@@ -199,16 +199,17 @@ export function renderScorecard(results: readonly BenchSuiteResult[]): string {
   );
   lines.push('');
   lines.push(
-    '| Suite | Domain | Score | Passed | Fail | Error | Skip | External vectors | Homemade | ms |',
+    '| Suite | Domain | Score | Passed | Fail | Error | Skip | External vectors | Homemade | Adversarial | ms |',
   );
-  lines.push('|---|---|---:|---:|---:|---:|---:|---:|---:|---:|');
+  lines.push('|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|');
   for (const r of results) {
     const ext = r.cases.filter(
       (c) => c.origin === 'external-vector' && c.status !== 'skipped',
     ).length;
     const home = r.cases.filter((c) => c.origin === 'homemade' && c.status !== 'skipped').length;
+    const adv = r.cases.filter((c) => c.origin === 'adversarial' && c.status !== 'skipped').length;
     lines.push(
-      `| ${r.suite} | ${r.domain} | ${r.score.toFixed(1)}% | ${r.passed} | ${r.failed} | ${r.errored} | ${r.skipped} | ${ext} | ${home} | ${Math.round(r.durationMs)} |`,
+      `| ${r.suite} | ${r.domain} | ${r.score.toFixed(1)}% | ${r.passed} | ${r.failed} | ${r.errored} | ${r.skipped} | ${ext} | ${home} | ${adv} | ${Math.round(r.durationMs)} |`,
     );
   }
   lines.push('');

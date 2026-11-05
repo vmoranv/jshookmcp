@@ -94,5 +94,116 @@ export const memorySuite: BenchSuite = {
           : `tampered table still verifies: ${JSON.stringify(b).slice(0, 160)}`;
       },
     },
+    {
+      name: 'memory_structure_export_c/rust-repr-c-export',
+      tool: 'memory_structure_export_c',
+      origin: 'homemade',
+      reference:
+        'exports inferred structure to Rust #[repr(C)] struct syntax with correct field sizes',
+      run: async () => {
+        const sampleStruct = JSON.stringify({
+          className: 'PlayerEntity',
+          totalSize: 16,
+          fields: [
+            { offset: 0, size: 4, type: 'int32', name: 'health' },
+            { offset: 4, size: 4, type: 'float', name: 'speed' },
+            { offset: 8, size: 8, type: 'uint64', name: 'guid' },
+          ],
+        });
+        return handlers.handleStructureExportC({
+          structure: sampleStruct,
+          format: 'rust',
+          name: 'PlayerEntity',
+        });
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success === false) return `failed: ${b.error}`;
+        const def = String(b.definition ?? '');
+        if (!def.includes('#[repr(C)]')) return `missing #[repr(C)] attribute: ${def}`;
+        if (!def.includes('pub struct PlayerEntity')) return `missing struct declaration: ${def}`;
+        if (
+          !def.includes('health: i32') ||
+          !def.includes('speed: f32') ||
+          !def.includes('guid: u64')
+        ) {
+          return `field definitions not properly typed: ${def}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'memory_structure_export_c/csharp-structlayout-export',
+      tool: 'memory_structure_export_c',
+      origin: 'homemade',
+      reference:
+        'exports inferred structure to C# [StructLayout] with explicit FieldOffset attributes',
+      run: async () => {
+        const sampleStruct = JSON.stringify({
+          className: 'NetworkPacket',
+          totalSize: 8,
+          fields: [
+            { offset: 0, size: 2, type: 'uint16', name: 'opcode' },
+            { offset: 2, size: 2, type: 'uint16', name: 'length' },
+            { offset: 4, size: 4, type: 'uint32', name: 'sequence' },
+          ],
+        });
+        return handlers.handleStructureExportC({
+          structure: sampleStruct,
+          format: 'csharp',
+          name: 'NetworkPacket',
+        });
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success === false) return `failed: ${b.error}`;
+        const def = String(b.definition ?? '');
+        if (!def.includes('[StructLayout(LayoutKind.Explicit')) {
+          return `missing StructLayout attribute: ${def}`;
+        }
+        if (!def.includes('[FieldOffset(0x0)]') || !def.includes('[FieldOffset(0x4)]')) {
+          return `missing explicit FieldOffset annotations: ${def}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'memory_type_define/set-and-list-overrides',
+      tool: 'memory_type_define',
+      origin: 'homemade',
+      reference: 'manages custom field type overrides: set at offset, list registered rules',
+      run: async () => {
+        const setRes = body(
+          await handlers.handleTypeDefine({
+            action: 'set',
+            offset: 32, // 0x20
+            size: 4,
+            type: 'int32_t',
+          }),
+        );
+        const listRes = body(
+          await handlers.handleTypeDefine({
+            action: 'list',
+            offset: 0,
+            size: 1,
+            type: 'int8',
+          }),
+        );
+        return { setRes, listRes };
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        const setRes = b.setRes as Record<string, unknown>;
+        const listRes = b.listRes as Record<string, unknown>;
+        if (setRes.success !== true || setRes.type !== 'int32') {
+          return `expected normalized type int32, got: ${JSON.stringify(setRes)}`;
+        }
+        const overrides = (listRes.overrides as Array<Record<string, unknown>>) ?? [];
+        if (!overrides.some((o) => o.offset === 32 && o.type === 'int32')) {
+          return `list missing set override: ${JSON.stringify(overrides)}`;
+        }
+        return true;
+      },
+    },
   ],
 };

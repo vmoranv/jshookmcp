@@ -420,6 +420,12 @@ export class MCPServer implements MCPServerContext {
     this.handlerDeps = Object.fromEntries(depsEntries) as ToolHandlerDeps;
     // Expose the task scheduler to domain bind closures (deps.taskManager).
     (this.handlerDeps as Record<string, unknown>)['taskManager'] = this.taskManager;
+    // Stable, process-level runtime core shared with domain bind closures.
+    // Unlike the removed per-ensure `globalContext`, this reference is set
+    // once and never reassigned, so concurrent modern requests cannot race
+    // on eventBus/samplingBridge. Domain manifests read it from `deps`
+    // (explicit dependency injection) instead of mutable module state.
+    (this.handlerDeps as Record<string, unknown>)['__runtimeCore'] = this;
   }
 
   /** Router, context guard, large-data offloader. */
@@ -668,8 +674,6 @@ export class MCPServer implements MCPServerContext {
         return { completion: { values: [], total: 0, hasMore: false } };
       }
     });
-
-    this.registerTools();
   }
 
   // ── MCPServerContext method implementations ──

@@ -142,5 +142,63 @@ export const sourcemapSuite: BenchSuite = {
         return true;
       },
     },
+    {
+      name: 'sourcemap_fetch_and_parse/inline-sources-content',
+      tool: 'sourcemap_fetch_and_parse',
+      origin: 'homemade',
+      reference:
+        'fetches and parses data: URI sourcemap directly, returning sources and sourcesContent',
+      run: () =>
+        handlers.handleSourcemapFetchAndParseTool({
+          sourceMapUrl: inlineMapUrl(TEST_MAP),
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const text = JSON.stringify(b);
+        if (!text.includes('a.ts') || !text.includes('line one')) {
+          return `expected parsed sources with a.ts and contents, got: ${text.slice(0, 200)}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'sourcemap_diff/identical-map-no-drift',
+      tool: 'sourcemap_diff',
+      origin: 'homemade',
+      reference:
+        'diff between identical sourcemaps reports 0 added/removed sources and no shifted segments',
+      run: () =>
+        handlers.handleSourcemapDiffTool({
+          sourceMapUrl: inlineMapUrl(TEST_MAP),
+          sourceMapUrlB: inlineMapUrl(TEST_MAP),
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const text = JSON.stringify(b);
+        if (b.hasChanges === true || text.includes('"addedSources":["a.ts"]')) {
+          return `expected no changes for identical maps, got: ${text.slice(0, 200)}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'sourcemap_reconstruct_tree/tree-structure-contract',
+      tool: 'sourcemap_reconstruct_tree',
+      origin: 'homemade',
+      reference:
+        'reconstructs source file tree into report artifacts and returns written files list',
+      run: () =>
+        handlers.handleSourcemapReconstructTreeTool({
+          sourceMapUrl: inlineMapUrl(TEST_MAP),
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const text = JSON.stringify(b);
+        if (!text.includes('writtenFiles') || !text.includes('outputDir')) {
+          return `expected writtenFiles and outputDir in tree reconstruction, got: ${text.slice(0, 200)}`;
+        }
+        return true;
+      },
+    },
   ],
 };

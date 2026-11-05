@@ -53,7 +53,7 @@ export function createModernMcpServer(
       // stay on this request server instead of mutating the legacy singleton.
       if (property === 'registerSingleTool') {
         return (toolDef: Parameters<typeof registerSingleToolImpl>[1]) =>
-          registerSingleToolImpl(facade, toolDef);
+          registerSingleToolImpl(facade, toolDef, { isModern: true });
       }
       const value = Reflect.get(target, property, receiver);
       return typeof value === 'function' ? value.bind(target) : value;
@@ -66,9 +66,9 @@ export function createModernMcpServer(
   void request.era;
 
   for (const toolDef of core.selectedTools) {
-    registerSingleToolImpl(facade, toolDef);
+    registerSingleToolImpl(facade, toolDef, { isModern: true });
   }
-  registerSearchMetaTools(facade);
+  registerSearchMetaTools(facade, { isModern: true });
   registerServerResources(facade);
   registerServerPrompts(facade);
 

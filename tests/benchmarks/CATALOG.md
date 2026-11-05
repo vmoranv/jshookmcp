@@ -8,17 +8,18 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: 26 suites / 137 cases (136 pass, 1 env-gated skip) — see `artifacts/benchmarks/scorecard.md`.
+Runnable suites today: 31 suites / 211 cases (201 pass, 10 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
 736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **139 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
-| e2e-tasks | count of real-task files (≥90% pass) exercising the tool | full e2e run (`pnpm bench:e2e`) — 442/479 real tasks passed, 115 tools covered |
+| e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
 | retrieval | MRR@10 / NDCG@10 / P@1 / Success@3 (%) | live 109-query eval vs ToolSearchEngine — **MRR@10 79.8% · NDCG@10 82.2% · P@1 67.0% · S@3 93.6% · S@5 99.1%** |
+| rejection | % out-of-domain rejected | live 12-query eval vs ToolSearchEngine — **100.0% rejected** |
 
 Environment-gated files (browser display, Camoufox, root) that self-skip stay honestly
 unmeasured rather than counted.
@@ -37,11 +38,11 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 ---
 
-## adb-bridge (26 tools)
+## adb-bridge (26 tools) — ✅ suite `adb-bridge-parsers`
 
+- **[自制] ✅** `adb-bridge-parsers` suite: golden transcripts for getprop property parsing, device fingerprint curation (SDK/ABI/bootloader), logcat threadtime line parsing, priority filter evaluation, proc/maps parser, and input text escaping.
 - **[外部]** [AndroidWorld](https://github.com/google-research/AndroidWorld) — 116 task-level Android automation benchmark (device-in-the-loop). 📋
 - **[外部]** [MobileAgentBench](https://github.com/MobileAgentBench/MobileAgentBench) — UI-agent task success on real apps. 📋
-- **[自制]** dumpsys/getprop/logcat/uiautomator **parser** correctness is testable offline with captured shell transcripts (golden files). 📋
 - Requires a live device/emulator for end-to-end; parsing layers are offline-testable.
 
 ## binary-instrument (46 tools)
@@ -226,10 +227,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** RC4 canonical vector (`Key`/`Plaintext`/BBF316E8D940AF0AD3).
 - **[自制] ✅** XOR involutivity, entropy step, beautify semantic preservation (executes + observable behavior), crypto sandbox fidelity + implementation equivalence.
 
-## v8-inspector (21 tools)
+## v8-inspector (21 tools) — ✅ suite `v8-inspector-heap`
 
+- **[自制] ✅** `v8-inspector-heap` suite: synthetic V8 heapsnapshot fixtures testing class histogram generation, snapshot structural diff, dominator-tree retainer tracing, and object pair comparison.
 - **[外部]** `.heapsnapshot` format spec + DevTools sample snapshots — snapshot parse/analyze/diff. 📋
-- **[自制]** synthetic heapsnapshot fixture (nodes/edges arrays) for offline parser benchmarks. 📋
 
 ## wasm (17 tools) — ✅ suite `wasm`
 
@@ -242,9 +243,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [WebGPU CTS](https://github.com/gpuweb/cts) — WGSL compile/disassemble conformance subset. 📋
 - **[自制]** pipeline/shader capture fixtures on a headless WebGPU page. 📋
 
-## workflow (13 tools)
+## workflow (13 tools) — ✅ suite `workflow-lifecycle`
 
-- **[自制]** retry/backoff semantics (Temporal `RetryPolicy` methodology transplant: fake timers + failure injection), conditional predicates truth table, chain-metadata suggestion ordering. 📋
+- **[自制] ✅** `workflow-lifecycle` suite: retry policy set/get contract, run inspect store availability, conditional step parameter evaluation, workflow suggest empty-catalog fallback.
+- **[外部]** Temporal `RetryPolicy` spec / conformance — planned deep vectors. 📋
 - Repo-internal search-quality datasets (`scripts/search-tune/datasets`) already benchmark js_bundle_search-adjacent routing.
 
 ---

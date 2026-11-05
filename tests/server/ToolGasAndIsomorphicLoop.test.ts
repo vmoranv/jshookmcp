@@ -35,6 +35,26 @@ describe('Execution Complexity Gas Meter & Isomorphic Loop Breaker', () => {
       expect(getToolExecutionComplexity('describe_tool')).toBe(1);
       expect(getToolExecutionComplexity('get_detailed_data')).toBe(1);
     });
+
+    it('promotes measured subprocess/worker/poll-heavy tools above 1 gas', () => {
+      // These were gas=1 under the old name-only heuristic despite 60-240ms
+      // measured cold single-call cost (spawns, WASM pools, polls, cold imports).
+      expect(getToolExecutionComplexity('platform_capabilities')).toBe(25);
+      expect(getToolExecutionComplexity('wasm_offline_run')).toBe(25);
+      expect(getToolExecutionComplexity('process_find')).toBe(25);
+      expect(getToolExecutionComplexity('crypto_test_harness')).toBe(25);
+      expect(getToolExecutionComplexity('crypto_compare')).toBe(25);
+      expect(getToolExecutionComplexity('tasks_result')).toBe(25);
+      expect(getToolExecutionComplexity('net_raw_tcp_listen')).toBe(25);
+      expect(getToolExecutionComplexity('browser_jsdom_parse')).toBe(25);
+    });
+
+    it('keeps unmeasured-name heavy tiers as a conservative ceiling', () => {
+      // High tier is a resource ceiling, not a latency claim: do not lower fast
+      // exploit/nemu members just because a single benchmark call was quick.
+      expect(getToolExecutionComplexity('exploit_build_heap_spray')).toBe(25);
+      expect(getToolExecutionComplexity('nemu_bytecode_decode')).toBe(25);
+    });
   });
 
   describe('normalizeSemanticArgs', () => {

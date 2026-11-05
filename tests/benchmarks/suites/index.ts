@@ -26,6 +26,9 @@ import { nativeBridgeSuite } from './native-bridge.suite';
 import { processSuite } from './process.suite';
 import { traceSuite } from './trace.suite';
 import { miscResidualSuite } from './misc-residual.suite';
+import { workflowSuite } from './workflow.suite';
+import { adbBridgeSuite } from './adb-bridge.suite';
+import { v8InspectorSuite } from './v8-inspector.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -55,4 +58,7 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   processSuite,
   traceSuite,
   miscResidualSuite,
+  workflowSuite,
+  adbBridgeSuite,
+  v8InspectorSuite,
 ];

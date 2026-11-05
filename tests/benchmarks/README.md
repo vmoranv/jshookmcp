@@ -35,6 +35,40 @@ and the Missing column names exactly which command produces it.
 The same suites run as a gate inside `pnpm test` (server project):
 `tests/server/benchmarks/tools-benchmark.test.ts` — fails when a suite drops below its floor.
 
+## CI integration (`.github/workflows/ci.yml`, `linux-full` job)
+
+The scorecard's three non-vector layers come from separate commands. Under `CI=true`
+the `per-tool/layers-actually-measured` gate does **not** skip — it runs inside the
+`server` vitest project (`test:coverage` and `bench:tools` both execute it) and hard-fails
+if any measurement file is missing. So CI produces them in this order:
+
+| Step | Produces | Consumed as |
+|---|---|---|
+| `pnpm run bench:e2e:local` (starts fixture + 3-round pass^k) | `artifacts/benchmarks/e2e-results.json` | e2e-tasks column |
+| standalone `retrieval-metrics.test.ts` | `artifacts/benchmarks/retrieval-metrics.json` | retrieval column |
+| `pnpm run test:coverage` | `coverage/coverage-final.json` | handler-fn column |
+| `pnpm run bench:tools` | `scorecard.{md,json}` + `per-tool-scorecard.{md,json}` | fully-measured report |
+
+Order matters: e2e + retrieval must exist **before** `test:coverage`, because that run
+contains the gate. `coverage-final.json` is the one exception — the gate exempts an
+in-progress `COVERAGE_FULL=true` run, since that same run writes the file.
+
+`bench:e2e:local` is served by a deterministic, dependency-free local fixture
+(`scripts/serve-e2e-fixture.mjs`, `http://127.0.0.1:4173/`) instead of a public
+site: it serves a real document on `/` plus a catch-all for any path (so
+`<target>/level/3` resolves), sub-resources for network capture, HEAD/OPTIONS,
+and the `.VPNav`/`.VPHero`/`.VPFeatures` + `#e2e_*` selectors the real-task e2e
+files assert. The wrapper (`scripts/bench-e2e-local.mjs`) starts the server,
+waits for readiness, runs `bench:e2e`, and always stops it — CI and local use
+the same single entry point. No external network, no third-party deploy.
+`PUPPETEER_HEADLESS=true` is set.
+
+The step stays `continue-on-error` because headless Chromium is the one remaining
+flaky dependency; `bench-e2e.mjs` always writes `e2e-results.json` (an empty
+`measuredFiles: []` result when zero files pass all 3 rounds), so the measurement
+is real even then — never a guessed value. The fully-measured scorecard + all
+three raw measurements are uploaded as the `benchmark-scorecard` artifact.
+
 ## Adding a suite
 
 1. Pick a domain row in CATALOG.md marked 📋.
