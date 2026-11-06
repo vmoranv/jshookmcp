@@ -243,7 +243,7 @@ jobs:
           echo "[ci] staged $(find artifacts/benchmarks-ci -maxdepth 1 -type f | wc -l) measurement/scorecard files"
 
       - name: Upload benchmark scorecard bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: benchmark-scorecard
