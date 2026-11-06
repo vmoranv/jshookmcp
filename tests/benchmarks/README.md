@@ -62,18 +62,22 @@ with `pnpm bench:tools` (µs/call, same harness, before → after):
 | `crypto_compare` | 70.1ms | 2.1ms | same |
 | `platform_capabilities` | 118.6ms | 92µs | memoize `probeView8Availability` (2 Python spawns/call → 1/process) + overlap `probeAll`/view8 probes via `Promise.all` |
 | `tasks_result` | 110.4ms | 69.0ms | poll interval 100→10ms (`handlers.ts` + `TaskStoreAdapter.ts`) |
+| `process_find` | 186.4ms | 189µs | single shared all-processes PowerShell snapshot (one `Get-Process` per TTL) + JS-side case-insensitive name filter, instead of one `Get-Process -Name "*pattern*"` spawn per distinct pattern |
 
-The 92µs figure is steady-state (the scorecard re-executes suites in one
-process); a **cold first call** is still ~80ms for crypto (inherent WASM compile)
-and ~50ms for platform (inherent first `probeAll` subprocess batch). Repeated
-calls drop to ~2.5ms. These are real wins, not measurement tricks.
+The 92µs / 189µs figures are steady-state (the scorecard re-executes suites in one
+process); a **cold first call** is still ~80ms for crypto (inherent WASM compile),
+~50ms for platform (inherent first `probeAll` subprocess batch), and one cold
+PowerShell spawn for `process_find`. Repeated calls — including **different**
+patterns for `process_find` — hit the shared snapshot and drop to ~µs. A focused
+test proves 5 distinct `findProcesses` patterns cause exactly 1 spawn (was 5).
+These are real wins, not measurement tricks.
 
 **Deliberately not changed** (honest findings, not defects): `tasks_list` (~62ms)
 is four harness-side `gap(6)` sleeps used for distinct timestamps; `net_raw_*_listen`
 (~50-60ms) is a 50ms bind-wait sleep in `tls-inspector-full.suite.ts` — its production
-handlers are already event-driven (~1ms real). `process_find` (~174ms) is a genuine
-cold PowerShell spawn, but warming it is off-target (per-pattern cache key) and
-breaks exact call-count tests; a proper fix is an all-processes snapshot refactor.
+handlers are already event-driven (~1ms real). `process_find` was the last real
+cold-spawn win and is now fixed by the shared-snapshot refactor above (removed
+the dead per-pattern `lastDelta`/`computeProcessDiff` machinery along the way).
 `wasm_offline_run` (~51ms) is dominated by the shared cold `probeAll` batch.
 
 ## CI integration (`.github/workflows/ci.yml`, `linux-full` job)

@@ -38,15 +38,10 @@ export {
 const execAsync = promisify(exec);
 const PROCESS_SNAPSHOT_CACHE_TTL_MS = 3000;
 
-interface ProcessSnapshotEntry {
+interface ProcessSnapshot {
   expiresAt: number;
-  snapshot: ProcessInfo[];
-  byPid: Map<number, ProcessInfo>;
-  lastDelta: {
-    added: ProcessInfo[];
-    removed: ProcessInfo[];
-    changed: Array<{ before: ProcessInfo; after: ProcessInfo }>;
-  };
+  /** ALL processes, unfiltered — one PowerShell call serves every pattern. */
+  all: ProcessInfo[];
 }
 
 /** Strip PowerShell-special characters from a pattern to prevent injection. */
@@ -66,7 +61,7 @@ export class ProcessManager {
   private powershellPath: string = 'powershell.exe';
   private scriptLoader: ScriptLoader;
   private browserDiscovery: BrowserDiscovery;
-  private processCache = new Map<string, ProcessSnapshotEntry>();
+  private processSnapshot: ProcessSnapshot | null = null;
 
   constructor() {
     this.scriptLoader = new ScriptLoader();
@@ -75,108 +70,66 @@ export class ProcessManager {
   }
 
   /**
-   * Enumerate all processes matching a pattern
+   * Enumerate processes whose name contains `pattern`.
+   *
+   * A single all-processes PowerShell snapshot is fetched once per TTL and
+   * shared across every pattern (the old code spawned one `Get-Process -Name`
+   * per distinct pattern). Filtering now happens in JS, so N lookups in a
+   * session cost ONE subprocess spawn instead of N. `Get-Process` has no
+   * `-Name` filter here — the wildcard match is reproduced case-insensitively
+   * below. An empty pattern returns the full unfiltered snapshot (relied on by
+   * the Chromium regex discovery path).
    */
   async findProcesses(pattern: string): Promise<ProcessInfo[]> {
     try {
       const normalizedPattern = sanitizePsPattern(String(pattern || '').trim());
-      const cacheKey = normalizedPattern.toLowerCase() || '*';
+      const filterKey = normalizedPattern.toLowerCase();
       const now = Date.now();
-      const cachedEntry = this.processCache.get(cacheKey);
 
-      if (cachedEntry && cachedEntry.expiresAt > now) {
-        return cachedEntry.snapshot;
-      }
-
-      let psCommand: string;
-      if (normalizedPattern) {
-        psCommand =
-          `Get-Process -Name "*${normalizedPattern.replace(/"/g, '""')}*" -ErrorAction SilentlyContinue ` +
-          ` Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64 ` +
-          ` ConvertTo-Json -Compress`;
-      } else {
-        psCommand =
+      let snapshot = this.processSnapshot;
+      if (!snapshot || snapshot.expiresAt <= now) {
+        const psCommand =
           `Get-Process -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, ` +
           `MainWindowTitle, MainWindowHandle, CPU, WorkingSet64 | ConvertTo-Json -Compress`;
-      }
 
-      const { stdout } = await execAsync(
-        `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES, windowsHide: true },
-      );
+        const { stdout } = await execAsync(
+          `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
+          { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES, windowsHide: true },
+        );
 
-      const lines = stdout.trim();
-      const processes: ProcessInfo[] = [];
-
-      if (lines && lines !== 'null') {
-        const data = JSON.parse(lines);
-        const procList = Array.isArray(data) ? data : [data];
-
-        for (const proc of procList) {
-          processes.push({
-            pid: proc.Id,
-            name: proc.ProcessName,
-            executablePath: proc.Path,
-          });
+        const lines = stdout.trim();
+        const all: ProcessInfo[] = [];
+        if (lines && lines !== 'null') {
+          const data = JSON.parse(lines);
+          const procList = Array.isArray(data) ? data : [data];
+          for (const proc of procList) {
+            all.push({
+              pid: proc.Id,
+              name: proc.ProcessName,
+              executablePath: proc.Path,
+            });
+          }
         }
+
+        snapshot = { expiresAt: now + PROCESS_SNAPSHOT_CACHE_TTL_MS, all };
+        this.processSnapshot = snapshot;
+        logger.info(`Process snapshot refreshed: ${all.length} processes`);
       }
 
-      const byPid = new Map<number, ProcessInfo>();
-      for (const process of processes) {
-        byPid.set(process.pid, process);
+      if (!filterKey) {
+        return snapshot.all;
       }
-
-      const lastDelta = this.computeProcessDiff(
-        cachedEntry?.byPid ?? new Map<number, ProcessInfo>(),
-        byPid,
+      const filtered = snapshot.all.filter((proc) =>
+        String(proc.name ?? '')
+          .toLowerCase()
+          .includes(filterKey),
       );
-      this.processCache.set(cacheKey, {
-        expiresAt: now + PROCESS_SNAPSHOT_CACHE_TTL_MS,
-        snapshot: processes,
-        byPid,
-        lastDelta,
-      });
-
-      const patternStr = normalizedPattern.length > 0 ? `'${normalizedPattern}'` : 'all';
-      logger.info(`Found ${processes.length} processes matching ${patternStr}`);
-      return processes;
+      logger.info(`Found ${filtered.length} processes matching '${normalizedPattern}'`);
+      return filtered;
     } catch (error) {
       logger.error(`Failed to find processes with pattern '${pattern}':`, error);
       return [];
     }
-  }
-
-  private computeProcessDiff(
-    previousByPid: Map<number, ProcessInfo>,
-    nextByPid: Map<number, ProcessInfo>,
-  ): ProcessSnapshotEntry['lastDelta'] {
-    const added: ProcessInfo[] = [];
-    const removed: ProcessInfo[] = [];
-    const changed: Array<{ before: ProcessInfo; after: ProcessInfo }> = [];
-
-    for (const [pid, nextProcess] of nextByPid) {
-      const previousProcess = previousByPid.get(pid);
-      if (!previousProcess) {
-        added.push(nextProcess);
-        continue;
-      }
-
-      if (
-        previousProcess.pid !== nextProcess.pid ||
-        previousProcess.name !== nextProcess.name ||
-        previousProcess.executablePath !== nextProcess.executablePath
-      ) {
-        changed.push({ before: previousProcess, after: nextProcess });
-      }
-    }
-
-    for (const [pid, previousProcess] of previousByPid) {
-      if (!nextByPid.has(pid)) {
-        removed.push(previousProcess);
-      }
-    }
-
-    return { added, removed, changed };
   }
 
   /**

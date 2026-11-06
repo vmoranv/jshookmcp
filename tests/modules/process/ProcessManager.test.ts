@@ -85,7 +85,10 @@ describe('ProcessManager', () => {
       { pid: 101, name: 'browser-bin', executablePath: 'C:/Browser/browser-bin.exe' },
     ]);
     const cmd = state.execAsync.mock.calls[0]?.[0] as string;
-    expect(cmd).toContain('*browser-bin*');
+    // One shared all-processes snapshot: the pattern is filtered in JS, not
+    // embedded in the PowerShell command anymore.
+    expect(cmd).toContain('Get-Process');
+    expect(cmd).not.toContain('*browser-bin*');
     expect(cmd).not.toContain('`');
     expect(cmd).not.toContain('$');
   });

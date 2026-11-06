@@ -16,7 +16,7 @@
   "modules/native-emulator/simd.ts:1601:execNeonTwoRegMisc": 25,
   "modules/native-emulator/simd.ts:1498:execNeonThreeDifferent": 32,
   "modules/process/memory/scanner.patterns.ts:27:buildPatternBytesAndMask": 26,
-  "modules/process/ProcessManager.impl.ts:386:launchWithDebug": 27,
+  "modules/process/ProcessManager.impl.ts:339:launchWithDebug": 27,
   "modules/symbolic/JSVMPSymbolicExecutor.ts:143:executeInstruction": 27,
   "modules/trace/TraceDB.internal.ts:384:mapNetworkResourceRow": 31,
   "modules/v8-inspector/HeapSnapshotParser.ts:817:parseStandardSnapshot": 27,
