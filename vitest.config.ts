@@ -197,6 +197,14 @@ export default defineConfig({
   test: {
     // ── Shared defaults (inherited by projects via extends: true) ──
     environment: 'node',
+    // vitest 5 defaults to sharing one Vite server across projects (breaking
+    // change #10848). With three parallel forks projects, all module-transform
+    // requests funnel through that single server and import throughput
+    // degrades: full suite measured 153s shared vs ~128s with per-project
+    // servers (server/native shards are individually FASTER on 5.x, so the
+    // regression is purely this serialization). Opt out to keep the 4.x
+    // parallel profile.
+    sharedViteServer: false,
     clearMocks: true,
     restoreMocks: true,
     mockReset: true,
