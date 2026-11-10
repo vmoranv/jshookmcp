@@ -93,7 +93,7 @@ Clone 仓库后，在项目根目录创建 `.env` 文件（参考 `.env.example`
 | `MCP_TOOL_DOMAINS`                        | 手动指定启用域；设置后优先级高于 `MCP_TOOL_PROFILE`。 | 无默认值                  |
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | 用 JSON 自定义”意图 -> 工具”加权规则。                | 无默认值                  |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | plugin 在 boost 时自动注册的默认档位。                | `full`                    |
-| `MCP_SKILLS_DIR`                          | Skills 扩展（SEP-2640）目录：空 = 内置 `<projectRoot>/skills` 操作指南；`off` = 禁用扩展；其他路径 = 自定义技能目录（每个子目录需含带 name/description frontmatter 的 SKILL.md）。 | 默认：空（内置指南）      |
+| `MCP_SKILLS_DIR`                          | Skills 扩展（SEP-2640）目录：空 = 内置 `<projectRoot>/skills` 指南 + 各插件 root 下 `skills/` 目录聚合（同名技能首定义胜出）；`off` = 禁用扩展；其他路径 = 仅服务该自定义目录（每个子目录需含带 name/description frontmatter 的 SKILL.md）。 | 默认：空（内置 + 插件聚合） |
 | `SEARCH_AUTO_ACTIVATE_DOMAINS`            | 搜索到某域的工具时自动激活该域。                      | `true`                    |
 | `SEARCH_VECTOR_ENABLED`                   | 向量搜索信号总开关（默认使用静态轻量模型）。所有传输下默认开启；模型按需加载、worker 空闲即释放，代价是一次有界的冷启动而非常驻内存。只需词法搜索时设为 `false`。 | `true` |
 | `SEARCH_VECTOR_MODEL_ID`                  | Model2Vec 兼容的 HuggingFace 静态嵌入模型 ID。         | `minishlab/potion-code-16M-v2` |
