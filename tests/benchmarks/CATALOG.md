@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **188 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **196 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -231,10 +231,11 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** REAL X.509 minted by system OpenSSL, wrapped in the RFC 8446 §4.4.2 Certificate-message wire layout — parse roundtrip incl. SHA-256 fingerprint + subject.
 - **[外部]** [FoxIO-LLC/ja4](https://github.com/FoxIO-LLC/ja4) pcap test-cases for full fingerprint parity. 📋
 
-## trace (10 tools) — ✅ suite `trace-query`
+## trace (10 tools) — ✅ suite `trace-query` (10/10 tools measured)
 
-- **[外部]** Chrome Trace Event format spec (Chromium catapult docs) — export_trace validity. 📋
+- **[外部] ✅** Chrome Trace Event format spec (Chromium catapult docs) — export_trace Chrome Trace Event JSON export.
 - **[自制] ✅** `trace-query` suite: seeded SQLite trace database query execution, compact category aggregation and timeline summarization.
+- **[自制] ✅** (2026-11-10) seek_to_timestamp event-stream reconstruction, trace_get_samples function-filter query, diff_heap_snapshots summary delta computation, trace_get_network_flow by requestId, start_trace_recording / stop_trace_recording offline lifecycle, trace_recording action dispatch.
 
 ## transform (8 tools) — ✅ suite `transform`
 
