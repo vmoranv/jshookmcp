@@ -47,6 +47,7 @@
     "DISCLOSURE",
     "dist",
     "workflows",
+    "skills",
     "src/native/scripts"
   ],
   "type": "module",
