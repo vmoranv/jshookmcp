@@ -142,9 +142,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** pwntools `cyclic`/one_gadget (shared with exploit-dev). ✅ (via exploit-dev suite)
 - **[自制] 📋** AOB wildcard patterns, signature wildcarding, structure export (C/ReClass/Rust/C#), region compare; Win32-live members need a fixture process (CI-infeasible, mark skip).
 
-## mojo-ipc (8 tools)
+## mojo-ipc (8 tools) — ✅ suite `mojo-ipc` (offline codec subset)
 
-- **[自制]** roundtrip: mojo_encode_message → mojo_decode_message identity; Chromium mojo test-message hex fixtures from the Chromium source tree (`mojo/public/js` tests). 📋
+- **[自制] ✅** (2026-11-10) `mojo-ipc` suite: uint32-LE encode determinism (150 → …96000000), encode→decode roundtrip preserving the field value, honest listing contract (empty or explicitly seeded/simulated catalog without a live target), capabilities report enumerates mojo_ipc_monitoring + its tools.
+- **[自制]** roundtrip vs Chromium mojo test-message hex fixtures from the Chromium source tree (`mojo/public/js` tests). 📋 (live-capture side: mojo_monitor / mojo_messages_get / mojo_messages_summarize / mojo_verify_live remain env-gated)
 
 ## native-bridge (6 tools) — ✅ suite `native-bridge`
 

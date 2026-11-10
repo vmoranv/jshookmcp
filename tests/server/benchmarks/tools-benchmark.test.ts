@@ -65,6 +65,9 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   'syscall-hook': 90,
   webgpu: 90,
   canvas: 90,
+  // mojo-ipc offline codec subset (2026-11-10 autoresearch coverage batch) —
+  // deterministic offline; any failure is a real regression.
+  'mojo-ipc': 90,
 };
 
 const results: BenchSuiteResult[] = [];
