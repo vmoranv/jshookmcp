@@ -30,6 +30,28 @@ writeFileSync(
   join(appDir, 'renderer', 'index.js'),
   "const SECRET_BENCH_TOKEN = 'asar-bench-marker-7f3a';\nmodule.exports = { SECRET_BENCH_TOKEN };\n",
 );
+
+// A dedicated app dir holding one file with a classic string-array
+// obfuscation shape (hex-escaped array + self-defending IIFE) — kept OUT of
+// appDir so the asar_extract exact-file-set roundtrip stays untouched.
+const obfDir = join(tmp, 'obf-app');
+mkdirSync(obfDir, { recursive: true });
+writeFileSync(
+  join(obfDir, 'obfuscated.js'),
+  [
+    'var _0x1234 = "eval";',
+    'eval(atob("YWxlcnQoMSk="));',
+    Array.from({ length: 30 }, (_, i) => `var _0x${(0x1000 + i).toString(16)} = ${i};`).join('\n'),
+  ].join('\n'),
+);
+const obfAsarPath = join(tmp, 'obf-app.asar');
+
+// Electron-style JSON userdata fixture for the scan_userdata case.
+const userDataDir = join(tmp, 'userdata');
+mkdirSync(userDataDir, { recursive: true });
+writeFileSync(join(userDataDir, 'settings.json'), JSON.stringify({ window: { width: 800 } }));
+writeFileSync(join(userDataDir, 'cache.json'), JSON.stringify({ etag: 'abc' }));
+writeFileSync(join(userDataDir, 'notes.txt'), 'not json');
 const asarPath = join(tmp, 'app.asar');
 const extractDir = join(tmp, 'extracted');
 process.once('exit', () => {
@@ -145,6 +167,101 @@ export const platformSuite: BenchSuite = {
         const b = expectSuccess(v);
         if (b.mainEntry !== 'main.js')
           return `expected mainEntry=main.js, got: ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-10 (autoresearch): offline platform tools ──
+    {
+      name: 'asar_deobfuscate/flags-string-array',
+      tool: 'asar_deobfuscate',
+      origin: 'homemade',
+      reference:
+        'the scanner must flag the hex-escaped string-array file while leaving clean JS unflagged (negative control)',
+      run: async () => {
+        const repack = (await handlers.handleAsarRepackTool({
+          inputDir: obfDir,
+          outputPath: obfAsarPath,
+        })) as { success?: boolean; error?: string };
+        if (repack.success === false) throw new Error(`repack failed: ${repack.error}`);
+        return import('@server/domains/platform/handlers/asar-deobfuscate-handler').then((m) =>
+          m.handleAsarDeobfuscate({ inputPath: obfAsarPath, extract: false }),
+        );
+      },
+      validate: (v: unknown) => {
+        const b = body(v) as {
+          success?: boolean;
+          error?: string;
+          filesScanned?: number;
+          flaggedFiles?: Array<{ path?: string; classification?: string }>;
+        };
+        if (b.success === false) return `deobfuscate failed: ${b.error}`;
+        if ((b.filesScanned ?? 0) < 1) return `expected >= 1 scanned file, got ${b.filesScanned}`;
+        const flagged = b.flaggedFiles ?? [];
+        const obf = flagged.find((f) => (f.path ?? '').includes('obfuscated.js'));
+        if (!obf)
+          return `string-array file not flagged, got ${JSON.stringify(flagged.map((f) => f.path))}`;
+        if (obf.classification === 'clean') return 'obfuscated.js classified clean';
+        return true;
+      },
+    },
+    {
+      name: 'miniapp_pkg_analyze/pages-from-app-json',
+      tool: 'miniapp_pkg_analyze',
+      origin: 'homemade',
+      reference: 'analyzing an unpacked miniapp must surface the pages declared in app.json',
+      run: async () => {
+        const unpackedDir = join(tmp, 'miniapp-unpacked');
+        mkdirSync(join(unpackedDir, 'pages', 'index'), { recursive: true });
+        writeFileSync(
+          join(unpackedDir, 'app.json'),
+          JSON.stringify({ pages: ['pages/index/index'], window: {} }),
+        );
+        writeFileSync(join(unpackedDir, 'pages', 'index', 'index.js'), 'Page({});\n');
+        return handlers.handleMiniappPkgAnalyze({ unpackedDir });
+      },
+      validate: (v: unknown) => {
+        const b = body(v) as { success?: boolean; error?: string; pages?: string[] };
+        if (b.success === false) return `analyze failed: ${b.error}`;
+        if (!Array.isArray(b.pages) || !b.pages.includes('pages/index/index'))
+          return `app.json page pages/index/index missing from analysis, got ${JSON.stringify(b.pages)}`;
+        return true;
+      },
+    },
+    {
+      name: 'electron_scan_userdata/json-only-discovery',
+      tool: 'electron_scan_userdata',
+      origin: 'homemade',
+      reference: 'scan must discover the JSON userdata files and exclude non-JSON entries',
+      run: () => handlers.handleElectronScanUserdata({ dirPath: userDataDir }),
+      validate: (v: unknown) => {
+        const b = body(v) as {
+          success?: boolean;
+          error?: string;
+          files?: Array<{ name?: string; path?: string }>;
+        };
+        if (b.success === false) return `scan failed: ${b.error}`;
+        const names = JSON.stringify(b.files ?? []);
+        if (!Array.isArray(b.files) || b.files.length !== 2)
+          return `expected 2 JSON files discovered, got ${b.files?.length}`;
+        if (!names.includes('settings.json') || !names.includes('cache.json'))
+          return `expected settings.json + cache.json, got ${names}`;
+        if (names.includes('notes.txt')) return 'non-JSON file leaked into scan results';
+        return true;
+      },
+    },
+    {
+      name: 'electron_debug_status/no-sessions',
+      tool: 'electron_debug_status',
+      origin: 'homemade',
+      reference:
+        'with no launched debug sessions the status tool reports an empty session list (no fabrication)',
+      run: () => handlers.handleElectronDebugStatus({}),
+      validate: (v: unknown) => {
+        const b = body(v) as { sessions?: unknown[]; error?: string };
+        if (!Array.isArray(b.sessions)) return `missing sessions array, got ${typeof b.sessions}`;
+        if (b.sessions.length !== 0)
+          return `expected 0 sessions in a fresh bench process, got ${b.sessions.length}`;
         return true;
       },
     },

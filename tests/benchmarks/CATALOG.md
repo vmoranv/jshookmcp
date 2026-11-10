@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **180 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **188 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -168,6 +168,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 - **[外部] ✅** Electron ASAR format (electron/asar): 4×UInt32LE pickle prefix + JSON header — repack → extract roundtrip fidelity.
 - **[自制] ✅** grep-inside-asar hit/miss discrimination.
+- **[自制] ✅** (2026-11-10) asar_deobfuscate string-array heuristic flag vs clean negative control, miniapp_pkg_analyze app.json page extraction, electron_scan_userdata JSON file discovery, electron_debug_status empty session list.
 - **[外部] ✅** Electron fuse wire format (electronjs.org docs + @electron/fuses v2): sentinel dL7pKGdnNz796PbbjQWNKmHXBZaB9tsX + version/length bytes + ASCII state bytes — suite `electron-fuses`.
 - **[外部]** Authenticode/Mach-O signature structure vectors (step-cli test data). 📋
 - miniapp pkg fixtures (wxapkg header samples). 📋
