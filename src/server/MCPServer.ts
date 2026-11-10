@@ -17,6 +17,8 @@ import { ToolCircuitBreaker } from '@server/security/ToolCircuitBreaker';
 import { TaskManager } from '@server/tasks/TaskManager';
 import { TaskStoreAdapter } from '@server/tasks/TaskStoreAdapter';
 import { LargeDataOffloader } from '@server/ToolResponseOffloader';
+import { attachJshookSkills, loadJshookSkills } from '@server/skills/skills-extension';
+import type { SkillCatalog } from '@modelcontextprotocol/server/ext/skills';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { ToolArgs } from '@server/types';
 import { resolveToolsForRegistration } from '@server/MCPServer.registration';
@@ -153,6 +155,15 @@ export class MCPServer implements MCPServerContext {
    */
   toolLatencyTracker: import('@utils/toolLatency').ToolLatencyTracker | null = null;
   toolLatencyStop: (() => void) | null = null;
+  /**
+   * In-flight skills catalog load, kicked off in the constructor so the async
+   * read overlaps the rest of sync construction. start() awaits it and attaches
+   * the catalog to the server shell before any transport connects (SDK contract:
+   * skills attach must precede connect). Null catalog = extension disabled or
+   * directory missing — skills are an optional enhancement, never a startup
+   * blocker.
+   */
+  skillsCatalogPromise: Promise<SkillCatalog | null>;
   /**
    * Ordered, replayable tool-call trace recorder (P2 — A²E-style action-layer
    * audit). Buffers tool:called events per session; the offline analyzer
@@ -346,6 +357,8 @@ export class MCPServer implements MCPServerContext {
     this.initDomainProxies();
     this.initExecutionPipeline(config);
     this.initMcpServerShell(config);
+    // Fire the async skills read now; start() awaits it before connecting.
+    this.skillsCatalogPromise = loadJshookSkills();
     this.initObservabilityForwarding();
     this.initRuntimeInstances(config, runtimeOptions);
     this.initEventSubscriptions();
@@ -796,6 +809,13 @@ export class MCPServer implements MCPServerContext {
   }
 
   async start(): Promise<void> {
+    // Skills must attach before any transport connects (SEP-2640 SDK contract).
+    // loadJshookSkills never rejects (disabled/missing dir resolve to null), so
+    // a skills failure cannot block startup.
+    const skillsCatalog = await this.skillsCatalogPromise;
+    if (skillsCatalog) {
+      attachJshookSkills(this.server, skillsCatalog);
+    }
     await this.registerCaches();
     await this.cache.init();
     // Explicit lifecycle wiring: the artifact retention sweep is started by

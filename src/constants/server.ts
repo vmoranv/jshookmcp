@@ -244,6 +244,18 @@ export const MCP_LOG_LEVEL = str('MCP_LOG_LEVEL', 'info');
 export const MCP_LOG_FILE_DIR = str('MCP_LOG_FILE_DIR', '');
 
 /* ================================================================== */
+/*  Skills over MCP (SEP-2640, experimental SDK extension)             */
+/* ================================================================== */
+
+/**
+ * Directory served through the MCP Skills extension. Empty (default) points at
+ * `<projectRoot>/skills` — the bundled operation guides. Set to `off` to disable
+ * the extension entirely, or to an absolute/custom path to serve your own skills
+ * folder (each subfolder must contain a `SKILL.md` with name/description).
+ */
+export const MCP_SKILLS_DIR = str('MCP_SKILLS_DIR', '');
+
+/* ================================================================== */
 /*  V8 heap snapshot retention                                         */
 /* ================================================================== */
 
