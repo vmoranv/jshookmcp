@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **139 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **180 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -183,6 +183,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** RFC 1035 §4.1 DNS query layout; RFC 7230 HTTP/1.1 request layout.
 - **[外部]** [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) + pcapng spec samples — pcap_read/pcapng_read corpus. 📋
 - **[自制] ✅** Ethernet build determinism, ICMP checksum validity, pcap write→read roundtrip, DNS-vs-HTTP fingerprint discrimination.
+- **[自制] ✅** (2026-11-10 coverage batch) pcapng write/read roundtrip + SHB magic, pcap_read classic roundtrip, define/export 3-format schema, auto-detect + deterministic field inference, req/res state machine + Mermaid visualization — covers pcap_read, pcapng_read/write, proto_define_pattern, proto_export_schema, proto_auto_detect, proto_infer_fields, proto_infer_state_machine, proto_visualize_state.
 
 ## proxy (11 tools) — ✅ suite `proxy` (offline subset)
 
