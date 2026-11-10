@@ -37,11 +37,13 @@ describe('loadJshookSkills', () => {
       await expect(loadJshookSkills(null)).resolves.toBeNull();
     });
 
-    it('returns null with a warning when the directory does not exist', async () => {
+    it('returns null with a warning when no source directory exists', async () => {
       const warnSpy = vi.spyOn(await import('@utils/logger').then((m) => m.logger), 'warn');
       const missing = join(tmpdir(), `jshook-skills-missing-${Date.now()}`);
-      await expect(loadJshookSkills(missing)).resolves.toBeNull();
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not found'));
+      await expect(loadJshookSkills([missing])).resolves.toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('none of the skills directories exist'),
+      );
       warnSpy.mockRestore();
     });
   });
@@ -84,10 +86,29 @@ describe('loadJshookSkills', () => {
     });
 
     it('loads a single SKILL.md from a custom directory', async () => {
-      const catalog = await loadJshookSkills(tempRoot);
+      const catalog = await loadJshookSkills([tempRoot]);
       expect(catalog).not.toBeNull();
       expect(catalog!.entries).toHaveLength(1);
       expect(catalog!.entries[0]!.frontmatter.name).toBe('demo-skill');
+    });
+
+    it('merges plugin skill directories alongside a custom source', async () => {
+      const second = mkdtempSync(join(tmpdir(), 'jshook-skills-second-'));
+      try {
+        const skillDir = join(second, 'plugin-skill');
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(
+          join(skillDir, 'SKILL.md'),
+          '---\nname: plugin-skill\ndescription: from a plugin root\n---\n\n# Plugin\n',
+          'utf8',
+        );
+        const catalog = await loadJshookSkills([tempRoot, second]);
+        expect(catalog).not.toBeNull();
+        const names = catalog!.entries.map((entry) => entry.frontmatter.name).toSorted();
+        expect(names).toEqual(['demo-skill', 'plugin-skill']);
+      } finally {
+        rmSync(second, { recursive: true, force: true });
+      }
     });
   });
 });

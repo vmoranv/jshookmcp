@@ -102,6 +102,8 @@ MCP_TOOL_PROFILE=workflow
 
 安装后通过 `list_extension_workflows()` / `run_extension_workflow()` 调用。
 
+**插件贡献技能（Skills）**：插件目录下的 `skills/<name>/SKILL.md`（frontmatter 需含 `name` 与 `description`）会被 server 自动聚合进 MCP Skills 目录（`skill://jshook/<name>/...`），无需任何注册代码；与内置指南同名时先定义者胜出。
+
 ---
 
 ## 环境调优
