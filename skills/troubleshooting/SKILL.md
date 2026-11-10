@@ -276,11 +276,8 @@ pnpm start 2>&1 | tee debug.log
 ### Run Doctor Command
 
 ```bash
-# Check environment health
+# Check environment health (dependencies, bridges, platform limits)
 doctor_environment
-
-# Check specific domain tools
-doctor_tools --domain browser
 ```
 
 ### Report Issues

@@ -10,8 +10,12 @@
 
 ```yaml
 Tool: route_tool
-Args: { task: '劫持并拦截当前页面 /api/login 的 POST 口令' }
+Args:
+  task: '劫持并拦截当前页面 /api/login 的 POST 口令'
+  context: { autoActivate: true }
 ```
+
+> `context.autoActivate` 默认为 `false`（防提权的安全默认）：此时 route_tool 仅返回推荐结果，推荐工具**不会**被激活，调用方需再显式调用 `activate_tools`。要让推荐工具直接可用（上面的标准解析流即此语义），显式传 `context.autoActivate: true`。
 
 调用侧抛出意图后，Server 将代理执行：语义匹配 → 依赖树解析 → 关联域沙箱热激活（TTL 托管）→ 下发附带最佳实践的上下文响应。
 
@@ -26,7 +30,7 @@ Args: { task: '劫持并拦截当前页面 /api/login 的 POST 口令' }
 | Profile 标识      | 驻留域 (Domains)                                                                           | 行为特征                                                           | RTT 损耗 |
 | ----------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | -------- |
 | `search`          | （0 域；仅元工具）                                                                                | 极简模式，仅暴露元工具，所有业务域全量依赖 `route_tool` 动态懒加载 | 最高     |
-| `workflow` (推荐) | core, browser, canvas, coordination, debugger, encoding, graphql, maintenance, native-emulator, network, session, streaming, tasks, v8-inspector, webgpu, workflow | 覆盖 90% Web/逆向工作流，核心套件常驻内存                          | 较低     |
+| `workflow` (推荐) | core, browser, canvas, coordination, debugger, encoding, graphql, maintenance, native-emulator, network, session, streaming, tasks, tls-inspector, v8-inspector, webgpu, workflow | 覆盖 90% Web/逆向工作流，核心套件常驻内存                          | 较低     |
 | `full`            | 全域静态预载                                                                               | 全量挂载所有工具，抹平按需加载延迟，适于重型静态分析与全栈审计     | 零       |
 
 ---
