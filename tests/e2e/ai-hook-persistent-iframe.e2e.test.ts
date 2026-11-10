@@ -56,7 +56,6 @@ describe(
   'AI hook persistent preload across nested iframe reload',
   {
     timeout: 180_000,
-    sequential: true,
   },
   () => {
     const client = new MCPTestClient();

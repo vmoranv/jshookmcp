@@ -3,7 +3,7 @@ import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
 
 const TARGET_URL = process.env.E2E_TARGET_URL;
 
-describe.skipIf(!TARGET_URL)('Stealth & Search E2E', { timeout: 180_000, sequential: true }, () => {
+describe.skipIf(!TARGET_URL)('Stealth & Search E2E', { timeout: 180_000 }, () => {
   const client = new MCPTestClient();
 
   beforeAll(async () => {

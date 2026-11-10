@@ -9,7 +9,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-describe.skipIf(!TARGET_URL)('Mojo IPC E2E', { timeout: 180_000, sequential: true }, () => {
+describe.skipIf(!TARGET_URL)('Mojo IPC E2E', { timeout: 180_000 }, () => {
   const client = new MCPTestClient();
 
   beforeAll(async () => {

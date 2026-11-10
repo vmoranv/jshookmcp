@@ -6,7 +6,7 @@ const GHIDRA_HOME = process.env.GHIDRA_INSTALL_DIR ?? process.env.GHIDRA_HOME;
 
 describe.skipIf(!BINARY_TARGET || !GHIDRA_HOME)(
   'Binary Instrument E2E',
-  { timeout: 180_000, sequential: true },
+  { timeout: 180_000 },
   () => {
     const client = new MCPTestClient();
 

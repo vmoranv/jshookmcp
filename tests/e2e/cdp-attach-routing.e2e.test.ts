@@ -8,7 +8,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-describe('CDP attach routing', { timeout: 120_000, sequential: true }, () => {
+describe('CDP attach routing', { timeout: 120_000 }, () => {
   const client = new MCPTestClient();
 
   beforeAll(async () => {

@@ -41,7 +41,7 @@ function findFirstString(value: unknown, keys: readonly string[]): string | null
   return null;
 }
 
-describe.skipIf(!TARGET_URL)('V8 Inspector E2E', { timeout: 300_000, sequential: true }, () => {
+describe.skipIf(!TARGET_URL)('V8 Inspector E2E', { timeout: 300_000 }, () => {
   const client = new MCPTestClient();
   // Local HTTP origin for the worker test. E2E_TARGET_URL is unreachable in
   // the no-network sandbox (page_navigate → chrome-error://), and dedicated

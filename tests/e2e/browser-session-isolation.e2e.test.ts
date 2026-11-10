@@ -7,7 +7,7 @@ interface TabWorkflowBody {
   found?: boolean;
 }
 
-describe('Browser session isolation E2E', { timeout: 120_000, sequential: true }, () => {
+describe('Browser session isolation E2E', { timeout: 120_000 }, () => {
   const client = new MCPTestClient();
 
   beforeAll(async () => {
