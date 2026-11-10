@@ -93,6 +93,8 @@ MCP_TOOL_PROFILE=workflow
 | `pl-qwen-mail-open-latest` | 打开最新 QQ 邮件并提取正文 | `install_extension("plugin:pl-qwen-mail-open-latest")` |
 | `pl-temp-mail-open-latest` | 打开临时邮箱最新邮件 | `install_extension("plugin:pl-temp-mail-open-latest")` |
 
+> **前置条件**：`install_extension` 依赖扩展注册表地址 `EXTENSION_REGISTRY_BASE_URL`（默认空字符串，未配置时安装会直接报错）。先在 `.env` 中设置该变量，再执行下方安装命令。
+
 安装后通过 `list_extension_workflows()` / `run_extension_workflow()` 调用。
 
 ---
