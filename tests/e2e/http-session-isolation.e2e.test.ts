@@ -37,7 +37,7 @@ function parseToolText(result: unknown): Record<string, unknown> {
   return result as Record<string, unknown>;
 }
 
-describe('HTTP session isolation E2E', { timeout: 120_000, sequential: true }, () => {
+describe('HTTP session isolation E2E', { timeout: 120_000 }, () => {
   let child: ChildProcess | null = null;
   let clientA: Client | null = null;
   let clientB: Client | null = null;

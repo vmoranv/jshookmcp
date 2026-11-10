@@ -61,7 +61,7 @@ interface CryptoHarnessResponse {
 const BASE64_SAMPLES = ['3q3A3gEA', '3q3A3gIA', '3q3A3gMA'];
 const HEX_SAMPLES = ['deadc0de0100', 'deadc0de0200', 'deadc0de0300'];
 
-describe('Protocol Pure Compute E2E', { timeout: 180_000, sequential: true }, () => {
+describe('Protocol Pure Compute E2E', { timeout: 180_000 }, () => {
   const client = new MCPTestClient();
 
   beforeAll(async () => {

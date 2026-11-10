@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
 
-describe('Sandbox Execution E2E', { timeout: 120_000, sequential: true }, () => {
+describe('Sandbox Execution E2E', { timeout: 120_000 }, () => {
   const client = new MCPTestClient();
 
   beforeAll(async () => {

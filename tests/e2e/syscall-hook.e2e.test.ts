@@ -17,7 +17,7 @@ function getArray(value: unknown, key: string): unknown[] | null {
 
 describe.skipIf(!TARGET_URL || !SUPPORTED_PLATFORM)(
   'Syscall Hook E2E',
-  { timeout: 180_000, sequential: true },
+  { timeout: 180_000 },
   () => {
     const client = new MCPTestClient();
 

@@ -15,7 +15,7 @@ interface CoverageReportBody {
   called?: Record<string, { count: number }>;
 }
 
-describe('Meta-tools runtime E2E', { timeout: 120_000, sequential: true }, () => {
+describe('Meta-tools runtime E2E', { timeout: 120_000 }, () => {
   const client = new MCPTestClient();
 
   beforeAll(async () => {

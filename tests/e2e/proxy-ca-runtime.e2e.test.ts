@@ -33,7 +33,7 @@ async function getFreePort(): Promise<number> {
   });
 }
 
-describe('Proxy CA runtime E2E', { timeout: 120_000, sequential: true }, () => {
+describe('Proxy CA runtime E2E', { timeout: 120_000 }, () => {
   const tempHome = join(process.cwd(), `.tmp-proxy-ca-e2e-${Date.now()}`);
   const client = new MCPTestClient({
     envOverrides: {

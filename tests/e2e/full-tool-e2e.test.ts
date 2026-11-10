@@ -926,7 +926,7 @@ function createLaneRuntime(laneKey: string, options: LaneRuntimeOptions = {}): L
     for (const phase of phases) {
       const phaseOpts = phase.concurrent
         ? { concurrent: true, timeout: 120_000 }
-        : { sequential: true as const, timeout: 120_000 };
+        : { timeout: 120_000 };
 
       describe(phase.name, phaseOpts, () => {
         beforeAll(async () => {
@@ -992,7 +992,7 @@ function createLaneRuntime(laneKey: string, options: LaneRuntimeOptions = {}): L
     registerSuite(suiteName, phases, suiteConfig) {
       const suiteOptions = suiteConfig?.concurrentSuite
         ? { concurrent: true, timeout: suiteConfig.timeout ?? 300_000 }
-        : { sequential: true as const, timeout: suiteConfig?.timeout ?? 300_000 };
+        : { timeout: suiteConfig?.timeout ?? 300_000 };
 
       describe(suiteName, suiteOptions, () => {
         beforeAll(async () => {

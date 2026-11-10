@@ -196,7 +196,7 @@ async function waitForCapturedSignedRequest(
   throw new Error('Signed request was not captured by network_get_requests');
 }
 
-describe('Protocol Runtime-Assisted E2E', { timeout: 240_000, sequential: true }, () => {
+describe('Protocol Runtime-Assisted E2E', { timeout: 240_000 }, () => {
   const client = new MCPTestClient();
   let fixtureServer: Server | null = null;
   let fixtureBaseUrl = '';

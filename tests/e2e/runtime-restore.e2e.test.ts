@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
 
-describe('Runtime restore E2E', { timeout: 120_000, sequential: true }, () => {
+describe('Runtime restore E2E', { timeout: 120_000 }, () => {
   const clients: MCPTestClient[] = [];
 
   afterAll(async () => {
