@@ -37,7 +37,18 @@ export async function loadJshookSkills(
     logger.warn(`[skills] skills directory not found, serving without skills: ${dir}`);
     return null;
   }
-  const catalog = await loadSkills(dir, { prefix: SKILL_URI_PREFIX });
+  // Loader failures (unreadable files, malformed SKILL.md under strict
+  // validation, IO errors) must not reject: the promise flows into
+  // MCPServer.start(), where a rejection would abort startup entirely.
+  let catalog: SkillCatalog;
+  try {
+    catalog = await loadSkills(dir, { prefix: SKILL_URI_PREFIX });
+  } catch (err) {
+    logger.warn(
+      `[skills] failed to load skills, serving without skills: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return null;
+  }
   logger.info(`[skills] loaded ${catalog.entries.length} skills from ${dir}`);
   return catalog;
 }
