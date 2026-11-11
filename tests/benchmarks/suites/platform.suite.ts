@@ -12,6 +12,8 @@
 import { PlatformToolHandlers } from '@server/domains/platform/handlers';
 import { body, expectSuccess, type BenchSuite } from '../harness';
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { Script } from 'node:vm';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -54,6 +56,56 @@ writeFileSync(join(userDataDir, 'cache.json'), JSON.stringify({ etag: 'abc' }));
 writeFileSync(join(userDataDir, 'notes.txt'), 'not json');
 const asarPath = join(tmp, 'app.asar');
 const extractDir = join(tmp, 'extracted');
+
+// Miniapp wxapkg binary builder (magic 0xBE ... 0xED)
+const pkgScanDir = join(tmp, 'wxapp-scan');
+mkdirSync(pkgScanDir, { recursive: true });
+function buildWxapkg(fileName: string, content: Buffer): Buffer {
+  const nameBuf = Buffer.from(fileName, 'utf8');
+  const indexBuf = Buffer.alloc(4 + 4 + nameBuf.length + 8);
+  let c = 0;
+  indexBuf.writeUInt32BE(1, c);
+  c += 4;
+  indexBuf.writeUInt32BE(nameBuf.length, c);
+  c += 4;
+  nameBuf.copy(indexBuf, c);
+  c += nameBuf.length;
+  const dataOffset = 14 + indexBuf.length;
+  indexBuf.writeUInt32BE(dataOffset, c);
+  c += 4;
+  indexBuf.writeUInt32BE(content.length, c);
+  const header = Buffer.alloc(14);
+  header.writeUInt8(0xbe, 0);
+  header.writeUInt32BE(0, 1);
+  header.writeUInt32BE(indexBuf.length, 5);
+  header.writeUInt32BE(content.length, 9);
+  header.writeUInt8(0xed, 13);
+  return Buffer.concat([header, indexBuf, content]);
+}
+const samplePkgPath = join(pkgScanDir, 'wx1234567890abcdef.pkg');
+writeFileSync(
+  samplePkgPath,
+  buildWxapkg('app.json', Buffer.from(JSON.stringify({ pages: ['pages/home/index'] }), 'utf8')),
+);
+const pkgUnpackDir = join(tmp, 'wxapp-unpacked');
+
+// V8 bytecode cachedData fixture generated directly by node:vm
+const jscPath = join(tmp, 'bench-script.jsc');
+const v8Script = new Script('const benchToken = "v8_bench_marker_ok"; benchToken;', {
+  produceCachedData: true,
+});
+writeFileSync(jscPath, v8Script.createCachedData());
+
+// Fuse binary fixture (hardened 8-fuse wire)
+const FUSE_SENTINEL = Buffer.from('dL7pKGdnNz796PbbjQWNKmHXBZaB9tsX', 'ascii');
+const fuseHardened = Buffer.concat([
+  Buffer.alloc(32, 0x90),
+  FUSE_SENTINEL,
+  Buffer.from([1, 8, 0x30, 0x31, 0x30, 0x30, 0x31, 0x31, 0x30, 0x30]),
+  Buffer.alloc(16, 0),
+]);
+const fuseTargetPath = join(tmp, 'electron-patch-target.bin');
+writeFileSync(fuseTargetPath, fuseHardened);
 process.once('exit', () => {
   try {
     require('node:fs').rmSync(tmp, { recursive: true, force: true });
@@ -262,6 +314,118 @@ export const platformSuite: BenchSuite = {
         if (!Array.isArray(b.sessions)) return `missing sessions array, got ${typeof b.sessions}`;
         if (b.sessions.length !== 0)
           return `expected 0 sessions in a fresh bench process, got ${b.sessions.length}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2 (2026-11-11 autoresearch): remaining offline platform tools ──
+    {
+      name: 'electron_patch_fuses/debug-profile-patch',
+      tool: 'electron_patch_fuses',
+      origin: 'external-vector',
+      reference: 'patches Electron fuse wire bytes (RunAsNode=0 -> 1) in-place on test binary',
+      run: () => {
+        writeFileSync(fuseTargetPath, fuseHardened);
+        return handlers.handleElectronPatchFusesTool({
+          exePath: fuseTargetPath,
+          profile: 'debug',
+          createBackup: false,
+        });
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.success !== true) return `patch failed: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'electron_verify_integrity/verifies-sha256-asar',
+      tool: 'electron_verify_integrity',
+      origin: 'external-vector',
+      reference:
+        'verifies embedded ElectronAsarIntegrity SHA256 digest against on-disk ASAR archive',
+      run: async () => {
+        const integrityAsarPath = join(tmp, 'integrity-app.asar');
+        await handlers.handleAsarRepackTool({
+          inputDir: appDir,
+          outputPath: integrityAsarPath,
+        });
+        const asarBuf = readFileSync(integrityAsarPath);
+        const sha256 = createHash('sha256').update(asarBuf).digest('base64');
+        const exeWithIntegrity = join(tmp, 'electron-integrity.bin');
+        const jsonBlob = JSON.stringify({
+          ElectronAsarIntegrity: {
+            'resources/app.asar': { algorithm: 'SHA256', hash: sha256 },
+          },
+        });
+        writeFileSync(
+          exeWithIntegrity,
+          Buffer.concat([Buffer.alloc(32, 0), Buffer.from(jsonBlob, 'utf8'), Buffer.alloc(16, 0)]),
+        );
+        return handlers.handleElectronVerifyIntegrityTool({
+          exePath: exeWithIntegrity,
+          asarPath: integrityAsarPath,
+        });
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.integrityEmbedded !== true || b.overallVerdict !== 'verified')
+          return `expected verified integrity verdict, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'electron_verify_signature/unsigned-binary-honest',
+      tool: 'electron_verify_signature',
+      origin: 'homemade',
+      reference: 'detects absence of Authenticode/Mach-O signature cleanly on unsigned binary',
+      run: () => handlers.handleElectronVerifySignatureTool({ exePath: fuseTargetPath }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.signed !== false || b.signatureType !== 'none')
+          return `expected signed=false signatureType=none, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'miniapp_pkg_scan/discovers-wxapkg',
+      tool: 'miniapp_pkg_scan',
+      origin: 'homemade',
+      reference: 'scans directory for 0xBE-magic .pkg miniapp packages',
+      run: () => handlers.handleMiniappPkgScanTool({ searchPath: pkgScanDir }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (Number(b.count) !== 1 || !Array.isArray(b.files))
+          return `expected 1 .pkg discovered, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'miniapp_pkg_unpack/extracts-wxapkg-entries',
+      tool: 'miniapp_pkg_unpack',
+      origin: 'homemade',
+      reference: 'parses 0xBE..0xED wxapkg index and extracts app.json to outputDir',
+      run: () =>
+        handlers.handleMiniappPkgUnpackTool({
+          inputPath: samplePkgPath,
+          outputDir: pkgUnpackDir,
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (Number(b.extractedFiles) !== 1 || !existsSync(join(pkgUnpackDir, 'app.json')))
+          return `expected 1 extracted file (app.json), got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'v8_bytecode_decompile/extracts-jsc-strings',
+      tool: 'v8_bytecode_decompile',
+      origin: 'homemade',
+      reference: 'inspects real node:vm V8 cachedData .jsc file and extracts constant pool strings',
+      run: () => handlers.handleV8BytecodeDecompileTool({ filePath: jscPath }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.success !== true) return `decompile failed: ${JSON.stringify(b)}`;
         return true;
       },
     },
