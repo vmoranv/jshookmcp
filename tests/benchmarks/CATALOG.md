@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **220 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **221 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -208,6 +208,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 - **[外部] ✅** ECMA-426 / source-map v3 VLQ segment semantics (`AAAA;AACA` canonical deltas) + bidirectional lookup contract (mozilla/source-map reference semantics; official fixtures: [tc39/source-map-tests](https://github.com/tc39/source-map-tests)). 📋 full fixture corpus
 - **[自制] ✅** closest-preceding fallback, reverse lookup roundtrip, coverage counts.
+- **[自制] ✅** (2026-11-11) `sourcemap_parse_v4` (ECMA-426 v4 debugId + scopes parsing + v3 comparison over inline `data:` URI; fixed `fetchSourceMapText` rejecting `data:` URIs before decoding). `sourcemap_discover` requires a live browser/network target.
 
 ## streaming (17 tools) — ✅ suite `streaming` (offline subset)
 

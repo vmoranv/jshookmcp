@@ -444,6 +444,9 @@ export async function fetchSourceMapText(
   resolvedUrl: string,
   collector: CodeCollector,
 ): Promise<string> {
+  if (resolvedUrl.startsWith('data:')) {
+    return decodeDataUriJson(resolvedUrl);
+  }
   validateFetchUrl(resolvedUrl);
   {
     const ac = new AbortController();

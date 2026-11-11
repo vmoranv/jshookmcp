@@ -33,6 +33,12 @@ const TEST_MAP = {
   mappings: 'AAAA;AACA',
 };
 
+const TEST_MAP_V4 = {
+  ...TEST_MAP,
+  debugId: '4a3b2c1d-0000-0000-0000-000000000000',
+  scopes: 'BAAA,CAAC',
+};
+
 export const sourcemapSuite: BenchSuite = {
   name: 'sourcemap',
   domain: 'sourcemap',
@@ -197,6 +203,26 @@ export const sourcemapSuite: BenchSuite = {
         if (!text.includes('writtenFiles') || !text.includes('outputDir')) {
           return `expected writtenFiles and outputDir in tree reconstruction, got: ${text.slice(0, 200)}`;
         }
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): ECMA-426 v4 source map parsing ──
+    {
+      name: 'sourcemap_parse_v4/debug-id-and-comparison',
+      tool: 'sourcemap_parse_v4',
+      origin: 'homemade',
+      reference:
+        'parses Source Map v4 proposal debugId / scopes extensions and returns v3 comparison',
+      run: () =>
+        handlers.handleSourcemapParseV4Tool({
+          sourceMapUrl: inlineMapUrl(TEST_MAP_V4),
+          compareV3: true,
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.isV4 !== true) return `expected isV4 === true, got ${b.isV4}`;
+        if (!b.comparison) return 'expected comparison object in v4 parse result';
         return true;
       },
     },
