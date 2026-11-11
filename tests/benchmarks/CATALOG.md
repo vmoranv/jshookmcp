@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **325 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **332 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -146,7 +146,8 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 ## memory (75 tools) — ✅ suite `memory-pure-ts` (offline subset)
 
 - **[外部] ✅** Cheat Engine .CT (CETRAINER XML) format: export → HMAC-SHA256 sign → verify loop + tamper detection.
-- **[外部]** scanmem/Cheat-Engine-format references; **[外部]** Windows minidump (MDMP) spec + Chromium crashpad sample dumps — memory_parse_dump. 📋
+- **[外部] ✅** (2026-11-11, +7 pure-TS tools): `memory_parse_dump` (Windows MDMP header 0x504D444D), `memory_assemble` (`nop; ret` → `90 c3`), `memory_bookmark` (add/list/clear), `memory_register_type` / `memory_list_types` / `memory_unregister_type`, `memory_scan_session` (list).
+- **[外部]** scanmem/Cheat-Engine-format references; **[外部]** Chromium crashpad sample dumps — memory_parse_dump deeper streams. 📋
 - **[外部]** pwntools `cyclic`/one_gadget (shared with exploit-dev). ✅ (via exploit-dev suite)
 - **[自制] 📋** AOB wildcard patterns, signature wildcarding, structure export (C/ReClass/Rust/C#), region compare; Win32-live members need a fixture process (CI-infeasible, mark skip).
 

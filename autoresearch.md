@@ -133,7 +133,8 @@ crash (gate floor breach counts as crash). `./checks.sh` must then pass (exit 0)
   - **Run 26 (crash) -> Run 27 (keep, debt=470, -4)**: `workflow.suite.ts` +4 offline cases (`list_macros`, `run_macro` dryRun, `page_script_register`, `list_extension_workflows`). Learned: `MacroToolHandlers` is a distinct handler class registered under `MACRO_DEP_KEY` with its own `MacroRunner`. 8/13 workflow tools measured!
   - **Run 28 (keep, debt=463, -7)**: `network.suite.ts` +7 offline cases (`network_get_status`, `network_get_stats`, `network_get_requests`, `network_extract_auth` Bearer masking check, `network_export_har` HAR 1.2 schema, `network_replay_request` dryRun preview, `console_get_exceptions`).
   - **Run 29 (keep, debt=462, -1)**: `tls-inspector.suite.ts` +1 RFC 8446 ClientHello handshake vector (`tls_parse_handshake` SNI and metadata extraction).
+  - **Run 30 (keep, debt=455, -7)**: `memory.suite.ts` +7 pure-TS offline cases (`memory_parse_dump`, `memory_assemble`, `memory_bookmark`, `memory_register_type`, `memory_list_types`, `memory_unregister_type`, `memory_scan_session`). Also observed a latent 1ms wall-clock boundary flake in `session.suite.ts:120` (`session_progress_coverage/deterministic-ordering`).
 
-**Meta-review (Runs 1–29)**:
-- **Winning pattern**: Covering offline projection/serialization/dryRun layers across 13 domains has driven `debt` from **616 → 462 (-154 tools covered, `vectors_total` 171 → 325)** with 2 real bugs fixed, `vector_fail=0`, `rejection_pct=100%`.
-- **Remaining highest-yield offline domains**: `adb-bridge` (`adb_apk_analyze`), `memory-pure-ts` (CE table / structures), `process-static` (process inspect), `network` remaining offline helpers.
+**Meta-review (Runs 1–30)**:
+- **Winning pattern**: Covering offline pure-TS sub-handlers across 14 domains has driven `debt` from **616 → 455 (-161 tools covered, `vectors_total` 171 → 332)** with 2 real production bugs fixed, `vector_fail=0`, `rejection_pct=100%`.
+- **Remaining highest-yield offline targets**: `session.suite.ts` 1ms wall-clock flake fix + `process-static` (`process_get`, `process_list`, `process_windows`, `process_check_debug_port`, `memory_audit_export`) + `network` remaining offline helpers (`network_intercept` list/disable, `network_get_response_body`, `network_enable`/`disable`).

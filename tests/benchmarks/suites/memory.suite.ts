@@ -8,9 +8,44 @@
  *  - a two-entry table, signature roundtrip, tamper detection, secret source precedence
  */
 import { StructureHandlers } from '@server/domains/memory/handlers/structure';
+import { MinidumpHandlers } from '@server/domains/memory/handlers/minidump-parse';
+import { AssembleHandlers } from '@server/domains/memory/handlers/assemble';
+import { BookmarkHandlers } from '@server/domains/memory/handlers/bookmark';
+import { ScanHandlers } from '@server/domains/memory/handlers/scan';
+import { SessionHandlers } from '@server/domains/memory/handlers/session';
 import { body, type BenchSuite } from '../harness';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const handlers = new StructureHandlers({} as never, undefined, undefined, null);
+const minidumpHandlers = new MinidumpHandlers();
+const assembleHandlers = new AssembleHandlers();
+const bookmarkHandlers = new BookmarkHandlers();
+const sessionHandlers = new SessionHandlers(
+  {
+    listSessions: () => [],
+    deleteSession: () => false,
+    exportSession: () => '{}',
+    getSession: () => {
+      throw new Error('not found');
+    },
+  } as never,
+  null,
+);
+
+// Minimal valid 32-byte Windows MDMP minidump header (signature 0x504D444D, 0 streams)
+const tmp = mkdtempSync(join(tmpdir(), 'jshook-bench-mem-'));
+const dmpPath = join(tmp, 'minimal.dmp');
+const dmpBuf = Buffer.alloc(32, 0);
+dmpBuf.writeUInt32LE(0x504d444d, 0); // 'MDMP'
+dmpBuf.writeUInt16LE(0xa793, 4); // versionLo
+writeFileSync(dmpPath, dmpBuf);
+process.once('exit', () => {
+  try {
+    rmSync(tmp, { recursive: true, force: true });
+  } catch {}
+});
 
 const ENTRIES = [
   { description: 'player.health', address: 'games.exe+0x1A2B3C', valueType: 'int32' },
@@ -202,6 +237,139 @@ export const memorySuite: BenchSuite = {
         if (!overrides.some((o) => o.offset === 32 && o.type === 'int32')) {
           return `list missing set override: ${JSON.stringify(overrides)}`;
         }
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): pure-TS minidump, asm, bookmarks, custom types, scan sessions ──
+    {
+      name: 'memory_parse_dump/mdmp-header-parse',
+      tool: 'memory_parse_dump',
+      origin: 'external-vector',
+      reference:
+        'Windows MINIDUMP_HEADER magic 0x504D444D ("MDMP") parses cleanly with streamCount=0',
+      run: () => minidumpHandlers.handleMemoryParseDump({ filePath: dmpPath }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== true || Number(b.streamCount) !== 0 || Number(b.fileSize) !== 32)
+          return `unexpected minidump result: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_assemble/x86-nop-ret-bytes',
+      tool: 'memory_assemble',
+      origin: 'external-vector',
+      reference: 'x86/x64 ISA: `nop; ret` assembles to bytes 90 c3 (length 2)',
+      run: () => assembleHandlers.handleAssemble({ action: 'assemble', code: 'nop; ret' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== true || Number(b.byteLength) !== 2)
+          return `expected 2 bytes assembled, got: ${JSON.stringify(b)}`;
+        const hex = String(b.hex ?? b.bytesHex ?? '').toLowerCase();
+        if (!hex.includes('90') || !hex.includes('c3'))
+          return `expected 90 c3 in assembled hex, got: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_bookmark/add-and-list-roundtrip',
+      tool: 'memory_bookmark',
+      origin: 'homemade',
+      reference: 'bookmark store adds labeled hex address and lists it deterministically',
+      run: async () => {
+        await bookmarkHandlers.handleBookmarkDispatch({ action: 'clear', pid: 1234 });
+        return bookmarkHandlers.handleBookmarkDispatch({
+          action: 'add',
+          pid: 1234,
+          address: '0x7ff61000',
+          label: 'bench_hp',
+          color: '#00FF00',
+        });
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== true || b.label !== 'bench_hp' || Number(b.totalBookmarks) !== 1)
+          return `unexpected bookmark add result: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_register_type/registers-custom-float',
+      tool: 'memory_register_type',
+      origin: 'homemade',
+      reference: 'registers custom 4-byte float scan type in session registry',
+      run: () => {
+        const sh = new ScanHandlers({} as never);
+        return sh.handleRegisterType({
+          name: 'bench_f32',
+          size: 4,
+          encoding: 'float',
+          endian: 'le',
+        });
+      },
+      validate: (v) => {
+        const b = body(v);
+        const type = b.type as { name?: string; size?: number } | undefined;
+        if (b.success !== true || type?.name !== 'bench_f32' || type?.size !== 4)
+          return `unexpected register_type result: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_list_types/enumerates-registered',
+      tool: 'memory_list_types',
+      origin: 'homemade',
+      reference: 'lists registered custom scan types with exact count',
+      run: async () => {
+        const sh = new ScanHandlers({} as never);
+        await sh.handleRegisterType({
+          name: 'bench_list_i32',
+          size: 4,
+          encoding: 'int',
+          endian: 'le',
+        });
+        return sh.handleListTypes({});
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== true || Number(b.count) !== 1 || !Array.isArray(b.types))
+          return `expected 1 registered custom type, got: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_unregister_type/removes-registered',
+      tool: 'memory_unregister_type',
+      origin: 'homemade',
+      reference: 'removes previously registered custom scan type by name',
+      run: async () => {
+        const sh = new ScanHandlers({} as never);
+        await sh.handleRegisterType({
+          name: 'bench_drop_u16',
+          size: 2,
+          encoding: 'uint',
+          endian: 'le',
+        });
+        return sh.handleUnregisterType({ name: 'bench_drop_u16' });
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== true || b.name !== 'bench_drop_u16')
+          return `unexpected unregister result: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_scan_session/list-empty-sessions',
+      tool: 'memory_scan_session',
+      origin: 'homemade',
+      reference: 'lists active memory scan sessions cleanly without native scanner',
+      run: () => sessionHandlers.handleScanList({}),
+      validate: (v) => {
+        const b = body(v);
+        if (!Array.isArray(b.sessions) || Number(b.count) !== 0)
+          return `expected empty sessions list, got: ${JSON.stringify(b)}`;
         return true;
       },
     },
