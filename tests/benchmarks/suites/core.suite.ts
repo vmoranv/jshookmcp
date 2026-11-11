@@ -16,6 +16,9 @@
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 import { ObfuscationDetector } from '@server/domains/shared/modules';
 import { CryptoDetector } from '@modules/crypto/CryptoDetector';
+import { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
+import { UniversalUnpacker } from '@modules/deobfuscator/PackerDeobfuscator';
+import { VMDeobfuscator } from '@modules/deobfuscator/VMDeobfuscator';
 import { body, expectSuccess, type BenchSuite } from '../harness';
 
 const mockCollector = {
@@ -39,11 +42,13 @@ const stubs = {
   deobfuscator: {},
   advancedDeobfuscator: {},
   obfuscationDetector: new ObfuscationDetector(),
-  analyzer: {},
+  analyzer: new CodeAnalyzer(),
   cryptoDetector: new CryptoDetector(),
   hookManager: {},
   samplingBridge: {} as never,
   jscramblerDeobfuscator: {} as never,
+  packerDeobfuscator: new UniversalUnpacker(),
+  vmDeobfuscator: new VMDeobfuscator(),
 } as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0];
 const handlers = new CoreAnalysisHandlers(stubs);
 
@@ -275,6 +280,142 @@ export const coreSuite: BenchSuite = {
       validate: (v) => {
         const b = expectSuccess(v);
         if (!b.cleared) return `missing cleared receipt, got ${JSON.stringify(b).slice(0, 150)}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2 (2026-11-11 autoresearch): offline deobf, VM, symbolic, understand ──
+    {
+      name: 'understand_code/structure-and-metrics',
+      tool: 'understand_code',
+      origin: 'homemade',
+      reference: 'analyzes JS structure, functions, and complexity metrics offline without LLM',
+      run: () => handlers.handleUnderstandCode({ code: CLEAN_SAMPLE, focus: 'structure' }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!b.structure || typeof b.structure !== 'object')
+          return `missing structure analysis: ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'js_deobfuscate_pipeline/fold-and-dead-code',
+      tool: 'js_deobfuscate_pipeline',
+      origin: 'homemade',
+      reference: 'runs multi-stage deobfuscation pipeline (constant_fold + dead_code_remove)',
+      run: () =>
+        handlers.handleJsDeobfuscatePipeline({
+          code: 'const v = 6 * 7; if (false) { console.log("dead"); } console.log(v);',
+          useWebcrack: false,
+          humanize: false,
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const out = String(b.deobfuscatedCode ?? '');
+        if (!out.includes('42') || out.includes('dead'))
+          return `expected folded 42 without dead branch, got: ${out}`;
+        return true;
+      },
+    },
+    {
+      name: 'js_symbolic_execute/explores-branch-paths',
+      tool: 'js_symbolic_execute',
+      origin: 'homemade',
+      reference: 'executes JS symbolically across true/false conditional paths',
+      run: () =>
+        handlers.handleJsSymbolicExecute({
+          code: 'function branch(x) { if (x > 0) { return 1; } return 0; }',
+          maxPaths: 10,
+          maxDepth: 10,
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.paths) || b.paths.length === 0)
+          return `expected non-empty symbolic paths, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'js_symbolic_execute_jsvmp/push-add-42',
+      tool: 'js_symbolic_execute_jsvmp',
+      origin: 'homemade',
+      reference: 'symbolically executes JSVMP PUSH(40) + PUSH(2) + ADD + HALT bytecode stream',
+      run: () =>
+        handlers.handleJsSymbolicExecuteJsvmp({
+          instructions: [
+            { opcode: 0x01, operands: [40], location: 0 },
+            { opcode: 0x01, operands: [2], location: 1 },
+            { opcode: 0x10, operands: [], location: 2 },
+            { opcode: 0xff, operands: [], location: 3 },
+          ],
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.executionTrace) || b.executionTrace.length === 0)
+          return `missing executionTrace in JSVMP symbolic result: ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'deobfuscate/packer-engine-unpack',
+      tool: 'deobfuscate',
+      origin: 'homemade',
+      reference: 'unpacks Dean Edwards p,a,c,k,e,r payload via UniversalUnpacker',
+      run: () =>
+        handlers.handleDeobfuscate({
+          code: "eval(function(p,a,c,k,e,r){e=String;if(!''.replace(/^/,String)){while(c--)r[c]=k[c]||c;k=[function(e){return r[e]}];e=function(){return'\\\\w+'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\\\b'+e(c)+'\\\\b','g'),k[c]);return p}('0 1=2;',3,3,'var|ans|42'.split('|'),0,{}))",
+          engine: 'packer',
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const out = String(b.code ?? b.deobfuscatedCode ?? JSON.stringify(b));
+        if (!out.includes('42') && !out.includes('ans'))
+          return `expected unpacked 'var ans=42', got: ${out.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'webcrack_unpack/unminify-constant-fold',
+      tool: 'webcrack_unpack',
+      origin: 'homemade',
+      reference: 'runs webcrack unminify/constant folding on minified JS expression',
+      run: () =>
+        handlers.handleWebcrackUnpack({
+          code: '!(function(){var x=1+2;console.log(x);})();',
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const out = String(b.code ?? '');
+        if (!out.includes('3')) return `expected folded 3 from webcrack, got: ${out.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'js_analyze_vm/checks-non-vm-clean',
+      tool: 'js_analyze_vm',
+      origin: 'homemade',
+      reference: 'reports isVM=false cleanly on plain non-VM JavaScript',
+      run: () => handlers.handleJsAnalyzeVm({ code: CLEAN_SAMPLE }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.isVM !== false) return `expected isVM === false on clean code, got ${b.isVM}`;
+        return true;
+      },
+    },
+    {
+      name: 'js_deobfuscate_jsvmp/detect-only-mode',
+      tool: 'js_deobfuscate_jsvmp',
+      origin: 'homemade',
+      reference: 'runs JSVMP detector in detectOnly mode cleanly without false-positive crash',
+      run: () =>
+        handlers.handleJsDeobfuscateJsvmp({
+          code: CLEAN_SAMPLE,
+          detectOnly: true,
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.isJSVMP !== 'boolean')
+          return `expected boolean isJSVMP in detectOnly mode, got ${b.isJSVMP}`;
         return true;
       },
     },

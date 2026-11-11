@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **305 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **313 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -81,6 +81,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [SOURCERER / JSDeobfuscation datasets](https://github.com/jscrub-tools) & obfuscator.io sample corpus — deobfuscation eval. 📋
 - **[自制] ✅** `core-analysis` suite: obfuscator.io-style string-array sample detection, clean-code negative control, planted-secrets security scan, source→sink taint path, AST match counts, opaque predicate solving.
 - **[自制] ✅** (2026-11-10) `core-analysis` coverage batch: `detect_crypto` (AES/SHA algorithm & library detection), `analysis_decode_string_array` (string-array call inlining), `analysis_deflat_control_flow` (switch-in-while dispatcher unflattening), `get_collection_stats` (cache/compression summary), `clear_collected_data` (session cache clear receipt).
+- **[自制] ✅** (2026-11-11 Wave 2, +8 offline tools): `understand_code` (offline structural analysis), `js_deobfuscate_pipeline` (constant fold + dead-code removal), `js_symbolic_execute` (branch path exploration), `js_symbolic_execute_jsvmp` (PUSH/ADD/HALT symbolic VM), `deobfuscate` (Dean Edwards packer unpack), `webcrack_unpack` (webcrack constant fold), `js_analyze_vm`, `js_deobfuscate_jsvmp` (detectOnly mode). (19/25 core tools measured; remaining 6 require live browser/page scripts or LLM sampling).
 
 ## cross-domain (8 tools) — ✅ suite `cross-domain` (8/8 tools measured)
 
