@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **337 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **342 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -203,12 +203,12 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[自制] ✅** Ethernet build determinism, ICMP checksum validity, pcap write→read roundtrip, DNS-vs-HTTP fingerprint discrimination.
 - **[自制] ✅** (2026-11-10 coverage batch) pcapng write/read roundtrip + SHB magic, pcap_read classic roundtrip, define/export 3-format schema, auto-detect + deterministic field inference, req/res state machine + Mermaid visualization — covers pcap_read, pcapng_read/write, proto_define_pattern, proto_export_schema, proto_auto_detect, proto_infer_fields, proto_infer_state_machine, proto_visualize_state.
 
-## proxy (11 tools) — ✅ suite `proxy` (offline subset)
+## proxy (11 tools) — ✅ suite `proxy` (10/11 tools measured — loopback HTTP mockttp + offline)
 
-- **[自制] ✅** `proxy` suite: 5 offline-pure tools (status, export_ca, list_rules, get_requests, clear_logs). mockttp/live-proxy tools remain 📋.
+- **[自制] ✅** `proxy` suite: 5 offline-pure tools (status, export_ca, list_rules, get_requests, clear_logs).
+- **[自制] ✅** (2026-11-11, +5 loopback mockttp tools): `proxy_start`, `proxy_stop`, `proxy_add_rule`, `proxy_remove_rule`, `proxy_clear_rules` (also fixed real-`mockttp` `remove_rule`/`clear_rules` bug where `MockedEndpoint` lacks `.dispose()`, re-applying surviving rules via `server.setRequestRules`). Only `proxy_setup_adb_device` requires a device!
 
 - **[外部]** [mockttp](https://github.com/httptoolkit/mockttp) test suite (direct dependency) — rule semantics. 📋
-- **[自制]** rule lifecycle (add→match→remove) against a local loopback target. 📋
 
 ## session (3 tools) — ✅ suite `session-progress`
 

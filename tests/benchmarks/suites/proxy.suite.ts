@@ -11,6 +11,7 @@
  * proxy_export_ca reads a real local file without touching the repository.
  */
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ProxyHandlers } from '@server/domains/proxy/handlers.impl';
@@ -60,6 +61,42 @@ function fresh(): ProxyHandlers {
 /** Run a handler under a fixed session id (the gate does not set a context). */
 function inSession<T>(fn: () => Promise<T>, sessionId = OWNER): Promise<T> {
   return runWithToolRequestContext({ sessionId }, fn);
+}
+
+/** Allocate an unused ephemeral loopback port cleanly before binding mockttp. */
+function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const addr = srv.address();
+      const port = typeof addr === 'object' && addr ? addr.port : 0;
+      srv.close((err) => (err ? reject(err) : resolve(port)));
+    });
+  });
+}
+
+async function withLoopbackProxy<T>(
+  fn: (handlers: ProxyHandlers, port: number) => Promise<T>,
+): Promise<T> {
+  const handlers = fresh();
+  const port = await getFreePort();
+  return inSession(async () => {
+    const started = expectSuccess(
+      await handlers.handleProxyStartTool({ port, useHttps: false, capture: true }),
+    );
+    if (Number(started.port) !== port) {
+      throw new Error(`failed to bind loopback proxy on port ${port}`);
+    }
+    try {
+      return await fn(handlers, port);
+    } finally {
+      try {
+        await handlers.handleProxyStopTool({});
+      } catch {}
+    }
+  });
 }
 
 /** Minimal rule record matching ProxyRuleRecord (offline, no mockttp endpoint). */
@@ -293,6 +330,125 @@ export const proxySuite: BenchSuite = {
         if (!serialized.includes('new-1')) return 'post-clear entry missing from logs';
         if (serialized.includes('old-1') || serialized.includes('old-2'))
           return 'pre-clear entry leaked past the clear watermark';
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): loopback HTTP mockttp lifecycle & rule management ──
+    {
+      name: 'proxy_start/loopback-http-bind',
+      tool: 'proxy_start',
+      origin: 'homemade',
+      reference: 'starts mockttp loopback HTTP proxy on ephemeral port and releases cleanly',
+      run: () =>
+        inSession(async () => {
+          const handlers = fresh();
+          const port = await getFreePort();
+          const res = await handlers.handleProxyStartTool({
+            port,
+            useHttps: false,
+            capture: false,
+          });
+          try {
+            await handlers.handleProxyStopTool({});
+          } catch {}
+          return { res, expectedPort: port };
+        }),
+      validate: (v) => {
+        const { res, expectedPort } = v as { res?: unknown; expectedPort?: number };
+        const b = expectSuccess(res);
+        if (Number(b.port) !== expectedPort || b.reused !== false)
+          return `expected bound port ${expectedPort}, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'proxy_stop/tears-down-running-proxy',
+      tool: 'proxy_stop',
+      origin: 'homemade',
+      reference: 'stops a running loopback proxy and confirms stopped=true, remainingOwners=0',
+      run: () =>
+        inSession(async () => {
+          const handlers = fresh();
+          const port = await getFreePort();
+          expectSuccess(
+            await handlers.handleProxyStartTool({ port, useHttps: false, capture: false }),
+          );
+          return handlers.handleProxyStopTool({});
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.stopped !== true || Number(b.remainingOwners) !== 0)
+          return `expected stopped=true remainingOwners=0, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'proxy_add_rule/registers-mock-response-rule',
+      tool: 'proxy_add_rule',
+      origin: 'homemade',
+      reference: 'adds a mock_response rule on running loopback proxy and returns endpointId',
+      run: () =>
+        withLoopbackProxy((handlers) =>
+          handlers.handleProxyAddRuleTool({
+            action: 'mock_response',
+            method: 'GET',
+            urlPattern: U.exampleApi,
+            mockStatus: 200,
+            mockBody: 'bench-ok',
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.endpointId !== 'string' || !b.endpointId.length || !b.rule)
+          return `expected endpointId and rule in add_rule response: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'proxy_remove_rule/disposes-added-rule',
+      tool: 'proxy_remove_rule',
+      origin: 'homemade',
+      reference: 'removes an active mock_response rule by endpointId',
+      run: () =>
+        withLoopbackProxy(async (handlers) => {
+          const added = expectSuccess(
+            await handlers.handleProxyAddRuleTool({
+              action: 'mock_response',
+              method: 'GET',
+              urlPattern: U.aOne,
+              mockStatus: 204,
+              mockBody: '',
+            }),
+          );
+          return handlers.handleProxyRemoveRuleTool({ endpointId: added.endpointId });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.endpointId !== 'string' || !b.removedRule)
+          return `expected endpointId and removedRule in response: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'proxy_clear_rules/disposes-all-session-rules',
+      tool: 'proxy_clear_rules',
+      origin: 'homemade',
+      reference: 'clears all mockttp rules owned by the current session',
+      run: () =>
+        withLoopbackProxy(async (handlers) => {
+          expectSuccess(
+            await handlers.handleProxyAddRuleTool({
+              action: 'block',
+              method: 'GET',
+              urlPattern: U.aTwo,
+            }),
+          );
+          return handlers.handleProxyClearRulesTool({});
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.cleared) !== 1) return `expected cleared === 1, got ${JSON.stringify(b)}`;
         return true;
       },
     },

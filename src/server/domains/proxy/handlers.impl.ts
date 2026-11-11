@@ -730,7 +730,10 @@ export class ProxyHandlers {
   private currentPort: number | null = null;
   private captureBuffer: CaptureEntry[] = [];
   private ruleRecords: ProxyRuleRecord[] = [];
-  private ruleEndpoints = new Map<string, { id: string; dispose?: () => Promise<void> }>();
+  private ruleEndpoints = new Map<
+    string,
+    { id: string; rule?: unknown; dispose?: () => Promise<void> }
+  >();
   private mockttpModule: typeof import('mockttp') | null = null;
   private caReady = false;
   private readonly owners = new Set<string>();
@@ -1078,7 +1081,7 @@ export class ProxyHandlers {
 
       this.ruleEndpoints.set(
         endpoint.id,
-        endpoint as unknown as { id: string; dispose?: () => Promise<void> },
+        endpoint as unknown as { id: string; rule?: unknown; dispose?: () => Promise<void> },
       );
 
       return ResponseBuilder.success({
@@ -1125,12 +1128,16 @@ export class ProxyHandlers {
 
     const removed = this.ruleRecords[idx]!;
     const endpoint = this.ruleEndpoints.get(endpointId);
-    if (!endpoint?.dispose) {
-      return ResponseBuilder.error(`Rule endpoint cannot be disposed: ${endpointId}`);
-    }
 
     try {
-      await endpoint.dispose();
+      if (endpoint?.dispose) {
+        await endpoint.dispose();
+      } else {
+        const reapplied = await this.removeRulesFromMockttp(new Set([endpointId]));
+        if (!reapplied) {
+          return ResponseBuilder.error(`Rule endpoint cannot be disposed: ${endpointId}`);
+        }
+      }
       this.ruleEndpoints.delete(endpointId);
       this.ruleRecords.splice(idx, 1);
 
@@ -1229,12 +1236,54 @@ export class ProxyHandlers {
     this.captureClearWatermarks.clear();
   }
 
+  /**
+   * Real `mockttp` `MockedEndpoint` instances do not expose `.dispose()`; remove
+   * rules by re-applying only the surviving `RequestRuleData` entries via
+   * `server.setRequestRules(...)` (preserving event listeners and remaining IDs).
+   */
+  private async removeRulesFromMockttp(removedIds: ReadonlySet<string>): Promise<boolean> {
+    const srv = this.server as {
+      getMockedEndpoints?: () => Promise<Array<{ id: string; rule?: unknown }>>;
+      setRequestRules?: (
+        ...rules: unknown[]
+      ) => Promise<Array<{ id: string; rule?: unknown; dispose?: () => Promise<void> }>>;
+    } | null;
+    if (typeof srv?.setRequestRules !== 'function') return false;
+
+    let remainingRules: unknown[] = [];
+    if (typeof srv.getMockedEndpoints === 'function') {
+      const endpoints = await srv.getMockedEndpoints();
+      remainingRules = endpoints
+        .filter((e) => !removedIds.has(e.id) && e.rule !== undefined)
+        .map((e) => e.rule);
+    } else {
+      for (const [id, ep] of this.ruleEndpoints) {
+        if (!removedIds.has(id) && ep.rule !== undefined) remainingRules.push(ep.rule);
+      }
+    }
+    const updated = await srv.setRequestRules(...remainingRules);
+    for (const ep of updated) {
+      this.ruleEndpoints.set(ep.id, ep);
+    }
+    return true;
+  }
+
   private async disposeRulesForSession(sessionId: string): Promise<number> {
     const ownedRules = this.ruleRecords.filter((rule) => rule.ownerSessionId === sessionId);
+    const removedIds = new Set<string>();
+    let needsMockttpReapply = false;
     for (const rule of ownedRules) {
       const endpoint = this.ruleEndpoints.get(rule.endpointId);
-      await endpoint?.dispose?.();
+      if (endpoint?.dispose) {
+        await endpoint.dispose();
+      } else {
+        needsMockttpReapply = true;
+      }
+      removedIds.add(rule.endpointId);
       this.ruleEndpoints.delete(rule.endpointId);
+    }
+    if (needsMockttpReapply && removedIds.size > 0) {
+      await this.removeRulesFromMockttp(removedIds);
     }
     this.ruleRecords = this.ruleRecords.filter((rule) => rule.ownerSessionId !== sessionId);
     return ownedRules.length;
