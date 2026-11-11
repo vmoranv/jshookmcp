@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **210 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **220 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -112,6 +112,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** one_gadget known-libc database (glibc 2.23–2.39, musl 1.2).
 - **[外部]** [ROPium](https://github.com/teerder/ROPium) evaluation binaries — gadget finder recall. 📋
 - **[自制] ✅** offset roundtrip, %hn format-string structure, ret2dlresolve validation contract.
+- **[自制] ✅** (2026-11-11) `exploit_cache_stats`, `exploit_cache_configure`, `exploit_cache_clear`, `exploit_cache_invalidate`, `exploit_find_gadgets` (x64 fixture search), `exploit_find_jmp_esp` (x86 esp discovery), `exploit_build_rop_chain` (execve ROP chain on test binary), `exploit_build_stack_pivot` (stack pivot discovery), `exploit_analyze_mitigations` (PE CFG/ASLR/NX inspection), `exploit_verify_rop_chain` (Z3 simulated chain verification).
 
 ## extension-registry (7 tools) — ✅ suite `extension-registry` (offline subset)
 
