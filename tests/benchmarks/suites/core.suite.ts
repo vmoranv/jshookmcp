@@ -15,16 +15,32 @@
  */
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 import { ObfuscationDetector } from '@server/domains/shared/modules';
+import { CryptoDetector } from '@modules/crypto/CryptoDetector';
 import { body, expectSuccess, type BenchSuite } from '../harness';
 
+const mockCollector = {
+  getActivePage: async () => null,
+  on: () => {},
+  clearAllData: async () => {},
+  clearSessionData: () => {},
+  getAllStats: async () => ({
+    cache: { memoryEntries: 10, diskEntries: 5, totalSize: 10240 },
+    compression: { averageRatio: 45.2, cacheHits: 8, cacheMisses: 2 },
+    collector: { collectedUrls: ['https://example.com/a.js'] },
+  }),
+};
+const mockScriptManager = {
+  clear: () => {},
+};
+
 const stubs = {
-  collector: { getActivePage: async () => null, on: () => {} },
-  scriptManager: {},
+  collector: mockCollector,
+  scriptManager: mockScriptManager,
   deobfuscator: {},
   advancedDeobfuscator: {},
   obfuscationDetector: new ObfuscationDetector(),
   analyzer: {},
-  cryptoDetector: {},
+  cryptoDetector: new CryptoDetector(),
   hookManager: {},
   samplingBridge: {} as never,
   jscramblerDeobfuscator: {} as never,
@@ -180,6 +196,86 @@ export const coreSuite: BenchSuite = {
         const text = JSON.stringify(b).toLowerCase();
         if (/solved|simplified|constant|true/.test(text)) return true;
         return `no solved marker: ${text.slice(0, 240)}`;
+      },
+    },
+
+    // ── Coverage batch 2026-11-10 (autoresearch): core analysis & data management ──
+    {
+      name: 'detect_crypto/algorithms-and-libraries',
+      tool: 'detect_crypto',
+      origin: 'homemade',
+      reference: 'detects crypto algorithms and libraries in code',
+      run: () =>
+        handlers.handleDetectCrypto({
+          code: 'const cipher = CryptoJS.AES.encrypt("secret", key); const hash = CryptoJS.SHA256("data");',
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const text = JSON.stringify(b).toUpperCase();
+        if (!text.includes('AES') && !text.includes('SHA'))
+          return `expected AES or SHA in detected crypto, got ${text.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'analysis_decode_string_array/inlines-string-lookups',
+      tool: 'analysis_decode_string_array',
+      origin: 'homemade',
+      reference: 'replaces string-array call lookups with inline string literals',
+      run: () =>
+        handlers.handleAnalysisDecodeStringArray({
+          code: 'var _arr = ["hello", "world"]; console.log(_arr(0) + " " + _arr(1));',
+          removeRotation: false,
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.replacedCount) !== 2)
+          return `expected replacedCount === 2, got ${b.replacedCount}`;
+        const code = String(b.code ?? '');
+        if (!code.includes('"hello"') || !code.includes('"world"'))
+          return `inlined strings missing in code: ${code}`;
+        return true;
+      },
+    },
+    {
+      name: 'analysis_deflat_control_flow/switch-in-while',
+      tool: 'analysis_deflat_control_flow',
+      origin: 'homemade',
+      reference: 'unflattens a switch-in-while dispatcher into sequential execution',
+      run: () =>
+        handlers.handleAnalysisDeflatControlFlow({
+          code: 'function test() { var _order = "1|2".split("|"); var _idx = 0; while (true) { switch (_order[_idx++]) { case "1": console.log(1); continue; case "2": console.log(2); continue; } break; } }',
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.flattenedCount) !== 1)
+          return `expected flattenedCount === 1, got ${b.flattenedCount}`;
+        return true;
+      },
+    },
+    {
+      name: 'get_collection_stats/stats-structure',
+      tool: 'get_collection_stats',
+      origin: 'homemade',
+      reference: 'retrieves cache and compression statistics from collector',
+      run: () => handlers.handleGetCollectionStats(),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!b.stats || !b.summary)
+          return `expected stats and summary objects, got ${JSON.stringify(b).slice(0, 150)}`;
+        return true;
+      },
+    },
+    {
+      name: 'clear_collected_data/cleared-receipt',
+      tool: 'clear_collected_data',
+      origin: 'homemade',
+      reference: 'clears session cache and returns receipt',
+      run: () => handlers.handleClearCollectedData(),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!b.cleared) return `missing cleared receipt, got ${JSON.stringify(b).slice(0, 150)}`;
+        return true;
       },
     },
   ],
