@@ -17,12 +17,58 @@ const collector = { getActivePage: async () => null } as never;
 const monitor = {
   getNetworkRequests: () => [
     {
+      requestId: 'req-bench-1',
       url: 'https://example.com/api',
       method: 'GET',
+      type: 'XHR',
+      timestamp: 1000,
       headers: {
         'user-agent': 'curl/7.88.1',
         accept: '*/*',
+        authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.benchtoken123.sig',
       },
+    },
+  ],
+  getNetworkResponses: () => [
+    {
+      requestId: 'req-bench-1',
+      url: 'https://example.com/api',
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'application/json' },
+      timestamp: 1005,
+    },
+  ],
+  getNetworkActivity: (_id: string) => ({
+    request: {
+      requestId: 'req-bench-1',
+      url: 'https://example.com/api',
+      method: 'GET',
+      timestamp: 1000,
+      headers: { 'user-agent': 'curl/7.88.1', accept: '*/*' },
+    },
+    response: {
+      requestId: 'req-bench-1',
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'application/json' },
+      timestamp: 1005,
+    },
+  }),
+  getResponseBody: async () => ({ body: '{"ok":true}', base64Encoded: false }),
+  isNetworkEnabled: () => true,
+  isPlaywrightFallbackActive: () => false,
+  getNetworkStatus: () => ({
+    enabled: true,
+    requestCount: 1,
+    responseCount: 1,
+    cdpSessionActive: false,
+  }),
+  getExceptions: () => [
+    {
+      message: 'ReferenceError: benchVar is not defined',
+      url: 'https://example.com/app.js',
+      timestamp: 1001,
     },
   ],
 } as never;
@@ -360,6 +406,113 @@ export const networkSuite: BenchSuite = {
         const b = expectSuccess(v);
         if (typeof b.averageBotScore !== 'number')
           return `expected averageBotScore number, got: ${typeof b.averageBotScore}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): offline capture projection, HAR, auth & dry-run replay ──
+    {
+      name: 'network_get_status/status-projection',
+      tool: 'network_get_status',
+      origin: 'homemade',
+      reference: 'reports current network monitor state without launching browser',
+      run: () => handlers.handleNetworkGetStatus({}),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.enabled !== true || Number(b.requestCount) !== 1)
+          return `expected enabled=true requestCount=1, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'network_get_stats/aggregates-methods-and-status',
+      tool: 'network_get_stats',
+      origin: 'homemade',
+      reference: 'computes method/status/type distributions from captured network traffic',
+      run: () => handlers.handleNetworkGetStats({}),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const text = JSON.stringify(b);
+        if (!text.includes('GET') || !text.includes('200'))
+          return `expected GET and 200 in stats: ${text.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'network_get_requests/returns-captured-list',
+      tool: 'network_get_requests',
+      origin: 'homemade',
+      reference: 'queries captured network requests with autoEnable=false over monitor buffer',
+      run: () => handlers.handleNetworkGetRequests({ autoEnable: false, enableExceptions: false }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const requests = b.requests as Array<{ requestId?: string; url?: string }> | undefined;
+        if (!Array.isArray(requests) || requests.length !== 1)
+          return `expected 1 request, got ${JSON.stringify(b).slice(0, 200)}`;
+        if (requests[0]?.requestId !== 'req-bench-1')
+          return `unexpected requestId: ${requests[0]?.requestId}`;
+        return true;
+      },
+    },
+    {
+      name: 'network_extract_auth/detects-and-masks-bearer',
+      tool: 'network_extract_auth',
+      origin: 'homemade',
+      reference: 'scans captured headers for Bearer tokens and masks secret values',
+      run: () => handlers.handleNetworkExtractAuth({ minConfidence: 0.1 }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (Number(b.found) < 1 || !Array.isArray(b.findings))
+          return `expected >=1 auth finding, got ${JSON.stringify(b).slice(0, 200)}`;
+        if (JSON.stringify(b.findings).includes('benchtoken123'))
+          return 'secret token was NOT masked in network_extract_auth output';
+        return true;
+      },
+    },
+    {
+      name: 'network_export_har/har-1-2-format',
+      tool: 'network_export_har',
+      origin: 'external-vector',
+      reference:
+        'HAR 1.2 specification: exports log.version and entries array from captured requests',
+      run: () => handlers.handleNetworkExportHar({ includeBodies: false }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const har = b.har as { log?: { entries?: unknown[] } } | undefined;
+        if (Number(b.entryCount) !== 1 || !har?.log?.entries || har.log.entries.length !== 1)
+          return `expected 1 HAR entry, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'network_replay_request/dry-run-preview',
+      tool: 'network_replay_request',
+      origin: 'homemade',
+      reference:
+        'replays captured request in dryRun=true mode (zero outbound network I/O) with header override',
+      run: () =>
+        handlers.handleNetworkReplayRequest({
+          requestId: 'req-bench-1',
+          dryRun: true,
+          headers: { 'X-Bench': '1' },
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.dryRun !== true)
+          return `expected dryRun=true, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'console_get_exceptions/url-filter',
+      tool: 'console_get_exceptions',
+      origin: 'homemade',
+      reference: 'queries captured runtime exceptions filtered by URL substring',
+      run: () => handlers.handleConsoleGetExceptions({ url: 'example.com', limit: 10 }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (Number(b.total) !== 1 || !Array.isArray(b.exceptions))
+          return `expected 1 exception, got ${JSON.stringify(b).slice(0, 200)}`;
         return true;
       },
     },
