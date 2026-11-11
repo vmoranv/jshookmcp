@@ -62,8 +62,14 @@ const monitor = {
     enabled: true,
     requestCount: 1,
     responseCount: 1,
+    listenerCount: 1,
     cdpSessionActive: false,
   }),
+  enable: async () => {},
+  disable: async () => {},
+  getFetchInterceptStatus: () => ({ enabled: false, rules: [] }),
+  clearInjectedBuffers: async () => ({ cleared: 2 }),
+  resetInjectedInterceptors: async () => ({ reset: true }),
   getExceptions: () => [
     {
       message: 'ReferenceError: benchVar is not defined',
@@ -513,6 +519,93 @@ export const networkSuite: BenchSuite = {
         const b = expectSuccess(v);
         if (Number(b.total) !== 1 || !Array.isArray(b.exceptions))
           return `expected 1 exception, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2 (2026-11-11 autoresearch): response body, intercept list, monitor lifecycle, console buffers ──
+    {
+      name: 'network_get_response_body/retrieves-captured-json',
+      tool: 'network_get_response_body',
+      origin: 'homemade',
+      reference: 'retrieves response body payload by requestId from monitor buffer',
+      run: () =>
+        handlers.handleNetworkGetResponseBody({
+          requestId: 'req-bench-1',
+          autoEnable: false,
+          retries: 0,
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.requestId !== 'req-bench-1' || !JSON.stringify(b).includes('ok'))
+          return `expected ok response body for req-bench-1, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'network_intercept/lists-active-rules',
+      tool: 'network_intercept',
+      origin: 'homemade',
+      reference: 'queries active Fetch interception status and rules list',
+      run: () => handlers.handleNetworkInterceptDispatch({ action: 'list' }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.rules)) return `expected rules array, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'network_enable/enables-monitoring',
+      tool: 'network_enable',
+      origin: 'homemade',
+      reference: 'enables network monitoring via consoleMonitor and reports status',
+      run: () => handlers.handleNetworkEnable({ enableExceptions: false }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.enabled !== true) return `expected enabled=true, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'network_disable/disables-monitoring',
+      tool: 'network_disable',
+      origin: 'homemade',
+      reference: 'disables network monitoring cleanly and confirms receipt',
+      run: () => handlers.handleNetworkDisable({}),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (
+          !String(b.message ?? '')
+            .toLowerCase()
+            .includes('disabled')
+        )
+          return `expected disabled confirmation, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'network_monitor/status-dispatch',
+      tool: 'network_monitor',
+      origin: 'homemade',
+      reference: 'dispatches action=status through unified network_monitor facade',
+      run: () => handlers.handleNetworkMonitor({ action: 'status' }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.enabled !== true || Number(b.requestCount) !== 1)
+          return `expected enabled=true requestCount=1, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'console_buffers/clears-injected-buffers',
+      tool: 'console_buffers',
+      origin: 'homemade',
+      reference: 'dispatches buffer clear action cleanly via consoleMonitor',
+      run: () => handlers.handleConsoleBuffersDispatch({ action: 'clear' }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (Number(b.cleared) !== 2)
+          return `expected cleared=2 from monitor stub, got ${JSON.stringify(b)}`;
         return true;
       },
     },

@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **347 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **353 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -177,6 +177,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** RFC 9113/7540 SETTINGS + WINDOW_UPDATE frame layout; Akamai HTTP/2 fingerprint canonical `<settings>|<wu>|<prio>` shape.
 - **[外部] ✅** gRPC wire format (1B flag + 4B BE length) incl. truncated-message leniency.
 - **[外部] ✅** (2026-11-11, +7 tools): `network_export_har` (HAR 1.2 log/entries export), `network_extract_auth` (Bearer token detection + masking), `network_replay_request` (dryRun preview without outbound I/O), `network_get_status`, `network_get_stats`, `network_get_requests`, `console_get_exceptions` (URL-filtered projection).
+- **[自制] ✅** (2026-11-11 Wave 2, +6 tools): `network_get_response_body`, `network_intercept` (list), `network_enable`, `network_disable`, `network_monitor` (status dispatch), `console_buffers` (clear). (21/38 network tools measured).
 - **[外部]** [JA3 spec](https://github.com/salesforce/ja3) decimal-form golden values — full ja3_raw decimal parity is a planned upgrade. 📋
 - Live-socket tools (dns_*, icmp, tcp_*, traceroute) need network; excluded from the offline gate. 📋
 
