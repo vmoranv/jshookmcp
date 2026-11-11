@@ -14,6 +14,7 @@ import { body, expectSuccess, type BenchSuite } from '../harness';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { crc32 } from 'node:zlib';
 
 const EM_AARCH64 = 183;
 const PT_LOAD = 1;
@@ -105,6 +106,85 @@ function buildMinimalArm64So(
   return u8;
 }
 
+const u16 = (v: number): number[] => [v & 0xff, (v >>> 8) & 0xff];
+const u32 = (v: number): number[] => [
+  v & 0xff,
+  (v >>> 8) & 0xff,
+  (v >>> 16) & 0xff,
+  (v >>> 24) & 0xff,
+];
+
+function buildStoredZip(entries: { name: string; data: Uint8Array }[]): Uint8Array {
+  const enc = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+  const central: Uint8Array[] = [];
+  let offset = 0;
+  for (const e of entries) {
+    const nameBytes = enc.encode(e.name);
+    const crc = crc32(Buffer.from(e.data)) >>> 0;
+    const size = e.data.length;
+    const lfh = Uint8Array.from([
+      ...u32(0x04034b50),
+      ...u16(20),
+      ...u16(0),
+      ...u16(0),
+      ...u16(0),
+      ...u16(0),
+      ...u32(crc),
+      ...u32(size),
+      ...u32(size),
+      ...u16(nameBytes.length),
+      ...u16(0),
+      ...nameBytes,
+    ]);
+    chunks.push(lfh, e.data);
+    central.push(
+      Uint8Array.from([
+        ...u32(0x02014b50),
+        ...u16(20),
+        ...u16(20),
+        ...u16(0),
+        ...u16(0),
+        ...u16(0),
+        ...u16(0),
+        ...u32(crc),
+        ...u32(size),
+        ...u32(size),
+        ...u16(nameBytes.length),
+        ...u16(0),
+        ...u16(0),
+        ...u16(0),
+        ...u16(0),
+        ...u32(0),
+        ...u32(offset),
+        ...nameBytes,
+      ]),
+    );
+    offset += lfh.length + e.data.length;
+  }
+  const cdStart = offset;
+  let cdSize = 0;
+  for (const c of central) cdSize += c.length;
+  const eocd = Uint8Array.from([
+    ...u32(0x06054b50),
+    ...u16(0),
+    ...u16(0),
+    ...u16(central.length),
+    ...u16(central.length),
+    ...u32(cdSize),
+    ...u32(cdStart),
+    ...u16(0),
+  ]);
+  const all = [...chunks, ...central, eocd];
+  const out = new Uint8Array(all.reduce((s, c) => s + c.length, 0));
+  let p = 0;
+  for (const c of all) {
+    out.set(c, p);
+    p += c.length;
+  }
+  return out;
+}
+
 // AArch64: add x0, x0, x1; ret
 const ADD_TWO_BYTES = [0x00, 0x00, 0x01, 0x8b, 0xc0, 0x03, 0x5f, 0xd6];
 // AArch64 JNI export: add x0, x2, x3; ret (skips JNIEnv* x0 and jobject x1)
@@ -113,12 +193,15 @@ const tmp = mkdtempSync(join(tmpdir(), 'jshook-bench-nemu-'));
 const soPath = join(tmp, 'libbenchadd.so');
 const jniSoPath = join(tmp, 'libbenchjni.so');
 const planPath = join(tmp, 'session-plan.json');
-writeFileSync(soPath, buildMinimalArm64So(ADD_TWO_BYTES, [{ name: 'add_two', codeOffset: 0 }]));
+const apkPath = join(tmp, 'bench.apk');
+const soBytes = buildMinimalArm64So(ADD_TWO_BYTES, [{ name: 'add_two', codeOffset: 0 }]);
+writeFileSync(soPath, soBytes);
 writeFileSync(
   jniSoPath,
   buildMinimalArm64So(JNI_ADD_BYTES, [{ name: 'Java_bench_add', codeOffset: 0 }]),
 );
 writeFileSync(planPath, JSON.stringify([{ tool: 'nemu_prepare_tls', args: {} }]));
+writeFileSync(apkPath, buildStoredZip([{ name: 'lib/arm64-v8a/libbenchadd.so', data: soBytes }]));
 process.once('exit', () => {
   try {
     rmSync(tmp, { recursive: true, force: true });
@@ -1157,6 +1240,71 @@ export const nativeEmulatorSuite: BenchSuite = {
         const b = expectSuccess(v);
         if (typeof b.running !== 'boolean' || !Array.isArray(b.servers))
           return `expected running boolean and servers array, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch Wave 4 (autoresearch): complete 57/57 native-emulator coverage ──
+    {
+      name: 'nemu_load_library_chain/dependency-plus-primary',
+      tool: 'nemu_load_library_chain',
+      origin: 'homemade',
+      reference: 'loads dependency .so + primary .so chain into emulator session',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleLoadLibraryChain({
+            sessionId,
+            dependencyPaths: [jniSoPath],
+            primaryPath: soPath,
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const syms = (b.symbols as string[]) ?? [];
+        if (!syms.includes('add_two') || !syms.includes('Java_bench_add'))
+          return `expected both primary and dependency symbols, got ${JSON.stringify(syms)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_extract_apk_libs/arm64-v8a-stored-zip',
+      tool: 'nemu_extract_apk_libs',
+      origin: 'external-vector',
+      reference: 'extracts lib/arm64-v8a/libbenchadd.so from stored APK ZIP archive via yauzl',
+      run: () => {
+        const h = new NativeEmulatorHandlers(
+          new SessionManager({ emulatorOptions: { syscalls: false } }),
+        );
+        return h.handleExtractApkLibs({ apkPath }).finally(() => h.dispose());
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.count) !== 1 || b.truncated !== false)
+          return `expected 1 non-truncated lib, got ${JSON.stringify(b)}`;
+        const libs = (b.libs as Array<{ name?: string }>) ?? [];
+        if (libs[0]?.name !== 'libbenchadd.so')
+          return `expected libbenchadd.so, got ${JSON.stringify(libs)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_load_apk_library/loads-lib-directly-from-apk',
+      tool: 'nemu_load_apk_library',
+      origin: 'external-vector',
+      reference: 'extracts and loads libbenchadd.so directly from APK into emulator session',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleLoadApkLibrary({
+            sessionId,
+            apkPath,
+            libName: 'libbenchadd.so',
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const syms = (b.symbols as string[]) ?? [];
+        if (!syms.includes('add_two'))
+          return `expected add_two loaded from APK, got ${JSON.stringify(syms)}`;
         return true;
       },
     },
