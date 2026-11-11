@@ -108,4 +108,15 @@ crash (gate floor breach counts as crash). `./checks.sh` must then pass (exit 0)
 
 ## What's Been Tried
 
-(no experiments yet — baseline being measured)
+- **Segment 0**: Run 1 baseline: `debt=616` (`565 unmeasured + 51 low_mrr + 0 vector_fail`, noise floor=0). Discovery: retrieval eval runs on a synthetic decoupled fixture (`tests/server/search/fixtures/search-quality.fixture.ts`), so real `definitions.ts` edits cannot move `low_mrr` (51) while the harness/fixture are locked.
+- **Segment 1** (delta-based over `unmeasured + vector_fail`, `+51` constant offset):
+  - **Run 2 (crash) -> Run 3 (keep, debt=607, -9)**: `protocol-analysis` +9 cases (`pcap_read`, `pcapng_read/write`, `proto_*`). Learned: `new ProtocolAnalysisHandlers()` must take no args (passing `{} as never` binds `{}` to `engine`); `spec` fields use `int`, not `uint16/uint32`.
+  - **Run 4 (crash) -> Run 5 (keep, debt=603, -4)**: new `mojo-ipc.suite.ts` +4 offline codec cases (`mojo_encode_message`, `mojo_decode_message`, `mojo_list_interfaces`, `mojo_ipc_capabilities`). Learned: call raw internal handlers when returning nested objects, since `body()` only unwraps top-level ToolResponse.
+  - **Run 6 (keep, debt=599, -4)**: `platform.suite.ts` +4 cases (`asar_deobfuscate`, `miniapp_pkg_analyze`, `electron_scan_userdata`, `electron_debug_status`). Learned: `_0x[0-9a-fA-F]{4,8}` needs 4 hex digits; unwrap ToolResponse via `body(v)`.
+  - **Run 7 (keep, debt=591, -8)**: `trace.suite.ts` +8 cases (10/10 trace tools measured!). Learned: `TraceDB.upsertNetworkResource` requires `receivedEncodedDataLength`; `diff_heap_snapshots` returns `diff.totalSizeDelta`.
+  - **Run 8 (keep, debt=586, -5)**: `core.suite.ts` +5 cases (`detect_crypto`, `analysis_decode_string_array`, `analysis_deflat_control_flow`, `get_collection_stats`, `clear_collected_data`).
+  - **Run 9 (keep, debt=583, -3)**: `transform.suite.ts` +3 offline AST cases (`ast_transform_preview`, `ast_transform_chain`, `ast_transform_apply`). All 7 offline transform tools covered (only `crypto_extract_standalone` needs live page).
+
+**Meta-review (Runs 1–9)**:
+- **Winning pattern**: Targeting offline-pure domains/subsets (`protocol-analysis`, `mojo-ipc`, `platform`, `trace`, `core`, `transform`) with direct handler/wrapper invocation and strict behavioral assertions (`roundtrip`, `constant folding`, `SQLite persistence`, `negative controls`) has reduced `unmeasured` from 565 to 532 (-33 tools) with zero regressions (`vector_fail=0`, `rejection_pct=100%`).
+- **Remaining highest-yield offline domains**: `cross-domain` (4), `coordination` (4), `sourcemap` (1-2), `wasm` (13), `exploit-dev` (12), `dart-inspector` (14), `maintenance` (12), `native-emulator` (54), `adb-bridge` parsers, `binary-instrument` static APK/DEX parsers, `v8-inspector` offline parsers, `streaming`/`network` offline parsers.

@@ -332,5 +332,83 @@ export const transformSuite: BenchSuite = {
           : `expected graceful syntax error response, got: ${JSON.stringify(b).slice(0, 200)}`;
       },
     },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): offline AST transform tools ──
+    {
+      name: 'ast_transform_preview/constant-fold-and-dead-code',
+      tool: 'ast_transform_preview',
+      origin: 'homemade',
+      reference:
+        'constant_fold + dead_code_remove preview must simplify `1 + 2` to `3`, drop `if (false)` branch, and emit a non-empty diff',
+      run: () =>
+        handlers.handleAstTransformPreviewTool({
+          code: 'const x = 1 + 2;\nif (false) { console.log("dead_branch"); }\nconsole.log(x);',
+          transforms: ['constant_fold', 'dead_code_remove'],
+          preview: true,
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const transformed = String(b.transformed ?? '');
+        if (!transformed.includes('3'))
+          return `expected folded constant 3 in transformed output, got: ${transformed}`;
+        if (transformed.includes('dead_branch'))
+          return `dead_code_remove did not eliminate false branch: ${transformed}`;
+        if (typeof b.diff !== 'string' || b.diff.length === 0)
+          return 'expected non-empty preview diff string';
+        const applied = (b.appliedTransforms ?? []) as string[];
+        if (!applied.includes('constant_fold'))
+          return `expected constant_fold in appliedTransforms, got ${JSON.stringify(applied)}`;
+        return true;
+      },
+    },
+    {
+      name: 'ast_transform_chain/register-in-memory',
+      tool: 'ast_transform_chain',
+      origin: 'homemade',
+      reference:
+        'ast_transform_chain registers a named ordered transform chain in memory and echoes created=true',
+      run: () =>
+        handlers.handleAstTransformChainTool({
+          name: 'bench_fold_beautify',
+          transforms: ['constant_fold', 'beautify'],
+          description: 'Fold constant expressions then beautify',
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.created !== true) return `expected created=true, got ${b.created}`;
+        if (b.name !== 'bench_fold_beautify') return `unexpected chain name: ${b.name}`;
+        const transforms = (b.transforms ?? []) as string[];
+        if (transforms.length !== 2 || transforms[0] !== 'constant_fold')
+          return `unexpected chain transforms: ${JSON.stringify(transforms)}`;
+        return true;
+      },
+    },
+    {
+      name: 'ast_transform_apply/direct-transforms',
+      tool: 'ast_transform_apply',
+      origin: 'homemade',
+      reference:
+        'ast_transform_apply executes ordered AST transforms on inline code and returns transformed source + stats',
+      run: () =>
+        handlers.handleAstTransformApplyTool({
+          code: 'const ans=6*7;if(false){console.log("unreachable");}console.log(ans);',
+          transforms: ['constant_fold', 'dead_code_remove'],
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const transformed = String(b.transformed ?? '');
+        if (!transformed.includes('42')) return `expected folded constant 42, got: ${transformed}`;
+        if (transformed.includes('unreachable'))
+          return `dead_code_remove left unreachable branch: ${transformed}`;
+        const stats = b.stats as
+          | { originalSize?: number; transformedSize?: number; transformsApplied?: string[] }
+          | undefined;
+        if (!stats || (stats.originalSize ?? 0) <= 0 || (stats.transformedSize ?? 0) <= 0)
+          return `missing or zero stats: ${JSON.stringify(stats)}`;
+        if (!stats.transformsApplied?.includes('constant_fold'))
+          return `expected constant_fold in stats.transformsApplied: ${JSON.stringify(stats)}`;
+        return true;
+      },
+    },
   ],
 };
