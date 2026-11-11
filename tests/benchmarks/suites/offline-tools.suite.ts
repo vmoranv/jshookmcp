@@ -13,6 +13,11 @@ import { NativeEmulatorHandlers } from '@server/domains/native-emulator/handlers
 import { BrowserToolHandlers } from '@server/domains/browser/handlers.impl';
 import { ExploitDevHandlers } from '@server/domains/exploit-dev/handlers';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { DetailedDataManager } from '@utils/DetailedDataManager';
+import { getOffloadRoot } from '@utils/sanitizeForCache';
+import { getProjectRoot } from '@utils/outputPaths';
+import { mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { body, expectSuccess, type BenchSuite } from '../harness';
 
 const networkHandlers = new AdvancedToolHandlers(
@@ -229,6 +234,122 @@ export const offlineToolsSuite: BenchSuite = {
         // the egg tag must appear (as bytes) inside the generated stub or its params
         const tagInResponse = text.toLowerCase().includes('w00t') || /77 30 30 74/i.test(payload);
         return tagInResponse ? true : 'egg tag not embedded in generated stub';
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): offline browser domain tools ──
+    {
+      name: 'browser_jsdom_execute/sandbox-eval',
+      tool: 'browser_jsdom_execute',
+      origin: 'homemade',
+      reference: 'executes JS inside QuickJS WASM sandbox over read-only JSDOM document globals',
+      run: async () => {
+        const bh = new BrowserToolHandlers(
+          { getActivePage: async () => null } as never,
+          { createCDPSession: async () => ({}) } as never,
+          {} as never,
+          {} as never,
+          {} as never,
+        );
+        const parsed = body(
+          await bh.handleJsdomParse({
+            html: JSDOM_HTML,
+            url: 'https://bench.example.test/page',
+            runScripts: 'outside-only',
+          }),
+        );
+        const sessionId = String(parsed.sessionId ?? '');
+        return bh.handleJsdomExecute({
+          sessionId,
+          code: 'document.URL',
+        });
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.result !== 'https://bench.example.test/page')
+          return `expected sandbox result https://bench.example.test/page, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'get_detailed_data/retrieves-stored-payload',
+      tool: 'get_detailed_data',
+      origin: 'homemade',
+      reference: 'stores object in DetailedDataManager and retrieves it by detailId',
+      run: async () => {
+        const detailId = await DetailedDataManager.getInstance().store({
+          benchMarker: 'dd-ok',
+          count: 3,
+        });
+        return browserHandlers.handleGetDetailedData({ detailId });
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const data = b.data as { benchMarker?: string; count?: number } | undefined;
+        if (data?.benchMarker !== 'dd-ok' || data?.count !== 3)
+          return `expected stored object back, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'get_offloaded_data/reads-offloaded-file',
+      tool: 'get_offloaded_data',
+      origin: 'homemade',
+      reference: 'reads offloaded file bytes safely inside artifacts/offloaded/',
+      run: async () => {
+        const offloadRoot = getOffloadRoot();
+        mkdirSync(offloadRoot, { recursive: true });
+        const filePath = join(offloadRoot, `bench-offload-${process.pid}-${Date.now()}.txt`);
+        writeFileSync(filePath, 'offloaded-bench-payload', 'utf8');
+        const relPath = relative(getProjectRoot(), filePath).replace(/\\/g, '/');
+        try {
+          return await browserHandlers.handleGetOffloadedData({
+            path: relPath,
+            encoding: 'utf8',
+          });
+        } finally {
+          try {
+            unlinkSync(filePath);
+          } catch {}
+        }
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.data !== 'offloaded-bench-payload')
+          return `expected offloaded-bench-payload, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'stealth_generate_fingerprint/windows-chrome-profile',
+      tool: 'stealth_generate_fingerprint',
+      origin: 'homemade',
+      reference: 'generates deterministic browser fingerprint profile structure offline',
+      run: () =>
+        browserHandlers.handleStealthGenerateFingerprint({
+          os: 'windows',
+          browser: 'chrome',
+          locale: 'en-US',
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const fp = (b.fingerprint ?? b.profile) as Record<string, unknown> | undefined;
+        if (!fp || typeof fp !== 'object')
+          return `expected fingerprint/profile object, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'captcha_solver_capabilities/reports-providers',
+      tool: 'captcha_solver_capabilities',
+      origin: 'homemade',
+      reference: 'reports configured captcha solver capabilities honestly offline',
+      run: () => browserHandlers.handleCaptchaSolverCapabilities(),
+      validate: (v) => {
+        const b = body(v);
+        if (!Array.isArray(b.capabilities) || b.capabilities.length === 0)
+          return `expected capabilities array, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
       },
     },
   ],

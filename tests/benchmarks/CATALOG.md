@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **342 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **347 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -55,6 +55,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 ## browser (85 tools)
 
+- **[自制] ✅** (2026-11-11, offline-pure subset via `offline-tools`): `browser_jsdom_parse`, `browser_jsdom_query`, `browser_jsdom_execute` (QuickJS WASM sandbox eval), `get_detailed_data` (DetailedDataManager slice retrieval), `get_offloaded_data` (safe offloaded artifacts retrieval), `stealth_generate_fingerprint` (offline profile generation), `captcha_solver_capabilities` (provider reporting).
 - **[外部]** [WebArena](https://webarena.dev) / [VisualWebArena](https://jykoh.com/vwa) / [WorkArena](https://github.com/ServiceNow/WorkArena) / [WebChoreArena](https://openreview.net/forum?id=d0xqdsR41U) — task success rates for the `page_*` / `browser_*` automation family (self-hosted sites, functional correctness checks). 📋
 - **[外部]** [BrowserGym](https://github.com/ServiceNow/BrowserGym) — unified action-space harness; our page_* primitives map onto its action space. 📋
 - **[外部]** [CreepJS](https://abrahamjuliot.github.io/creepjs/) + fingerprint-suite datasets — stealth_inject / stealth_verify / fingerprint tooling efficacy. 📋
