@@ -132,7 +132,8 @@ crash (gate floor breach counts as crash). `./checks.sh` must then pass (exit 0)
   - **Run 25 (keep, debt=474, -8)**: `core.suite.ts` Wave 2 +8 offline cases (`understand_code`, `js_deobfuscate_pipeline`, `js_symbolic_execute`, `js_symbolic_execute_jsvmp`, `deobfuscate`, `webcrack_unpack`, `js_analyze_vm`, `js_deobfuscate_jsvmp`). All 19 offline `core` tools measured!
   - **Run 26 (crash) -> Run 27 (keep, debt=470, -4)**: `workflow.suite.ts` +4 offline cases (`list_macros`, `run_macro` dryRun, `page_script_register`, `list_extension_workflows`). Learned: `MacroToolHandlers` is a distinct handler class registered under `MACRO_DEP_KEY` with its own `MacroRunner`. 8/13 workflow tools measured!
   - **Run 28 (keep, debt=463, -7)**: `network.suite.ts` +7 offline cases (`network_get_status`, `network_get_stats`, `network_get_requests`, `network_extract_auth` Bearer masking check, `network_export_har` HAR 1.2 schema, `network_replay_request` dryRun preview, `console_get_exceptions`).
+  - **Run 29 (keep, debt=462, -1)**: `tls-inspector.suite.ts` +1 RFC 8446 ClientHello handshake vector (`tls_parse_handshake` SNI and metadata extraction).
 
-**Meta-review (Runs 1–28)**:
-- **Winning pattern**: Covering offline projection/serialization/dryRun layers across `native-emulator` (57/57), `trace` (10/10), `protocol-analysis` (20/20), `cross-domain` (8/8), `core` (19/25), `binary-instrument` (18/46), `network` (15/38), `maintenance` (13/17), `workflow` (8/13) has reduced `debt` from **616 → 463 (-153 tools covered, `vectors_total` 171 → 324)** with 2 real bugs fixed, `vector_fail=0`, `rejection_pct=100%`.
-- **Remaining highest-yield offline domains**: `network` response-body/intercept-list/console-buffers (`network_get_response_body`, `network_intercept` action=list, `network_enable`/`disable`), `process-static`, `memory-pure-ts`, `tls-inspector` (`tls_parse_handshake`).
+**Meta-review (Runs 1–29)**:
+- **Winning pattern**: Covering offline projection/serialization/dryRun layers across 13 domains has driven `debt` from **616 → 462 (-154 tools covered, `vectors_total` 171 → 325)** with 2 real bugs fixed, `vector_fail=0`, `rejection_pct=100%`.
+- **Remaining highest-yield offline domains**: `adb-bridge` (`adb_apk_analyze`), `memory-pure-ts` (CE table / structures), `process-static` (process inspect), `network` remaining offline helpers.

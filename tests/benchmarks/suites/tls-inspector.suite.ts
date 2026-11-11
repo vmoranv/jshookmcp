@@ -68,6 +68,34 @@ function wrapCertMessage(der: Buffer): string {
   return message.toString('hex');
 }
 
+// Minimal RFC 8446 ClientHello handshake record
+function buildClientHelloHex(): string {
+  const u16 = (n: number) => Buffer.from([(n >> 8) & 0xff, n & 0xff]);
+  const u24 = (n: number) => Buffer.from([(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]);
+  const ext = (type: number, data: Buffer) => Buffer.concat([u16(type), u16(data.length), data]);
+  const host = Buffer.from('benchmark.example.com');
+  const serverNameEntry = Buffer.concat([Buffer.from([0x00]), u16(host.length), host]);
+  const serverName = ext(0x0000, Buffer.concat([u16(serverNameEntry.length), serverNameEntry]));
+  const ciphers = Buffer.from([0x13, 0x01, 0x13, 0x02]);
+  const hello = Buffer.concat([
+    Buffer.from([0x03, 0x03]),
+    Buffer.alloc(32, 0x42),
+    Buffer.from([0x00]), // session_id
+    u16(ciphers.length),
+    ciphers,
+    Buffer.from([0x01, 0x00]), // compression: null
+    u16(serverName.length),
+    serverName,
+  ]);
+  return Buffer.concat([
+    Buffer.from([0x16, 0x03, 0x01]), // Handshake, TLS 1.0 record layer
+    u16(hello.length + 4),
+    Buffer.from([0x01]), // ClientHello
+    u24(hello.length),
+    hello,
+  ]).toString('hex');
+}
+
 // NSS SSLKEYLOGFILE sample (official format from Mozilla NSS)
 const CLIENT_RANDOM = 'a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90';
 const SECRET_HEX = '11'.repeat(48); // TLS 1.3 secrets are 48 bytes
@@ -148,6 +176,24 @@ export const tlsSuite: BenchSuite = {
         if (!text.includes(CERT_FINGERPRINT))
           return `SHA-256 fingerprint mismatch (expected ${CERT_FINGERPRINT.slice(0, 16)}…)`;
         if (!text.includes('cn=bench')) return 'subject CN not parsed';
+        return true;
+      },
+    },
+    {
+      name: 'tls_parse_handshake/client-hello-rfc8446',
+      tool: 'tls_parse_handshake',
+      origin: 'external-vector',
+      reference:
+        'parses RFC 8446 ClientHello handshake record extracting serverName SNI and handshake metadata',
+      run: () => handlers.handleParseHandshake({ rawHex: buildClientHelloHex() }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success === false) return `failed: ${b.error}`;
+        const handshake = b.handshake as Record<string, unknown> | undefined;
+        if (!handshake || handshake.type !== 'client_hello')
+          return `expected handshake.type === 'client_hello', got: ${JSON.stringify(b)}`;
+        if (handshake.serverName !== 'benchmark.example.com')
+          return `expected SNI benchmark.example.com, got: ${handshake.serverName}`;
         return true;
       },
     },
