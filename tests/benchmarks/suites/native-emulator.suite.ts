@@ -107,9 +107,18 @@ function buildMinimalArm64So(
 
 // AArch64: add x0, x0, x1; ret
 const ADD_TWO_BYTES = [0x00, 0x00, 0x01, 0x8b, 0xc0, 0x03, 0x5f, 0xd6];
+// AArch64 JNI export: add x0, x2, x3; ret (skips JNIEnv* x0 and jobject x1)
+const JNI_ADD_BYTES = [0x40, 0x00, 0x03, 0x8b, 0xc0, 0x03, 0x5f, 0xd6];
 const tmp = mkdtempSync(join(tmpdir(), 'jshook-bench-nemu-'));
 const soPath = join(tmp, 'libbenchadd.so');
+const jniSoPath = join(tmp, 'libbenchjni.so');
+const planPath = join(tmp, 'session-plan.json');
 writeFileSync(soPath, buildMinimalArm64So(ADD_TWO_BYTES, [{ name: 'add_two', codeOffset: 0 }]));
+writeFileSync(
+  jniSoPath,
+  buildMinimalArm64So(JNI_ADD_BYTES, [{ name: 'Java_bench_add', codeOffset: 0 }]),
+);
+writeFileSync(planPath, JSON.stringify([{ tool: 'nemu_prepare_tls', args: {} }]));
 process.once('exit', () => {
   try {
     rmSync(tmp, { recursive: true, force: true });
@@ -794,6 +803,360 @@ export const nativeEmulatorSuite: BenchSuite = {
       validate: (v) => {
         const b = expectSuccess(v);
         if (b.slot !== 'ia') return `expected slot ia, got ${b.slot}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch Wave 3 (autoresearch): ELF imports/GOT, JNI/Java, TLS, host stubs, trace, relay/gdb ──
+    {
+      name: 'nemu_inspect_imports/parses-elf-imports',
+      tool: 'nemu_inspect_imports',
+      origin: 'homemade',
+      reference: 'parses ELF64 .so import table cleanly via pure-TS ELF reader',
+      run: () => {
+        const h = new NativeEmulatorHandlers(
+          new SessionManager({ emulatorOptions: { syscalls: false } }),
+        );
+        return h.handleInspectImports({ soPath }).finally(() => h.dispose());
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.soPath !== 'string' || !b.soPath.includes('libbenchadd.so'))
+          return `missing soPath in import inspection: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_dump_got/scans-plt-clusters',
+      tool: 'nemu_dump_got',
+      origin: 'homemade',
+      reference: 'scans ELF64 .so PLT/GOT clusters via pure-TS disassembler',
+      run: () => {
+        const h = new NativeEmulatorHandlers(
+          new SessionManager({ emulatorOptions: { syscalls: false } }),
+        );
+        return h.handleDumpGot({ soPath }).finally(() => h.dispose());
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.clusters))
+          return `expected clusters array in GOT dump: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_prepare_tls/maps-tpidr-el0',
+      tool: 'nemu_prepare_tls',
+      origin: 'homemade',
+      reference: 'maps TLS segment and configures TPIDR_EL0 base address',
+      run: () => withSession((handlers, sessionId) => handlers.handlePrepareTls({ sessionId })),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.tlsBase !== 'string' || Number(b.tlsSize) !== 0x2000)
+          return `expected tlsBase and tlsSize=0x2000, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_mem_shadow/adds-overlay',
+      tool: 'nemu_mem_shadow',
+      origin: 'homemade',
+      reference: 'adds shadow memory overlay at guest address',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleMemShadow({
+            sessionId,
+            address: 0x1000,
+            dataBase64: Buffer.from([1, 2, 3, 4]).toString('base64'),
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.shadowed !== true || Number(b.size) !== 4)
+          return `expected shadowed=true size=4, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_bind_host_fn/registers-stub',
+      tool: 'nemu_bind_host_fn',
+      origin: 'homemade',
+      reference: 'registers custom JS host stub function at guest stub address',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleBindHostFn({
+            sessionId,
+            address: 0x68003000,
+            fn: 'return 77n;',
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.bound !== true) return `expected bound=true, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_bind_all_imports/scans-got-range',
+      tool: 'nemu_bind_all_imports',
+      origin: 'homemade',
+      reference: 'scans GOT address range for 0x68000000+ import stubs and binds JS wrapper',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const stubBuf = Buffer.alloc(8);
+          stubBuf.writeBigUInt64LE(0x68004000n, 0);
+          const alloc = body(
+            await handlers.handleAllocMemory({
+              sessionId,
+              size: 8,
+              fillBytes: stubBuf.toString('base64'),
+            }),
+          );
+          const gotStart = Number(alloc.address);
+          return handlers.handleBindAllImports({
+            sessionId,
+            fn: 'return 0n;',
+            gotStart,
+            gotEnd: gotStart + 8,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.totalUniqueStubs) !== 1 || Number(b.count) !== 1)
+          return `expected 1 bound import stub, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_call_jni_export/jni-add-two-42',
+      tool: 'nemu_call_jni_export',
+      origin: 'external-vector',
+      reference:
+        'calls JNI export Java_bench_add(JNIEnv*, jobject, 40, 2) with auto-injected env/thiz → 42',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          await handlers.handleLoadLibrary({ sessionId, soPath: jniSoPath });
+          return handlers.handleCallJniExport({
+            sessionId,
+            symbol: 'Java_bench_add',
+            javaArgs: [40, 2],
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.result) !== 42) return `expected JNI result 42, got ${b.result}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_setup_java_mocks/batch-registration',
+      tool: 'nemu_setup_java_mocks',
+      origin: 'homemade',
+      reference: 'batch-registers multiple declarative Java method mocks in one call',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleSetupJavaMocks({
+            sessionId,
+            mocks: [
+              { className: 'com/app/A', methodName: 'm1', signature: '()I', returnInt: 1 },
+              { className: 'com/app/B', methodName: 'm2', signature: '()Z', returnBoolean: true },
+            ],
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.mocksRegistered) !== 2)
+          return `expected mocksRegistered=2, got ${b.mocksRegistered}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_setup_java_field/registers-int-field',
+      tool: 'nemu_setup_java_field',
+      origin: 'homemade',
+      reference: 'registers mock Java static/instance field value',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleSetupJavaField({
+            sessionId,
+            className: 'com/app/Config',
+            fieldName: 'FLAG',
+            signature: 'I',
+            valueInt: 7,
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.kind !== 'int' || b.fieldName !== 'FLAG')
+          return `unexpected java field result: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_write_regions/batch-writes-two-regions',
+      tool: 'nemu_write_regions',
+      origin: 'homemade',
+      reference: 'writes multiple guest memory regions in a single batch call',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const a1 = body(await handlers.handleAllocMemory({ sessionId, size: 4 }));
+          const a2 = body(await handlers.handleAllocMemory({ sessionId, size: 4 }));
+          return handlers.handleWriteRegions({
+            sessionId,
+            regions: [
+              {
+                address: Number(a1.address),
+                dataBase64: Buffer.from([1, 2, 3, 4]).toString('base64'),
+              },
+              {
+                address: Number(a2.address),
+                dataBase64: Buffer.from([5, 6, 7, 8]).toString('base64'),
+              },
+            ],
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.regionsWritten) !== 2 || Number(b.totalBytes) !== 8)
+          return `expected 2 regions / 8 bytes, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_jni_diag/snapshot-log',
+      tool: 'nemu_jni_diag',
+      origin: 'homemade',
+      reference: 'reads non-destructive JNI diagnostic log snapshot',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleJniDiag({ sessionId, action: 'snapshot' }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.entries)) return `expected entries array, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_get_jni_stub/lists-bound-stubs',
+      tool: 'nemu_get_jni_stub',
+      origin: 'homemade',
+      reference: 'lists bound JNI NativeInterface stub addresses',
+      run: () => withSession((handlers, sessionId) => handlers.handleGetJniStub({ sessionId })),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.stubs) || Number(b.count) === 0)
+          return `expected non-empty JNI stubs array, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_dlsym_diag/snapshot-log',
+      tool: 'nemu_dlsym_diag',
+      origin: 'homemade',
+      reference: 'reads non-destructive dlsym resolution log snapshot',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleDlsymDiag({ sessionId, action: 'snapshot' }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.entries)) return `expected entries array, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_vm_state_load/writes-ctx-and-table',
+      tool: 'nemu_vm_state_load',
+      origin: 'homemade',
+      reference: 'writes LiteVM ctx and table u64 arrays into guest memory',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const alloc = body(await handlers.handleAllocMemory({ sessionId, size: 128 }));
+          const base = Number(alloc.address);
+          return handlers.handleVmStateLoad({
+            sessionId,
+            ctxBase: base,
+            tableBase: base + 64,
+            ctx: ['0x1', '0x2'],
+            table: ['0x3', '0x4'],
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const written = b.written as { ctxBytes?: number; tableBytes?: number } | undefined;
+        if (written?.ctxBytes !== 16 || written?.tableBytes !== 16)
+          return `expected 16 ctx/table bytes written, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_session_load/replays-json-plan',
+      tool: 'nemu_session_load',
+      origin: 'homemade',
+      reference: 'replays a 1-step JSON session setup plan file',
+      run: () =>
+        withSession((handlers, sessionId) => handlers.handleSessionLoad({ sessionId, planPath })),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.count) !== 1) return `expected 1 replayed step, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_trace/instruction-trace-add-two',
+      tool: 'nemu_trace',
+      origin: 'external-vector',
+      reference: 'traces A64 instructions of add_two(40, 2) returning 42 with >=2 steps',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          await handlers.handleLoadLibrary({ sessionId, soPath });
+          return handlers.handleTrace({
+            sessionId,
+            symbol: 'add_two',
+            args: [40, 2],
+            persistArtifact: false,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.result) !== 42 || Number(b.steps) < 2)
+          return `expected result=42 and steps>=2, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_relay/status-listing',
+      tool: 'nemu_relay',
+      origin: 'homemade',
+      reference: 'queries IPC relay status list cleanly when idle',
+      run: () => {
+        const h = new NativeEmulatorHandlers(
+          new SessionManager({ emulatorOptions: { syscalls: false } }),
+        );
+        return h.handleRelay({ action: 'status' }).finally(() => h.dispose());
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.relays)) return `expected relays array, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_gdbserver/status-idle',
+      tool: 'nemu_gdbserver',
+      origin: 'homemade',
+      reference: 'queries GDB RSP server status cleanly when no servers are running',
+      run: () => {
+        const h = new NativeEmulatorHandlers(
+          new SessionManager({ emulatorOptions: { syscalls: false } }),
+        );
+        return h.handleGdbserver({ action: 'status' }).finally(() => h.dispose());
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.running !== 'boolean' || !Array.isArray(b.servers))
+          return `expected running boolean and servers array, got ${JSON.stringify(b)}`;
         return true;
       },
     },
