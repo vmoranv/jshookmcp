@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **332 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **337 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -192,6 +192,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 - **[外部]** PE/ELF corpora from [LIEF](https://github.com/lief-project/LIEF) test suite — hollowing static scan. 📋
 - **[自制] ✅** `process-static` suite: /proc-style maps fixtures for process_hollowing_scan (pure-TS anonymous RWX VAD anomaly detection), active node process enumeration.
+- **[自制] ✅** (2026-11-11, +5 tools): `process_get` (`process.pid` metadata), `process_list` (`UnifiedProcessManager` listing), `process_windows` (`process.pid` windows), `process_check_debug_port` (`process.pid` commandLine probe), `memory_audit_export` (pure-TS audit trail export).
 - Win32-native members (inject/APC/handle enum) are admin-gated → skip in CI by design.
 
 ## protocol-analysis (20 tools) — ✅ suite `protocol-analysis`
