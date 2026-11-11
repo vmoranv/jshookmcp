@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **238 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **253 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -157,10 +157,12 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 - **[自制] ✅** `native-bridge` suite: bridge protocol loopback health probe (reachable=false when offline), static tool setup guides (Rizin, Binary Ninja), SSRF endpoint validation.
 
-## native-emulator (57 tools)
+## native-emulator (57 tools) — ✅ suite `native-emulator` (ARM64 in-process CPU emulation subset)
 
-- **[外部]** [Unicorn engine](https://github.com/unicorn-engine/unicorn) test suite + [capstone](https://github.com/capstone-engine/capstone) arm64 tests — CPU/disassembler parity. 📋
-- **[自制]** LiteVM bytecode decode vectors (nemu_bytecode_decode has Python-reference semantics); GDB RSP packet roundtrip (RFC 5.1 examples). 📋
+- **[外部] ✅** (2026-11-11) ELF64 AArch64 minimal `.so` (`EM_AARCH64=183`, `SHT_DYNSYM`) + ARMv8-A A64 `add x0, x0, x1; ret` (`add_two(40, 2) === 42`) via `nemu_load_library`, `nemu_list_symbols`, `nemu_call_symbol`.
+- **[自制] ✅** (2026-11-11) `native-emulator` suite (15 tools): `nemu_create_session`, `nemu_destroy_session`, `nemu_list_sessions`, `nemu_session_info`, `nemu_alloc_memory`, `nemu_write_memory`, `nemu_read_memory`, `nemu_new_byte_array`, `nemu_read_byte_array`, `nemu_setup_java_mock`, `nemu_create_jni_handle`, `nemu_jni_handles` (plus `nemu_bytecode_decode`/`nemu_disassemble`/`nemu_capabilities` in `offline-tools`).
+- **[外部]** [Unicorn engine](https://github.com/unicorn-engine/unicorn) test suite + [capstone](https://github.com/capstone-engine/capstone) arm64 tests — full ISA/disassembler parity. 📋
+- **[自制]** GDB RSP packet roundtrip (RFC 5.1 examples). 📋
 
 ## network (38 tools) — ✅ suite `network-fingerprint` (offline subset)
 

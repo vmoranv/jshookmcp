@@ -37,6 +37,7 @@ import { syscallHookSuite } from './syscall-hook.suite';
 import { webgpuSuite } from './webgpu.suite';
 import { canvasSuite } from './canvas.suite';
 import { mojoIpcSuite } from './mojo-ipc.suite';
+import { nativeEmulatorSuite } from './native-emulator.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -77,4 +78,5 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   webgpuSuite,
   canvasSuite,
   mojoIpcSuite,
+  nativeEmulatorSuite,
 ];

@@ -68,6 +68,8 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   // mojo-ipc offline codec subset (2026-11-10 autoresearch coverage batch) —
   // deterministic offline; any failure is a real regression.
   'mojo-ipc': 90,
+  // native-emulator ARM64 in-process CPU emulation subset (2026-11-11 autoresearch)
+  'native-emulator': 90,
 };
 
 const results: BenchSuiteResult[] = [];
