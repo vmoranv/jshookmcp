@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **234 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **238 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -254,6 +254,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 ## v8-inspector (21 tools) — ✅ suite `v8-inspector-heap`
 
 - **[自制] ✅** `v8-inspector-heap` suite: synthetic V8 heapsnapshot fixtures testing class histogram generation, snapshot structural diff, dominator-tree retainer tracing, and object pair comparison.
+- **[自制] ✅** (2026-11-11) `v8_heap_find_leaks` (dominator leak candidate detection), `v8_function_retained` (retained object filter), `v8_heap_snapshot_export` (`.heapsnapshot` artifact export), `v8_heap_snapshot_delete` (in-memory & disk drop).
 - **[外部]** `.heapsnapshot` format spec + DevTools sample snapshots — snapshot parse/analyze/diff. 📋
 
 ## wasm (17 tools) — ✅ suite `wasm`

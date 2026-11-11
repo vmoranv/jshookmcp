@@ -228,5 +228,74 @@ export const v8InspectorSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): offline heap inspection & export tools ──
+    {
+      name: 'v8_heap_find_leaks/candidate-detection',
+      tool: 'v8_heap_find_leaks',
+      origin: 'homemade',
+      reference: 'finds memory leak candidates in snapshot with minRetainedSize filter',
+      run: () =>
+        handlers.handle('v8_heap_find_leaks', {
+          snapshotId: 'bench-snap-1',
+          minRetainedSize: 0,
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.success === false) return `find leaks failed: ${b.error}`;
+        if (!Array.isArray(b.leakCandidates))
+          return `expected leakCandidates array, got ${JSON.stringify(b).slice(0, 150)}`;
+        return true;
+      },
+    },
+    {
+      name: 'v8_function_retained/function-dominator-filter',
+      tool: 'v8_function_retained',
+      origin: 'homemade',
+      reference: 'filters objects retained by function name pattern across dominator tree',
+      run: () =>
+        handlers.handle('v8_function_retained', {
+          snapshotId: 'bench-snap-1',
+          pattern: 'Array',
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (typeof b.objectCount !== 'number')
+          return `expected objectCount number, got ${typeof b.objectCount}`;
+        return true;
+      },
+    },
+    {
+      name: 'v8_heap_snapshot_export/export-artifact',
+      tool: 'v8_heap_snapshot_export',
+      origin: 'homemade',
+      reference: 'exports in-memory heap snapshot chunks to a .heapsnapshot JSON artifact',
+      run: () =>
+        handlers.handle('v8_heap_snapshot_export', {
+          snapshotId: 'bench-snap-1',
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const path = (b.absolutePath ?? b.displayPath ?? b.exportedPath) as string | undefined;
+        if (!path || typeof path !== 'string')
+          return `expected absolutePath string, got ${JSON.stringify(b).slice(0, 150)}`;
+        return true;
+      },
+    },
+    {
+      name: 'v8_heap_snapshot_delete/drop-from-cache',
+      tool: 'v8_heap_snapshot_delete',
+      origin: 'homemade',
+      reference: 'removes target snapshot from in-memory cache and persisted store',
+      run: () =>
+        handlers.handle('v8_heap_snapshot_delete', {
+          snapshotId: 'bench-snap-2',
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.cacheDropped !== true) return `expected cacheDropped === true, got ${b.cacheDropped}`;
+        return true;
+      },
+    },
   ],
 };

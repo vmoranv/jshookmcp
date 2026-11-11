@@ -123,7 +123,8 @@ crash (gate floor breach counts as crash). `./checks.sh` must then pass (exit 0)
   - **Run 16 (keep, debt=561, -5)**: `dart-inspector.suite.ts` +5 pure-TS cases (`dart_strings_extract`, `flutter_packages_detect`, `dart_symbolize`, `dart_version_fingerprint`, `dart_object_pool_dump`) using real committed `tiny-libapp.so` / `packages-libapp.so` and inline Smi/hash fixtures.
   - **Run 17 (keep, debt=560, -1)**: `wasm.suite.ts` +1 pure-TS case (`wasm_string_extract`).
   - **Run 18 (keep, debt=553, -7)**: `maintenance.suite.ts` +7 offline cases (`clear_all_caches`, `smart_cache_cleanup`, `cleanup_artifacts`, `doctor_environment`, `snapshot_create`, `snapshot_list`, `snapshot_restore`). 13/17 maintenance tools measured!
+  - **Run 19 (keep, debt=549, -4)**: `v8-inspector.suite.ts` +4 offline heap cases (`v8_heap_find_leaks`, `v8_function_retained`, `v8_heap_snapshot_export`, `v8_heap_snapshot_delete`). Unmeasured broke below 500 → **498**!
 
-**Meta-review (Runs 1–18)**:
-- **Winning pattern**: Targeting offline-pure domains/subsets and asserting real documented input modes (e.g. `data:` URIs in `sourcemap_parse_v4`) both lowers `unmeasured` (565 → 502, -63 tools) AND catches latent production bugs (e.g. `fetchSourceMapText` rejecting `data:`), with `vector_fail=0` and `rejection_pct=100%`.
-- **Remaining highest-yield offline domains**: `native-emulator` (54), `v8-inspector` (15), `binary-instrument` (41), `adb-bridge` parsers, `streaming` / `network` offline parsers.
+**Meta-review (Runs 1–19)**:
+- **Winning pattern**: Targeting offline-pure domains/subsets and asserting real documented input modes (e.g. `data:` URIs in `sourcemap_parse_v4`) both lowers `unmeasured` (565 → 498, -67 tools) AND catches latent production bugs (e.g. `fetchSourceMapText` rejecting `data:`), with `vector_fail=0` and `rejection_pct=100%`.
+- **Remaining highest-yield offline domains**: `native-emulator` (54), `binary-instrument` (41), `adb-bridge` parsers, `streaming` / `network` offline parsers, `memory-pure-ts`, `process-static`.
