@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **204 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **208 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -80,11 +80,12 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[自制] ✅** `core-analysis` suite: obfuscator.io-style string-array sample detection, clean-code negative control, planted-secrets security scan, source→sink taint path, AST match counts, opaque predicate solving.
 - **[自制] ✅** (2026-11-10) `core-analysis` coverage batch: `detect_crypto` (AES/SHA algorithm & library detection), `analysis_decode_string_array` (string-array call inlining), `analysis_deflat_control_flow` (switch-in-while dispatcher unflattening), `get_collection_stats` (cache/compression summary), `clear_collected_data` (session cache clear receipt).
 
-## cross-domain (8 tools) — ✅ suite `cross-domain`
+## cross-domain (8 tools) — ✅ suite `cross-domain` (8/8 tools measured)
 
 - **[外部]** [W3C PROV-DM / PROV-JSON](https://www.w3.org/TR/prov-dm/) + [prov-check](https://github.com/pgroth/prov-check) constraints — evidence graph export validity. 📋
 - **[外部]** [BFCL tool-retrieval category](https://gorilla.cs.berkeley.edu) (Berkeley Function Calling Leaderboard) — cross_domain_synonym / workflow suggestion quality; repo-internal datasets at `scripts/search-tune/datasets` remain primary. 📋
 - **[自制] ✅** `cross-domain` suite: synonym intent resolution with recommended tools mapping, evidence bridge node/edge export and stats calculation, workflow capabilities evaluation across enabled domains.
+- **[自制] ✅** (2026-11-11) `cross-domain` completion batch: `cross_domain_suggest_workflow` (goal ranking + coverage), `cross_domain_evidence_stats` (node/edge count verification), `cross_domain_evidence_query` (network_url filter), `cross_domain_correlate_all` (offline mojo/cdp/network/syscall correlators).
 
 ## dart-inspector (16 tools) — ✅ suite `dart-inspector`
 
