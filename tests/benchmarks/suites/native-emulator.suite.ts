@@ -417,5 +417,385 @@ export const nativeEmulatorSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Coverage batch Wave 2 (autoresearch): execution, memory, registers, vtables, VM state ──
+    {
+      name: 'nemu_call_address/arm64-address-call',
+      tool: 'nemu_call_address',
+      origin: 'external-vector',
+      reference: 'calls loaded add_two symbol directly by its guest virtual address (0x1000)',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          await handlers.handleLoadLibrary({ sessionId, soPath });
+          return handlers.handleCallAddress({ sessionId, address: 0x1000, args: [35, 7] });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.result) !== 42) return `expected result 42, got ${b.result}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_mem_map/maps-region',
+      tool: 'nemu_mem_map',
+      origin: 'homemade',
+      reference: 'maps an explicit guest memory region by base address and size',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleMemMap({ sessionId, address: 0x50000000, size: 4096 }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.size) !== 4096) return `expected size 4096, got ${b.size}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_scan_memory/finds-byte-pattern',
+      tool: 'nemu_scan_memory',
+      origin: 'homemade',
+      reference: 'scans guest memory range and locates planted 4-byte pattern (CAFEBABE)',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const pattern = Buffer.from([0xca, 0xfe, 0xba, 0xbe]).toString('base64');
+          const alloc = body(
+            await handlers.handleAllocMemory({ sessionId, size: 32, fillBytes: pattern }),
+          );
+          const start = Number(alloc.address);
+          return handlers.handleScanMemory({
+            sessionId,
+            pattern,
+            startAddr: start,
+            endAddr: start + 32,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.count) < 1 || !Array.isArray(b.matches))
+          return `expected at least 1 match, got: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_xor_region/in-place-xor-decode',
+      tool: 'nemu_xor_region',
+      origin: 'homemade',
+      reference: 'XORs memory region with byte key in-place and returns modified dataBase64',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const init = Buffer.from([0x41, 0x41, 0x41, 0x41]).toString('base64');
+          const alloc = body(
+            await handlers.handleAllocMemory({ sessionId, size: 4, fillBytes: init }),
+          );
+          return handlers.handleXorRegion({
+            sessionId,
+            address: alloc.address,
+            key: 1,
+            length: 4,
+            dryRun: false,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const expected = Buffer.from([0x40, 0x40, 0x40, 0x40]).toString('base64');
+        if (b.dataBase64 !== expected)
+          return `expected XORed result ${expected}, got ${b.dataBase64}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_patch_apply/batch-write-patches',
+      tool: 'nemu_patch_apply',
+      origin: 'homemade',
+      reference: 'applies multiple memory patches to guest memory in one batch call',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const alloc = body(await handlers.handleAllocMemory({ sessionId, size: 16 }));
+          return handlers.handlePatchApply({
+            sessionId,
+            patches: [
+              {
+                address: Number(alloc.address),
+                dataBase64: Buffer.from([1, 2, 3, 4]).toString('base64'),
+              },
+            ],
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.patchesApplied) !== 1 || Number(b.totalBytes) !== 4)
+          return `expected 1 patch applied, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_data_dump/u64-words-dump',
+      tool: 'nemu_data_dump',
+      origin: 'homemade',
+      reference: 'dumps guest memory as typed u64 words with semantic classification tags',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const alloc = body(await handlers.handleAllocMemory({ sessionId, size: 16 }));
+          return handlers.handleDataDump({
+            sessionId,
+            address: Number(alloc.address),
+            count: 2,
+            wordSize: 'u64',
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.count) !== 2 || !Array.isArray(b.rows))
+          return `expected 2 rows dumped, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_dump_frame/litevm-frame-decoding',
+      tool: 'nemu_dump_frame',
+      origin: 'homemade',
+      reference: 'decodes LiteVM frame structure from guest memory address',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const alloc = body(await handlers.handleAllocMemory({ sessionId, size: 256 }));
+          return handlers.handleDumpFrame({ sessionId, address: Number(alloc.address) });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!b.fields || typeof b.fields !== 'object')
+          return `missing fields in frame dump: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_pointer_chain/walks-two-hops',
+      tool: 'nemu_pointer_chain',
+      origin: 'homemade',
+      reference: 'walks pointer chain in guest memory until NULL terminator',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const alloc1 = body(await handlers.handleAllocMemory({ sessionId, size: 8 }));
+          const alloc2 = body(await handlers.handleAllocMemory({ sessionId, size: 8 }));
+          // Write alloc2 address into alloc1
+          const buf = Buffer.alloc(8);
+          buf.writeBigUInt64LE(BigInt(Number(alloc2.address)), 0);
+          await handlers.handleWriteMemory({
+            sessionId,
+            address: Number(alloc1.address),
+            dataBase64: buf.toString('base64'),
+          });
+          return handlers.handlePointerChain({
+            sessionId,
+            base: Number(alloc1.address),
+            maxDepth: 2,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.hops) || b.hops.length < 2)
+          return `expected >= 2 hops, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_mem_inspect/routes-read-subcommand',
+      tool: 'nemu_mem_inspect',
+      origin: 'homemade',
+      reference: 'dispatches unified read action through the nemu_mem_inspect facade',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const expected = Buffer.from([0xaa, 0xbb]).toString('base64');
+          const alloc = body(
+            await handlers.handleAllocMemory({ sessionId, size: 4, fillBytes: expected }),
+          );
+          return handlers.handleMemInspect({
+            sessionId,
+            action: 'read',
+            address: Number(alloc.address),
+            length: 2,
+            includeDataBase64: true,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const expected = Buffer.from([0xaa, 0xbb]).toString('base64');
+        if (b.dataBase64 !== expected) return `expected ${expected}, got ${b.dataBase64}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_bytecode_scan/scans-instruction-words',
+      tool: 'nemu_bytecode_scan',
+      origin: 'homemade',
+      reference: 'scans guest memory for instruction words in summary format',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const alloc = body(await handlers.handleAllocMemory({ sessionId, size: 16 }));
+          return handlers.handleBytecodeScan({
+            sessionId,
+            address: Number(alloc.address),
+            count: 4,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.totalWords) !== 4) return `expected totalWords === 4, got ${b.totalWords}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_set_registers/writes-gprs',
+      tool: 'nemu_set_registers',
+      origin: 'homemade',
+      reference: 'directly sets guest GPR values x0 and x1',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleSetRegisters({
+            sessionId,
+            registers: { '0': 100, '1': 200 },
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.count) !== 2) return `expected count === 2, got ${b.count}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_regs_save/captures-gpr-snapshot',
+      tool: 'nemu_regs_save',
+      origin: 'homemade',
+      reference: 'snapshots current GPR values and returns snapshotId',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleRegsSave({ sessionId, name: 'bench_snap' }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.snapshotId !== 'string' || Number(b.regCount) < 31)
+          return `expected snapshotId and >=31 regs, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_regs_restore/restores-saved-snapshot',
+      tool: 'nemu_regs_restore',
+      origin: 'homemade',
+      reference: 'restores CPU registers from a previously saved snapshot',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const snap = body(await handlers.handleRegsSave({ sessionId, name: 'snap_restore' }));
+          return handlers.handleRegsRestore({ sessionId, snapshotId: String(snap.snapshotId) });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (Number(b.count) < 31) return `expected >=31 restored regs, got ${b.count}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_create_vtable/allocates-vtable-object',
+      tool: 'nemu_create_vtable',
+      origin: 'homemade',
+      reference: 'allocates a C++ vtable-backed object in guest memory with default return stub',
+      run: () => withSession((handlers, sessionId) => handlers.handleCreateVtable({ sessionId })),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!b.objectAddr || !b.vtableAddr)
+          return `missing objectAddr or vtableAddr: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_set_vtable_slot/binds-custom-stub',
+      tool: 'nemu_set_vtable_slot',
+      origin: 'homemade',
+      reference: 'binds custom host JS stub into specified vtable slot index',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const vt = body(await handlers.handleCreateVtable({ sessionId }));
+          const vtableAddr = parseInt(String(vt.vtableAddr), 16);
+          return handlers.handleSetVtableSlot({
+            sessionId,
+            vtableAddr,
+            slotIndex: 0,
+            fn: 'return 99n;',
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.bound !== true) return `expected bound === true, got ${b.bound}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_vm_state_dump/dumps-ctx-and-table',
+      tool: 'nemu_vm_state_dump',
+      origin: 'homemade',
+      reference: 'reads LiteVM ctx and table u64 arrays from allocated guest memory',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const alloc = body(await handlers.handleAllocMemory({ sessionId, size: 128 }));
+          const base = Number(alloc.address);
+          return handlers.handleVmStateDump({
+            sessionId,
+            ctxBase: base,
+            tableBase: base + 64,
+            ctxCount: 4,
+            tableCount: 4,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.ctx) || !Array.isArray(b.table))
+          return `expected ctx and table arrays, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_vm_state_compare/diffs-expected-state',
+      tool: 'nemu_vm_state_compare',
+      origin: 'homemade',
+      reference:
+        'compares native VM memory state against expected Python arrays and reports matches',
+      run: () =>
+        withSession(async (handlers, sessionId) => {
+          const alloc = body(await handlers.handleAllocMemory({ sessionId, size: 128 }));
+          const base = Number(alloc.address);
+          const zeroArray = Array(4).fill('0x0000000000000000');
+          return handlers.handleVmStateCompare({
+            sessionId,
+            ctxBase: base,
+            tableBase: base + 64,
+            expectedCtx: zeroArray,
+            expectedTable: zeroArray,
+          });
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.ctxMatch !== true || b.tableMatch !== true)
+          return `expected ctx and table to match zeros, got ctxMatch=${b.ctxMatch} tableMatch=${b.tableMatch}`;
+        return true;
+      },
+    },
+    {
+      name: 'nemu_set_pac_key/updates-qarma-key',
+      tool: 'nemu_set_pac_key',
+      origin: 'homemade',
+      reference: 'updates 128-bit QARMA pointer authentication key for slot ia',
+      run: () =>
+        withSession((handlers, sessionId) =>
+          handlers.handleSetPacKey({
+            sessionId,
+            slot: 'ia',
+            key: '0123456789abcdef0123456789abcdef',
+          }),
+        ),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.slot !== 'ia') return `expected slot ia, got ${b.slot}`;
+        return true;
+      },
+    },
   ],
 };

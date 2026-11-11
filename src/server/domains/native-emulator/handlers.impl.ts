@@ -2645,7 +2645,7 @@ export class NativeEmulatorHandlers {
       const eng = session.emulator.engine;
       const restored: string[] = [];
       for (const [reg, val] of Object.entries(snap)) {
-        if (regFilter && !regFilter.includes(reg)) continue;
+        if (regFilter.length > 0 && !regFilter.includes(reg)) continue;
         if (reg === 'sp') {
           eng['registerFile'].sp = val;
         } else {
