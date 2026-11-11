@@ -6,6 +6,10 @@
  * official library ships; sampled entries must classify to their vendor.
  */
 import { CoreMaintenanceHandlers } from '@server/domains/maintenance/handlers';
+import { SandboxToolHandlers } from '@server/domains/maintenance/handlers.sandbox';
+import { ExtensionManagementHandlers } from '@server/domains/maintenance/handlers.extensions';
+import { listExtensions, reloadExtensions } from '@server/extensions/ExtensionManager';
+import type { MCPServerContext } from '@server/MCPServer.context';
 import { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import { body, type BenchSuite } from '../harness';
@@ -21,6 +25,24 @@ const handlers = new CoreMaintenanceHandlers({
   tokenBudget: realTokenBudget,
   unifiedCache: realCacheManager,
 } as never);
+
+const extCtx = {
+  extensionPluginsById: new Map(),
+  extensionPluginRuntimeById: new Map(),
+  extensionWorkflowsById: new Map(),
+  extensionWorkflowRuntimeById: new Map(),
+  extensionToolsByName: new Map(),
+  pluginExtensionToolNames: new Set(),
+  listExtensions: function () {
+    return listExtensions(this as unknown as MCPServerContext);
+  },
+  reloadExtensions: function () {
+    return reloadExtensions(this as unknown as MCPServerContext);
+  },
+} as unknown as MCPServerContext;
+
+const extHandlers = new ExtensionManagementHandlers(extCtx);
+const sandboxHandlers = new SandboxToolHandlers(extCtx);
 
 const snapTargetDir = mkdtempSync(join(tmpdir(), 'jshook-bench-snap-'));
 writeFileSync(join(snapTargetDir, 'state.txt'), 'version 1 content');
@@ -315,6 +337,50 @@ export const maintenanceSuite: BenchSuite = {
         if (res?.success === false) return `restore failed: ${res.error}`;
         if (currentContent !== 'version 1 content')
           return `expected file reverted to 'version 1 content', got: '${currentContent}'`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): extension management & sandbox tools ──
+    {
+      name: 'execute_sandbox_script/eval-quickjs-wasm',
+      tool: 'execute_sandbox_script',
+      origin: 'homemade',
+      reference: 'executes JS code in isolated QuickJS WebAssembly runtime with MCP bridge',
+      run: () => sandboxHandlers.handleExecuteSandboxScript({ code: '6 * 7' }),
+      validate: (v: unknown) => {
+        const text = JSON.stringify(v);
+        if (!text.includes('42')) return `expected 42 in sandbox result, got ${text.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'list_extensions/lists-runtime-extensions',
+      tool: 'list_extensions',
+      origin: 'homemade',
+      reference: 'queries loaded plugins, workflows, and extension tools via ExtensionManager',
+      run: () => extHandlers.handleListExtensions({}),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success !== true || !Array.isArray(b.plugins) || !Array.isArray(b.workflows))
+          return `unexpected list_extensions payload: ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'reload_extensions/reloads-extension-roots',
+      tool: 'reload_extensions',
+      origin: 'homemade',
+      reference: 'reloads extension configurations from configured roots with mutex',
+      run: async () => {
+        const { initRegistry } = await import('@server/registry/index');
+        await initRegistry();
+        return extHandlers.handleReloadExtensions();
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success !== true)
+          return `unexpected reload_extensions payload: ${JSON.stringify(b).slice(0, 200)}`;
         return true;
       },
     },

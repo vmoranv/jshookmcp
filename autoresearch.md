@@ -139,7 +139,8 @@ crash (gate floor breach counts as crash). `./checks.sh` must then pass (exit 0)
   - **Run 34 (keep, debt=440, -5)**: `offline-tools.suite.ts` +5 offline browser cases (`browser_jsdom_execute` QuickJS WASM sandbox, `get_detailed_data` DetailedDataManager retrieval, `get_offloaded_data` safe file read, `stealth_generate_fingerprint` profile generation, `captcha_solver_capabilities`). `vectors_total` reaches **347**!
   - **Run 35 (discard, debt=440)**: `misc-residual.suite.ts` converted `browser_jsdom_serialize` & `browser_jsdom_cookies` skips to live cases (`per_tool_shortfall` 12→10, but `debt` unchanged since `withVectors` already counts skips).
   - **Run 36 (keep, debt=434, -6)**: `network.suite.ts` Wave 2 +6 offline cases (`network_get_response_body`, `network_intercept`, `network_enable`, `network_disable`, `network_monitor`, `console_buffers`). `vectors_total` reaches **353**!
+  - **Run 37 (keep, debt=431, -3)**: `maintenance.suite.ts` +3 cases (`execute_sandbox_script` QuickJS WASM, `list_extensions` real ExtensionManager, `reload_extensions`). 16/17 maintenance tools measured (94.1%)! `vectors_total` reaches **356**!
 
-**Meta-review (Runs 1–36)**:
-- **Winning pattern**: Targeting unmeasured tools (`correctness = "—"`) across 15 domains has dropped `debt` from **616 → 434 (-182 tools covered, `vectors_total` 171 → 353)** with 3 real production bugs fixed, `vector_fail=0`, `rejection_pct=100%`.
-- **Remaining highest-yield offline targets**: `graphql` (offline `graphql_extract_queries` / `call_graph_analyze` / `script_replace_persist` / loopback `graphql_introspect` / `graphql_replay` / `graphql_enum_schema`?), `network` (`dns_*` / `http_plain_request` / `http2_probe` against loopback `http.createServer`?), `session.suite.ts` 1ms flake fix.
+**Meta-review (Runs 1–37)**:
+- **Winning pattern**: Systematically closing unmeasured tools across 15 domains has driven `debt` from **616 → 431 (-185 tools covered, `vectors_total` 171 → 356, `unmeasured = 380`)** with 3 real production bugs fixed, `vector_fail=0`, `rejection_pct=100%`.
+- **Remaining highest-yield offline targets**: `session.suite.ts` 1ms clock-boundary flake hardening + `adb-bridge` APK parser + remaining offline network/streaming/syscall tools.
