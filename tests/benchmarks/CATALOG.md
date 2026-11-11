@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **292 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **305 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -51,6 +51,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** Wireshark/android packer corpora (360/Tencent legu/bangcle sample sets from packer-detection papers) — packer classifier accuracy. 📋
 - **[外部]** [blutter](https://github.com/worawit/blutter) sample Flutter apps — Dart AOT snapshot parsing (dart-inspector domain shares this). 📋
 - **[自制] ✅** `binary-instrument` suite: entropy profile region separation (Shannon bounds), strings ASCII/UTF-16LE extraction + regex filter, DEX magic scan (`dex\n035\0`), custom packer-signature matching (dirPath mode), empty default signature table contract.
+- **[自制] ✅** (2026-11-11, +13 offline tools): `binary_instrument_capabilities`, `get_available_plugins`, `frida_list_sessions`, `frida_generate_script`, `generate_hooks`, `export_hook_script`, `apk_native_libs_list`, `apk_manifest_dump`, `apk_manifest_query`, `apk_static_triage`, `apk_dex_intake`, `apk_signing_block_parse`, `binary_key_extract` (synthetic stored-ZIP APK + high-entropy 32B key blob).
 
 ## browser (85 tools)
 

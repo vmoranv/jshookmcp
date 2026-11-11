@@ -11,15 +11,20 @@
  *  - packer signature matching against a caller-supplied custom signature table
  */
 import { BinaryScanHandlers } from '@server/domains/binary-instrument/handlers/binary-scan';
+import { BinaryInstrumentHandlers } from '@server/domains/binary-instrument/handlers';
 import { ApkPackerHandlers } from '@server/domains/binary-instrument/apk-packer/handlers.impl';
-import { body, type BenchSuite } from '../harness';
+import { BinarySecretsHandlers } from '@server/domains/binary-instrument/secrets/handlers';
+import { body, expectSuccess, type BenchSuite } from '../harness';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { crc32 } from 'node:zlib';
 
 const scan = new BinaryScanHandlers();
+const bi = new BinaryInstrumentHandlers();
 const apk = new ApkPackerHandlers();
+const secrets = new BinarySecretsHandlers();
 
 const tmp = mkdtempSync(join(tmpdir(), 'jshook-bench-bin-'));
 
@@ -65,6 +70,105 @@ const fakeApkDir = join(tmp, 'packed-apk');
 mkdirSync(join(fakeApkDir, 'lib', 'arm64-v8a'), { recursive: true });
 writeFileSync(join(fakeApkDir, 'lib', 'arm64-v8a', 'libjiagu.so'), Buffer.from('fake elf'));
 writeFileSync(join(fakeApkDir, 'lib', 'arm64-v8a', 'libnative.so'), Buffer.from('fake elf'));
+
+// Fixture 5: minimal stored-ZIP APK + high-entropy key blob
+const u16 = (v: number): number[] => [v & 0xff, (v >>> 8) & 0xff];
+const u32 = (v: number): number[] => [
+  v & 0xff,
+  (v >>> 8) & 0xff,
+  (v >>> 16) & 0xff,
+  (v >>> 24) & 0xff,
+];
+function buildStoredZip(entries: { name: string; data: Uint8Array }[]): Uint8Array {
+  const enc = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+  const central: Uint8Array[] = [];
+  let offset = 0;
+  for (const e of entries) {
+    const nameBytes = enc.encode(e.name);
+    const crc = crc32(Buffer.from(e.data)) >>> 0;
+    const size = e.data.length;
+    const lfh = Uint8Array.from([
+      ...u32(0x04034b50),
+      ...u16(20),
+      ...u16(0),
+      ...u16(0),
+      ...u16(0),
+      ...u16(0),
+      ...u32(crc),
+      ...u32(size),
+      ...u32(size),
+      ...u16(nameBytes.length),
+      ...u16(0),
+      ...nameBytes,
+    ]);
+    chunks.push(lfh, e.data);
+    central.push(
+      Uint8Array.from([
+        ...u32(0x02014b50),
+        ...u16(20),
+        ...u16(20),
+        ...u16(0),
+        ...u16(0),
+        ...u16(0),
+        ...u16(0),
+        ...u32(crc),
+        ...u32(size),
+        ...u32(size),
+        ...u16(nameBytes.length),
+        ...u16(0),
+        ...u16(0),
+        ...u16(0),
+        ...u16(0),
+        ...u32(0),
+        ...u32(offset),
+        ...nameBytes,
+      ]),
+    );
+    offset += lfh.length + e.data.length;
+  }
+  const cdStart = offset;
+  let cdSize = 0;
+  for (const c of central) cdSize += c.length;
+  const eocd = Uint8Array.from([
+    ...u32(0x06054b50),
+    ...u16(0),
+    ...u16(0),
+    ...u16(central.length),
+    ...u16(central.length),
+    ...u32(cdSize),
+    ...u32(cdStart),
+    ...u16(0),
+  ]);
+  const all = [...chunks, ...central, eocd];
+  const out = new Uint8Array(all.reduce((s, c) => s + c.length, 0));
+  let p = 0;
+  for (const c of all) {
+    out.set(c, p);
+    p += c.length;
+  }
+  return out;
+}
+const sampleApkPath = join(tmp, 'sample.apk');
+writeFileSync(
+  sampleApkPath,
+  buildStoredZip([
+    {
+      name: 'AndroidManifest.xml',
+      data: Buffer.from(
+        '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.bench.sample"><application android:label="Bench"></application></manifest>',
+        'utf8',
+      ),
+    },
+    { name: 'classes.dex', data: dexBinary },
+    { name: 'lib/arm64-v8a/libnative.so', data: Buffer.from('fake elf') },
+  ]),
+);
+const keyBlobPath = join(tmp, 'keyblob.bin');
+writeFileSync(
+  keyBlobPath,
+  Buffer.concat([Buffer.alloc(16, 0), randomBytes(32), Buffer.alloc(16, 0)]),
+);
 
 const cleanup = () => rmSync(tmp, { recursive: true, force: true });
 process.once('exit', cleanup);
@@ -212,6 +316,207 @@ export const binarySuite: BenchSuite = {
         const sigs = (b.signatures ?? b.list ?? b.items) as unknown[] | undefined;
         if (Array.isArray(sigs) && sigs.length > 0)
           return `expected empty default table, got ${sigs.length} entries`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): offline APK/DEX, Frida script-gen, capabilities, keys ──
+    {
+      name: 'binary_instrument_capabilities/probes-toolchains',
+      tool: 'binary_instrument_capabilities',
+      origin: 'homemade',
+      reference: 'reports availability of Frida/Ghidra/JADX/apktool/unidbg toolchains honestly',
+      run: () => bi.handleBinaryInstrumentCapabilities(),
+      validate: (v) => {
+        const b = body(v);
+        const caps = b.capabilities as Array<{ capability?: string }> | undefined;
+        if (!Array.isArray(caps) || caps.length === 0)
+          return `missing capabilities array: ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'get_available_plugins/empty-without-context',
+      tool: 'get_available_plugins',
+      origin: 'homemade',
+      reference: 'returns empty plugins array when no extension context is attached',
+      run: () => bi.handleGetAvailablePlugins({}),
+      validate: (v) => {
+        const b = body(v);
+        if (!Array.isArray(b.plugins)) return `missing plugins array: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'frida_list_sessions/idle-sessions-list',
+      tool: 'frida_list_sessions',
+      origin: 'homemade',
+      reference: 'returns sessions list cleanly without live device attached',
+      run: () => bi.handleFridaListSessions({}),
+      validate: (v) => {
+        const b = body(v);
+        if (!Array.isArray(b.sessions)) return `missing sessions array: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'frida_generate_script/interceptor-template',
+      tool: 'frida_generate_script',
+      origin: 'homemade',
+      reference: 'generates Frida Interceptor.attach JS template for target native function',
+      run: () =>
+        bi.handleFridaGenerateScript({
+          target: 'libnative.so',
+          functionName: 'sign_request',
+          template: 'trace',
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const script = String(b.script ?? '');
+        if (!script.includes('Interceptor') && !script.includes('sign_request'))
+          return `generated script missing Interceptor/functionName: ${script.slice(0, 150)}`;
+        return true;
+      },
+    },
+    {
+      name: 'generate_hooks/frida-hook-script',
+      tool: 'generate_hooks',
+      origin: 'homemade',
+      reference: 'generates Frida hook script for supplied native/Java symbol names',
+      run: () => bi.handleGenerateHooks({ symbols: ['Java_com_bench_Sign_compute'] }),
+      validate: (v) => {
+        const b = body(v);
+        const script = String(b.script ?? '');
+        if (Number(b.symbolCount) !== 1 || !script.includes('Java_com_bench_Sign_compute'))
+          return `generated hook missing expected symbol: ${JSON.stringify(b).slice(0, 150)}`;
+        return true;
+      },
+    },
+    {
+      name: 'export_hook_script/frida-format-export',
+      tool: 'export_hook_script',
+      origin: 'homemade',
+      reference: 'exports hook template definitions into runnable Frida JS script',
+      run: () =>
+        bi.handleExportHookScript({
+          hookTemplates: JSON.stringify([
+            {
+              functionName: 'getToken',
+              hookCode: 'console.log("getToken called");',
+              description: 'log getToken call',
+            },
+          ]),
+        }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.format !== 'frida' || Number(b.hookCount) !== 1)
+          return `unexpected export result: ${JSON.stringify(b)}`;
+        if (!String(b.script ?? '').includes('getToken'))
+          return `exported script missing functionName: ${String(b.script).slice(0, 150)}`;
+        return true;
+      },
+    },
+    {
+      name: 'apk_native_libs_list/lists-arm64-so',
+      tool: 'apk_native_libs_list',
+      origin: 'homemade',
+      reference: 'lists lib/arm64-v8a/libnative.so from synthetic APK archive via yauzl',
+      run: () => bi.handleApkNativeLibsList({ apkPath: sampleApkPath }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.available !== true || Number(b.count) !== 1)
+          return `expected 1 native lib, got ${JSON.stringify(b)}`;
+        const libs = b.libraries as Array<{ abi?: string; name?: string }>;
+        if (libs[0]?.abi !== 'arm64-v8a' || libs[0]?.name !== 'libnative.so')
+          return `unexpected library metadata: ${JSON.stringify(libs)}`;
+        return true;
+      },
+    },
+    {
+      name: 'apk_manifest_dump/extracts-xml-manifest',
+      tool: 'apk_manifest_dump',
+      origin: 'homemade',
+      reference: 'extracts AndroidManifest.xml from synthetic APK archive',
+      run: () => bi.handleApkManifestDump({ apkPath: sampleApkPath }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.available !== true || !String(b.manifest ?? '').includes('com.bench.sample'))
+          return `expected manifest with com.bench.sample, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'apk_manifest_query/summarizes-package',
+      tool: 'apk_manifest_query',
+      origin: 'homemade',
+      reference: 'queries parsed AndroidManifest.xml package metadata and surface hints',
+      run: () => bi.handleApkManifestQuery({ apkPath: sampleApkPath }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.available !== true || !b.summary)
+          return `expected summary in manifest query, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'apk_static_triage/inspects-zip-dex-libs',
+      tool: 'apk_static_triage',
+      origin: 'homemade',
+      reference: 'performs static APK triage reporting ZIP entryCount, DEX files, and native libs',
+      run: () => bi.handleApkStaticTriage({ apkPath: sampleApkPath }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.available !== true) return `triage failed: ${JSON.stringify(b).slice(0, 200)}`;
+        const zip = b.zip as { entryCount?: number } | undefined;
+        if (!zip || Number(zip.entryCount) < 3)
+          return `expected >=3 ZIP entries in triage, got ${JSON.stringify(zip)}`;
+        return true;
+      },
+    },
+    {
+      name: 'apk_dex_intake/discovers-classes-dex',
+      tool: 'apk_dex_intake',
+      origin: 'homemade',
+      reference: 'scans APK ZIP for classes.dex magic and headers',
+      run: () => bi.handleApkDexIntake({ apkPath: sampleApkPath }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.available !== true && b.success !== true)
+          return `dex intake failed: ${JSON.stringify(b).slice(0, 200)}`;
+        const text = JSON.stringify(b);
+        if (!text.includes('classes.dex'))
+          return `expected classes.dex in dex intake report, got ${text.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'apk_signing_block_parse/parses-apk-container',
+      tool: 'apk_signing_block_parse',
+      origin: 'homemade',
+      reference: 'parses APK ZIP EOCD/signing block container cleanly (no false signatures)',
+      run: () => apk.handleApkSigningBlockParse({ apkPath: sampleApkPath }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!b.report || typeof b.report !== 'object')
+          return `missing report in signing block parse: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'binary_key_extract/high-entropy-key-blob',
+      tool: 'binary_key_extract',
+      origin: 'homemade',
+      reference: 'extracts high-entropy 32-byte key candidate embedded in zero-padded binary',
+      run: () =>
+        secrets.handleBinaryKeyExtract({
+          filePath: keyBlobPath,
+          keyLengths: [32],
+          minEntropy: 3.5,
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!b.result || typeof b.result !== 'object')
+          return `missing result in binary_key_extract: ${JSON.stringify(b)}`;
         return true;
       },
     },
