@@ -134,5 +134,24 @@ export const wasmSuite: BenchSuite = {
           : `unrecognized runtime label: ${runtime}`;
       },
     },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): pure-TS wasm string extraction ──
+    {
+      name: 'wasm_string_extract/extract-export-name',
+      tool: 'wasm_string_extract',
+      origin: 'external-vector',
+      reference:
+        'extracts printable strings from WASM binary sections (finds the exported "answer" identifier)',
+      run: () => handlers.handleWasmStringExtractTool({ inputPath: wasmPath, minLength: 4 }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success === false) return `string extract failed: ${b.error}`;
+        const strings = (b.strings as Array<{ value?: string }>) ?? [];
+        const values = strings.map((s) => s.value);
+        if (!values.includes('answer'))
+          return `expected "answer" in extracted strings, got: ${JSON.stringify(values)}`;
+        return true;
+      },
+    },
   ],
 };

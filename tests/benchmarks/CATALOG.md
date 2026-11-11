@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **226 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **227 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -258,6 +258,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 ## wasm (17 tools) — ✅ suite `wasm`
 
 - **[外部] ✅** WebAssembly spec §Binary Format minimal module (hand-assembled: type/func/export/code sections) — structural inspection parity; evaluation semantics (`answer() === 42`).
+- **[外部] ✅** (2026-11-11) `wasm_string_extract`: printable string extraction across binary sections (recovering export `"answer"`).
 - **[外部]** [official spec test suite](https://github.com/WebAssembly/spec/tree/main/test/core) + [wabt](https://github.com/WebAssembly/wabt)/[binaryen](https://github.com/WebAssembly/binaryen) test corpora — full coverage when wabt installed. 📋
 - **[自制] ✅** capability honesty (wabt/runtime absence fails loudly, never silently).
 
