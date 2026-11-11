@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **221 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **226 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -92,6 +92,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 - **[外部] ✅** dart-sdk runtime/vm/snapshot.h: magic 0xf5f5dcdc (LE), int64 length/kind, 32B version hash, features string.
 - **[外部] ✅** Smi tagged-pointer encoding: value << 1, tag bit 0.
+- **[自制] ✅** (2026-11-11) `dart_strings_extract` (`tiny-libapp.so` category scan), `flutter_packages_detect` (`packages-libapp.so` stdlib/thirdParty aggregation), `dart_symbolize` (flat obfuscation map resolution), `dart_version_fingerprint` (snapshot hash lookup), `dart_object_pool_dump` (Dart 2.17 Smi pool decoding).
 - **[外部]** [blutter](https://github.com/worawit/blutter) test Flutter builds — Code object listing parity. 📋
 
 ## debugger (21 tools)

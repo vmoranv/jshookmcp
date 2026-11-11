@@ -120,7 +120,8 @@ crash (gate floor breach counts as crash). `./checks.sh` must then pass (exit 0)
   - **Run 12 (keep, debt=577, -2)**: `coordination.suite.ts` +2 offline cases (`complete_task_handoff`, `list_page_snapshots`).
   - **Run 13 (keep, debt=567, -10)**: `exploit-dev.suite.ts` +10 cases (`exploit_cache_*` x4, `exploit_find_gadgets`, `exploit_find_jmp_esp`, `exploit_build_rop_chain`, `exploit_build_stack_pivot`, `exploit_analyze_mitigations`, `exploit_verify_rop_chain`).
   - **Run 14 (crash, real bug exposed!) -> Run 15 (keep, debt=566, -1)**: `sourcemap.suite.ts` +1 case (`sourcemap_parse_v4`), exposed & fixed real bug where `fetchSourceMapText` rejected `data:` URIs with `Blocked: unsupported protocol "data:"` despite schema supporting Data URIs (fixes both `sourcemap_parse_v4` and `sourcemap_reconstruct_tree` `emitScopes`). All 6 offline sourcemap tools covered!
+  - **Run 16 (keep, debt=561, -5)**: `dart-inspector.suite.ts` +5 pure-TS cases (`dart_strings_extract`, `flutter_packages_detect`, `dart_symbolize`, `dart_version_fingerprint`, `dart_object_pool_dump`) using real committed `tiny-libapp.so` / `packages-libapp.so` and inline Smi/hash fixtures.
 
-**Meta-review (Runs 1–15)**:
-- **Winning pattern**: Targeting offline-pure domains/subsets and asserting real documented input modes (e.g. `data:` URIs in `sourcemap_parse_v4`) both lowers `unmeasured` (565 → 515, -50 tools) AND catches latent production bugs (e.g. `fetchSourceMapText` rejecting `data:`), with `vector_fail=0` and `rejection_pct=100%`.
-- **Remaining highest-yield offline domains**: `wasm` (`wasm_string_extract`), `native-emulator` (54), `dart-inspector` (14), `maintenance` (12), `v8-inspector` (15), `binary-instrument` (41), `adb-bridge` parsers, `streaming` / `network` offline parsers.
+**Meta-review (Runs 1–16)**:
+- **Winning pattern**: Targeting offline-pure domains/subsets and asserting real documented input modes (e.g. `data:` URIs in `sourcemap_parse_v4`) both lowers `unmeasured` (565 → 510, -55 tools) AND catches latent production bugs (e.g. `fetchSourceMapText` rejecting `data:`), with `vector_fail=0` and `rejection_pct=100%`.
+- **Remaining highest-yield offline domains**: `wasm` (`wasm_string_extract`), `native-emulator` (54), `maintenance` (12), `v8-inspector` (15), `binary-instrument` (41), `adb-bridge` parsers, `streaming` / `network` offline parsers.

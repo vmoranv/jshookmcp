@@ -8,12 +8,15 @@
  *  - Smi tagged-pointer encoding (runtime/vm/object.h): 64-bit Smi = value << 1, tag bit 0
  */
 import { DartInspectorHandlers } from '@server/domains/dart-inspector/handlers.impl';
-import { body, type BenchSuite } from '../harness';
+import { body, expectSuccess, type BenchSuite } from '../harness';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 const handlers = new DartInspectorHandlers();
+
+const TINY_LIBAPP_FIXTURE = resolve('tests/fixtures/dart-inspector/tiny-libapp.so');
+const PACKAGES_LIBAPP_FIXTURE = resolve('tests/fixtures/dart-inspector/packages-libapp.so');
 
 const tmp = mkdtempSync(join(tmpdir(), 'jshook-bench-dart-'));
 process.once('exit', () => {
@@ -42,6 +45,26 @@ smiBlob.writeBigUInt64LE(BigInt(42) << 1n, 0); // Smi 42
 smiBlob.writeBigUInt64LE(BigInt(1234) << 1n, 8); // Smi 1234
 smiBlob.writeBigUInt64LE(1n, 16); // tagged pointer (odd) — must NOT count as Smi
 writeFileSync(smiFile, smiBlob);
+
+// Obfuscation map fixture for dart_symbolize
+const mapPath = join(tmp, 'obfuscation-map.json');
+writeFileSync(mapPath, JSON.stringify(['HomePage', 'a1', 'LoginService', 'a2', '_doLogin', 'a3']));
+
+// Known-hash snapshot + 8-slot Smi object pool fixture for dart_version_fingerprint & dart_object_pool_dump
+const KNOWN_HASH = '0000000000000000000000000000000000000000000000000000000000000003';
+const featBuf = Buffer.from('product no-fp arm64\0', 'utf8');
+const headerSize = 0x28 + featBuf.length;
+const poolBlob = Buffer.alloc(headerSize + 16 + 8 * 8, 0);
+poolBlob.writeUInt32LE(0xf5f5dcdc, 0);
+poolBlob.writeUInt32LE(2, 4); // full-aot
+Buffer.from(KNOWN_HASH, 'hex').copy(poolBlob, 0x08);
+featBuf.copy(poolBlob, 0x28);
+for (let i = 0; i < 8; i++) {
+  const off = headerSize + 16 + i * 8;
+  poolBlob.writeBigUInt64LE(BigInt.asUintN(64, BigInt(i + 1) << 1n), off);
+}
+const poolSnapFile = join(tmp, 'pool-known.bin');
+writeFileSync(poolSnapFile, poolBlob);
 
 export const dartSuite: BenchSuite = {
   name: 'dart-inspector',
@@ -85,6 +108,99 @@ export const dartSuite: BenchSuite = {
         const has1234 = text.includes('1234');
         if (!has42 || !has1234)
           return `planted Smis not recovered (42: ${has42}, 1234: ${has1234})`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): pure-TS Dart snapshot & APK tools ──
+    {
+      name: 'dart_strings_extract/tiny-libapp-categories',
+      tool: 'dart_strings_extract',
+      origin: 'homemade',
+      reference:
+        'extracts classified ASCII/UTF-16LE strings from committed tiny-libapp.so fixture across default categories',
+      run: () => handlers.handleDartStringsExtract({ filePath: TINY_LIBAPP_FIXTURE }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const strings = b.strings as Record<string, unknown[]> | undefined;
+        if (!strings || !Array.isArray(strings.urls) || !Array.isArray(strings.packageRefs))
+          return `missing expected string categories: ${JSON.stringify(b).slice(0, 200)}`;
+        const total = Object.values(strings).reduce(
+          (acc, arr) => acc + (Array.isArray(arr) ? arr.length : 0),
+          0,
+        );
+        if (total === 0) return 'expected non-zero classified strings from tiny-libapp.so';
+        return true;
+      },
+    },
+    {
+      name: 'flutter_packages_detect/packages-libapp-fixture',
+      tool: 'flutter_packages_detect',
+      origin: 'homemade',
+      reference:
+        'aggregates package: refs from committed packages-libapp.so into stdlib and thirdParty packages (dio, http, flutter)',
+      run: () => handlers.handleDartPackagesDetect({ filePath: PACKAGES_LIBAPP_FIXTURE }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const text = JSON.stringify(b);
+        if (!text.includes('dio') || !text.includes('flutter'))
+          return `expected dio and flutter in packages report: ${text.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'dart_symbolize/flat-map-resolution',
+      tool: 'dart_symbolize',
+      origin: 'homemade',
+      reference:
+        'resolves obfuscated Dart identifiers using flat obfuscation-map.json and preserves unresolved entries',
+      run: () =>
+        handlers.handleDartSymbolize({
+          obfuscationMapFile: mapPath,
+          obfuscatedNames: ['a1', 'a3', 'unknown'],
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const symbols = b.symbols as
+          | { resolved?: Array<{ resolved?: string }>; unresolved?: string[] }
+          | undefined;
+        const resolvedNames = (symbols?.resolved ?? []).map((r) => r.resolved);
+        if (!resolvedNames.includes('HomePage') || !resolvedNames.includes('_doLogin'))
+          return `expected HomePage and _doLogin resolved, got ${JSON.stringify(symbols)}`;
+        if (!symbols?.unresolved?.includes('unknown'))
+          return `expected unknown in unresolved, got ${JSON.stringify(symbols)}`;
+        return true;
+      },
+    },
+    {
+      name: 'dart_version_fingerprint/known-hash-lookup',
+      tool: 'dart_version_fingerprint',
+      origin: 'homemade',
+      reference: 'matches known snapshot version hash against Dart SDK snapshot-version-table',
+      run: () => handlers.handleDartVersionFingerprint({ filePath: poolSnapFile }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const fp = b.fingerprint as Record<string, unknown> | undefined;
+        if (!fp) return `missing fingerprint payload: ${JSON.stringify(b).slice(0, 200)}`;
+        const text = JSON.stringify(fp);
+        if (!text.includes(KNOWN_HASH))
+          return `expected snapshot hash ${KNOWN_HASH} in fingerprint: ${text.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'dart_object_pool_dump/smi-slot-decoding',
+      tool: 'dart_object_pool_dump',
+      origin: 'homemade',
+      reference: 'dumps and classifies Smi slots (value << 1) from synthetic Dart 2.17 object pool',
+      run: () => handlers.handleDartObjectPoolDump({ filePath: poolSnapFile }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const dump = b.dump as { slots?: Array<{ kind?: string; preview?: string }> } | undefined;
+        if (!dump || !Array.isArray(dump.slots) || dump.slots.length === 0)
+          return `expected non-empty object pool slots, got ${JSON.stringify(b).slice(0, 200)}`;
+        if (dump.slots[0]?.kind !== 'smi' || dump.slots[0]?.preview !== '1')
+          return `expected first slot smi=1, got ${JSON.stringify(dump.slots[0])}`;
         return true;
       },
     },
