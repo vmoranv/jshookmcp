@@ -8,13 +8,14 @@
  * All tools in this suite are pure-TS and invoke the actual WorkflowHandlers directly.
  */
 import { WorkflowHandlers } from '@server/domains/workflow/handlers.impl.core';
+import { MacroToolHandlers } from '@server/domains/workflow/macro/handlers';
 import { getWorkflowRunStore } from '@server/workflows/WorkflowEngine';
 import { clearSessionRetryPolicy } from '@server/domains/workflow/retry-policy';
 import type { BenchSuite } from '../harness';
-import { expectSuccess } from '../harness';
+import { body, expectSuccess } from '../harness';
 
-// Instantiate real WorkflowHandlers with mock browser/network deps.
-// None of the offline workflow tools (retry_policy, run_inspect, conditional_step, suggest)
+// Instantiate real WorkflowHandlers & MacroToolHandlers with mock browser/network deps.
+// None of the offline workflow tools (retry_policy, run_inspect, conditional_step, suggest, list_macros, run_macro)
 // need active browser or network connections.
 const mockDeps = {
   browserHandlers: {} as never,
@@ -32,6 +33,7 @@ const mockDeps = {
 };
 
 const handlers = new WorkflowHandlers(mockDeps);
+const macroHandlers = new MacroToolHandlers(mockDeps.serverContext);
 
 export const workflowSuite: BenchSuite = {
   name: 'workflow-lifecycle',
@@ -120,6 +122,72 @@ export const workflowSuite: BenchSuite = {
         const b = expectSuccess(v);
         if (!Array.isArray(b.suggestions))
           return `expected suggestions array, got ${typeof b.suggestions}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): offline macro, script registry & extension workflow tools ──
+    {
+      name: 'list_macros/enumerates-builtin-macros',
+      tool: 'list_macros',
+      origin: 'homemade',
+      reference: 'loads built-in macro definitions and returns non-empty macros array',
+      run: () => macroHandlers.handleListMacrosTool(),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const macros = b.macros as Array<{ id?: string }> | undefined;
+        if (!Array.isArray(macros) || macros.length === 0 || typeof b.count !== 'number')
+          return `expected non-empty macros list, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'run_macro/dry-run-plan-preview',
+      tool: 'run_macro',
+      origin: 'homemade',
+      reference: 'builds macro execution plan in dryRun=true mode without executing live tools',
+      run: async () => {
+        const listed = body(await macroHandlers.handleListMacrosTool());
+        const macros = (listed.macros as Array<{ id?: string }>) ?? [];
+        const firstId = macros[0]?.id;
+        if (!firstId) throw new Error('no built-in macros loaded');
+        return macroHandlers.handleRunMacroTool({ macroId: firstId, dryRun: true });
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.ok !== true || b.dryRun !== true)
+          return `expected ok=true dryRun=true in macro plan, got ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'page_script_register/registers-named-script',
+      tool: 'page_script_register',
+      origin: 'homemade',
+      reference: 'registers an inline helper script in the workflow script registry',
+      run: () =>
+        handlers.handlePageScriptRegisterTool({
+          name: 'bench_script_helper',
+          code: 'return 1 + 1;',
+          description: 'bench test script',
+        }),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.name !== 'bench_script_helper' || Number(b.totalScripts) < 1)
+          return `unexpected registration response: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'list_extension_workflows/lists-discovered-workflows',
+      tool: 'list_extension_workflows',
+      origin: 'homemade',
+      reference: 'discovers extension workflows cleanly in server context',
+      run: () => handlers.handleListExtensionWorkflowsTool(),
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b.workflows) || typeof b.count !== 'number')
+          return `expected workflows array and count, got ${JSON.stringify(b).slice(0, 200)}`;
         return true;
       },
     },

@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **313 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **317 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -281,6 +281,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 ## workflow (13 tools) — ✅ suite `workflow-lifecycle`
 
 - **[自制] ✅** `workflow-lifecycle` suite: retry policy set/get contract, run inspect store availability, conditional step parameter evaluation, workflow suggest empty-catalog fallback.
+- **[自制] ✅** (2026-11-11, +4 offline tools): `list_macros` (built-in macro definitions loading), `run_macro` (dryRun plan preview without live tool execution), `page_script_register` (script registry persistence), `list_extension_workflows` (extension workflow discovery). 8/13 workflow tools measured (remaining 5 require live browser or HTTP/target connections).
 - **[外部]** Temporal `RetryPolicy` spec / conformance — planned deep vectors. 📋
 - Repo-internal search-quality datasets (`scripts/search-tune/datasets`) already benchmark js_bundle_search-adjacent routing.
 
