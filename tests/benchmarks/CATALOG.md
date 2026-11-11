@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **362 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **367 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -251,6 +251,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** Mozilla NSS SSLKEYLOGFILE format (CLIENT_RANDOM lines) — parse + summary.
 - **[外部] ✅** REAL X.509 minted by system OpenSSL, wrapped in the RFC 8446 §4.4.2 Certificate-message wire layout — parse roundtrip incl. SHA-256 fingerprint + subject.
 - **[外部] ✅** (2026-11-11) `tls_parse_handshake`: RFC 8446 ClientHello record parsing, SNI `serverName` extraction, and handshake metadata.
+- **[自制] ✅** (2026-11-11, via `tls-inspector-full`): `tls_keylog_enable` (SSLKEYLOGFILE environment + browser launch flag), `tcp_open`, `tcp_write`, `tcp_read_until`, `tcp_close` (loopback TCP echo session lifecycle). (20/29 tools measured).
 - **[外部]** [FoxIO-LLC/ja4](https://github.com/FoxIO-LLC/ja4) pcap test-cases for full fingerprint parity. 📋
 
 ## trace (10 tools) — ✅ suite `trace-query` (10/10 tools measured)

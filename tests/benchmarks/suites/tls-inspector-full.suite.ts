@@ -392,5 +392,166 @@ export const tlsInspectorFullSuite: BenchSuite = {
         return b.dataText === 'DGRAM' ? true : `data mismatch: ${JSON.stringify(b.dataText)}`;
       },
     },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): keylog_enable + loopback TCP session lifecycle ──
+    {
+      name: 'tls_keylog_enable/configures-sslkeylogfile',
+      tool: 'tls_keylog_enable',
+      origin: 'homemade',
+      reference:
+        'enables SSLKEYLOGFILE keylog capture and returns env variable and browser launch flag',
+      run: async () => {
+        const prev = process.env.SSLKEYLOGFILE;
+        try {
+          const h = handlersFor(join(tmp, 'keylog-enable.log'));
+          return await h.handleTlsKeylogEnableTool({});
+        } finally {
+          if (prev === undefined) delete process.env.SSLKEYLOGFILE;
+          else process.env.SSLKEYLOGFILE = prev;
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.enabled !== true || b.environmentVariable !== 'SSLKEYLOGFILE')
+          return `expected enabled=true SSLKEYLOGFILE, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'tcp_open/loopback-echo-connect',
+      tool: 'tcp_open',
+      origin: 'homemade',
+      reference: 'opens a persistent loopback TCP session against a local echo server',
+      run: async () => {
+        const server = createNetServer((s) => s.on('data', (d) => s.write(d)));
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const h = handlersFor(keylogPath);
+        try {
+          const openRes = await h.handleTcpOpenTool({ host: '127.0.0.1', port, timeoutMs: 3000 });
+          const parsed = body(openRes);
+          if (typeof parsed.sessionId === 'string') {
+            await h.handleTcpCloseTool({ sessionId: parsed.sessionId });
+          }
+          return openRes;
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true || typeof b.sessionId !== 'string' || b.kind !== 'tcp')
+          return `expected ok=true sessionId, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'tcp_write/writes-payload-to-session',
+      tool: 'tcp_write',
+      origin: 'homemade',
+      reference: 'writes UTF-8 payload bytes to an open loopback TCP session',
+      run: async () => {
+        const server = createNetServer((s) => s.on('data', (d) => s.write(d)));
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const h = handlersFor(keylogPath);
+        try {
+          const open = body(
+            await h.handleTcpOpenTool({ host: '127.0.0.1', port, timeoutMs: 3000 }),
+          );
+          const sessionId = String(open.sessionId ?? '');
+          try {
+            return await h.handleTcpWriteTool({ sessionId, dataText: 'HELLO\n' });
+          } finally {
+            if (sessionId) await h.handleTcpCloseTool({ sessionId });
+          }
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true) return `tcp_write failed: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'tcp_read_until/reads-delimited-echo',
+      tool: 'tcp_read_until',
+      origin: 'homemade',
+      reference: 'reads echoed payload up to newline delimiter from loopback TCP session',
+      run: async () => {
+        const server = createNetServer((s) => s.on('data', (d) => s.write(d)));
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const h = handlersFor(keylogPath);
+        try {
+          const open = body(
+            await h.handleTcpOpenTool({ host: '127.0.0.1', port, timeoutMs: 3000 }),
+          );
+          const sessionId = String(open.sessionId ?? '');
+          try {
+            await h.handleTcpWriteTool({ sessionId, dataText: 'ECHO\n' });
+            return await h.handleTcpReadUntilTool({
+              sessionId,
+              delimiterText: '\n',
+              timeoutMs: 3000,
+            });
+          } finally {
+            if (sessionId) await h.handleTcpCloseTool({ sessionId });
+          }
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true) return `tcp_read_until failed: ${JSON.stringify(b)}`;
+        if (!JSON.stringify(b).includes('ECHO'))
+          return `expected echoed ECHO in read result, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'tcp_close/closes-active-session',
+      tool: 'tcp_close',
+      origin: 'homemade',
+      reference: 'closes an open loopback TCP session and removes it from session registry',
+      run: async () => {
+        const server = createNetServer((s) => s.on('data', (d) => s.write(d)));
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const h = handlersFor(keylogPath);
+        try {
+          const open = body(
+            await h.handleTcpOpenTool({ host: '127.0.0.1', port, timeoutMs: 3000 }),
+          );
+          return await h.handleTcpCloseTool({ sessionId: String(open.sessionId ?? '') });
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true) return `tcp_close failed: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
   ],
 };
