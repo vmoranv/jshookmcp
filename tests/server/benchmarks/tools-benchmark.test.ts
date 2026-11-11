@@ -70,6 +70,8 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   'mojo-ipc': 90,
   // native-emulator ARM64 in-process CPU emulation subset (2026-11-11 autoresearch)
   'native-emulator': 90,
+  // debugger offline blackbox pattern registry subset (2026-11-11 autoresearch)
+  'debugger-blackbox': 90,
 };
 
 const results: BenchSuiteResult[] = [];

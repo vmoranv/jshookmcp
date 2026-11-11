@@ -38,6 +38,7 @@ import { webgpuSuite } from './webgpu.suite';
 import { canvasSuite } from './canvas.suite';
 import { mojoIpcSuite } from './mojo-ipc.suite';
 import { nativeEmulatorSuite } from './native-emulator.suite';
+import { debuggerSuite } from './debugger.suite';
 
 export const ALL_SUITES: readonly BenchSuite[] = [
   encodingSuite,
@@ -79,4 +80,5 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   canvasSuite,
   mojoIpcSuite,
   nativeEmulatorSuite,
+  debuggerSuite,
 ];
