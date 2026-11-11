@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **227 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **234 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -134,11 +134,12 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** HAR 1.2 record/replay (Playwright `routeFromHAR` semantics) — instrumentation_network_replay. 📋
 - **[自制]** session diff/merge/export identity properties; hook-preset capture on fixture pages. 📋
 
-## maintenance (17 tools) — ✅ suite `maintenance` (GPU subset)
+## maintenance (17 tools) — ✅ suite `maintenance` (13/17 tools measured)
 
 - **[外部] ✅** [pmndrs/detect-gpu](https://github.com/pmndrs/detect-gpu) benchmark database: official UNMASKED_RENDERER_WEBGL strings (NVIDIA/Apple/Intel/AMD) must classify to their vendor.
 - **[外部]** [openai/tiktoken](https://github.com/openai/tiktoken) counts — token budget counters. 📋
-- **[自制] 📋** cache eviction op-sequences (shared with coordination), shadow-git snapshot roundtrip verified via isomorphic-git.
+- **[自制] ✅** `get_token_budget_stats`, `manual_token_cleanup`, `reset_token_budget`, `get_cache_stats`.
+- **[自制] ✅** (2026-11-11) `clear_all_caches`, `smart_cache_cleanup`, `cleanup_artifacts` (dryRun policy), `doctor_environment` (diagnostics summary), `snapshot_create` (shadow-git snapshot), `snapshot_list` (recorded history), `snapshot_restore` (revert modified file to snapshot). (Extension registry install/browse remain 📋).
 
 ## memory (75 tools) — ✅ suite `memory-pure-ts` (offline subset)
 

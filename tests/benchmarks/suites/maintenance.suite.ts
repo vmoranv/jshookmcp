@@ -9,9 +9,10 @@ import { CoreMaintenanceHandlers } from '@server/domains/maintenance/handlers';
 import { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import { body, type BenchSuite } from '../harness';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const realTokenBudget = new TokenBudgetManager();
@@ -20,6 +21,14 @@ const handlers = new CoreMaintenanceHandlers({
   tokenBudget: realTokenBudget,
   unifiedCache: realCacheManager,
 } as never);
+
+const snapTargetDir = mkdtempSync(join(tmpdir(), 'jshook-bench-snap-'));
+writeFileSync(join(snapTargetDir, 'state.txt'), 'version 1 content');
+process.once('exit', () => {
+  try {
+    require('node:fs').rmSync(snapTargetDir, { recursive: true, force: true });
+  } catch {}
+});
 
 interface BenchEntry {
   name: string;
@@ -192,6 +201,120 @@ export const maintenanceSuite: BenchSuite = {
         const b = body(v);
         if (typeof b.totalEntries !== 'number')
           return `expected totalEntries number, got: ${typeof b.totalEntries}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): offline maintenance & snapshot tools ──
+    {
+      name: 'clear_all_caches/clears-caches',
+      tool: 'clear_all_caches',
+      origin: 'homemade',
+      reference: 'clears all caches via real UnifiedCacheManager and returns confirmation message',
+      run: () => handlers.handleClearAllCaches(),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (!String(b.message ?? '').includes('cleared'))
+          return `expected cleared confirmation, got: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'smart_cache_cleanup/target-eviction',
+      tool: 'smart_cache_cleanup',
+      origin: 'homemade',
+      reference: 'evicts stale cache entries targeting max size via UnifiedCacheManager',
+      run: () => handlers.handleSmartCacheCleanup(1024),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success === false) return `cleanup failed: ${b.error}`;
+        return true;
+      },
+    },
+    {
+      name: 'cleanup_artifacts/dry-run-policy',
+      tool: 'cleanup_artifacts',
+      origin: 'homemade',
+      reference: 'runs artifact retention cleanup policy in dryRun mode without deleting files',
+      run: () => handlers.handleCleanupArtifacts({ dryRun: true }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success === false) return `artifact cleanup failed: ${b.error}`;
+        return true;
+      },
+    },
+    {
+      name: 'doctor_environment/diagnostics-summary',
+      tool: 'doctor_environment',
+      origin: 'homemade',
+      reference: 'runs environment doctor checks and returns diagnostics report',
+      run: () => handlers.handleEnvironmentDoctor({ includeBridgeHealth: false }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success === false) return `doctor failed: ${b.error}`;
+        const text = JSON.stringify(b);
+        if (!text.includes('platform') && !text.includes('node') && !text.includes('status'))
+          return `doctor missing basic environment diagnostic fields: ${text.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'snapshot_create/shadow-git-snapshot',
+      tool: 'snapshot_create',
+      origin: 'homemade',
+      reference: 'creates shadow-git snapshot of temp target directory and returns snapshotId',
+      run: () =>
+        handlers.handleSnapshotCreate({
+          targetDir: snapTargetDir,
+          label: 'bench-snap-v1',
+        }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (typeof b.snapshotId !== 'string' || b.snapshotId.length === 0)
+          return `expected non-empty snapshotId, got: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'snapshot_list/records-history',
+      tool: 'snapshot_list',
+      origin: 'homemade',
+      reference: 'lists recorded shadow-git snapshots for target directory',
+      run: () => handlers.handleSnapshotList({ targetDir: snapTargetDir }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (Number(b.count) < 1 || !Array.isArray(b.snapshots))
+          return `expected count >= 1 snapshots, got: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'snapshot_restore/revert-modified-file',
+      tool: 'snapshot_restore',
+      origin: 'homemade',
+      reference: 'restores shadow-git snapshot and reverts modified file content',
+      run: async () => {
+        const listRes = body(await handlers.handleSnapshotList({ targetDir: snapTargetDir }));
+        const snapshots = (listRes.snapshots as Array<{ id?: string }>) ?? [];
+        const snapshotId = snapshots[0]?.id;
+        if (!snapshotId) throw new Error('No snapshot found to restore');
+        // Mutate target file
+        writeFileSync(join(snapTargetDir, 'state.txt'), 'version 2 modified');
+        const res = await handlers.handleSnapshotRestore({
+          targetDir: snapTargetDir,
+          snapshotId,
+        });
+        const currentContent = readFileSync(join(snapTargetDir, 'state.txt'), 'utf8');
+        return { res: body(res), currentContent };
+      },
+      validate: (v: unknown) => {
+        const { res, currentContent } = v as {
+          res?: Record<string, unknown>;
+          currentContent?: string;
+        };
+        if (res?.success === false) return `restore failed: ${res.error}`;
+        if (currentContent !== 'version 1 content')
+          return `expected file reverted to 'version 1 content', got: '${currentContent}'`;
         return true;
       },
     },
