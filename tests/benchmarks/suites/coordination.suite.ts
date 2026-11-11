@@ -279,5 +279,54 @@ export const coordinationSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Coverage batch 2026-11-11 (autoresearch): offline coordination tools ──
+    {
+      name: 'complete_task_handoff/status-and-duration',
+      tool: 'complete_task_handoff',
+      origin: 'homemade',
+      reference:
+        'complete_task_handoff transitions pending handoff to completed with summary, keyFindings, and duration',
+      run: async () => {
+        const created = body(
+          await coordination.handleCreateTaskHandoffTool({
+            description: 'bench complete handoff check',
+            targetDomain: 'trace',
+          }),
+        );
+        const taskId = String(created.taskId ?? '');
+        return coordination.handleCompleteTaskHandoffTool({
+          taskId,
+          summary: 'trace analysis verified',
+          keyFindings: ['finding-1', 'finding-2'],
+        });
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.status !== 'completed') return `expected status=completed, got ${b.status}`;
+        if (b.summary !== 'trace analysis verified')
+          return `expected summary preserved, got ${b.summary}`;
+        const findings = b.keyFindings as string[] | undefined;
+        if (!Array.isArray(findings) || findings.length !== 2)
+          return `expected 2 keyFindings, got ${JSON.stringify(findings)}`;
+        return true;
+      },
+    },
+    {
+      name: 'list_page_snapshots/empty-list-contract',
+      tool: 'list_page_snapshots',
+      origin: 'homemade',
+      reference:
+        'with no saved browser snapshots, list_page_snapshots returns an empty snapshots array and total=0 (no fabrication)',
+      run: () => coordination.handleListPageSnapshotsTool(),
+      validate: (v) => {
+        const b = body(v);
+        if (!Array.isArray(b.snapshots))
+          return `missing snapshots array, got ${typeof b.snapshots}`;
+        if (b.snapshots.length !== 0 || Number(b.total) !== 0)
+          return `expected 0 snapshots in fresh fixture, got total=${b.total}`;
+        return true;
+      },
+    },
   ],
 };

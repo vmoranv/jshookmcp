@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **208 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **210 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -72,6 +72,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [node-lru-cache](https://github.com/isaacs/node-lru-cache) test suite — state_board LRU eviction semantics (incl. the known MRU-promotion-on-update gap). 📋
 - **[外部]** Playwright `storageState` JSON schema — page snapshot save/restore roundtrip. 📋
 - **[自制] ✅** `coordination-lifecycle` suite: task handoff create & complete lifecycle, session insights accumulation & category aggregation, state_board set/get/delete and list/clear operations.
+- **[自制] ✅** (2026-11-11) `complete_task_handoff` status/summary/keyFindings transition and `list_page_snapshots` honest empty listing contract.
 
 ## core (25 tools — see `core-analysis` suite)
 
