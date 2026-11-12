@@ -13,6 +13,7 @@
 import { AdvancedToolHandlers } from '@server/domains/network/handlers';
 import { createSocket } from 'node:dgram';
 import { body, expectSuccess, type BenchSuite } from '../harness';
+import { networkContractCases } from './network.contracts';
 
 type DnsStubMode = { kind: 'a' } | { kind: 'cname'; firstHost: string; target: string };
 
@@ -986,5 +987,10 @@ export const networkSuite: BenchSuite = {
           : `stats lack percentile fields: ${text.slice(0, 160)}`;
       },
     },
+
+    // ── Contract batch 2026-11-12 (autoresearch) ────────────────────────────
+    // Admission / dispatch / loopback honesty for the 10 browser- and
+    // socket-bound tools (tables live in network.contracts.ts).
+    ...networkContractCases,
   ],
 };

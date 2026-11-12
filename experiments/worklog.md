@@ -283,3 +283,10 @@
 - Result: debt 230→**212** (-18, **-404 cumulative**), unmeasured 179→161, vectors_total 557→**575 (78.1%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **debugger 21/21 measured (100%)**.
 - Insight: first attempt failed 6/24 with `this.deps.debuggerManager.X is not a function` — my stub guessed method names (`listSessions`, `getAllWatches`, `getPausedState`, `initAdvancedFeatures`) instead of reading the handlers. Reading each handler's actual dependency calls is the whole job here; a stub that "looks right" produces false failures that look like product bugs.
 - Next: `adb-bridge` (21) and `browser` (59, mostly page-bound) — plus `network` (10) / `dart-inspector` (9) remain.
+
+### Run 63: adb-bridge contract batch (+26 cases) — debt 212→191 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: new sibling file `tests/benchmarks/suites/adb-bridge.contracts.ts` (tables + helpers) wired into the parser suite with two spreads. 18 **argument-rejection** cases come from one `ADB_ARG_TABLE` (serial, command, apkPath, packageName, tap/swipe coordinates, keyCode, text, remotePath/localPath, WebView targetId, port-forward action, pid-or-package); 8 **unreachable-device** cases assert honest failure with adb's own diagnostic carried through, `count === array.length`, and no invented properties / targets / log rows / image bytes.
+- Result: debt 212→**191** (-21, **-425 cumulative**), unmeasured 161→140, vectors_total 575→**596 (80.9% — crossed 80%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **adb-bridge 26/26 measured (100%)**.
+- Insight: the CLI-bound tools all share one shape (serial + a required arg → spawn adb), so a table plus two helpers covered 21 tools in ~40 lines of case code. Splitting the tables into a `.contracts.ts` sibling kept the parser suite readable and dodged the 250-line `maxUnitSize` ceiling. Cost: 4 exports flagged as "unused" by fallow (incomplete import graph for the spread) — warnings only, no gate.
+- Next: `network` (10), `dart-inspector` (9), `syscall-hook` (8), `graphql` (7), `v8-inspector` (7), then the 59 `browser` tools.
