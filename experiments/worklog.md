@@ -318,3 +318,10 @@
 - Result: debt 164→**157** (-7, **-460 cumulative**), unmeasured 113→106, vectors_total 623→**630 (85.6%)**, vector_fail 0, rejection_pct 100%, `checks.sh` + the benchmark gate test green. **graphql 7/7 measured (100%)** — no domain is left at zero coverage.
 - Insight: injecting a collector whose `getActivePage()` **throws** `PrerequisiteError` (instead of returning null) is what produces the real server-side refusal shape `{success:false, code:'PREREQUISITE'}`. Returning null made handlers crash on `null.url`, which looked like a product bug but was a bad stub — the same lesson as run 62.
 - Next: `v8-inspector` (7), `core` (6), `workflow` (5), `instrumentation` (4), then the 59 `browser` tools.
+
+### Run 68: v8-inspector honest-unavailable batch (+7 cases) — debt 157→150 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: 7 cases for the last unmeasured v8-inspector tools, all via `handlers.handle(tool, args)` (the domain's single dispatcher). A new `expectNamedRefusal(v, reasonRe, forbiddenKeys)` helper asserts `success:false` + the expected reason **and** that the listed payload keys are absent: `allocation_track` / `heap_sampling` / `heap_stats` / `heap_snapshot_capture` / `version_detect` must name the missing `PageController` and must not return samples, stats, a `snapshotId` or a version string; `bytecode_extract` and `turbofan_inspect` require `scriptId` by name.
+- Result: debt 157→**150** (-7, **-467 cumulative**), unmeasured 106→99, vectors_total 630→**637 (86.6%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **v8-inspector 21/21 measured (100%)**.
+- Insight: asserting *forbidden keys* (not just the refusal text) is what makes an honest-unavailable case regression-proof — a future change that returns `{success:false, stats:{totalSize:0}}` still fails, because zeroed stats presented next to a failure is exactly the "fabricated data" shape these cases exist to catch.
+- Next: `core` (6), `workflow` (5), `instrumentation` (4), `maintenance`/`coordination`/`platform` (2 each), `native-bridge`/`mojo-ipc` (3 each), then the 59 `browser` tools.

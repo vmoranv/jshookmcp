@@ -419,5 +419,127 @@ export const coreSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Argument/dispatch contract batch 2026-11-12 (autoresearch) ──────────
+    // These 6 core-analysis tools either collect from a live page or need a
+    // concrete script/hook argument. The portable contract: the missing input
+    // is named before any collection or CDP work, and an unusable input yields
+    // an explicit failure rather than an empty-but-successful result.
+    {
+      name: 'collect_code/requires-url',
+      tool: 'collect_code',
+      origin: 'homemade',
+      reference:
+        'argument contract: collection needs the page url (or an explicit target) and names it when absent',
+      run: () => callCore(() => handlers.handleCollectCode({})),
+      validate: (v) => expectCoreRefusal(v, /url/i),
+    },
+    {
+      name: 'search_in_scripts/requires-initialised-script-manager',
+      tool: 'search_in_scripts',
+      origin: 'homemade',
+      reference:
+        'admission contract: searching needs an initialised ScriptManager; without one the call fails explicitly instead of reporting zero matches',
+      run: () => callCore(() => handlers.handleSearchInScripts({ query: 'token' })),
+      validate: (v) => {
+        const r = v as { ok: boolean; text: string; body?: Record<string, unknown> };
+        const text = r.ok ? JSON.stringify(r.body) : r.text;
+        if (/init is not a function|not initial/i.test(text)) return true;
+        if (r.ok && r.body?.['success'] === false) {
+          return String(r.body?.['error'] ?? r.body?.['message'] ?? '').length > 0
+            ? true
+            : 'failure without a named reason';
+        }
+        const matches = r.body?.['matches'];
+        return Array.isArray(matches) && matches.length === 0
+          ? 'must not report an empty match list as success'
+          : true;
+      },
+    },
+    {
+      name: 'extract_function_tree/requires-scriptId',
+      tool: 'extract_function_tree',
+      origin: 'homemade',
+      reference:
+        'argument contract: the function tree is extracted from one script, so scriptId is required and the refusal points at get_all_scripts',
+      run: () => callCore(() => handlers.handleExtractFunctionTree({})),
+      validate: (v) => {
+        const r = v as { ok: boolean; body?: Record<string, unknown>; text: string };
+        const text = r.ok ? JSON.stringify(r.body) : r.text;
+        if (!/scriptId/i.test(text)) return `expected a scriptId refusal: ${text.slice(0, 180)}`;
+        return /get_all_scripts/i.test(text) ? true : `refusal should point at get_all_scripts`;
+      },
+    },
+    {
+      name: 'manage_hooks/requires-action',
+      tool: 'manage_hooks',
+      origin: 'homemade',
+      reference:
+        'argument contract: hook management needs an action (install/list/remove) and names it when absent',
+      run: () => callCore(() => handlers.handleManageHooks({})),
+      validate: (v) => expectCoreRefusal(v, /action/i),
+    },
+    {
+      name: 'webpack_enumerate/refuses-without-page',
+      tool: 'webpack_enumerate',
+      origin: 'homemade',
+      reference:
+        'admission contract: webpack chunk enumeration reads the live runtime, so without a page it fails explicitly rather than reporting zero chunks',
+      run: () => callCore(() => handlers.handleWebpackEnumerate({})),
+      validate: (v) => {
+        const r = v as { ok: boolean; body?: Record<string, unknown>; text: string };
+        if (!r.ok)
+          return /createCDPSession|not available|page/i.test(r.text)
+            ? true
+            : `unexpected throw: ${r.text.slice(0, 160)}`;
+        if (r.body?.['success'] !== false) return `expected failure without a page`;
+        if (r.body?.['chunks'] !== undefined) return `must not return chunks without a page`;
+        return String(r.body?.['error'] ?? '').length > 0 ? true : 'failure without a named reason';
+      },
+    },
+    {
+      name: 'ai_suggest_exploits/requires-vulnerability',
+      tool: 'ai_suggest_exploits',
+      origin: 'homemade',
+      reference:
+        'argument contract: exploit suggestions need a structured vulnerability ({type, description}) and name that requirement when absent',
+      run: () => callCore(() => handlers.handleAiSuggestExploits({})),
+      validate: (v) => {
+        const r = v as { ok: boolean; body?: Record<string, unknown>; text: string };
+        const text = r.ok ? JSON.stringify(r.body) : r.text;
+        if (r.ok && r.body?.['success'] !== false)
+          return `expected a refusal without a vulnerability`;
+        return /vulnerability/i.test(text)
+          ? true
+          : `expected a vulnerability requirement: ${text.slice(0, 180)}`;
+      },
+    },
   ],
 };
+
+/** Call a core-analysis handler, flattening the ToolResponse or capturing the throw. */
+async function callCore(
+  run: () => Promise<unknown>,
+): Promise<{ ok: boolean; body?: Record<string, unknown>; text: string }> {
+  try {
+    const response = await run();
+    const first = (response as { content?: Array<{ text?: string }> }).content?.[0]?.text;
+    if (typeof first === 'string') {
+      try {
+        return { ok: true, body: JSON.parse(first) as Record<string, unknown>, text: first };
+      } catch {
+        return { ok: true, body: { raw: first }, text: first };
+      }
+    }
+    return { ok: true, body: response as Record<string, unknown>, text: JSON.stringify(response) };
+  } catch (error) {
+    return { ok: false, text: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/** Assert a named refusal for a missing/invalid argument. */
+function expectCoreRefusal(v: unknown, expect: RegExp): true | string {
+  const r = v as { ok: boolean; body?: Record<string, unknown>; text: string };
+  const text = r.ok ? JSON.stringify(r.body) : r.text;
+  return expect.test(text) ? true : `refusal does not match ${expect}: ${text.slice(0, 200)}`;
+}
