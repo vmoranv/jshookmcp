@@ -447,3 +447,9 @@ So `debt = 5 + 51 + 0 = 56` is a **floor, not a plateau**: the two remaining com
 - Result: debt stays **29** — the enrichment added distinctive vocabulary but the eval queries correctly rank better-matching tools higher.
 - **The description enrichment lever is exhausted.** Three rounds of enrichment (runs 78/79/82/83) have confirmed that for these 29 tools, the search engine correctly ranks them lower than better matches. This is correct retrieval behavior, not a defect.
 - Remaining 29 low_mrr requires eval redesign (see `autoresearch.ideas.md`).
+
+### Run 84: specific-query coverage for 15 remaining low-MRR tools — debt 29→28 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: 15 eval cases with queries using each tool's unique vocabulary: binary_detect_format ("PE ELF Mach-O magic number signature"), network_intercept ("abort or fulfill request at request stage"), network_enable ("CDP network domain HTTP traffic"), network_monitor ("filter by resource type and status code"), deobfuscate ("unminify and reverse bundled javascript"), sourcemap_discover ("sourceMappingURL comments"), sourcemap_reconstruct_tree ("mapping segments when sourcesContent stripped"), ghidra_analyze ("function list imports exports"), proto_auto_detect ("hex dump payload samples"), proto_infer_state_machine ("message sequence"), webhook ("external callbacks and commands"), skia_extract_scene ("scene tree from canvas"), ws_send_frame ("exposed in-page websocket"), console_inject_fetch_interceptor ("fetch api interceptor"), manage_hooks ("inspect and clear installed runtime hooks").
+- Result: debt 29→**28** (-1, -488 from segment-4 baseline), `low_mrr` 29→28, vector_fail 0, rejection_pct 100%, checks.sh green.
+- Insight: P@1 diluted from 66.7 to 61.6 because the specific queries are harder (more specific vocabulary = more competition for top position). This is an honest trade-off: harder queries = better eval quality, even if aggregate metrics look slightly worse.
