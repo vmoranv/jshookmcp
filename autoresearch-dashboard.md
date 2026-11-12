@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 66 / 200 | **Kept:** 59 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=164 (run #66, e07f2ee) | **Baseline:** debt=616 (run #1) — debtΔ -453
+**Runs:** 67 / 200 | **Kept:** 60 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=157 (run #67, 2358ca3) | **Baseline:** debt=616 (run #1) — debtΔ -460
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -72,4 +72,5 @@
 | 63 | 8be082c | 191 | 10 | keep | draft | adb-bridge contract batch (+26 cases): arg-rejection table + unreachable-device honesty — adb-bridge 26/26 |
 | 64 | 562ae96 | 181 | 9 | keep | draft | network contract batch (+14 cases): dispatch/admission + loopback echo/traceroute honesty — network 38/38 |
 | 65 | 0d87d13 | 172 | 8 | keep | draft | dart-inspector session contracts (+9 cases): admission table — dart-inspector 16/16 |
-| 66 | e07f2ee | 164 | — | keep | draft | syscall-hook backend contracts (+8 cases): backend validation + idle honesty + SSN/stub — syscall-hook 15/15 |
+| 66 | e07f2ee | 164 | 7 | keep | draft | syscall-hook backend contracts (+8 cases): backend validation + idle honesty + SSN/stub — syscall-hook 15/15 |
+| 67 | 2358ca3 | 157 | — | keep | draft | NEW graphql suite (+13 cases): page prerequisites + SSRF gate + arg rejections — graphql 7/7 (last zero-coverage domain) |

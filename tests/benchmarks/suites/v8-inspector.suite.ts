@@ -452,5 +452,107 @@ export const v8InspectorSuite: BenchSuite = {
           : `expected named capability error, got ${err}`;
       },
     },
+
+    // ── Honest-unavailable batch 2026-11-12 (autoresearch) ──────────────────
+    // These 7 tools need a live CDP client, a captured heap profile, or a
+    // resolved script. With the dependency-free fixture the only correct
+    // answer is a named refusal — never a zeroed stats object, an empty
+    // sampled profile, or a fabricated V8 version.
+    {
+      name: 'v8_allocation_track/refuses-without-page',
+      tool: 'v8_allocation_track',
+      origin: 'homemade',
+      reference:
+        'admission contract: allocation tracking needs a live CDP heap profiler; without it the tool names the missing PageController',
+      run: () => handlers.handle('v8_allocation_track', {}),
+      validate: (v) =>
+        expectNamedRefusal(v, /PageController not available/i, ['samples', 'profile']),
+    },
+    {
+      name: 'v8_heap_sampling/refuses-without-page',
+      tool: 'v8_heap_sampling',
+      origin: 'homemade',
+      reference:
+        'admission contract: heap sampling needs the live CDP sampler and must not return an empty sample set as success',
+      run: () => handlers.handle('v8_heap_sampling', {}),
+      validate: (v) =>
+        expectNamedRefusal(v, /PageController not available/i, ['samples', 'profile']),
+    },
+    {
+      name: 'v8_heap_snapshot_capture/refuses-without-page',
+      tool: 'v8_heap_snapshot_capture',
+      origin: 'homemade',
+      reference:
+        'admission contract: capturing a snapshot needs a live page; a snapshot id must not be issued without one',
+      run: () => handlers.handle('v8_heap_snapshot_capture', {}),
+      validate: (v) => expectNamedRefusal(v, /PageController not available/i, ['snapshotId']),
+    },
+    {
+      name: 'v8_heap_stats/refuses-without-page',
+      tool: 'v8_heap_stats',
+      origin: 'homemade',
+      reference:
+        'admission contract: heap statistics require the live CDP heap profiler; the refusal must not be masked by zeroed counters',
+      run: () => handlers.handle('v8_heap_stats', {}),
+      validate: (v) =>
+        expectNamedRefusal(v, /PageController not available/i, ['totalSize', 'usedSize', 'stats']),
+    },
+    {
+      name: 'v8_bytecode_extract/requires-scriptId',
+      tool: 'v8_bytecode_extract',
+      origin: 'homemade',
+      reference:
+        'argument contract: bytecode extraction needs a resolved scriptId and names it when absent',
+      run: () => handlers.handle('v8_bytecode_extract', {}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false)
+          return `expected success=false: ${JSON.stringify(b).slice(0, 160)}`;
+        return /scriptId/i.test(String(b['error'] ?? b['message'] ?? ''))
+          ? true
+          : `expected a scriptId error: ${JSON.stringify(b).slice(0, 180)}`;
+      },
+    },
+    {
+      name: 'v8_turbofan_inspect/requires-scriptId',
+      tool: 'v8_turbofan_inspect',
+      origin: 'homemade',
+      reference:
+        'argument contract: TurboFan inspection needs the script whose graph should be inspected',
+      run: () => handlers.handle('v8_turbofan_inspect', {}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false)
+          return `expected success=false: ${JSON.stringify(b).slice(0, 160)}`;
+        return /scriptId/i.test(String(b['error'] ?? b['message'] ?? ''))
+          ? true
+          : `expected a scriptId error: ${JSON.stringify(b).slice(0, 180)}`;
+      },
+    },
+    {
+      name: 'v8_version_detect/refuses-without-page',
+      tool: 'v8_version_detect',
+      origin: 'homemade',
+      reference:
+        'admission contract: the V8 version is read from the live runtime, so without a page the tool must refuse instead of guessing a version string',
+      run: () => handlers.handle('v8_version_detect', {}),
+      validate: (v) => expectNamedRefusal(v, /PageController not available/i, ['version']),
+    },
   ],
 };
+
+/**
+ * Assert a named offline refusal: `success:false` with the expected reason, and
+ * none of the listed payload keys present (no fabricated data alongside it).
+ */
+function expectNamedRefusal(v: unknown, expect: RegExp, forbiddenKeys: string[]): true | string {
+  const b = body(v);
+  if (b['success'] !== false)
+    return `expected success=false, got ${JSON.stringify(b).slice(0, 180)}`;
+  const message = String(b['error'] ?? b['message'] ?? '');
+  if (!expect.test(message)) return `refusal does not match ${expect}: ${message.slice(0, 180)}`;
+  for (const key of forbiddenKeys) {
+    if (b[key] !== undefined) return `must not return "${key}" without live data`;
+  }
+  return true;
+}
