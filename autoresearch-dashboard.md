@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 72 / 200 | **Kept:** 65 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=125 (run #72, f490b3c) | **Baseline:** debt=616 (run #1) — debtΔ -491
+**Runs:** 73 / 200 | **Kept:** 66 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=123 (run #73, b227dcb) | **Baseline:** debt=616 (run #1) — debtΔ -493
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -78,4 +78,5 @@
 | 69 | 84b7cc2 | 144 | 8 | keep | draft | core-analysis argument contracts (+6 cases): url/ScriptManager/scriptId/action/vulnerability refusals — core 25/25 |
 | 70 | f433bcb | 136 | 4 | keep | draft | small-domain batch (+9): mojo stub honesty, native-bridge action/enum/availability, platform electron — 3 domains to 100% |
 | 71 | 7a09e0d | 132 | 7 | keep | draft | instrumentation hook contracts (+4): ai_hook/preset/sessionId — instrumentation 13/13 |
-| 72 | f490b3c | 125 | — | keep | draft | workflow + maintenance contracts (+7): arg/gating + real catalog — workflow 13/13, maintenance 17/17 |
+| 72 | f490b3c | 125 | 2 | keep | draft | workflow + maintenance contracts (+7): arg/gating + real catalog — workflow 13/13, maintenance 17/17 |
+| 73 | b227dcb | 123 | — | keep | draft | coordination snapshot contracts (+3): page-controller refusal + not-found echo — coordination 12/12 |

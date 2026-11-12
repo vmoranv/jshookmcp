@@ -226,5 +226,27 @@ export const sourcemapSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Discovery-contract batch 2026-11-12 (autoresearch) ───────────────────
+    {
+      name: 'sourcemap_discover/requires-collector',
+      tool: 'sourcemap_discover',
+      origin: 'homemade',
+      reference:
+        'admission contract: sourcemap discovery reads the active page, so with no collector wired it fails explicitly rather than reporting zero maps found',
+      run: () => handlers.handleSourcemapDiscoverTool({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === true) {
+          const maps = b['maps'] ?? b['sources'];
+          return Array.isArray(maps) ? true : `success without a maps array`;
+        }
+        const text = JSON.stringify(b);
+        if (/getActivePage|collector|page|createCDPSession/i.test(text)) return true;
+        return Array.isArray(b['maps']) && (b['maps'] as unknown[]).length === 0
+          ? 'must not report an empty map list as success'
+          : `failure should name the missing collector: ${text.slice(0, 200)}`;
+      },
+    },
   ],
 };

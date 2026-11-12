@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ProxyHandlers } from '@server/domains/proxy/handlers.impl';
 import { runWithToolRequestContext } from '@server/runtime/ToolRequestContext';
-import { expectSuccess, type BenchSuite } from '../harness';
+import { body, expectSuccess, type BenchSuite } from '../harness';
 import { buildTestUrl } from '@tests/shared/test-urls';
 
 // Placeholder URLs are built from the shared helper (the test-urls guard
@@ -450,6 +450,24 @@ export const proxySuite: BenchSuite = {
         const b = expectSuccess(v);
         if (Number(b.cleared) !== 1) return `expected cleared === 1, got ${JSON.stringify(b)}`;
         return true;
+      },
+    },
+
+    // ── ADB-contract batch 2026-11-12 (autoresearch) ─────────────────────────
+    {
+      name: 'proxy_setup_adb_device/requires-running-proxy',
+      tool: 'proxy_setup_adb_device',
+      origin: 'homemade',
+      reference:
+        'precondition contract: ADB reverse tethering needs a locally running proxy and says so instead of configuring adb against a dead proxy',
+      run: () => new ProxyHandlers().handleProxySetupAdbDeviceTool({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === true)
+          return `must not configure ADB without a running proxy: ${JSON.stringify(b).slice(0, 180)}`;
+        return /Proxy must be running/i.test(JSON.stringify(b))
+          ? true
+          : `failure should name the proxy precondition: ${JSON.stringify(b).slice(0, 180)}`;
       },
     },
   ],

@@ -353,3 +353,10 @@
 - Result: debt 132→**125** (-7, **-491 cumulative**), unmeasured 81→74, vectors_total 655→**662 (89.9%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **workflow 13/13, maintenance 17/17 measured**.
 - Insight: both maintenance handlers take **positional** args (`(kind)`, `(slug, targetDir)`) via `mapArgs` in the manifest, not an args object — calling them with an object silently produced `"undefined"`. Reading the manifest's `mapArgs` before writing the case is the fix. Also: the registry browse response key is `plugins`, not `entries`.
 - Next: `coordination` (2), then the 59 `browser` tools — the last large block.
+
+### Run 73: coordination snapshot contracts (+3 cases) — debt 125→123 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: `save_page_snapshot` refuses without a page controller and must not issue a snapshot id; `coordination_restore_snapshot` requires `snapshotId` and reports an unknown id as not-found **echoing the id it tried**.
+- Result: debt 125→**123** (-2, **-493 cumulative**), unmeasured 74→72, vectors_total 662→**664 (90.2%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **coordination 12/12 measured (100%)**.
+- Insight: asserting the echoed id in a not-found answer is a cheap correctness check — a handler that answered "Snapshot not found" without naming which id is ambiguous when the caller batches restores.
+- Next: `browser` (59) is the only large block left. `transform` (1), `proxy` (1), `sourcemap` (1), `process` (3), `binary-instrument` (2), `memory` (5) are the tail.

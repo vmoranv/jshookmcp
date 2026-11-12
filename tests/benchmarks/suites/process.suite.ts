@@ -468,5 +468,57 @@ export const processSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Tail-contract batch 2026-11-12 (autoresearch) ────────────────────────
+    // Three tools whose only machine-independent contract is the argument check
+    // that runs before any native call.
+    {
+      name: 'enumerate_modules/requires-pid',
+      tool: 'enumerate_modules',
+      origin: 'homemade',
+      reference: 'argument contract: module enumeration needs a pid and names it when absent',
+      run: () => handlers.handleEnumerateModulesTool({}),
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        return /Invalid PID|pid/i.test(text) ? true : `expected a pid error: ${text.slice(0, 180)}`;
+      },
+    },
+    {
+      name: 'process_detect_apc/requires-positive-pid',
+      tool: 'process_detect_apc',
+      origin: 'homemade',
+      reference:
+        'argument contract: APC detection needs a positive pid and rejects anything else by name',
+      run: () => handlers.handleProcessDetectApcTool({}),
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        return /pid must be a positive integer/i.test(text)
+          ? true
+          : `expected the pid validation message: ${text.slice(0, 180)}`;
+      },
+    },
+    {
+      name: 'process_enum_threads/reports-prototype-failure',
+      tool: 'process_enum_threads',
+      origin: 'homemade',
+      reference:
+        'known-defect contract: the win32 thread enumeration currently fails at the koffi prototype ("Array types decay to pointers"), and the tool must report that failure rather than returning an empty thread list',
+      run: () => handlers.handleProcessEnumThreadsTool({ pid: MISSING_PID }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === false) {
+          const text = JSON.stringify(b);
+          // Either the koffi prototype rejection (current defect) or a named
+          // open-process failure is acceptable; a silent empty list is not.
+          return /Array types decay|Failed to open process|not available/i.test(text)
+            ? true
+            : `failure should name the cause: ${text.slice(0, 200)}`;
+        }
+        const ids = b['threadIds'];
+        if (Array.isArray(ids) && ids.length === 0)
+          return 'must not report an empty thread list as success';
+        return true;
+      },
+    },
   ],
 };

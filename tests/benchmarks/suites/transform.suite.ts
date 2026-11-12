@@ -410,5 +410,23 @@ export const transformSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Standalone-crypto contract batch 2026-11-12 (autoresearch) ───────────
+    {
+      name: 'crypto_extract_standalone/requires-code-or-scriptId',
+      tool: 'crypto_extract_standalone',
+      origin: 'homemade',
+      reference:
+        'argument contract: extracting standalone crypto needs the code (or a scriptId to read it from) and names the requirement',
+      run: () => handlers.handleCryptoExtractStandaloneTool({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === true)
+          return `must not extract without input: ${JSON.stringify(b).slice(0, 180)}`;
+        return /targetFunction|code|scriptId|required/i.test(JSON.stringify(b))
+          ? true
+          : `expected a code/scriptId/targetFunction requirement: ${JSON.stringify(b).slice(0, 200)}`;
+      },
+    },
   ],
 };

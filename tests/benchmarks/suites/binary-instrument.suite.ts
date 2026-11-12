@@ -889,6 +889,51 @@ export const binarySuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Tail-contract batch 2026-11-12 (autoresearch) ────────────────────────
+    {
+      name: 'frida_list_devices/reports-or-names-failure',
+      tool: 'frida_list_devices',
+      origin: 'homemade',
+      reference:
+        'listing contract: returns a real devices[] array with a matching count, or a named failure carrying the CLI diagnostic (the ~15s probe cost is why this case is the only one, and why it is not part of the default batch)',
+      run: () => bi.handleFridaListDevices({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === true) {
+          const devices = b['devices'];
+          return Array.isArray(devices) && b['count'] === (devices as unknown[]).length
+            ? true
+            : `devices/count inconsistent: ${JSON.stringify(b).slice(0, 200)}`;
+        }
+        if (b['success'] !== false)
+          return `expected a success boolean: ${JSON.stringify(b).slice(0, 160)}`;
+        if (!String(b['reason'] ?? '').trim()) return 'failure without a reason';
+        if (b['devices'] !== undefined) return 'must not return devices on failure';
+        return true;
+      },
+    },
+    {
+      name: 'ghidra_decompile/reports-unresolved-function',
+      tool: 'ghidra_decompile',
+      origin: 'homemade',
+      reference:
+        'lookup contract: a function that cannot be decompiled is reported as found:false with the analysed binary and a reason pointing at ghidra_analyze — never empty pseudocode presented as a result',
+      run: () =>
+        bi.handleGhidraDecompile({ binaryPath: mixedPath, functionName: 'jshook_bench_missing' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['available'] === false) {
+          return String(b['fix'] ?? '').trim() ? true : 'unavailable without fix guidance';
+        }
+        if (b['found'] === true) return true;
+        if (b['found'] !== false)
+          return `expected found:false, got ${JSON.stringify(b).slice(0, 160)}`;
+        if (!/ghidra_analyze/i.test(String(b['reason'] ?? '')))
+          return `reason should point at ghidra_analyze: ${String(b['reason']).slice(0, 160)}`;
+        return String(b['binaryPath'] ?? '').length > 0 ? true : 'binaryPath not echoed';
+      },
+    },
   ],
 };
 
