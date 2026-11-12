@@ -8,13 +8,13 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder skips) — see `artifacts/benchmarks/scorecard.md`. 7 offline-pure suites (instrumentation, extension-registry, streaming, proxy, syscall-hook, webgpu, canvas) graduated from 📋 to ✅ in the 2026-11-05 coverage wave, adding 32 tools with real vector measurements.
+Runnable suites today: **43 suites / 847 cases (838 pass, 0 fail, 9 env-gated/placeholder skips)** — see `artifacts/benchmarks/scorecard.md`. The 2026-11-12 autoresearch coverage campaign raised measured tools from 171 (23.2%) to **731 / 736 (99.3%)** by adding contract cases for every browser/CDP, network, memory, process, debugger, adb, dart, graphql, syscall, wasm, canvas, webgpu, streaming, mojo, native-bridge, instrumentation, workflow, coordination, maintenance and platform tool — and two new suites (`browser`, `graphql`) graduated an entire domain each. The only unmeasured tools are 5 Win32 memory gates that need a decision (see `autoresearch.ideas.md`).
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
 736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **398 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **731 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
