@@ -346,3 +346,10 @@
 - Result: debt 136→**132** (-4, **-484 cumulative**), unmeasured 85→81, vectors_total 651→**655 (89.0%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **instrumentation 13/13 measured (100%)**.
 - Insight: `ai_hook` and `hook_preset` live in *separate* handler classes (`AIHookToolHandlers`, `HookPresetToolHandlers`) registered under their own depKeys — the domain facade has no such methods. Dynamic-importing them inside the case (rather than at module top) keeps the suite's import graph honest and avoids constructing the whole instrumentation stack for two cases.
 - Next: `workflow` (5), `maintenance`/`coordination` (2 each), then `browser` (59).
+
+### Run 72: workflow + maintenance contracts (+7 cases) — debt 132→125 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: **workflow** (5/5 new): `api_probe_batch` requires `baseUrl`; `js_bundle_search` requires `url` **and** `patterns`; `page_script_run` reports an unknown script as not-found; `reverse_session` create is pure in-memory and must issue a real `sessionId` + `createdAt`; `run_extension_workflow` names the missing runtime instead of claiming a run. **maintenance** (2/2 new): `browse_extension_registry` returns the real built-in catalog (`plugins[]`) or a named failure; `install_extension` refuses an unknown/absent pointer as "not found in registry".
+- Result: debt 132→**125** (-7, **-491 cumulative**), unmeasured 81→74, vectors_total 655→**662 (89.9%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **workflow 13/13, maintenance 17/17 measured**.
+- Insight: both maintenance handlers take **positional** args (`(kind)`, `(slug, targetDir)`) via `mapArgs` in the manifest, not an args object — calling them with an object silently produced `"undefined"`. Reading the manifest's `mapArgs` before writing the case is the fix. Also: the registry browse response key is `plugins`, not `entries`.
+- Next: `coordination` (2), then the 59 `browser` tools — the last large block.

@@ -328,5 +328,56 @@ export const coordinationSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Snapshot-contract batch 2026-11-12 (autoresearch) ────────────────────
+    // Page snapshots need a live page controller; restoring one needs a real
+    // snapshot id. Both must refuse by name rather than invent a snapshot.
+    {
+      name: 'save_page_snapshot/refuses-without-page-controller',
+      tool: 'save_page_snapshot',
+      origin: 'homemade',
+      reference:
+        'admission contract: capturing a page snapshot needs the page controller and says so instead of storing an empty snapshot',
+      run: () => coordination.handleSavePageSnapshotTool({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false)
+          return `expected success=false: ${JSON.stringify(b).slice(0, 180)}`;
+        if (b['snapshotId'] !== undefined) return `must not issue a snapshot id without a page`;
+        return /page controller/i.test(String(b['error'] ?? b['message'] ?? ''))
+          ? true
+          : `refusal should name the page controller: ${JSON.stringify(b).slice(0, 180)}`;
+      },
+    },
+    {
+      name: 'coordination_restore_snapshot/requires-snapshotId',
+      tool: 'coordination_restore_snapshot',
+      origin: 'homemade',
+      reference: 'argument contract: restoring a snapshot needs its id and names it when absent',
+      run: () => coordination.handleCoordinationRestoreSnapshotTool({}),
+      validate: (v) => {
+        const b = body(v);
+        return b['success'] === false && /snapshotId/i.test(JSON.stringify(b))
+          ? true
+          : `expected a snapshotId error: ${JSON.stringify(b).slice(0, 180)}`;
+      },
+    },
+    {
+      name: 'coordination_restore_snapshot/unknown-id-not-found',
+      tool: 'coordination_restore_snapshot',
+      origin: 'homemade',
+      reference:
+        'lookup contract: an unknown snapshot id reports "not found" with the id it tried, never a restored-but-empty state',
+      run: () =>
+        coordination.handleCoordinationRestoreSnapshotTool({ snapshotId: 'bench-missing' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === true)
+          return `must not restore an unknown snapshot: ${JSON.stringify(b).slice(0, 180)}`;
+        const text = JSON.stringify(b);
+        if (!/not found/i.test(text)) return `expected a not-found answer: ${text.slice(0, 180)}`;
+        return text.includes('bench-missing') ? true : `not-found answer should echo the id`;
+      },
+    },
   ],
 };
