@@ -126,3 +126,10 @@
 - `v8-inspector`: `v8_turbofan_graph` traceDir mode.
 - `extension-registry`: `webhook`.
 - Harden `session.suite.ts` 1ms wall-clock ordering flake.
+
+### Run 42: tls-inspector WebSocket batch (+4 cases) — debt 412→408 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added 4 loopback RFC 6455 WebSocket cases to `tls-inspector-full.suite.ts`: websocket_open (HTTP-upgrade handshake with Sec-WebSocket-Accept verification), websocket_send_frame (masked text frame), websocket_read_frame (server un-masks client frame via XOR with 4-byte masking key then echoes unmasked), websocket_close (close frame code 1000, force teardown).
+- Result: debt 412→408 (-4, -208 cumulative), unmeasured 361→357, vectors_total 379 (51.5%), vector_fail 0, rejection_pct 100%, checks.sh pass. Suite 23→27 cases @ 100%. **tls-inspector is now 29/29 tools measured (100%)** — 5th domain at 100% coverage.
+- Insight: First run returned masked garbage because the test echo server forgot RFC 6455 §5.3 client-to-server masking (XOR payload with the 4-byte key at bytes 2..6). Fixed in the fixture server, second run green.
+- Next: `exploit-dev` (`exploit_build_jop_chain`), `v8-inspector` (`v8_turbofan_graph` traceDir), `extension-registry` (`webhook`), or `session.suite.ts` 1ms flake hardening → target `debt < 400`.

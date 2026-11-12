@@ -15,6 +15,9 @@ import {
   storeSnapshot,
   clearSnapshotCache,
 } from '@server/domains/v8-inspector/handlers/heap-snapshot';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { BenchSuite } from '../harness';
 import { expectSuccess } from '../harness';
 
@@ -294,6 +297,104 @@ export const v8InspectorSuite: BenchSuite = {
       validate: (v: unknown) => {
         const b = expectSuccess(v);
         if (b.cacheDropped !== true) return `expected cacheDropped === true, got ${b.cacheDropped}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 2 (2026-11-11 autoresearch): TurboFan IR traceDir mode ──
+    {
+      name: 'v8_turbofan_graph/trace-dir-parsing',
+      tool: 'v8_turbofan_graph',
+      origin: 'external-vector',
+      reference:
+        'parses real --trace-turbo JSON (sea-of-nodes graph: nodes/edges/phases) from a turboDir fixture',
+      run: async () => {
+        const traceDir = mkdtempSync(join(tmpdir(), 'jshook-bench-turbo-'));
+        const turboJson = JSON.stringify({
+          function: {
+            sourceId: 0,
+            functionName: 'hotLoop',
+            sourceName: 'test.js',
+            sourceText: 'function hotLoop(n){let s=0;for(let i=0;i<n;i++){s+=i}return s}',
+            startPosition: 0,
+            endPosition: 64,
+          },
+          phases: [
+            {
+              name: 'begin inlining',
+              type: 'graph',
+              data: {
+                nodes: [
+                  {
+                    id: 1,
+                    label: 'NumberConstant [0]',
+                    title: 'NumberConstant(0)',
+                    live: true,
+                    properties: '0',
+                    opcode: 'NumberConstant',
+                    control: false,
+                    opinfo: '0 v 0 eff 0 ctrl in',
+                    type: 'TaggedNumber',
+                  },
+                  {
+                    id: 2,
+                    label: 'NumberConstant [1]',
+                    title: 'NumberConstant(1)',
+                    live: true,
+                    properties: '1',
+                    opcode: 'NumberConstant',
+                    control: false,
+                    opinfo: '1 v 0 eff 0 ctrl in',
+                    type: 'TaggedNumber',
+                  },
+                  {
+                    id: 10,
+                    label: 'Loop',
+                    title: 'Loop',
+                    live: true,
+                    properties: '',
+                    opcode: 'Loop',
+                    control: true,
+                    opinfo: '0 v 0 eff 2 ctrl in',
+                    type: 'Internal',
+                  },
+                  {
+                    id: 25,
+                    label: 'JSAdd',
+                    title: 'JSAdd',
+                    live: true,
+                    properties: '',
+                    opcode: 'JSAdd',
+                    control: false,
+                    opinfo: '2 v 1 eff 1 ctrl in',
+                    type: 'TaggedNumber',
+                  },
+                ],
+                edges: [
+                  { source: 1, target: 25, index: 0, type: 'value' },
+                  { source: 2, target: 25, index: 1, type: 'value' },
+                  { source: 10, target: 25, index: 0, type: 'control' },
+                ],
+              },
+            },
+          ],
+        });
+        writeFileSync(join(traceDir, 'turbo-hotLoop-0.json'), turboJson);
+        process.once('exit', () => {
+          try {
+            rmSync(traceDir, { recursive: true, force: true });
+          } catch {}
+        });
+        return handlers.handle('v8_turbofan_graph', { traceDir, includePhases: false });
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.mode !== 'directory') return `expected mode=directory, got ${b.mode}`;
+        if (Number(b.functionCount) !== 1 || !Array.isArray(b.functions))
+          return `expected 1 parsed function, got ${JSON.stringify(b).slice(0, 200)}`;
+        const fn = b.functions[0] as { functionName?: string; totalNodeCount?: number } | undefined;
+        if (fn?.functionName !== 'hotLoop' || Number(fn?.totalNodeCount ?? 0) !== 4)
+          return `expected hotLoop with 4 nodes, got ${JSON.stringify(fn)}`;
         return true;
       },
     },

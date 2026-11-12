@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **379 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **381 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -110,11 +110,12 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** Google protobuf wire-format spec "simple message" (08 96 01 → varint 150) via binary_decode + protobuf_decode_raw.
 - **[自制] ✅** Shannon entropy bounds (uniform → 8.0, constant → 0), gzip roundtrip, magic-byte format detection.
 
-## exploit-dev (21 tools) — ✅ suite `exploit-dev`
+## exploit-dev (21 tools) — ✅ suite `exploit-dev` (19/21 tools measured)
 
 - **[外部] ✅** De Bruijn 4-gram uniqueness property (pwntools `cyclic` definition).
 - **[外部] ✅** Z3 SMT semantics (SAT-with-model / UNSAT).
 - **[外部] ✅** one_gadget known-libc database (glibc 2.23–2.39, musl 1.2).
+- **[自制] ✅** (2026-11-12) `exploit_build_jop_chain` (jmp-rsp dispatcher search with honest empty-gadget outcome on the 512B fixture).
 - **[外部]** [ROPium](https://github.com/teerder/ROPium) evaluation binaries — gadget finder recall. 📋
 - **[自制] ✅** offset roundtrip, %hn format-string structure, ret2dlresolve validation contract.
 - **[自制] ✅** (2026-11-11) `exploit_cache_stats`, `exploit_cache_configure`, `exploit_cache_clear`, `exploit_cache_invalidate`, `exploit_find_gadgets` (x64 fixture search), `exploit_find_jmp_esp` (x86 esp discovery), `exploit_build_rop_chain` (execve ROP chain on test binary), `exploit_build_stack_pivot` (stack pivot discovery), `exploit_analyze_mitigations` (PE CFG/ASLR/NX inspection), `exploit_verify_rop_chain` (Z3 simulated chain verification).
@@ -274,6 +275,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 
 - **[自制] ✅** `v8-inspector-heap` suite: synthetic V8 heapsnapshot fixtures testing class histogram generation, snapshot structural diff, dominator-tree retainer tracing, and object pair comparison.
 - **[自制] ✅** (2026-11-11) `v8_heap_find_leaks` (dominator leak candidate detection), `v8_function_retained` (retained object filter), `v8_heap_snapshot_export` (`.heapsnapshot` artifact export), `v8_heap_snapshot_delete` (in-memory & disk drop).
+- **[自制] ✅** (2026-11-12) `v8_turbofan_graph` (real `--trace-turbo` JSON graph parsing in traceDir mode: hotLoop 4-node sea-of-nodes graph).
 - **[外部]** `.heapsnapshot` format spec + DevTools sample snapshots — snapshot parse/analyze/diff. 📋
 
 ## wasm (17 tools) — ✅ suite `wasm`
