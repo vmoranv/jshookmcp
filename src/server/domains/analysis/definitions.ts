@@ -114,7 +114,9 @@ export const coreTools: Tool[] = [
   tool('deobfuscate', (t) =>
     withWebcrackOpts(
       t
-        .desc('Run webcrack-powered JavaScript deobfuscation with bundle unpacking.')
+        .desc(
+          'Deobfuscate obfuscated/minified JavaScript: reverse bundler packaging (webpack, Vite, esbuild, Rollup), unminify variable names, unwrap CommonJS/ESM modules, and unpack bundled code back to individual source files.',
+        )
         .string('code', 'Obfuscated JavaScript source')
         .enum(
           'engine',

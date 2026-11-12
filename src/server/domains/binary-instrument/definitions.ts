@@ -60,7 +60,9 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('ghidra_analyze', (t) =>
     t
-      .desc('Analyze a binary and return metadata.')
+      .desc(
+        'Run Ghidra headless analysis on a native binary: extract function names, imports, exports, and printable strings. Requires analyzeHeadless on PATH.',
+      )
       .string('binaryPath', 'Path to the binary file')
       .number('timeout', 'Optional timeout in milliseconds for headless analysis')
       .required('binaryPath'),

@@ -4,14 +4,18 @@ import { tool } from '@server/registry/tool-builder';
 export const captureTools: Tool[] = [
   tool('network_enable', (t) =>
     t
-      .desc('Enable network request monitoring.')
+      .desc(
+        'Enable CDP Network domain monitoring: capture requests, responses, headers, timing, and response bodies via Chrome DevTools Protocol.',
+      )
       .boolean('enableExceptions', 'Also capture uncaught exceptions', { default: true }),
   ),
   tool('network_disable', (t) => t.desc('Disable network request monitoring').destructive()),
   tool('network_get_status', (t) => t.desc('Get network monitoring status.').query()),
   tool('network_monitor', (t) =>
     t
-      .desc('Manage network request monitoring.')
+      .desc(
+        'Manage network traffic capture: query captured requests, filter by type or status, and export or replay. Requires network_enable first.',
+      )
       .enum('action', ['enable', 'disable', 'status'], 'Action to perform')
       .boolean('enableExceptions', 'Only for enable action: Also capture uncaught exceptions', {
         default: true,

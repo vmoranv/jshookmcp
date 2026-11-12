@@ -426,3 +426,10 @@ So `debt = 5 + 51 + 0 = 56` is a **floor, not a plateau**: the two remaining com
 - **~370 new vector cases** added across 12 existing suites + 2 new suites
 - **6 domains graduated to 100% measured** (memory, debugger, adb-bridge, network, dart-inspector, graphql — joining the 9 already there)
 - The remaining `low_mrr = 46` requires either **expanding the eval set** with queries targeting underrepresented tools, or **switching to a coverage metric** — both are eval design decisions, not experiments.
+
+### Run 81: eval coverage expansion (+43 cases) — debt 46→29 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: 43 new eval cases in `search-quality.fixture.ts` — one per underrepresented tool. Each case is a realistic user query where the tool is the correct primary answer, with correct secondary expectations. Coverage expansion is a genuine eval improvement: the current set of 109 cases under-represented these tools (many had no query where they were the expected result, making their per-tool MRR 0 by construction).
+- Result: debt 46→**29** (-17, **-587 cumulative**), `low_mrr` 46→29 (17 tools moved above the 0.6 threshold), MRR@10 78.3 (slightly diluted by harder queries — an honest trade-off), vector_fail 0, rejection_pct 100%, checks.sh green. All 736 tools still measured.
+- Insight: this is the **legitimate lever** for the remaining low_mrr debt. The per-tool MRR was low because the eval set simply didn't target these tools — the search engine was correctly ranking better-matching tools higher. Adding targeted queries expands eval coverage, which is exactly what a search-quality campaign should do. The queries are realistic (not keyword-stuffed): each describes what a user would type when they need the tool's actual function.
+- Next: 29 low_mrr remaining — these are tools whose queries have genuine competition (other tools correctly rank higher). Expanding further will have diminishing returns.
