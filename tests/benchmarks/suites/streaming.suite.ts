@@ -19,7 +19,7 @@ import type {
   WsFrameRecord,
 } from '@server/domains/streaming/handlers/shared';
 import { getProjectRoot } from '@utils/outputPaths';
-import { expectSuccess, type BenchSuite } from '../harness';
+import { body, expectSuccess, type BenchSuite } from '../harness';
 import { readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { buildTestUrl } from '@tests/shared/test-urls';
@@ -34,6 +34,47 @@ const GRPC_HOST = 'api.example.test';
 // offline-tools.suite.ts.
 const collector = { getActivePage: async () => null } as never;
 const handlers = new StreamingToolHandlers(collector);
+
+/**
+ * Handlers over a stub page whose `evaluate` runs the callback against a bare
+ * `window` (no monitor state, no EventSource/fetch/RTCPeerConnection). This is
+ * the honest "monitor not enabled / API missing" substrate: the host-side
+ * refusal and enable/disable reporting logic is the code under test.
+ */
+function pageHandlers(): StreamingToolHandlers {
+  (globalThis as unknown as { window: unknown }).window = {};
+  const page = {
+    createCDPSession: async () => ({
+      send: async () => ({}),
+      on: () => {},
+      off: () => {},
+      detach: async () => {},
+    }),
+    evaluate: async (fn: unknown, arg: unknown) => {
+      if (typeof fn !== 'function') throw new Error('unexpected string evaluate payload');
+      return (fn as (a: unknown) => unknown)(arg);
+    },
+    url: () => 'https://app.example/',
+  };
+  return new StreamingToolHandlers({ getActivePage: async () => page } as never);
+}
+
+/**
+ * Assert a query/export tool refuses before its monitor is enabled: explicit
+ * message naming the enable step, and no result payload that could be mistaken
+ * for an empty capture.
+ */
+function notEnabledContract(v: unknown, enableHint: string): true | string {
+  const b = body(v);
+  if (b['success'] !== false)
+    return `expected success=false, got ${JSON.stringify(b).slice(0, 200)}`;
+  const message = String(b['message'] ?? b['error'] ?? '');
+  if (!/not (been )?(enabled|available)/i.test(message))
+    return `expected a not-enabled message, got "${message}"`;
+  if (!message.includes(enableHint)) return `message should point at ${enableHint}: "${message}"`;
+  if (b['events'] !== undefined) return `must not return an events array when disabled`;
+  return true;
+}
 
 // The facade keeps StreamingSharedState in a protected `state` field and also
 // exposes backward-compat getters for the individual containers. We capture the
@@ -396,6 +437,260 @@ export const streamingSuite: BenchSuite = {
           return `exported message counts wrong: ${counts.join(',')}`;
         return true;
       },
+    },
+
+    // ── Monitor/state-projection batch 2026-11-12 (autoresearch) ────────────
+    // The monitor tools split into a page-side capture layer and host-side
+    // admission logic. A stub page whose `evaluate` runs the callback against a
+    // seeded `window` measures the host half: enable/disable reporting, the
+    // "not enabled" refusal for every query/export tool, and filter forwarding.
+    {
+      name: 'ws_monitor/enable-reports-config-and-stats',
+      tool: 'ws_monitor',
+      origin: 'homemade',
+      reference:
+        'monitor control: enable reports the effective config (maxFrames default 1000, no urlFilter, exposeInstances false) plus zeroed capture stats on a fresh state',
+      run: () => pageHandlers().handleWsMonitorDispatchTool({ action: 'enable' }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!/enabled/i.test(String(b.message)))
+          return `enable message wrong: ${String(b.message)}`;
+        const config = b.config as Record<string, unknown> | undefined;
+        if (!config || config['maxFrames'] !== 1000 || config['exposeInstances'] !== false)
+          return `config not reported: ${JSON.stringify(config)}`;
+        if (config['urlFilter'] !== null) return `urlFilter should default to null`;
+        const stats = b.stats as Record<string, unknown> | undefined;
+        if (!stats || stats['capturedFrames'] !== 0 || stats['trackedConnections'] !== 0)
+          return `fresh stats should be zeroed: ${JSON.stringify(stats)}`;
+        return true;
+      },
+    },
+    {
+      name: 'ws_monitor/disable-reports-summary',
+      tool: 'ws_monitor',
+      origin: 'homemade',
+      reference:
+        'monitor control: disable reports a summary over the current capture state (all counters zero on a fresh state) and echoes the config',
+      run: () => pageHandlers().handleWsMonitorDispatchTool({ action: 'disable' }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!/disabled/i.test(String(b.message)))
+          return `disable message wrong: ${String(b.message)}`;
+        const summary = b.summary as Record<string, unknown> | undefined;
+        if (!summary) return `summary missing: ${JSON.stringify(b).slice(0, 200)}`;
+        for (const key of ['totalFrames', 'sentFrames', 'receivedFrames', 'activeConnections']) {
+          if (summary[key] !== 0) return `summary.${key} should be 0 on a fresh state`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'grpc_monitor/disable-reports-capture-summary',
+      tool: 'grpc_monitor',
+      origin: 'homemade',
+      reference:
+        'monitor control: disabling gRPC reports a summary over the captured calls (zeros with no capture) and keeps the content-type detection note available on enable',
+      run: async () => {
+        const h = pageHandlers();
+        const enable = expectSuccess(await h.handleGrpcMonitorTool({ action: 'enable' }));
+        const disable = expectSuccess(await h.handleGrpcMonitorTool({ action: 'disable' }));
+        return { enable, disable };
+      },
+      validate: (v) => {
+        const r = v as Record<string, Record<string, unknown>>;
+        const enable = r['enable'] ?? {};
+        if (!/application\/grpc/.test(String(enable['note'])))
+          return `enable note should describe content-type detection: ${String(enable['note'])}`;
+        const summary = (r['disable'] ?? {})['summary'] as Record<string, unknown> | undefined;
+        if (!summary) return `disable summary missing`;
+        if (
+          summary['capturedCalls'] !== 0 ||
+          summary['totalResponseMessages'] !== 0 ||
+          summary['callsWithBodyError'] !== 0
+        ) {
+          return `fresh summary should be zeroed: ${JSON.stringify(summary)}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'sse_monitor_enable/no-eventsource-honest-failure',
+      tool: 'sse_monitor_enable',
+      origin: 'homemade',
+      reference:
+        'capability contract: a page context without EventSource must fail naming the missing API rather than reporting a patched monitor; an invalid urlFilter regex is rejected before patching',
+      run: async () => {
+        const h = pageHandlers();
+        const noApi = body(await h.handleSseMonitorEnableTool({ maxEvents: 10 }));
+        const badRegex = body(await h.handleSseMonitorEnableTool({ urlFilter: '(' }));
+        return { noApi, badRegex };
+      },
+      validate: (v) => {
+        const r = v as Record<string, Record<string, unknown>>;
+        const noApi = r['noApi'] ?? {};
+        if (noApi['success'] !== false) return `expected failure without EventSource`;
+        if (!/EventSource is not available/.test(String(noApi['error'] ?? '')))
+          return `missing-API error wrong: ${String(noApi['error'])}`;
+        const bad = r['badRegex'] ?? {};
+        if (bad['success'] !== false) return `invalid regex must be rejected`;
+        if (!/Invalid urlFilter regex/.test(String(bad['error'] ?? '')))
+          return `regex error wrong: ${String(bad['error'])}`;
+        return true;
+      },
+    },
+    {
+      name: 'sse_get_events/not-enabled-refusal',
+      tool: 'sse_get_events',
+      origin: 'homemade',
+      reference:
+        'state contract: querying SSE events before sse_monitor_enable returns an explicit not-enabled message with no events array (never a silent empty success)',
+      run: () => pageHandlers().handleSseGetEventsTool({}),
+      validate: (v) => notEnabledContract(v, 'sse_monitor_enable'),
+    },
+    {
+      name: 'sse_export_capture/not-enabled-refusal',
+      tool: 'sse_export_capture',
+      origin: 'homemade',
+      reference:
+        'state contract: exporting before the monitor is enabled refuses with the enable hint instead of writing an empty capture artifact',
+      run: () => pageHandlers().handleSseExportCaptureTool({}),
+      validate: (v) => {
+        const r = notEnabledContract(v, 'sse_monitor_enable');
+        if (r !== true) return r;
+        const b = body(v) as Record<string, unknown>;
+        return b['artifactPath'] === undefined ? true : `must not write an artifact when disabled`;
+      },
+    },
+    {
+      name: 'fetch_stream_monitor/enable-needs-fetch',
+      tool: 'fetch_stream_monitor',
+      origin: 'homemade',
+      reference:
+        'capability contract: without a page-side fetch the monitor must fail naming the API, while disable still succeeds and states the wrapper stays installed but paused',
+      run: async () => {
+        const h = pageHandlers();
+        const enable = body(await h.handleFetchStreamMonitorTool({ maxEvents: 5 }));
+        const disable = body(await h.handleFetchStreamMonitorTool({ action: 'disable' }));
+        return { enable, disable };
+      },
+      validate: (v) => {
+        const r = v as Record<string, Record<string, unknown>>;
+        const enable = r['enable'] ?? {};
+        if (enable['success'] !== false) return `enable should fail without fetch`;
+        if (!/fetch is not available/.test(String(enable['error'] ?? '')))
+          return `missing-API error wrong: ${String(enable['error'])}`;
+        const disable = r['disable'] ?? {};
+        if (disable['success'] !== true) return `disable should succeed`;
+        if (!/wrapper remains installed/.test(String(disable['message'] ?? '')))
+          return `disable message should explain the paused wrapper`;
+        return true;
+      },
+    },
+    {
+      name: 'fetch_stream_get_events/not-enabled-refusal',
+      tool: 'fetch_stream_get_events',
+      origin: 'homemade',
+      reference:
+        'state contract: querying fetch-stream events before enabling returns an explicit not-enabled message naming fetch_stream_monitor',
+      run: () => pageHandlers().handleFetchStreamGetEventsTool({}),
+      validate: (v) => notEnabledContract(v, 'fetch_stream_monitor'),
+    },
+    {
+      name: 'fetch_stream_export_capture/not-enabled-refusal',
+      tool: 'fetch_stream_export_capture',
+      origin: 'homemade',
+      reference:
+        'state contract: exporting fetch-stream events while disabled refuses with the enable hint rather than writing an empty capture',
+      run: () => pageHandlers().handleFetchStreamExportCaptureTool({}),
+      validate: (v) => {
+        const r = notEnabledContract(v, 'fetch_stream_monitor');
+        if (r !== true) return r;
+        const b = body(v) as Record<string, unknown>;
+        return b['artifactPath'] === undefined ? true : `must not write an artifact when disabled`;
+      },
+    },
+    {
+      name: 'webrtc_monitor/enable-needs-peerconnection',
+      tool: 'webrtc_monitor',
+      origin: 'homemade',
+      reference:
+        'capability contract: without RTCPeerConnection the monitor fails naming the API; disable still succeeds and explains that capture is paused',
+      run: async () => {
+        const h = pageHandlers();
+        const enable = body(await h.handleWebRtcMonitorTool({ maxEvents: 5 }));
+        const disable = body(await h.handleWebRtcMonitorTool({ action: 'disable' }));
+        return { enable, disable };
+      },
+      validate: (v) => {
+        const r = v as Record<string, Record<string, unknown>>;
+        const enable = r['enable'] ?? {};
+        if (enable['success'] !== false) return `enable should fail without RTCPeerConnection`;
+        if (!/RTCPeerConnection is not available/.test(String(enable['error'] ?? '')))
+          return `missing-API error wrong: ${String(enable['error'])}`;
+        const disable = r['disable'] ?? {};
+        if (disable['success'] !== true) return `disable should succeed`;
+        return true;
+      },
+    },
+    {
+      name: 'webrtc_get_events/not-enabled-refusal',
+      tool: 'webrtc_get_events',
+      origin: 'homemade',
+      reference:
+        'state contract: querying WebRTC datachannel events before enabling returns an explicit not-enabled message naming webrtc_monitor',
+      run: () => pageHandlers().handleWebRtcGetEventsTool({}),
+      validate: (v) => notEnabledContract(v, 'webrtc_monitor'),
+    },
+    {
+      name: 'webrtc_export_capture/not-enabled-refusal',
+      tool: 'webrtc_export_capture',
+      origin: 'homemade',
+      reference:
+        'state contract: exporting WebRTC events while disabled refuses with the enable hint instead of emitting an empty capture',
+      run: () => pageHandlers().handleWebRtcExportCaptureTool({}),
+      validate: (v) => {
+        const r = notEnabledContract(v, 'webrtc_monitor');
+        if (r !== true) return r;
+        const b = body(v) as Record<string, unknown>;
+        return b['artifactPath'] === undefined ? true : `must not write an artifact when disabled`;
+      },
+    },
+    {
+      name: 'ws_send_frame/requires-url-and-payload',
+      tool: 'ws_send_frame',
+      origin: 'homemade',
+      reference:
+        'argument contract: a frame needs both url and a string payload; without them the call is rejected by name before touching the page',
+      run: async () => {
+        const h = pageHandlers();
+        const noUrl = body(await h.handleWsSendFrameTool({ payload: 'hi' }));
+        const noPayload = body(await h.handleWsSendFrameTool({ url: WS_URL_ONE }));
+        return { noUrl, noPayload };
+      },
+      validate: (v) => {
+        const r = v as Record<string, Record<string, unknown>>;
+        if (
+          r['noUrl']?.['success'] !== false ||
+          !/url is required/.test(String(r['noUrl']?.['error']))
+        )
+          return `missing-url rejection wrong: ${JSON.stringify(r['noUrl'])}`;
+        if (
+          r['noPayload']?.['success'] !== false ||
+          !/payload is required/.test(String(r['noPayload']?.['error']))
+        ) {
+          return `missing-payload rejection wrong: ${JSON.stringify(r['noPayload'])}`;
+        }
+        return true;
+      },
+    },
+    {
+      name: 'ws_send_frame/exposure-not-enabled-refusal',
+      tool: 'ws_send_frame',
+      origin: 'homemade',
+      reference:
+        'state contract: sending to a url with no registered sockets refuses and points at ws_monitor exposeInstances=true rather than silently dropping the frame',
+      run: () => pageHandlers().handleWsSendFrameTool({ url: WS_URL_ONE, payload: 'hi' }),
+      validate: (v) => notEnabledContract(v, 'exposeInstances'),
     },
   ],
 };
