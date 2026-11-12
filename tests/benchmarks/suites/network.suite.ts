@@ -11,6 +11,7 @@
  *  - network_http2_fingerprint canonical "<settings>|<window_update>|<priority>" shape
  */
 import { AdvancedToolHandlers } from '@server/domains/network/handlers';
+import { createSocket } from 'node:dgram';
 import { body, expectSuccess, type BenchSuite } from '../harness';
 
 const collector = { getActivePage: async () => null } as never;
@@ -606,6 +607,79 @@ export const networkSuite: BenchSuite = {
         const b = expectSuccess(v);
         if (Number(b.cleared) !== 2)
           return `expected cleared=2 from monitor stub, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch 3 (2026-11-12 autoresearch): DNS resolve via loopback UDP stub ──
+    {
+      name: 'dns_resolve/loopback-udp-stub-a-record',
+      tool: 'dns_resolve',
+      origin: 'external-vector',
+      reference:
+        'RFC 1035: DNS A query against a loopback UDP stub must return the stub-authored 10.0.0.1 answer',
+      run: async () => {
+        const sock = createSocket('udp4');
+        // Minimal RFC 1035 responder: parse the question section, answer with
+        // a single A record pointing at 10.0.0.1 (name pointer 0xC00C).
+        sock.on('message', (msg, rinfo) => {
+          const qdcount = msg.readUInt16BE(4);
+          if (qdcount !== 1) return;
+          let cursor = 12;
+          while (cursor < msg.length && msg[cursor] !== 0) cursor += msg[cursor]! + 1;
+          cursor += 1 + 4; // root label + QTYPE + QCLASS
+          const answer = Buffer.from([
+            0xc0,
+            0x0c, // name pointer to question
+            0x00,
+            0x01, // TYPE=A
+            0x00,
+            0x01, // CLASS=IN
+            0x00,
+            0x00,
+            0x00,
+            0x3c, // TTL=60
+            0x00,
+            0x04, // RDLENGTH=4
+            10,
+            0,
+            0,
+            1, // 10.0.0.1
+          ]);
+          const header = Buffer.from(msg.subarray(0, 12));
+          header.writeUInt16BE(0x8180, 2); // QR=1 AA=1 RD=1 RA=1
+          header.writeUInt16BE(1, 6); // ANCOUNT=1
+          sock.send(
+            Buffer.concat([header, msg.subarray(12, cursor), answer]),
+            rinfo.port,
+            rinfo.address,
+          );
+        });
+        await new Promise<void>((resolve, reject) => {
+          sock.on('error', reject);
+          sock.bind(0, '127.0.0.1', () => resolve());
+        });
+        const addr = sock.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        try {
+          return await handlers.handleDnsResolve({
+            hostname: 'bench.example.test',
+            rrType: 'A',
+            server: `127.0.0.1:${port}`,
+          });
+        } finally {
+          sock.close();
+        }
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.hostname !== 'bench.example.test' || b.rrType !== 'A')
+          return `unexpected echo fields: ${JSON.stringify(b).slice(0, 200)}`;
+        const records = b.records as unknown[] | undefined;
+        if (!Array.isArray(records) || records.length !== 1)
+          return `expected 1 A record, got ${JSON.stringify(records)}`;
+        if (!JSON.stringify(records).includes('10.0.0.1'))
+          return `expected stub answer 10.0.0.1, got ${JSON.stringify(records)}`;
         return true;
       },
     },

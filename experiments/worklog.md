@@ -154,3 +154,17 @@
 - Result: debt 405→404 (-1, -212 cumulative), unmeasured 354→353, vectors_total 383 (52.0%), vector_fail 0, rejection_pct 100%, checks.sh pass. exploit-dev 20/21 measured.
 - Insight: Pure-compute XOR encoding needs only key + arch to be byte-deterministic; the session flake was a test-expectation bug (assumed all writes land in one millisecond), not a handler bug — handlers correctly implement both newest-first and same-ms tie-break.
 - Next: `network` DNS loopback stub (`dns_resolve`), `streaming` SSE loopback capture, or `browser` offline config handlers (`captcha_config`, `stealth_configure_jitter`) → target `debt < 400` (4 away)!
+
+### Run 46: browser config batch (+2 cases) + REAL BUG #4 — debt 405→402 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added captcha_config and stealth_configure_jitter cases to `offline-tools.suite.ts`. First run exposed REAL BUG #4: `facade-initializer.ts` evaluated `deps.getAutoDetectCaptcha()` etc. once at construction, so CaptchaHandlers held static values and `captcha_config` read-back ignored setter writes. Fixed CaptchaHandlersDeps to carry live getters (`getAutoDetectCaptcha: () => boolean`) and updated the unit-test mock wiring.
+- Result: debt 405→402 (-3, -214 cumulative), unmeasured 354→351, vectors_total 385, vector_fail 0, rejection_pct 100%, checks.sh pass. offline-tools 14→16 cases @ 100%. All 4 captcha unit tests green.
+- Insight: Constructor-time dependency snapshots vs live getters is the same class of bug as Run 15 (data: URI) — the pattern "read through a getter at call time" is now the fourth instance caught by benchmark vectors.
+- Next: `network` DNS loopback stub or `streaming` SSE capture → target `debt < 400` (only 2 away)!
+
+### Run 47: network dns_resolve loopback UDP stub — debt 402→401 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added `dns_resolve` case to `network.suite.ts` — a minimal RFC 1035 UDP DNS responder bound to an ephemeral 127.0.0.1 port answers an A query with a single 10.0.0.1 record (name pointer 0xC00C, QR/AA/RD/RA flags, ANCOUNT=1). Handler queried with `server: '127.0.0.1:<port>'`.
+- Result: debt 402→401 (-1, -215 cumulative), unmeasured 351→350, vectors_total 386 (52.4%), vector_fail 0, rejection_pct 100%, checks.sh pass. network 22/38 measured.
+- Insight: `createDnsClient(server)` uses `dns.Resolver.setServers([server])`, so a pure loopback UDP stub exercises the full DNS resolution path with zero external network — the same loopback pattern as proxy/TCP/TLS/WebSocket batches.
+- Next: `streaming` SSE/WebRTC/fetch-stream loopback capture or `dns_reverse` / `dns_cname_chain` / `dns_probe` / `dns_bulk_resolve` via the same UDP stub → target `debt < 400` (only 1 away)!
