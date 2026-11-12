@@ -14,6 +14,85 @@ import { AdvancedToolHandlers } from '@server/domains/network/handlers';
 import { createSocket } from 'node:dgram';
 import { body, expectSuccess, type BenchSuite } from '../harness';
 
+type DnsStubMode = { kind: 'a' } | { kind: 'cname'; firstHost: string; target: string };
+
+/**
+ * Minimal RFC 1035 UDP DNS responder on loopback. Answers A queries with
+ * 10.0.0.1, or CNAME queries for `firstHost` with `target` and NODATA
+ * (NOERROR/ANCOUNT=0) for anything else. Fully offline — no upstream resolver.
+ */
+function startDnsStub(mode: DnsStubMode): Promise<{ port: number; close: () => void }> {
+  return new Promise((resolve, reject) => {
+    const sock = createSocket('udp4');
+    sock.on('message', (msg, rinfo) => {
+      if (msg.length < 17 || msg.readUInt16BE(4) !== 1) return;
+      // Parse the (uncompressed) question name so CNAME answers can be selective.
+      let cursor = 12;
+      const labels: string[] = [];
+      while (cursor < msg.length && msg[cursor] !== 0) {
+        const len = msg[cursor]!;
+        labels.push(msg.subarray(cursor + 1, cursor + 1 + len).toString('ascii'));
+        cursor += len + 1;
+      }
+      cursor += 1; // root label
+      const qname = labels.join('.').toLowerCase();
+      const qtype = msg.readUInt16BE(cursor);
+      cursor += 4; // QTYPE + QCLASS
+      const question = msg.subarray(12, cursor);
+      const header = Buffer.from(msg.subarray(0, 12));
+      header.writeUInt16BE(0x8180, 2); // QR=1 AA=1 RD=1 RA=1
+      header.writeUInt16BE(0, 6); // ANCOUNT=0 by default (NODATA)
+
+      let answers: Buffer[] = [];
+      if (mode.kind === 'a' && qtype === 1) {
+        header.writeUInt16BE(1, 6);
+        answers = [
+          Buffer.from([
+            0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x04, 10, 0, 0, 1,
+          ]),
+        ];
+      } else if (mode.kind === 'cname' && qtype === 5 && qname === mode.firstHost.toLowerCase()) {
+        const rdata = Buffer.concat([
+          ...mode.target
+            .split('.')
+            .map((label) =>
+              Buffer.concat([Buffer.from([label.length]), Buffer.from(label, 'ascii')]),
+            ),
+          Buffer.from([0]),
+        ]);
+        header.writeUInt16BE(1, 6);
+        answers = [
+          Buffer.concat([
+            Buffer.from([
+              0xc0,
+              0x0c,
+              0x00,
+              0x05,
+              0x00,
+              0x01,
+              0x00,
+              0x00,
+              0x00,
+              0x3c,
+              0x00,
+              rdata.length,
+            ]),
+            rdata,
+          ]),
+        ];
+      }
+
+      sock.send(Buffer.concat([header, question, ...answers]), rinfo.port, rinfo.address);
+    });
+    sock.on('error', reject);
+    sock.bind(0, '127.0.0.1', () => {
+      const addr = sock.address();
+      const port = typeof addr === 'object' && addr ? addr.port : 0;
+      resolve({ port, close: () => sock.close() });
+    });
+  });
+}
+
 const collector = { getActivePage: async () => null } as never;
 const monitor = {
   getNetworkRequests: () => [
@@ -619,56 +698,15 @@ export const networkSuite: BenchSuite = {
       reference:
         'RFC 1035: DNS A query against a loopback UDP stub must return the stub-authored 10.0.0.1 answer',
       run: async () => {
-        const sock = createSocket('udp4');
-        // Minimal RFC 1035 responder: parse the question section, answer with
-        // a single A record pointing at 10.0.0.1 (name pointer 0xC00C).
-        sock.on('message', (msg, rinfo) => {
-          const qdcount = msg.readUInt16BE(4);
-          if (qdcount !== 1) return;
-          let cursor = 12;
-          while (cursor < msg.length && msg[cursor] !== 0) cursor += msg[cursor]! + 1;
-          cursor += 1 + 4; // root label + QTYPE + QCLASS
-          const answer = Buffer.from([
-            0xc0,
-            0x0c, // name pointer to question
-            0x00,
-            0x01, // TYPE=A
-            0x00,
-            0x01, // CLASS=IN
-            0x00,
-            0x00,
-            0x00,
-            0x3c, // TTL=60
-            0x00,
-            0x04, // RDLENGTH=4
-            10,
-            0,
-            0,
-            1, // 10.0.0.1
-          ]);
-          const header = Buffer.from(msg.subarray(0, 12));
-          header.writeUInt16BE(0x8180, 2); // QR=1 AA=1 RD=1 RA=1
-          header.writeUInt16BE(1, 6); // ANCOUNT=1
-          sock.send(
-            Buffer.concat([header, msg.subarray(12, cursor), answer]),
-            rinfo.port,
-            rinfo.address,
-          );
-        });
-        await new Promise<void>((resolve, reject) => {
-          sock.on('error', reject);
-          sock.bind(0, '127.0.0.1', () => resolve());
-        });
-        const addr = sock.address();
-        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const stub = await startDnsStub({ kind: 'a' });
         try {
           return await handlers.handleDnsResolve({
             hostname: 'bench.example.test',
             rrType: 'A',
-            server: `127.0.0.1:${port}`,
+            server: `127.0.0.1:${stub.port}`,
           });
         } finally {
-          sock.close();
+          stub.close();
         }
       },
       validate: (v: unknown) => {
@@ -680,6 +718,140 @@ export const networkSuite: BenchSuite = {
           return `expected 1 A record, got ${JSON.stringify(records)}`;
         if (!JSON.stringify(records).includes('10.0.0.1'))
           return `expected stub answer 10.0.0.1, got ${JSON.stringify(records)}`;
+        return true;
+      },
+    },
+    {
+      name: 'dns_probe/noerror-status-for-answer',
+      tool: 'dns_probe',
+      origin: 'external-vector',
+      reference:
+        'RFC 1035 RCODE: a stub NOERROR answer must be classified status=NOERROR with records present',
+      run: async () => {
+        const stub = await startDnsStub({ kind: 'a' });
+        try {
+          return await handlers.handleDnsProbe({
+            hostname: 'bench.example.test',
+            rrType: 'A',
+            server: `127.0.0.1:${stub.port}`,
+          });
+        } finally {
+          stub.close();
+        }
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (b.status !== 'NOERROR') return `expected status=NOERROR, got ${b.status}`;
+        const records = b.records as unknown[] | undefined;
+        if (
+          !Array.isArray(records) ||
+          records.length !== 1 ||
+          !JSON.stringify(records).includes('10.0.0.1')
+        )
+          return `expected the stub A answer, got ${JSON.stringify(records)}`;
+        return true;
+      },
+    },
+    {
+      name: 'dns_probe/nodata-classification',
+      tool: 'dns_probe',
+      origin: 'homemade',
+      reference:
+        'a NOERROR/NODATA answer (empty answer section) must be reported honestly as a non-NOERROR status with zero records, never fabricated data',
+      run: async () => {
+        // CNAME-only stub → an A query gets NOERROR with ANCOUNT=0 (NODATA).
+        const stub = await startDnsStub({ kind: 'cname', firstHost: 'x.test', target: 'y.test' });
+        try {
+          return await handlers.handleDnsProbe({
+            hostname: 'bench-no-a.test',
+            rrType: 'A',
+            server: `127.0.0.1:${stub.port}`,
+          });
+        } finally {
+          stub.close();
+        }
+      },
+      validate: (v: unknown) => {
+        const b = body(v);
+        const records = b.records as unknown[] | undefined;
+        if (Array.isArray(records) && records.length > 0)
+          return `NODATA must not produce records, got ${JSON.stringify(records)}`;
+        if (b.status === 'NOERROR')
+          return 'NODATA with zero answers should not be reported as plain NOERROR';
+        return true;
+      },
+    },
+    {
+      name: 'dns_cname_chain/follows-stub-cname',
+      tool: 'dns_cname_chain',
+      origin: 'external-vector',
+      reference:
+        'RFC 1035 §3.3.1 CNAME: the chain must record the stub hop (bench.example.test → target.example.test) and terminate on NODATA',
+      run: async () => {
+        const stub = await startDnsStub({
+          kind: 'cname',
+          firstHost: 'bench.example.test',
+          target: 'target.example.test',
+        });
+        try {
+          return await handlers.handleDnsCnameChain({
+            hostname: 'bench.example.test',
+            maxDepth: 3,
+            server: `127.0.0.1:${stub.port}`,
+          });
+        } finally {
+          stub.close();
+        }
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const chain = b.chain as
+          | Array<{ host?: string; target?: string | null; status?: string }>
+          | undefined;
+        if (!Array.isArray(chain) || chain.length !== 2)
+          return `expected a 2-hop chain (CNAME then TERMINAL), got ${JSON.stringify(chain)}`;
+        if (chain[0]?.host !== 'bench.example.test' || chain[0]?.target !== 'target.example.test')
+          return `first hop wrong: ${JSON.stringify(chain[0])}`;
+        if (chain[1]?.status !== 'TERMINAL')
+          return `second hop must terminate on NODATA, got ${JSON.stringify(chain[1])}`;
+        return true;
+      },
+    },
+    {
+      name: 'dns_bulk_resolve/batched-stub-answers',
+      tool: 'dns_bulk_resolve',
+      origin: 'homemade',
+      reference:
+        'bulk resolution over 3 loopback-stub hostnames must return 3 NOERROR entries each carrying the 10.0.0.1 answer',
+      run: async () => {
+        const stub = await startDnsStub({ kind: 'a' });
+        try {
+          return await handlers.handleDnsBulkResolve({
+            hostnames: ['a.example.test', 'b.example.test', 'c.example.test'],
+            rrType: 'A',
+            concurrency: 2,
+            server: `127.0.0.1:${stub.port}`,
+          });
+        } finally {
+          stub.close();
+        }
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const results = b.results as
+          | Array<{ hostname?: string; status?: string; records?: unknown[] }>
+          | undefined;
+        if (!Array.isArray(results) || results.length !== 3)
+          return `expected 3 bulk results, got ${JSON.stringify(results)}`;
+        for (const r of results) {
+          if (r.status !== 'NOERROR') return `non-NOERROR status for ${r.hostname}: ${r.status}`;
+          if (
+            !r.records ||
+            r.records.length !== 1 ||
+            !JSON.stringify(r.records).includes('10.0.0.1')
+          )
+            return `missing stub answer for ${r.hostname}: ${JSON.stringify(r.records)}`;
+        }
         return true;
       },
     },

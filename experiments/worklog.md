@@ -168,3 +168,10 @@
 - Result: debt 402→401 (-1, -215 cumulative), unmeasured 351→350, vectors_total 386 (52.4%), vector_fail 0, rejection_pct 100%, checks.sh pass. network 22/38 measured.
 - Insight: `createDnsClient(server)` uses `dns.Resolver.setServers([server])`, so a pure loopback UDP stub exercises the full DNS resolution path with zero external network — the same loopback pattern as proxy/TCP/TLS/WebSocket batches.
 - Next: `streaming` SSE/WebRTC/fetch-stream loopback capture or `dns_reverse` / `dns_cname_chain` / `dns_probe` / `dns_bulk_resolve` via the same UDP stub → target `debt < 400` (only 1 away)!
+
+### Run 48: network DNS stack (+3 cases) — debt 401→398 (KEEP) — MILESTONE debt < 400
+- Timestamp: 2026-11-12
+- What changed: extracted the loopback UDP DNS responder into a reusable `startDnsStub(mode)` helper (A-answer mode and CNAME mode with NODATA for other types) and added 3 cases: `dns_probe` (NOERROR + a second NODATA honesty case), `dns_cname_chain` (follows the stub CNAME hop then terminates as TERMINAL), `dns_bulk_resolve` (3 hostnames, concurrency 2).
+- Result: debt 401→398 (-3, **-218 cumulative — crossed the `debt < 400` milestone**), unmeasured 350→347, vectors_total 389 (52.9%), vector_fail 0, rejection_pct 100%, checks.sh pass. network 25/38 measured.
+- Insight: A single parameterised loopback DNS stub covers resolve/probe/cname/bulk — the NODATA branch is where honesty matters (the tool must report zero records, never fabricate an answer).
+- Next: `streaming` SSE loopback capture, `syscall-hook` pure handlers (`syscall_filter`, `syscall_resolve_ssn`), or `dart-inspector` pure session tools.
