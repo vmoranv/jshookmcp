@@ -352,6 +352,50 @@ export const offlineToolsSuite: BenchSuite = {
         return true;
       },
     },
+    {
+      name: 'captcha_config/set-and-read-back',
+      tool: 'captcha_config',
+      origin: 'homemade',
+      reference: 'sets autoDetect/autoSwitch/timeout and reads the merged config back',
+      run: () =>
+        browserHandlers.handleCaptchaConfig({
+          autoDetectCaptcha: true,
+          autoSwitchHeadless: false,
+          captchaTimeout: 15000,
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const cfg = b.config as Record<string, unknown> | undefined;
+        if (!cfg) return `missing config object: ${JSON.stringify(b)}`;
+        if (cfg.autoDetectCaptcha !== true || cfg.autoSwitchHeadless !== false)
+          return `config mismatch: ${JSON.stringify(cfg)}`;
+        if (cfg.captchaTimeout !== 15000) return `timeout not applied: ${JSON.stringify(cfg)}`;
+        return true;
+      },
+    },
+    {
+      name: 'stealth_configure_jitter/set-and-read-back',
+      tool: 'stealth_configure_jitter',
+      origin: 'homemade',
+      reference: 'sets CDP timing jitter window and burst mode, reads the options back',
+      run: () =>
+        browserHandlers.handleStealthConfigureJitter({
+          enabled: true,
+          minDelayMs: 5,
+          maxDelayMs: 40,
+          burstMode: true,
+        }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const opts = b.jitterOptions as Record<string, unknown> | undefined;
+        if (!opts) return `missing jitterOptions: ${JSON.stringify(b)}`;
+        if (opts.enabled !== true || opts.burstMode !== true)
+          return `jitter flags mismatch: ${JSON.stringify(opts)}`;
+        if (opts.minDelayMs !== 5 || opts.maxDelayMs !== 40)
+          return `jitter window mismatch: ${JSON.stringify(opts)}`;
+        return true;
+      },
+    },
   ],
 };
 

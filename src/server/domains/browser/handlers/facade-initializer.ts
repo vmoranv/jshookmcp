@@ -170,9 +170,9 @@ export function initializeBrowserHandlerModules(
     captchaHandlers: new CaptchaHandlers({
       pageController: deps.pageController,
       captchaDetector: deps.captchaDetector,
-      autoDetectCaptcha: deps.getAutoDetectCaptcha(),
-      autoSwitchHeadless: deps.getAutoSwitchHeadless(),
-      captchaTimeout: deps.getCaptchaTimeout(),
+      getAutoDetectCaptcha: () => deps.getAutoDetectCaptcha(),
+      getAutoSwitchHeadless: () => deps.getAutoSwitchHeadless(),
+      getCaptchaTimeout: () => deps.getCaptchaTimeout(),
       setAutoDetectCaptcha: deps.setAutoDetectCaptcha,
       setAutoSwitchHeadless: deps.setAutoSwitchHeadless,
       setCaptchaTimeout: deps.setCaptchaTimeout,

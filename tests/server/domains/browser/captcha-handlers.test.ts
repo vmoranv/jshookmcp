@@ -43,12 +43,17 @@ describe('CaptchaHandlers', () => {
     vi.clearAllMocks();
     pageController.getPage.mockResolvedValue(page);
 
+    // Single deps object: live getters reference `deps` lazily, so the setters
+    // below mutate the same fields the getters read at call time.
     deps = {
-      pageController,
-      captchaDetector,
       autoDetectCaptcha: true,
       autoSwitchHeadless: false,
       captchaTimeout: 30000,
+      pageController,
+      captchaDetector,
+      getAutoDetectCaptcha: () => deps.autoDetectCaptcha,
+      getAutoSwitchHeadless: () => deps.autoSwitchHeadless,
+      getCaptchaTimeout: () => deps.captchaTimeout,
       setAutoDetectCaptcha: vi.fn((value: boolean) => {
         deps.autoDetectCaptcha = value;
       }),

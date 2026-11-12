@@ -8,9 +8,10 @@ import type { ToolResponse } from '@server/domains/shared/ResponseBuilder';
 interface CaptchaHandlersDeps {
   pageController: PageController;
   captchaDetector: AICaptchaDetector;
-  autoDetectCaptcha: boolean;
-  autoSwitchHeadless: boolean;
-  captchaTimeout: number;
+  /** Live getters — snapshot values would make captcha_config report stale state. */
+  getAutoDetectCaptcha: () => boolean;
+  getAutoSwitchHeadless: () => boolean;
+  getCaptchaTimeout: () => number;
   setAutoDetectCaptcha: (value: boolean) => void;
   setAutoSwitchHeadless: (value: boolean) => void;
   setCaptchaTimeout: (value: number) => void;
@@ -32,7 +33,7 @@ export class CaptchaHandlers {
 
   async handleCaptchaWait(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => {
-      const timeout = argNumber(args, 'timeout', this.deps.captchaTimeout);
+      const timeout = argNumber(args, 'timeout', this.deps.getCaptchaTimeout());
       const page = await this.deps.pageController.getPage();
       logger.info('Waiting for CAPTCHA to be solved...');
       const completed = await this.deps.captchaDetector.waitForCompletion(page, timeout);
@@ -54,9 +55,9 @@ export class CaptchaHandlers {
       }
       return {
         config: {
-          autoDetectCaptcha: this.deps.autoDetectCaptcha,
-          autoSwitchHeadless: this.deps.autoSwitchHeadless,
-          captchaTimeout: this.deps.captchaTimeout,
+          autoDetectCaptcha: this.deps.getAutoDetectCaptcha(),
+          autoSwitchHeadless: this.deps.getAutoSwitchHeadless(),
+          captchaTimeout: this.deps.getCaptchaTimeout(),
         },
       };
     });
