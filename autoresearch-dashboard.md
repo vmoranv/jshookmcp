@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 55 / 200 | **Kept:** 48 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=358 (run #55, 50a7e96) | **Baseline:** debt=616 (run #1) — debtΔ -258
+**Runs:** 56 / 200 | **Kept:** 49 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=346 (run #56, c87972f) | **Baseline:** debt=616 (run #1) — debtΔ -270
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -61,4 +61,5 @@
 | 52 | 207578e | 387 | 8 | keep | draft | browser storage handlers (+4 cases): local_storage roundtrip + empty-key reject, session_storage get, storage_info estimate |
 | 53 | 940dfaf | 379 | 10 | keep | draft | webgpu honest-unavailable batch (+8 cases): no-page explicit failure + arg-schema validation — webgpu 10/10 |
 | 54 | e521cde | 369 | 11 | keep | draft | canvas host-side batch (+10 cases): scripted page substrate — canvas 11/11 (incl. skia) |
-| 55 | 50a7e96 | 358 | — | keep | draft | browser host-side batch (+11 cases): status/tabs/workers/console/scripts/codegen/page_back — browser 27/85 |
+| 55 | 50a7e96 | 358 | 12 | keep | draft | browser host-side batch (+11 cases): status/tabs/workers/console/scripts/codegen/page_back — browser 27/85 |
+| 56 | c87972f | 346 | — | keep | draft | wasm wave 2 (+12 cases): hook-state stub + runs-or-names-missing-binary contracts — wasm 17/17 |
