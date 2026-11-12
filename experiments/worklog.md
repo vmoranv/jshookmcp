@@ -339,3 +339,10 @@
 - Result: debt 144→**136** (-8, **-480 cumulative**), unmeasured 93→85, vectors_total 643→**651 (88.4%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **mojo-ipc 8/8, native-bridge 6/6, platform 18/18 — all 100%**.
 - Insight: the first attempt failed one case because I expected "unavailable" wording, but the bridge surfaces the real transport failure (`fetch failed`) plus its endpoint — arguably *more* honest than my expectation. Widening the contract to accept transport-error-with-endpoint kept the assertion meaningful (a sync that silently "succeeds" still fails) without dictating a phrase the code never promised.
 - Next: `workflow` (5), `instrumentation` (4), `maintenance`/`coordination` (2 each), then `browser` (59).
+
+### Run 71: instrumentation hook contracts (+4 cases) — debt 136→132 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: 4 cases for the last instrumentation tools — `ai_hook` (unknown action → the valid-action list `inject, get_data, list, clear, toggle, export`), `hook_preset` (needs `preset`/`presets` or `listPresets=true`, and the refusal names the listing option), `instrumentation_hook_preset` and `instrumentation_network_replay` (both name the missing `sessionId`).
+- Result: debt 136→**132** (-4, **-484 cumulative**), unmeasured 85→81, vectors_total 651→**655 (89.0%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **instrumentation 13/13 measured (100%)**.
+- Insight: `ai_hook` and `hook_preset` live in *separate* handler classes (`AIHookToolHandlers`, `HookPresetToolHandlers`) registered under their own depKeys — the domain facade has no such methods. Dynamic-importing them inside the case (rather than at module top) keeps the suite's import graph honest and avoids constructing the whole instrumentation stack for two cases.
+- Next: `workflow` (5), `maintenance`/`coordination` (2 each), then `browser` (59).

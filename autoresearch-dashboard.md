@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 70 / 200 | **Kept:** 63 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=136 (run #70, f433bcb) | **Baseline:** debt=616 (run #1) — debtΔ -480
+**Runs:** 71 / 200 | **Kept:** 64 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=132 (run #71, 7a09e0d) | **Baseline:** debt=616 (run #1) — debtΔ -484
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -76,4 +76,5 @@
 | 67 | 2358ca3 | 157 | 7 | keep | draft | NEW graphql suite (+13 cases): page prerequisites + SSRF gate + arg rejections — graphql 7/7 (last zero-coverage domain) |
 | 68 | 14c7b94 | 150 | 6 | keep | draft | v8-inspector honest-unavailable batch (+7 cases): PageController refusals + forbidden-payload checks — v8 21/21 |
 | 69 | 84b7cc2 | 144 | 8 | keep | draft | core-analysis argument contracts (+6 cases): url/ScriptManager/scriptId/action/vulnerability refusals — core 25/25 |
-| 70 | f433bcb | 136 | — | keep | draft | small-domain batch (+9): mojo stub honesty, native-bridge action/enum/availability, platform electron — 3 domains to 100% |
+| 70 | f433bcb | 136 | 4 | keep | draft | small-domain batch (+9): mojo stub honesty, native-bridge action/enum/availability, platform electron — 3 domains to 100% |
+| 71 | 7a09e0d | 132 | — | keep | draft | instrumentation hook contracts (+4): ai_hook/preset/sessionId — instrumentation 13/13 |

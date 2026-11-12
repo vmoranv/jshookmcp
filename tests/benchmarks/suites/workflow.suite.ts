@@ -191,5 +191,92 @@ export const workflowSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Contract batch 2026-11-12 (autoresearch) ────────────────────────────
+    // The five workflow tools either need a live page or a concrete input.
+    // Portable contract: the missing input is named before any page access, an
+    // unknown script is reported as not-found, and an unavailable extension
+    // runtime says so instead of pretending the workflow ran.
+    {
+      name: 'api_probe_batch/requires-baseUrl',
+      tool: 'api_probe_batch',
+      origin: 'homemade',
+      reference: 'argument contract: batch probing needs the base URL to probe against',
+      run: () =>
+        new WorkflowHandlers({ getActivePage: async () => null } as never).handleApiProbeBatch({}),
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        return /baseUrl/i.test(text) ? true : `expected a baseUrl error: ${text.slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'js_bundle_search/requires-url-and-patterns',
+      tool: 'js_bundle_search',
+      origin: 'homemade',
+      reference:
+        'argument contract: bundle search needs both the bundle url and the patterns to look for',
+      run: () =>
+        new WorkflowHandlers({ getActivePage: async () => null } as never).handleJsBundleSearch({}),
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        if (!/url/i.test(text)) return `expected a url error: ${text.slice(0, 200)}`;
+        return /patterns/i.test(text)
+          ? true
+          : `refusal should name patterns: ${text.slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'page_script_run/unknown-script-not-found',
+      tool: 'page_script_run',
+      origin: 'homemade',
+      reference:
+        'lookup contract: an unnamed script resolves to nothing and the response says "not found" instead of running an arbitrary script',
+      run: () =>
+        new WorkflowHandlers({ getActivePage: async () => null } as never).handlePageScriptRun({}),
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        return /not found/i.test(text)
+          ? true
+          : `expected a not-found answer: ${text.slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'reverse_session/create-returns-session-id',
+      tool: 'reverse_session',
+      origin: 'homemade',
+      reference:
+        'session contract: the default create action issues a session with an id and timestamp (pure in-memory, no browser needed)',
+      run: () =>
+        new WorkflowHandlers({ getActivePage: async () => null } as never).handleReverseSession({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== true)
+          return `create should succeed offline: ${JSON.stringify(b).slice(0, 200)}`;
+        const session = b['session'] as Record<string, unknown> | undefined;
+        if (!session) return 'session object missing';
+        if (typeof session['sessionId'] !== 'string' || !session['sessionId'].length)
+          return 'sessionId missing';
+        return typeof session['createdAt'] === 'string' ? true : 'createdAt missing';
+      },
+    },
+    {
+      name: 'run_extension_workflow/unavailable-runtime-is-named',
+      tool: 'run_extension_workflow',
+      origin: 'homemade',
+      reference:
+        'capability contract: without the extension workflow runtime the tool says so explicitly instead of reporting a completed run',
+      run: () =>
+        new WorkflowHandlers({
+          getActivePage: async () => null,
+        } as never).handleRunExtensionWorkflow({ name: 'bench-workflow' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === true)
+          return `must not claim a run without the runtime: ${JSON.stringify(b).slice(0, 200)}`;
+        return /runtime is unavailable|not available/i.test(JSON.stringify(b))
+          ? true
+          : `failure should name the missing runtime: ${JSON.stringify(b).slice(0, 200)}`;
+      },
+    },
   ],
 };

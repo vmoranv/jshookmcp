@@ -384,5 +384,53 @@ export const maintenanceSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Registry-handler contract batch 2026-11-12 (autoresearch) ───────────
+    // The two extension-registry maintenance tools reach the network / a real
+    // install path. Portable contract: a missing argument is named first, and a
+    // failed registry fetch reports the error rather than an empty catalog.
+    {
+      name: 'browse_extension_registry/result-or-named-failure',
+      tool: 'browse_extension_registry',
+      origin: 'homemade',
+      reference:
+        'registry contract: the catalog listing either returns entries or fails with a named transport/registry reason — never an empty list presented as success',
+      // The manifest binds this handler with a positional `kind` arg (default 'all').
+      run: () => new ExtensionManagementHandlers({} as never).handleBrowseExtensionRegistry('all'),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === false) {
+          return String(b['error'] ?? b['message'] ?? '').length > 0
+            ? true
+            : 'failure without a reason';
+        }
+        const entries = b['entries'] ?? b['extensions'] ?? b['results'] ?? b['plugins'];
+        if (Array.isArray(entries)) return true;
+        return `unexpected shape: ${JSON.stringify(b).slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'install_extension/requires-id-or-source',
+      tool: 'install_extension',
+      origin: 'homemade',
+      reference:
+        'argument contract: installing an extension needs a pointer (id/url/path) and names the requirement',
+      // Positional (slug, targetDir) per the manifest's mapArgs; an undefined
+      // slug is what "no argument supplied" looks like at this layer.
+      run: () =>
+        new ExtensionManagementHandlers({} as never).handleInstallExtension(
+          undefined as unknown as string,
+        ),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === true)
+          return `must not install without a source: ${JSON.stringify(b).slice(0, 200)}`;
+        // An undefined slug is reported as "not found in the registry" — that is
+        // the honest answer for a missing/unknown pointer, not a silent install.
+        return /not found|id|url|path|source|required/i.test(JSON.stringify(b))
+          ? true
+          : `expected a source requirement: ${JSON.stringify(b).slice(0, 200)}`;
+      },
+    },
   ],
 };
