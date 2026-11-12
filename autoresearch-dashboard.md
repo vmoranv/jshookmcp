@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 60 / 200 | **Kept:** 53 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=290 (run #60, 1a27849) | **Baseline:** debt=616 (run #1) — debtΔ -326
+**Runs:** 61 / 200 | **Kept:** 54 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=230 (run #61, 797bebf) | **Baseline:** debt=616 (run #1) — debtΔ -386
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -66,4 +66,5 @@
 | 57 | 793b55b | 320 | 12 | keep | draft | binary-instrument toolchain contracts (+21 cases): arg-rejection, unknown-session refusal, honest toolchain errors — 44/46 |
 | 58 | 50e7ddf | 308 | 0 | keep | draft | streaming monitor contracts (+13 cases): enable/disable reporting + not-enabled refusals + API-missing honesty — streaming 17/17 |
 | 59 | bc700f9 | 308 | 18 | keep | debug | REAL BUGS #5-#7: Win32 suspend/resume quoting, resumeProcess silent swallow, killProcess false success (+tests) |
-| 60 | 1a27849 | 290 | — | keep | draft | process contract batch (+20 cases) + REAL BUG #8 (spawn ENOENT crashed the server) — process 26/29 |
+| 60 | 1a27849 | 290 | 60 | keep | draft | process contract batch (+20 cases) + REAL BUG #8 (spawn ENOENT crashed the server) — process 26/29 |
+| 61 | 797bebf | 230 | — | keep | draft | memory contract batch (+53 cases via real manifest bindings) — memory 72/75 |
