@@ -72,6 +72,9 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   'native-emulator': 90,
   // debugger offline blackbox pattern registry subset (2026-11-11 autoresearch)
   'debugger-blackbox': 90,
+  // graphql admission/SSRF contracts (2026-11-12 autoresearch) — deterministic offline;
+  // every case is an explicit refusal, so any failure is a real regression.
+  graphql: 90,
 };
 
 const results: BenchSuiteResult[] = [];

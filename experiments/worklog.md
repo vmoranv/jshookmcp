@@ -304,3 +304,10 @@
 - Result: debt 181→**172** (-9, **-445 cumulative**), unmeasured 130→121, vectors_total 606→**615 (83.6%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **dart-inspector 16/16 measured (100%)**.
 - Insight: first run crashed with `Cannot access 'DART_SESSION_TABLE' before initialization` — a `...spread` runs at module-init, so any table declared *below* the suite object is in the temporal dead zone. Hoisting the table + factory above the suite fixed it without changing a single case. Worth remembering for every declaration-driven suite in this session.
 - Next: `syscall-hook` (8), `graphql` (7), `v8-inspector` (7), `core` (6), `workflow` (5), then `browser` (59).
+
+### Run 66: syscall-hook backend contracts (+8 cases) — debt 172→164 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: new `tests/benchmarks/suites/syscall-hook.contracts.ts` (10 cases → 8 new tools measured): unknown backend refused with the `etw, strace, dtrace` list; an unavailable backend named along with `supportedBackends`; idle-monitor honesty for `syscall_stop_monitor` / `syscall_capture_events` / `syscall_stack_capture` / `syscall_trace_export` (zero counters, empty stream, filters echoed); `syscall_ebpf_attach` emitting a real bpftrace-style tracer with its syscall set; `syscall_resolve_ssn` reading ntdll and carrying `Zw*` names with numeric SSNs; and `syscall_direct_invoke` requiring `functionName` then resolving `ZwClose` to a real SSN plus stub guidance.
+- Result: debt 172→**164** (-8, **-453 cumulative**), unmeasured 121→113, vectors_total 615→**623 (84.6%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **syscall-hook 15/15 measured (100%)**.
+- Insight: `syscall_resolve_ssn` and `syscall_direct_invoke` genuinely read the host ntdll, so these cases assert real SSN extraction — but they also accept a named non-win32 refusal, keeping them portable. Lint caught `unicorn/prefer-string-starts-ends-with` on `/^Zw/`; the gate chain (bench → checks → pre-commit) caught it before commit, which is the intended order.
+- Next: `graphql` (7), `v8-inspector` (7), `core` (6), `workflow` (5), `instrumentation` (4), then `browser` (59).
