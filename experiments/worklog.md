@@ -133,3 +133,10 @@
 - Result: debt 412→408 (-4, -208 cumulative), unmeasured 361→357, vectors_total 379 (51.5%), vector_fail 0, rejection_pct 100%, checks.sh pass. Suite 23→27 cases @ 100%. **tls-inspector is now 29/29 tools measured (100%)** — 5th domain at 100% coverage.
 - Insight: First run returned masked garbage because the test echo server forgot RFC 6455 §5.3 client-to-server masking (XOR payload with the 4-byte key at bytes 2..6). Fixed in the fixture server, second run green.
 - Next: `exploit-dev` (`exploit_build_jop_chain`), `v8-inspector` (`v8_turbofan_graph` traceDir), `extension-registry` (`webhook`), or `session.suite.ts` 1ms flake hardening → target `debt < 400`.
+
+### Run 43: JOP chain + TurboFan graph batch (+2 cases) — debt 408→406 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added `exploit_build_jop_chain` case (jmp-rsp dispatcher found at 0x8a; the honest-empty success=false + "No functional gadgets" outcome accepted for the 512B fixture via body() not expectSuccess) and `v8_turbofan_graph` case (traceDir mode parsing a real --trace-turbo JSON: hotLoop, 4 nodes, 3 edges, 1 phase).
+- Result: debt 408→406 (-2, -210 cumulative), unmeasured 357→355, vectors_total 381 (51.8%), vector_fail 0, rejection_pct 100%, checks.sh pass. 19/21 exploit-dev + 11/21 v8-inspector measured.
+- Insight: `handleBuildJopChain` returns success=false WITH a found dispatcher when no functional gadgets follow it — the validator must use body() (expectSuccess throws on success=false) and accept the honest empty-gadget outcome. `v8_turbofan_graph` traceDir mode parses real --trace-turbo JSON completely offline.
+- Next: `extension-registry` webhook loopback HMAC server, `network` DNS loopback stub, or `session.suite.ts` 1ms flake fix → target `debt < 400`!

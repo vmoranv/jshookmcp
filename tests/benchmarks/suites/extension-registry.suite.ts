@@ -15,9 +15,11 @@
  *  - the fixture plugin exports `sum`, `echo` and a `default` object with
  *    `greet` and `version`; resolveContext() resolves named/default/nested
  *    contexts and returns their value as `result`.
- *  - `webhook` is intentionally OMITTED: handleWebhook* call
- *    WebhookServer.start() (binds a real port) and are env-gated, so they are
- *    not honestly offline-testable here.
+ *  - `webhook` (2026-11-12): the C2 endpoint lifecycle is covered against a REAL
+ *    `WebhookServer` bound to an ephemeral 127.0.0.1 port (injected via the same
+ *    reflection seam the proxy suite uses). Binding loopback is offline — no
+ *    external network. Cases: create, list+delete, and a signed POST that must
+ *    verify HMAC-SHA256 and enqueue into the shared CommandQueue.
  *
  * Every case re-installs its fixture via handleInstall() at the start, so each
  * is self-contained and order-independent (the scorecard re-executes suites).
@@ -26,7 +28,11 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import net from 'node:net';
+import http from 'node:http';
+import { createHmac } from 'node:crypto';
 import { PluginRegistry, WebhookBridge } from '@modules/extension-registry';
+import { WebhookServer } from '@server/webhook';
 import { ExtensionRegistryHandlers } from '@server/domains/extension-registry/handlers.impl';
 import { body, expectSuccess, type BenchSuite } from '../harness';
 
@@ -74,6 +80,79 @@ async function install(): Promise<void> {
 
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+}
+
+// ── Loopback webhook C2 server helpers (binds 127.0.0.1 only — offline) ──
+
+/** Pick a free loopback port by listening on port 0 and reading it back. */
+function freeTcpPort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const addr = srv.address();
+      const port = typeof addr === 'object' && addr ? addr.port : 0;
+      srv.close((err) => (err ? reject(err) : resolve(port)));
+    });
+  });
+}
+
+/**
+ * Build ExtensionRegistryHandlers with a REAL WebhookServer bound to a free
+ * loopback port (injected via the same reflection seam the proxy suite uses —
+ * getWebhookServer() would otherwise lazily bind the fixed WEBHOOK_PORT).
+ */
+async function makeWebhookHandlers(): Promise<{
+  handlers: ExtensionRegistryHandlers;
+  server: WebhookServer;
+  port: number;
+  cleanup: () => Promise<void>;
+}> {
+  const port = await freeTcpPort();
+  const server = new WebhookServer({ port });
+  const registry2 = new PluginRegistry(join(sandbox, `registry-wh-${port}`));
+  const handlers2 = new ExtensionRegistryHandlers(registry2, webhook);
+  (handlers2 as unknown as Record<string, unknown>).webhookServer = server;
+  server.start();
+  return {
+    handlers: handlers2,
+    server,
+    port,
+    cleanup: async () => {
+      try {
+        await server.stop();
+      } catch {}
+    },
+  };
+}
+
+/** POST a JSON body to the loopback webhook endpoint. */
+function postJson(
+  port: number,
+  path: string,
+  payload: string,
+  headers: Record<string, string> = {},
+): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        host: '127.0.0.1',
+        port,
+        path,
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...headers },
+      },
+      (res) => {
+        const chunks: string[] = [];
+        res.setEncoding('utf8');
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, body: chunks.join('') }));
+      },
+    );
+    req.on('error', reject);
+    req.end(payload);
+  });
 }
 
 export const extensionRegistrySuite: BenchSuite = {
@@ -306,6 +385,122 @@ export const extensionRegistrySuite: BenchSuite = {
           return `info after uninstall must fail: ${JSON.stringify(info).slice(0, 220)}`;
         if (again.success !== true || again.pluginId !== PLUGIN_ID)
           return `second uninstall must be idempotent: ${JSON.stringify(again).slice(0, 220)}`;
+        return true;
+      },
+    },
+
+    // ── Coverage batch (2026-11-12 autoresearch): loopback webhook C2 lifecycle ──
+    {
+      name: 'webhook/create-endpoint-loopback',
+      tool: 'webhook',
+      origin: 'homemade',
+      reference:
+        'creates a webhook endpoint on a real loopback WebhookServer and returns endpointId + url',
+      run: async () => {
+        const wh = await makeWebhookHandlers();
+        try {
+          return await wh.handlers.handleWebhookDispatchTool({
+            action: 'create',
+            name: 'bench-c2',
+            path: '/bench-c2',
+            secret: 'bench-secret',
+            events: ['command.received'],
+          });
+        } finally {
+          await wh.cleanup();
+        }
+      },
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (typeof b.endpointId !== 'string' || !b.endpointId.startsWith('ep-'))
+          return `expected ep-* endpointId, got ${JSON.stringify(b)}`;
+        if (String(b.url ?? '').includes('/bench-c2') !== true)
+          return `expected url to include /bench-c2, got ${String(b.url)}`;
+        return true;
+      },
+    },
+    {
+      name: 'webhook/list-and-delete-endpoints',
+      tool: 'webhook',
+      origin: 'homemade',
+      reference: 'lists created webhook endpoints and removes one by endpointId',
+      run: async () => {
+        const wh = await makeWebhookHandlers();
+        try {
+          const created = body(
+            await wh.handlers.handleWebhookDispatchTool({
+              action: 'create',
+              name: 'bench-list',
+              path: '/bench-list',
+            }),
+          );
+          const endpointId = String(created.endpointId ?? '');
+          const list = body(await wh.handlers.handleWebhookDispatchTool({ action: 'list' }));
+          const deleted = body(
+            await wh.handlers.handleWebhookDispatchTool({ action: 'delete', endpointId }),
+          );
+          const listAfter = body(await wh.handlers.handleWebhookDispatchTool({ action: 'list' }));
+          return { endpointId, list, deleted, listAfter };
+        } finally {
+          await wh.cleanup();
+        }
+      },
+      validate: (v) => {
+        const { endpointId, list, deleted, listAfter } = v as {
+          endpointId?: string;
+          list?: Record<string, unknown>;
+          deleted?: Record<string, unknown>;
+          listAfter?: Record<string, unknown>;
+        };
+        const before = (list?.endpoints as Array<{ id?: string }>) ?? [];
+        if (!before.some((e) => e.id === endpointId))
+          return `created endpoint missing from list: ${JSON.stringify(list)}`;
+        if (deleted?.success !== true) return `delete failed: ${JSON.stringify(deleted)}`;
+        const after = (listAfter?.endpoints as Array<{ id?: string }>) ?? [];
+        if (after.some((e) => e.id === endpointId)) return 'deleted endpoint still listed';
+        return true;
+      },
+    },
+    {
+      name: 'webhook/signed-post-enqueues-command',
+      tool: 'webhook',
+      origin: 'external-vector',
+      reference:
+        'webhook HMAC-SHA256: POST with X-Webhook-Signature over the raw body must verify, respond ok, and enqueue the payload into the shared CommandQueue',
+      run: async () => {
+        const wh = await makeWebhookHandlers();
+        try {
+          await wh.handlers.handleWebhookDispatchTool({
+            action: 'create',
+            name: 'bench-signed',
+            path: '/bench-signed',
+            secret: 'bench-hmac-secret',
+          });
+          const payloadBody = JSON.stringify({ event: 'command.received', op: 'bench' });
+          const signature = createHmac('sha256', 'bench-hmac-secret')
+            .update(payloadBody, 'utf8')
+            .digest('hex');
+          const post = await postJson(wh.port, '/bench-signed', payloadBody, {
+            'x-webhook-signature': signature,
+          });
+          const queue = wh.server.getCommandQueue();
+          const dequeued = queue.dequeue();
+          return { post: JSON.parse(post.body), postStatus: post.status, dequeued };
+        } finally {
+          await wh.cleanup();
+        }
+      },
+      validate: (v) => {
+        const { post, postStatus, dequeued } = v as {
+          post?: { ok?: boolean; endpointId?: string };
+          postStatus?: number;
+          dequeued?: { payload?: Record<string, unknown> } | undefined;
+        };
+        if (postStatus !== 200 || post?.ok !== true)
+          return `signed POST rejected: status=${postStatus} body=${JSON.stringify(post)}`;
+        const payload = dequeued?.payload as { op?: string } | undefined;
+        if (payload?.op !== 'bench')
+          return `command queue did not receive the signed payload: ${JSON.stringify(dequeued)}`;
         return true;
       },
     },
