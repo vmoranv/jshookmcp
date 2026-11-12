@@ -196,3 +196,8 @@
 - Result: debt 392→389 (-3, -227 cumulative), unmeasured 341→338, vectors_total 398 (54.1%), vector_fail 0, rejection_pct 100%, checks.sh pass. v8-inspector 11→14/21 measured.
 - Insight: "honest unavailable" is a real, checkable contract (explicit failure + named reason + zero fabricated data) — distinct from Run 35's discard, which merely flipped skips without changing withVectors. Probe-first again avoided wasted work: `v8_heap_stats`/`v8_allocation_track`/`v8_version_detect` also error on a missing PageController but their payloads carry no additional structure worth asserting.
 - Next: `browser` jsdom-backed storage handlers, or `maintenance` registry tools with a fetch stub.
+
+### ⟳ Compaction checkpoint — 2026-11-12 13:40:36
+- Context is about to compact. State snapshot: experiments/autoresearch.jsonl.precompact.bak
+- Runs so far: 51 | kept: 0
+- On resume: read autoresearch.md, autoresearch.jsonl, and this worklog, then CONTINUE the loop (do not restart).

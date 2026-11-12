@@ -396,6 +396,108 @@ export const offlineToolsSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Storage batch 2026-11-12 (autoresearch): in-memory PageController ──
+    // WHATWG Web Storage semantics: per-origin key/value map, getItem returns the
+    // stored string, removeItem deletes one key, clear empties the store.
+    {
+      name: 'page_local_storage/set-get-delete-clear-roundtrip',
+      tool: 'page_local_storage',
+      origin: 'homemade',
+      reference:
+        'WHATWG Web Storage: set then get returns the stored value, delete removes only that key, clear empties the store',
+      run: async () => {
+        await storageHandlers.handlePageLocalStorageDispatch({
+          action: 'set',
+          key: 'token',
+          value: 'ct-1',
+        });
+        await storageHandlers.handlePageLocalStorageDispatch({
+          action: 'set',
+          key: 'keep',
+          value: 'yes',
+        });
+        const afterSet = body(
+          await storageHandlers.handlePageLocalStorageDispatch({ action: 'get' }),
+        );
+        await storageHandlers.handlePageLocalStorageDispatch({ action: 'delete', key: 'token' });
+        const afterDelete = body(
+          await storageHandlers.handlePageLocalStorageDispatch({ action: 'get' }),
+        );
+        await storageHandlers.handlePageLocalStorageDispatch({ action: 'clear' });
+        const afterClear = body(
+          await storageHandlers.handlePageLocalStorageDispatch({ action: 'get' }),
+        );
+        return { afterSet, afterDelete, afterClear };
+      },
+      validate: (v) => {
+        const r = v as Record<string, Record<string, unknown>>;
+        const storeOf = (stage: Record<string, unknown>) =>
+          (stage['storage'] ?? {}) as Record<string, string>;
+        const setStore = storeOf(r['afterSet'] ?? {});
+        if (setStore['token'] !== 'ct-1' || setStore['keep'] !== 'yes')
+          return `set roundtrip mismatch: ${JSON.stringify(setStore)}`;
+        if (r['afterSet']?.['count'] !== 2)
+          return `expected count 2 after two sets, got ${String(r['afterSet']?.['count'])}`;
+        const delStore = storeOf(r['afterDelete'] ?? {});
+        if ('token' in delStore) return `delete left key behind: ${JSON.stringify(delStore)}`;
+        if (delStore['keep'] !== 'yes')
+          return `delete removed the wrong key: ${JSON.stringify(delStore)}`;
+        const clrStore = storeOf(r['afterClear'] ?? {});
+        if (Object.keys(clrStore).length !== 0)
+          return `clear left entries: ${JSON.stringify(clrStore)}`;
+        if (r['afterClear']?.['count'] !== 0)
+          return `count not reset to 0 after clear: ${String(r['afterClear']?.['count'])}`;
+        return true;
+      },
+    },
+    {
+      name: 'page_local_storage/set-without-key-rejected',
+      tool: 'page_local_storage',
+      origin: 'homemade',
+      reference:
+        'argument validation: set/delete require a non-empty key and must fail explicitly instead of writing an empty-named entry',
+      run: () => storageHandlers.handlePageLocalStorageDispatch({ action: 'set', value: 'x' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        const err = String(b.error ?? '');
+        if (!/localStorage key must be a non-empty string/.test(err))
+          return `unexpected validation error: ${err}`;
+        return true;
+      },
+    },
+    {
+      name: 'page_session_storage/get-returns-entries',
+      tool: 'page_session_storage',
+      origin: 'homemade',
+      reference:
+        'WHATWG Web Storage (session scope): get reports the stored entries and their count',
+      run: () => storageHandlers.handlePageSessionStorageDispatch({ action: 'get' }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const store = (b.storage ?? {}) as Record<string, string>;
+        if (store['s'] !== '1') return `session entry missing: ${JSON.stringify(b)}`;
+        if (b.count !== 1) return `expected count 1, got ${String(b.count)}`;
+        return true;
+      },
+    },
+    {
+      name: 'page_storage_info/estimate-fields-shaped',
+      tool: 'page_storage_info',
+      origin: 'homemade',
+      reference:
+        'Storage Standard: navigator.storage.estimate() → {usage, quota}, persisted() → boolean; nulls when the API is absent',
+      run: () => storageHandlers.handlePageStorageInfo({}),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.supported !== true) return `expected supported=true, got ${JSON.stringify(b)}`;
+        if (typeof b.usage !== 'number' || typeof b.quota !== 'number')
+          return `usage/quota must be numbers: ${JSON.stringify(b)}`;
+        if (b.persisted !== true) return `persisted must be boolean true: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
   ],
 };
 
@@ -404,3 +506,54 @@ function handlers_word(): Promise<unknown> {
   // 0xe0000000 has group field 7 (0b111); a G0 word 0x00000000 is the simplest legal word.
   return nemuHandlers.handleBytecodeDecode({ word: 0xe0000000 });
 }
+
+// ── Browser storage handlers with an in-memory mock PageController ──────────
+// The storage tools only touch the page controller (no CDP round-trip), so a
+// plain object with the localStorage/sessionStorage surface is a faithful
+// offline substrate: the handler logic under test is the argument handling and
+// the result shaping, not the browser. `evaluate` models the two page-side
+// snippets the handlers actually issue (removeItem + storage.estimate).
+const STORAGE_ESTIMATE = { supported: true, usage: 4096, quota: 10_485_760, persisted: true };
+function makeStorageBrowserHandlers(): BrowserToolHandlers {
+  const local: Record<string, string> = {};
+  const session: Record<string, string> = { s: '1' };
+  const pageController = {
+    createCDPSession: async () => ({}),
+    getLocalStorage: async () => ({ ...local }),
+    setLocalStorage: async (k: string, v: string) => {
+      local[k] = v;
+      return true;
+    },
+    clearLocalStorage: async () => {
+      for (const k of Object.keys(local)) delete local[k];
+      return true;
+    },
+    getSessionStorage: async () => ({ ...session }),
+    setSessionStorage: async () => true,
+    clearSessionStorage: async () => {
+      for (const k of Object.keys(session)) delete session[k];
+      return true;
+    },
+    evaluate: async (snippet: string) => {
+      const remove = /^localStorage\.removeItem\((.*)\)$/.exec(snippet);
+      if (remove?.[1]) {
+        delete local[JSON.parse(remove[1]) as string];
+        return undefined;
+      }
+      return { ...STORAGE_ESTIMATE };
+    },
+  };
+  const collector = {
+    getActivePage: async () => null,
+    getStatus: () => ({ launched: true, connected: true, pageCount: 1 }),
+  };
+  return new BrowserToolHandlers(
+    collector as never,
+    pageController as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+}
+
+const storageHandlers = makeStorageBrowserHandlers();
