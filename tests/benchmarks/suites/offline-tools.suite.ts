@@ -13,6 +13,7 @@ import { NativeEmulatorHandlers } from '@server/domains/native-emulator/handlers
 import { BrowserToolHandlers } from '@server/domains/browser/handlers.impl';
 import { ExploitDevHandlers } from '@server/domains/exploit-dev/handlers';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { EventBus } from '@server/EventBus';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { getOffloadRoot } from '@utils/sanitizeForCache';
 import { getProjectRoot } from '@utils/outputPaths';
@@ -498,6 +499,401 @@ export const offlineToolsSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Browser host-side batch 2026-11-12 (autoresearch) ───────────────────
+    // These tools read collector/monitor/script-manager state and shape it
+    // host-side. Feeding the collaborator's fixed return value measures the
+    // real shaping/capping/compaction logic without a live browser.
+    {
+      name: 'browser_status/merges-collector-status',
+      tool: 'browser_status',
+      origin: 'homemade',
+      reference:
+        'status contract: the collector status (running/pagesCount/version) is merged under driver:"chrome" with success=true',
+      run: () =>
+        makeBrowserHandlers({
+          collector: {
+            getStatus: async () => ({
+              running: true,
+              pagesCount: 2,
+              version: 'Chrome/120.0.0.0',
+              launchSource: 'launched',
+            }),
+          },
+        }).handleBrowserStatus({}),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.driver !== 'chrome') return `driver should be chrome, got ${String(b.driver)}`;
+        if (b.running !== true || b.pagesCount !== 2)
+          return `collector status not merged: ${JSON.stringify(b)}`;
+        if (b.version !== 'Chrome/120.0.0.0') return `version not merged: ${String(b.version)}`;
+        return true;
+      },
+    },
+    {
+      name: 'browser_list_tabs/enumerates-pages-with-hint',
+      tool: 'browser_list_tabs',
+      origin: 'homemade',
+      reference:
+        'tab enumeration: collector.listPages entries are re-emitted with pageId/aliases defaults and a select-tab hint; count matches the page list',
+      run: () =>
+        makeBrowserHandlers({
+          collector: {
+            listPages: async () => [
+              { index: 0, url: 'https://app.example/', title: '' },
+              { index: 1, url: 'https://app.example/second', title: '' },
+            ],
+            getSelectedPageHandle: () => null,
+          },
+        }).handleBrowserListTabs({}),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const pages = (b.pages ?? []) as Array<Record<string, unknown>>;
+        if (b.count !== 2 || pages.length !== 2)
+          return `expected 2 pages, got count=${String(b.count)} len=${pages.length}`;
+        if (pages[0]?.['url'] !== 'https://app.example/')
+          return `page url not preserved: ${JSON.stringify(pages[0])}`;
+        if (pages[0]?.['pageId'] !== null || !Array.isArray(pages[0]?.['aliases']))
+          return `pageId/aliases defaults wrong: ${JSON.stringify(pages[0])}`;
+        if (typeof b.hint !== 'string' || !/browser_select_tab/.test(String(b.hint)))
+          return `select-tab hint missing: ${String(b.hint)}`;
+        return true;
+      },
+    },
+    {
+      name: 'browser_list_workers/classifies-target-types',
+      tool: 'browser_list_workers',
+      origin: 'homemade',
+      reference:
+        'CDP target classification: type "worker" → category dedicated_worker, service_worker keeps isServiceWorker=true, and the next-step hint points at browser_worker_scripts',
+      run: () =>
+        makeBrowserHandlers({
+          collector: {
+            listCdpTargets: async () => [
+              {
+                targetId: 'sw-1',
+                type: 'service_worker',
+                title: 'sw.js',
+                url: 'https://app.example/sw.js',
+                attached: false,
+              },
+              {
+                targetId: 'w-1',
+                type: 'worker',
+                title: 'worker.js',
+                url: 'https://app.example/worker.js',
+                attached: false,
+              },
+            ],
+          },
+        }).handleBrowserListWorkers({}),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        const workers = (b.workers ?? []) as Array<Record<string, unknown>>;
+        if (b.count !== 2 || workers.length !== 2)
+          return `expected 2 workers: ${JSON.stringify(b)}`;
+        const sw = workers.find((w) => w['targetId'] === 'sw-1');
+        const dw = workers.find((w) => w['targetId'] === 'w-1');
+        if (!sw || sw['category'] !== 'service_worker' || sw['isServiceWorker'] !== true)
+          return `service worker misclassified: ${JSON.stringify(sw)}`;
+        if (!dw || dw['category'] !== 'dedicated_worker' || dw['isServiceWorker'] !== false)
+          return `dedicated worker misclassified: ${JSON.stringify(dw)}`;
+        if (!/browser_worker_scripts/.test(String(b._nextStepHint)))
+          return `next-step hint wrong: ${String(b._nextStepHint)}`;
+        return true;
+      },
+    },
+    {
+      name: 'browser_list_workers/rejects-all-filters-off',
+      tool: 'browser_list_workers',
+      origin: 'homemade',
+      reference:
+        'argument contract: disabling every worker-type filter must fail with an explicit message instead of silently returning an empty list',
+      run: () =>
+        makeBrowserHandlers({}).handleBrowserListWorkers({
+          includeServiceWorkers: false,
+          includeDedicatedWorkers: false,
+          includeSharedWorkers: false,
+        }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (!/No worker types selected/.test(String(b.error)))
+          return `unexpected error: ${String(b.error)}`;
+        return true;
+      },
+    },
+    {
+      name: 'browser_worker_scripts/requires-targetId',
+      tool: 'browser_worker_scripts',
+      origin: 'homemade',
+      reference:
+        'argument contract: dumping worker scripts without targetId must fail and name browser_list_workers as the discovery step',
+      run: () => makeBrowserHandlers({}).handleBrowserWorkerScripts({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (!/targetId is required/.test(String(b.error)))
+          return `unexpected error: ${String(b.error)}`;
+        return true;
+      },
+    },
+    {
+      name: 'browser_worker_scripts/echoes-dump-and-hints',
+      tool: 'browser_worker_scripts',
+      origin: 'homemade',
+      reference:
+        'result shaping: the dump result is echoed verbatim and the hint switches on includeSource (source included vs. opt-in)',
+      run: () =>
+        makeBrowserHandlers({
+          collector: {
+            dumpTargetScripts: async () => ({
+              targetId: 'w-1',
+              scripts: [{ scriptId: 's1', url: 'worker.js' }],
+              count: 1,
+            }),
+          },
+        }).handleBrowserWorkerScripts({ targetId: 'w-1', includeSource: true }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.count !== 1) return `dump count not echoed: ${JSON.stringify(b).slice(0, 200)}`;
+        if (!Array.isArray(b.scripts) || b.scripts.length !== 1)
+          return `scripts not echoed: ${JSON.stringify(b.scripts)}`;
+        if (!/Scripts include source/.test(String(b._nextStepHint)))
+          return `includeSource hint wrong: ${String(b._nextStepHint)}`;
+        return true;
+      },
+    },
+    {
+      name: 'console_monitor/enable-disable-roundtrip',
+      tool: 'console_monitor',
+      origin: 'homemade',
+      reference:
+        'monitor control: enable/disable delegate once each and report the action taken; an unknown action is rejected by name',
+      run: async () => {
+        const enabled: string[] = [];
+        const h = makeBrowserHandlers({
+          consoleMonitor: {
+            enable: async () => void enabled.push('enable'),
+            disable: async () => void enabled.push('disable'),
+          },
+        });
+        const on = body(await h.handleConsoleMonitor({ action: 'enable' }));
+        const off = body(await h.handleConsoleMonitor({ action: 'disable' }));
+        const bad = body(await h.handleConsoleMonitor({ action: 'toggle' }));
+        return { on, off, bad, calls: enabled };
+      },
+      validate: (v) => {
+        const r = v as Record<string, unknown>;
+        if (JSON.stringify(r['calls']) !== JSON.stringify(['enable', 'disable']))
+          return `delegation wrong: ${JSON.stringify(r['calls'])}`;
+        const on = r['on'] as Record<string, unknown>;
+        const off = r['off'] as Record<string, unknown>;
+        if (!/enabled/.test(String(on['message'])))
+          return `enable message wrong: ${JSON.stringify(on)}`;
+        if (!/disabled/.test(String(off['message'])))
+          return `disable message wrong: ${JSON.stringify(off)}`;
+        const bad = r['bad'] as Record<string, unknown>;
+        if (bad['success'] !== false || !/Invalid action/.test(String(bad['error'])))
+          return `unknown action not rejected: ${JSON.stringify(bad)}`;
+        return true;
+      },
+    },
+    {
+      name: 'console_get_logs/filters-are-forwarded-and-counted',
+      tool: 'console_get_logs',
+      origin: 'homemade',
+      reference:
+        'log projection: the type/limit/since filters are forwarded to the monitor and the returned entries are counted in the response',
+      run: () => {
+        const seen: Array<Record<string, unknown>> = [];
+        const h = makeBrowserHandlers({
+          consoleMonitor: {
+            getLogs: (filter: Record<string, unknown>) => {
+              seen.push(filter);
+              return [
+                { type: 'error', text: 'boom', timestamp: 2 },
+                { type: 'error', text: 'bang', timestamp: 3 },
+              ];
+            },
+          },
+        });
+        return (async () => ({
+          res: body(await h.handleConsoleGetLogs({ type: 'error', limit: 2, since: 1 })),
+          seen,
+        }))();
+      },
+      validate: (v) => {
+        const r = v as Record<string, unknown>;
+        const seen = r['seen'] as Array<Record<string, unknown>>;
+        if (seen[0]?.['type'] !== 'error' || seen[0]?.['limit'] !== 2 || seen[0]?.['since'] !== 1)
+          return `filters not forwarded: ${JSON.stringify(seen)}`;
+        const res = r['res'] as Record<string, unknown>;
+        if (res['count'] !== 2) return `count should be 2: ${JSON.stringify(res)}`;
+        if ((res['logs'] as unknown[]).length !== 2) return `logs not returned`;
+        return true;
+      },
+    },
+    {
+      name: 'get_all_scripts/caps-maxScripts-at-scripts-cap',
+      tool: 'get_all_scripts',
+      origin: 'homemade',
+      reference:
+        'SCRIPTS_MAX_CAP (500) clamp: an oversized maxScripts request is clipped before reaching the script manager, and count reflects the returned list',
+      run: () => {
+        const seen: unknown[] = [];
+        const h = makeBrowserHandlers({
+          scriptManager: {
+            getAllScripts: async (includeSource: boolean, maxScripts: number) => {
+              seen.push({ includeSource, maxScripts });
+              return [
+                { scriptId: '1', url: 'a.js' },
+                { scriptId: '2', url: 'b.js' },
+              ];
+            },
+          },
+        });
+        return (async () => ({
+          res: body(await h.handleGetAllScripts({ maxScripts: 99999 })),
+          seen,
+        }))();
+      },
+      validate: (v) => {
+        const r = v as Record<string, unknown>;
+        const seen = r['seen'] as Array<Record<string, unknown>>;
+        if (seen[0]?.['maxScripts'] !== 500)
+          return `maxScripts not clamped to 500: ${JSON.stringify(seen)}`;
+        if (seen[0]?.['includeSource'] !== false) return `includeSource default should be false`;
+        const res = r['res'] as Record<string, unknown>;
+        if (res['count'] !== 2 || (res['scripts'] as unknown[]).length !== 2)
+          return `scripts not returned: ${JSON.stringify(res)}`;
+        return true;
+      },
+    },
+    {
+      name: 'get_script_source/preview-line-window',
+      tool: 'get_script_source',
+      origin: 'homemade',
+      reference:
+        'preview contract: startLine/endLine select an inclusive 1-based window, totalLines reports the whole script and showingLines echoes the window',
+      run: () =>
+        makeBrowserHandlers({
+          scriptManager: {
+            getScriptSource: async () => ({
+              scriptId: 's1',
+              url: 'app.js',
+              source: 'l1\nl2\nl3\nl4\nl5',
+            }),
+          },
+        }).handleGetScriptSource({ scriptId: 's1', startLine: 2, endLine: 3 }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.totalLines !== 5) return `totalLines ${String(b.totalLines)} != 5`;
+        if (b.showingLines !== '2-3') return `showingLines ${String(b.showingLines)} != 2-3`;
+        if (b.content !== 'l2\nl3') return `content wrong: ${JSON.stringify(b.content)}`;
+        if (b.preview !== true) return `preview flag should be true`;
+        return true;
+      },
+    },
+    {
+      name: 'browser_codegen/records-compacts-and-emits-script',
+      tool: 'browser_codegen_start',
+      origin: 'homemade',
+      reference:
+        'codegen recorder: start arms the bus listener, two identical page_wait_for_selector calls compact into one step (rawStepCount 2 → stepCount 1), and the emitted script contains one callTool line per step',
+      run: async () => {
+        const bus = new EventBus();
+        const h = makeBrowserHandlers({ eventBus: bus });
+        const start = body(await h.handleBrowserCodegenStart());
+        const call = {
+          toolName: 'page_wait_for_selector',
+          domain: 'browser',
+          sessionId: null,
+          timestamp: new Date().toISOString(),
+          success: true,
+          args: { selector: '#ready' },
+          result: { success: true },
+        };
+        await bus.emit('tool:called', call);
+        await bus.emit('tool:called', { ...call, timestamp: new Date().toISOString() });
+        const stop = body(await h.handleBrowserCodegenStop());
+        return { start, stop };
+      },
+      validate: (v) => {
+        const r = v as Record<string, Record<string, unknown>>;
+        const start = r['start'] ?? {};
+        if (start['recording'] !== true) return `recording not armed: ${JSON.stringify(start)}`;
+        const stop = r['stop'] ?? {};
+        if (stop['rawStepCount'] !== 2 || stop['stepCount'] !== 1)
+          return `compaction wrong: ${JSON.stringify(stop)}`;
+        const steps = (stop['steps'] ?? []) as Array<Record<string, unknown>>;
+        if (steps.length !== 1 || steps[0]?.['tool'] !== 'page_wait_for_selector')
+          return `steps wrong: ${JSON.stringify(steps)}`;
+        const script = String(stop['script'] ?? '');
+        if (!/callTool/.test(script) || !/#ready/.test(script))
+          return `script missing the recorded call: ${script.slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'browser_codegen_stop/empty-recording-is-honest',
+      tool: 'browser_codegen_stop',
+      origin: 'homemade',
+      reference:
+        'codegen stop without any recorded step returns stepCount 0 with the replay scaffolding — never a fabricated step',
+      run: () => makeBrowserHandlers({ eventBus: new EventBus() }).handleBrowserCodegenStop(),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (b.recording !== false) return `recording should be false after stop`;
+        if (b.stepCount !== 0 || b.rawStepCount !== 0)
+          return `empty recording counts wrong: ${JSON.stringify(b)}`;
+        if (!/const steps = \[/.test(String(b.script)))
+          return `script scaffolding missing: ${String(b.script)}`;
+        return true;
+      },
+    },
+    {
+      name: 'page_back/chrome-returns-post-navigation-url',
+      tool: 'page_back',
+      origin: 'homemade',
+      reference:
+        'history navigation: the chrome path awaits goBack(timeout) then reports the page controller’s current url',
+      run: () => {
+        const calls: unknown[] = [];
+        const h = makeBrowserHandlers({
+          pageController: {
+            goBack: async (timeout: number) => void calls.push(['back', timeout]),
+            goForward: async (timeout: number) => void calls.push(['forward', timeout]),
+            getURL: async () => 'https://app.example/previous',
+            getTitle: async () => 'Previous',
+          },
+        });
+        return (async () => ({
+          back: body(await h.handlePageBack({ timeout: 5000 })),
+          forward: body(await h.handlePageForward({ timeout: 5000 })),
+          calls,
+        }))();
+      },
+      validate: (v) => {
+        const r = v as Record<string, unknown>;
+        const calls = r['calls'] as unknown[][];
+        if (
+          JSON.stringify(calls) !==
+          JSON.stringify([
+            ['back', 5000],
+            ['forward', 5000],
+          ])
+        )
+          return `delegation wrong: ${JSON.stringify(calls)}`;
+        const back = r['back'] as Record<string, unknown>;
+        if (back['url'] !== 'https://app.example/previous')
+          return `url not reported: ${JSON.stringify(back)}`;
+        const forward = r['forward'] as Record<string, unknown>;
+        if (forward['url'] !== 'https://app.example/previous')
+          return `forward url not reported: ${JSON.stringify(forward)}`;
+        return true;
+      },
+    },
   ],
 };
 
@@ -557,3 +953,34 @@ function makeStorageBrowserHandlers(): BrowserToolHandlers {
 }
 
 const storageHandlers = makeStorageBrowserHandlers();
+
+// ── Browser host-side handlers over injected collaborators ──────────────────
+// These tools read state from the collector / console monitor / script manager
+// and shape it host-side. Injecting each collaborator's fixed return value
+// measures the real shaping logic (capping, compaction, classification,
+// argument validation) with no live browser.
+interface BrowserCollabOverrides {
+  collector?: Record<string, unknown>;
+  pageController?: Record<string, unknown>;
+  consoleMonitor?: Record<string, unknown>;
+  scriptManager?: Record<string, unknown>;
+  eventBus?: EventBus;
+}
+
+function makeBrowserHandlers(overrides: BrowserCollabOverrides = {}): BrowserToolHandlers {
+  const collector = {
+    getActivePage: async () => null,
+    getStatus: async () => ({ running: false, pagesCount: 0 }),
+    listPages: async () => [],
+    getSelectedPageHandle: () => null,
+    listCdpTargets: async () => [],
+    ...overrides.collector,
+  };
+  return new BrowserToolHandlers(
+    collector as never,
+    { createCDPSession: async () => ({}), ...overrides.pageController } as never,
+    (overrides.scriptManager ?? {}) as never,
+    (overrides.consoleMonitor ?? {}) as never,
+    overrides.eventBus as never,
+  );
+}

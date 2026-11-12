@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 53 / 200 | **Kept:** 46 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=379 (run #53, 940dfaf) | **Baseline:** debt=616 (run #1) — debtΔ -237
+**Runs:** 54 / 200 | **Kept:** 47 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=369 (run #54, e521cde) | **Baseline:** debt=616 (run #1) — debtΔ -247
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -59,4 +59,5 @@
 | 50 | a984241 | 392 | 3 | keep | draft | network loopback probes (+3 cases): http_plain_request 200 roundtrip,  |
 | 51 | 3ed780e | 389 | 2 | keep | draft | v8-inspector honest-unavailable batch (+3 cases): wasm_inspect no-page |
 | 52 | 207578e | 387 | 8 | keep | draft | browser storage handlers (+4 cases): local_storage roundtrip + empty-key reject, session_storage get, storage_info estimate |
-| 53 | 940dfaf | 379 | — | keep | draft | webgpu honest-unavailable batch (+8 cases): no-page explicit failure + arg-schema validation — webgpu 10/10 |
+| 53 | 940dfaf | 379 | 10 | keep | draft | webgpu honest-unavailable batch (+8 cases): no-page explicit failure + arg-schema validation — webgpu 10/10 |
+| 54 | e521cde | 369 | — | keep | draft | canvas host-side batch (+10 cases): scripted page substrate — canvas 11/11 (incl. skia) |
