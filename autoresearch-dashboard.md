@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 51 / 200 | **Kept:** 44 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=389 (run #51, 3ed780e) | **Baseline:** debt=616 (run #1) — debtΔ -227
+**Runs:** 52 / 200 | **Kept:** 45 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=387 (run #52, 207578e) | **Baseline:** debt=616 (run #1) — debtΔ -229
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -57,4 +57,5 @@
 | 48 | 15f076e | 398 | 9 | keep | draft | network DNS stack (+3 cases): dns_probe NOERROR/NODATA, dns_cname_chai |
 | 49 | ebe42fe | 395 | 6 | keep | draft | syscall-hook (+4 pure handlers): filter invalid-names + idle honesty,  |
 | 50 | a984241 | 392 | 3 | keep | draft | network loopback probes (+3 cases): http_plain_request 200 roundtrip,  |
-| 51 | 3ed780e | 389 | — | keep | draft | v8-inspector honest-unavailable batch (+3 cases): wasm_inspect no-page |
+| 51 | 3ed780e | 389 | 2 | keep | draft | v8-inspector honest-unavailable batch (+3 cases): wasm_inspect no-page |
+| 52 | 207578e | 387 | — | keep | draft | browser storage handlers (+4 cases): local_storage roundtrip + empty-key reject, session_storage get, storage_info estimate |

@@ -19,7 +19,7 @@
  *    project's WgslParser extracts deterministically without a GPU.
  */
 import { WebGPUHandlers } from '@server/domains/webgpu/handlers';
-import { expectSuccess, type BenchSuite } from '../harness';
+import { body, expectSuccess, type BenchSuite } from '../harness';
 
 // Stub deps: the offline SPIR-V/WGSL paths never dereference the page
 // controller, so no browser or GPU device is required.
@@ -168,6 +168,23 @@ function asArray(v: unknown): Record<string, unknown>[] {
 function from(v: Record<string, unknown>, key: string): unknown {
   const summary = v.summary as Record<string, unknown> | undefined;
   return v[key] ?? summary?.[key];
+}
+
+/**
+ * Assert the offline contract for page-bound handlers: with no active page they
+ * must fail explicitly (named reason) and must not fabricate GPU payloads.
+ */
+function expectNoPage(v: unknown): true | string {
+  const b = body(v);
+  if (b.success !== false) return `expected success=false, got ${JSON.stringify(b).slice(0, 200)}`;
+  const err = String(b.error ?? '');
+  if (!/No active page/.test(err)) return `expected an explicit no-page reason, got "${err}"`;
+  for (const key of ['adapter', 'errors', 'commands', 'pipelines', 'shaders', 'stats', 'memory']) {
+    if (b[key] !== undefined) {
+      return `fabricated "${key}" without a page: ${JSON.stringify(b[key]).slice(0, 120)}`;
+    }
+  }
+  return true;
 }
 
 export const webgpuSuite: BenchSuite = {
@@ -328,6 +345,99 @@ export const webgpuSuite: BenchSuite = {
         ) {
           return `spirvInfo fields wrong: ${JSON.stringify(info)}`;
         }
+        return true;
+      },
+    },
+
+    // ── Honest-unavailable batch 2026-11-12 (autoresearch) ──────────────────
+    // The 8 page/GPU-bound WebGPU tools have no offline computation path, but
+    // they DO have a checkable offline contract: with no active page they must
+    // fail explicitly (named reason) and must not fabricate adapter/command/
+    // pipeline/shader/error payloads. Argument validation is asserted where the
+    // schema requires the argument (handlers must reject before touching a page).
+    {
+      name: 'webgpu_adapter_info/no-page-explicit-failure',
+      tool: 'webgpu_adapter_info',
+      origin: 'homemade',
+      reference:
+        'offline contract: adapter enumeration needs a live GPU device, so without a page the handler must fail with an explicit reason instead of returning an empty adapter object',
+      run: () => handlers.webgpu_adapter_info({}),
+      validate: expectNoPage,
+    },
+    {
+      name: 'webgpu_capture_commands/requires-captureCount',
+      tool: 'webgpu_capture_commands',
+      origin: 'homemade',
+      reference:
+        'argument contract: captureCount has no default in the tool schema (required), so omitting it must be rejected as invalid before any page access',
+      run: () => handlers.webgpu_capture_commands({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== false)
+          return `expected success=false, got ${JSON.stringify(b).slice(0, 200)}`;
+        if (!/captureCount/.test(String(b.error ?? '')))
+          return `expected a captureCount validation error, got "${String(b.error)}"`;
+        return true;
+      },
+    },
+    {
+      name: 'webgpu_error_capture/no-page-explicit-failure',
+      tool: 'webgpu_error_capture',
+      origin: 'homemade',
+      reference:
+        'offline contract: uncapturederror diagnostics require a live device; captureCount has a documented default (10) so the call must reach the page check and fail there',
+      run: () => handlers.webgpu_error_capture({}),
+      validate: expectNoPage,
+    },
+    {
+      name: 'webgpu_frame_timing/no-page-explicit-failure',
+      tool: 'webgpu_frame_timing',
+      origin: 'homemade',
+      reference:
+        'offline contract: rAF/timestamp-query sampling requires a live page; frameCount defaults to 60 and the failure must name the missing page',
+      run: () => handlers.webgpu_frame_timing({}),
+      validate: expectNoPage,
+    },
+    {
+      name: 'webgpu_memory_layout/no-page-explicit-failure',
+      tool: 'webgpu_memory_layout',
+      origin: 'homemade',
+      reference:
+        'offline contract: GPU heap stats need a live device, so no-page calls must fail explicitly rather than report zeroed heap size',
+      run: () => handlers.webgpu_memory_layout({}),
+      validate: expectNoPage,
+    },
+    {
+      name: 'webgpu_pipeline_dump/no-page-explicit-failure',
+      tool: 'webgpu_pipeline_dump',
+      origin: 'homemade',
+      reference:
+        'offline contract: pipeline descriptors can only be captured from a live device; captureCount defaults to 10 and the response must not claim zero pipelines',
+      run: () => handlers.webgpu_pipeline_dump({}),
+      validate: expectNoPage,
+    },
+    {
+      name: 'webgpu_shader_source_capture/no-page-explicit-failure',
+      tool: 'webgpu_shader_source_capture',
+      origin: 'homemade',
+      reference:
+        'offline contract: WGSL source capture hooks a live createShaderModule; without a page the handler must not report an empty shader list as success',
+      run: () => handlers.webgpu_shader_source_capture({}),
+      validate: expectNoPage,
+    },
+    {
+      name: 'webgpu_timing_analysis/requires-iterations',
+      tool: 'webgpu_timing_analysis',
+      origin: 'homemade',
+      reference:
+        'argument contract: iterations is required (no default) and must be validated before the handler asks for a page',
+      run: () => handlers.webgpu_timing_analysis({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b.success !== false)
+          return `expected success=false, got ${JSON.stringify(b).slice(0, 200)}`;
+        if (!/iterations/.test(String(b.error ?? '')))
+          return `expected an iterations validation error, got "${String(b.error)}"`;
         return true;
       },
     },

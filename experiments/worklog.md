@@ -201,3 +201,10 @@
 - Context is about to compact. State snapshot: experiments/autoresearch.jsonl.precompact.bak
 - Runs so far: 51 | kept: 0
 - On resume: read autoresearch.md, autoresearch.jsonl, and this worklog, then CONTINUE the loop (do not restart).
+
+### Run 52: browser storage handlers (+4 cases) — debt 389→387 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added a `makeStorageBrowserHandlers()` substrate (in-memory localStorage/sessionStorage maps + an `evaluate` stub that models the two snippets the handlers actually issue) and 4 cases to `offline-tools.suite.ts`: `page_local_storage` set→get→delete→clear roundtrip (asserting the *other* key survives delete), `page_local_storage` empty-key rejection (`success=false` + exact validation message), `page_session_storage` get entry/count read-back, `page_storage_info` estimate shape (usage/quota numbers, persisted boolean).
+- Result: debt 389→387 (-2, -229 cumulative), unmeasured 338→336, vectors_total 398→**400**, vector_fail 0, rejection_pct 100%, checks.sh pass. browser 13→16/85 measured.
+- Insight: `handlePageDeleteLocalStorage` does NOT call a `removeLocalStorage` method — it issues `pageController.evaluate('localStorage.removeItem("<key>")')`. The mock must therefore interpret the snippet, otherwise the delete assertion silently passes on a store that never changed. Same class of lesson as Run 14/46: the contract is what the handler *actually* calls, not what the class "should" expose.
+- Next: `page_cookies` dispatch (get/set/clear with `expectedCount` guard), and the offline `browser` config/status handlers (`browser_status`, `browser_list_tabs` on an empty collector) — they are honest-unavailable contracts like Run 51.
