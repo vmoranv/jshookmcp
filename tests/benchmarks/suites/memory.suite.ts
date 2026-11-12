@@ -16,6 +16,7 @@ import { SessionHandlers } from '@server/domains/memory/handlers/session';
 import { MemoryScanHandlers } from '@server/domains/memory/handlers.impl';
 import memoryManifest from '@server/domains/memory/manifest';
 import { body, type BenchSuite } from '../harness';
+import { memoryWin32Cases } from './memory.win32';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -978,5 +979,9 @@ export const memorySuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Win32 engine-wired contracts (Route A, 2026-11-12) ──────────────────
+    // Windows + koffi only; each case self-skips elsewhere via win32EnginesAvailable().
+    ...memoryWin32Cases,
   ],
 };

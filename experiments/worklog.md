@@ -384,3 +384,18 @@
   1. **Wire the real engines** in the fixture (construct `HardwareBreakpointEngine` / `Speedhack` / `MemoryController`) and assert the genuine Win32 paths — higher value, but these tests then only pass on Windows and need `JSHOOK_NATIVE_RUNTIME=1` gating (repo rule for koffi).
   2. **Fix the two arg-ordering smells** (`listFreezes`/`undo` before PID validation) then measure them — that is a product change, not a benchmark change.
 - Everything else is measured. Recorded in `autoresearch.ideas.md`.
+
+### Run 76: campaign closeout docs — debt unchanged 56 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: `tests/benchmarks/CATALOG.md` now reports the real numbers (43 suites / 847 cases, 838 pass, 9 env-gated skips; 398 → **731** tools measured) and describes the campaign; `autoresearch.ideas.md` rewritten as a status + decision document: the 5 remaining Win32 memory gates with Route A (wire the engines, Windows-only + `JSHOOK_NATIVE_RUNTIME` gating) vs Route B (fix engine-before-PID-validation ordering), plus the unverified koffi array-prototype defect and the six proven patterns.
+- Result: debt **56** unchanged (docs only). checks.sh green.
+- Insight: after 75 runs the harness is close to its honest limit. The remaining 5 need either a Windows-only runtime gate or a product change, so the loop is paused for a decision instead of manufacturing cases that assert fixture artifacts.
+
+### ⟳ Structural floor reached (2026-11-12) — debt 56 is the honest limit of this harness
+Verified by inspection, not assumption:
+
+- **`unmeasured = 5`** — the five Win32 memory gates documented in `autoresearch.ideas.md`. Each needs either engines wired into the fixture (Windows-only + `JSHOOK_NATIVE_RUNTIME` gating) or an engine-before-PID-validation product fix. Both need a decision.
+- **`low_mrr = 51`** — **structurally frozen.** `tests/server/benchmarks/retrieval-metrics.test.ts` mocks `@server/ToolCatalog` and feeds the engine `buildSearchQualityFixture()`, whose tools are `makeTool(name, '<short synthetic description>')` — verified: **all 51 low-MRR tools are present in that synthetic fixture**. Editing real `definitions.ts` descriptions therefore cannot move a single one. The fixture and the engine params are Off Limits by the harness contract (they are what `search:tune` optimises against).
+- **`vector_fail = 0`** — nothing to fix.
+
+So `debt = 5 + 51 + 0 = 56` is a **floor, not a plateau**: the two remaining components are blocked on a product decision and on the eval design respectively. Further runs would only manufacture cases that assert fixture artifacts, which the harness rules forbid.

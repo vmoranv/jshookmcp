@@ -167,4 +167,14 @@ crash (gate floor breach counts as crash). `./checks.sh` must then pass (exit 0)
 - **Winning pattern**: Over 51 runs, systematically converting offline/sandbox/loopback tools across 17 domains has moved **`vectors_total` from 171 (23.2%) → 398 (54.1%)** and reduced `debt` from **616 → 389 (-227)** while fixing **4 genuine production bugs**, with `vector_fail=0` and `rejection_pct=100%`. Six domains at 100%: native-emulator (57/57), trace (10/10), cross-domain (8/8), protocol-analysis (20/20), tls-inspector (29/29), extension-registry (7/7).
 - **Honest-unavailable is a legitimate vector class**: tools that require a live browser/CDP still have a testable offline contract (explicit `success=false` + named reason + zero fabricated rows). This is what Run 51 exercised for `v8-inspector` and what Run 49 did for `syscall-hook`. It is NOT the same as the discarded Run 35 (which converted real skips without changing `withVectors`).
 - **Known blocked paths (recorded, do not retry)**: `dart-inspector` dynamic tools reject the committed `tiny-libapp.so` (`Invalid Dart snapshot magic 0xffffffff`); `graphql_introspect`/`graphql_replay` block loopback at the SSRF gate with no escape; `syscall_resolve_ssn` reads host ntdll.
+- **STRUCTURAL FLOOR (2026-11-12, after run 76): `debt = 56` is the honest limit of this harness.**
+  - `unmeasured = 5` — the Win32 memory gates (`memory_breakpoint`, `memory_find_accesses`,
+    `memory_speedhack`, `memory_freeze_export`, `memory_write_history`). Each needs either engines
+    wired into the fixture (Windows-only + `JSHOOK_NATIVE_RUNTIME` gating) or an
+    engine-before-PID-validation product fix. Both are decisions, not experiments. See `autoresearch.ideas.md`.
+  - `low_mrr = 51` — **structurally frozen**: `retrieval-metrics.test.ts` mocks `ToolCatalog` and feeds
+    the engine a synthetic fixture whose tools are short `makeTool(name, desc)` stubs. All 51
+    low-MRR tools are present in that fixture (verified by grep), so real `definitions.ts` edits
+    cannot move the number, and the fixture/engine params are Off Limits.
+  - `vector_fail = 0`.
 - **Remaining highest-yield offline targets**: `browser` jsdom-backed storage handlers, `maintenance` registry tools with a fetch stub, remaining `streaming` offline projections.
