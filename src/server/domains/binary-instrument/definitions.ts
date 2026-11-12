@@ -61,7 +61,7 @@ export const binaryInstrumentTools: Tool[] = [
   tool('ghidra_analyze', (t) =>
     t
       .desc(
-        'Run Ghidra headless analysis on a native binary: extract function names, imports, exports, and printable strings. Requires analyzeHeadless on PATH.',
+        'Run Ghidra headless analysis on a native binary to extract the function list, import address table, export symbols, and printable strings — the first step in native reverse engineering before decompiling individual functions.',
       )
       .string('binaryPath', 'Path to the binary file')
       .number('timeout', 'Optional timeout in milliseconds for headless analysis')

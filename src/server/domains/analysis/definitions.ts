@@ -115,7 +115,7 @@ export const coreTools: Tool[] = [
     withWebcrackOpts(
       t
         .desc(
-          'Deobfuscate obfuscated/minified JavaScript: reverse bundler packaging (webpack, Vite, esbuild, Rollup), unminify variable names, unwrap CommonJS/ESM modules, and unpack bundled code back to individual source files.',
+          'Reverse engineer obfuscated and minified JavaScript back to readable source code: unpack webpack, Vite, esbuild, and Rollup bundles into individual modules; restore meaningful variable and function names stripped by minification; undo string array obfuscation, control flow flattening, and self-defending code wrappers.',
         )
         .string('code', 'Obfuscated JavaScript source')
         .enum(

@@ -25,10 +25,10 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 
 | Tool | Description |
 | --- | --- |
-| `network_enable` | Enable network request monitoring. |
+| `network_enable` | Enable network traffic capture on the browser page via the Chrome DevTools Protocol Network domain: records every HTTP request, response, header, timing, and body for later inspection by network_get_requests and network_get_response_body. |
 | `network_disable` | Disable network request monitoring |
 | `network_get_status` | Get network monitoring status. |
-| `network_monitor` | Manage network request monitoring. |
+| `network_monitor` | Query and filter captured network traffic: filter HTTP requests by URL pattern, resource type, or status code; paginate through results; and incrementally fetch new requests since the last checkpoint. Requires network_enable first. |
 | `network_get_requests` | Get captured network requests. |
 | `network_get_response_body` | Get the response body for a captured request. |
 | `network_get_stats` | Get network statistics. |

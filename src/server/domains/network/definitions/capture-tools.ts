@@ -5,7 +5,7 @@ export const captureTools: Tool[] = [
   tool('network_enable', (t) =>
     t
       .desc(
-        'Enable CDP Network domain monitoring: capture requests, responses, headers, timing, and response bodies via Chrome DevTools Protocol.',
+        'Enable network traffic capture on the browser page via the Chrome DevTools Protocol Network domain: records every HTTP request, response, header, timing, and body for later inspection by network_get_requests and network_get_response_body.',
       )
       .boolean('enableExceptions', 'Also capture uncaught exceptions', { default: true }),
   ),
@@ -14,7 +14,7 @@ export const captureTools: Tool[] = [
   tool('network_monitor', (t) =>
     t
       .desc(
-        'Manage network traffic capture: query captured requests, filter by type or status, and export or replay. Requires network_enable first.',
+        'Query and filter captured network traffic: filter HTTP requests by URL pattern, resource type, or status code; paginate through results; and incrementally fetch new requests since the last checkpoint. Requires network_enable first.',
       )
       .enum('action', ['enable', 'disable', 'status'], 'Action to perform')
       .boolean('enableExceptions', 'Only for enable action: Also capture uncaught exceptions', {
