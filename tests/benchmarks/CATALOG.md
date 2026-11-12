@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **392 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **395 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -183,6 +183,7 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部] ✅** (2026-11-11, +7 tools): `network_export_har` (HAR 1.2 log/entries export), `network_extract_auth` (Bearer token detection + masking), `network_replay_request` (dryRun preview without outbound I/O), `network_get_status`, `network_get_stats`, `network_get_requests`, `console_get_exceptions` (URL-filtered projection).
 - **[自制] ✅** (2026-11-11 Wave 2, +6 tools): `network_get_response_body`, `network_intercept` (list), `network_enable`, `network_disable`, `network_monitor` (status dispatch), `console_buffers` (clear). (21/38 network tools measured).
 - **[自制] ✅** (2026-11-12, +4 tools): `dns_resolve` (RFC 1035 A query against a loopback UDP DNS stub → 10.0.0.1), `dns_probe` (NOERROR classification + honest NODATA, no fabricated records), `dns_cname_chain` (follows stub CNAME hop then terminates on NODATA), `dns_bulk_resolve` (3-hostname batched stub answers). (25/38 network tools measured).
+- **[自制] ✅** (2026-11-12 Wave 4, +3 tools): `http_plain_request` (raw HTTP/1.1 request → loopback 200 roundtrip), `network_rtt_measure` (loopback TCP RTT count/avg/min/max), `network_latency_stats` (loopback HTTP percentile stats). (28/38 network tools measured).
 - **[外部]** [JA3 spec](https://github.com/salesforce/ja3) decimal-form golden values — full ja3_raw decimal parity is a planned upgrade. 📋
 - Live-socket tools (dns_*, icmp, tcp_*, traceroute) need network; excluded from the offline gate. 📋
 

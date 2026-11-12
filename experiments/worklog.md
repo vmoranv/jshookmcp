@@ -182,3 +182,10 @@
 - Result: debt 398→395 (-3, -221 cumulative), unmeasured 347→344, vectors_total 392 (53.3%), vector_fail 0, rejection_pct 100%, checks.sh pass. syscall-hook 8/15 measured.
 - Insight: Probing before authoring paid off — `dart-inspector` dynamic tools reject the committed `tiny-libapp.so` (`Invalid Dart snapshot magic 0xffffffff`), so that domain needs a purpose-built snapshot rather than the existing fixture; `handleSyscallResolveSsn` reads the real ntdll (host-dependent), so only the validation/empty-stream branches are honestly offline.
 - Next: `streaming` SSE loopback capture, or `browser` jsdom-backed storage (`page_local_storage`/`page_session_storage`/`page_storage_info`) if they accept a jsdom session without a live page.
+
+### Run 50: network loopback probes (+3 cases) — debt 395→392 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added 3 loopback-socket cases to `network.suite.ts`: `http_plain_request` (raw HTTP/1.1 GET written to an ephemeral `http.createServer` → 200 + scripted body), `network_rtt_measure` (TCP RTT count/avg/min/max over 3 iterations), `network_latency_stats` (HTTP percentile stats over 5 iterations at concurrency 2). All three pass an explicit `authorization` bag (`allowedHosts: ['127.0.0.1']`, `allowPrivateNetwork`, `allowInsecureHttp`) because the SSRF policy blocks loopback otherwise.
+- Result: debt 395→392 (-3, -224 cumulative), unmeasured 344→341, vectors_total 395 (53.7%), vector_fail 0, rejection_pct 100%, checks.sh pass. network 25→28/38 measured.
+- Insight: The outbound network tools are testable offline iff the authorization bag explicitly whitelists loopback — `handleHttp2Probe` additionally requires `url` (not host/port) and was left out of this batch. Probing first avoided two wasted authorings (`graphql_*` blocks loopback at the SSRF gate with no escape; `dart-inspector` dynamic tools reject the committed fixture).
+- Next: `browser` jsdom-backed storage handlers, or `maintenance` registry tools with a fetch stub.

@@ -855,5 +855,136 @@ export const networkSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Coverage batch 4 (2026-11-12 autoresearch): loopback TCP/HTTP probes ──
+    {
+      name: 'http_plain_request/loopback-http1-roundtrip',
+      tool: 'http_plain_request',
+      origin: 'external-vector',
+      reference:
+        'RFC 7230 §3: a raw HTTP/1.1 request written to a loopback http.createServer must return the scripted 200 response and status line',
+      run: async () => {
+        const { createServer } = await import('node:http');
+        const server = createServer((_req, res) => {
+          res.setHeader('content-type', 'text/plain');
+          res.end('LOOPBACK-OK');
+        });
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        try {
+          return await handlers.handleHttpPlainRequest({
+            host: '127.0.0.1',
+            port,
+            requestText: `GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n`,
+            authorization: {
+              allowedHosts: ['127.0.0.1'],
+              allowPrivateNetwork: true,
+              allowInsecureHttp: true,
+            },
+          });
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const response = b.response as { statusCode?: number; statusLine?: string } | undefined;
+        if (response?.statusCode !== 200)
+          return `expected HTTP 200, got ${JSON.stringify(response).slice(0, 160)}`;
+        if (!String(response?.statusLine ?? '').includes('200'))
+          return `status line missing 200: ${String(response?.statusLine)}`;
+        if (!JSON.stringify(b).includes('LOOPBACK-OK'))
+          return 'scripted loopback body not returned';
+        return true;
+      },
+    },
+    {
+      name: 'network_rtt_measure/loopback-tcp-roundtrips',
+      tool: 'network_rtt_measure',
+      origin: 'homemade',
+      reference:
+        'RTT measurement against a loopback target must report count/avg/min/max stats for the requested iterations',
+      run: async () => {
+        const { createServer } = await import('node:http');
+        const server = createServer((_req, res) => res.end('OK'));
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        try {
+          return await handlers.handleNetworkRttMeasure({
+            url: `http://127.0.0.1:${port}/`,
+            iterations: 3,
+            authorization: {
+              allowedHosts: ['127.0.0.1'],
+              allowPrivateNetwork: true,
+              allowInsecureHttp: true,
+            },
+          });
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        const stats = b.stats as
+          | { count?: number; avgMs?: number; minMs?: number; maxMs?: number }
+          | undefined;
+        if (stats?.count !== 3) return `expected count=3, got ${stats?.count}`;
+        for (const k of ['avgMs', 'minMs', 'maxMs'] as const) {
+          if (typeof stats[k] !== 'number' || !Number.isFinite(stats[k]))
+            return `${k} must be a finite number, got ${String(stats[k])}`;
+        }
+        return stats.minMs! <= stats.maxMs! ? true : 'minMs must not exceed maxMs';
+      },
+    },
+    {
+      name: 'network_latency_stats/http-percentiles',
+      tool: 'network_latency_stats',
+      origin: 'homemade',
+      reference:
+        'HTTP latency statistics over a loopback server must report the requested iteration count and percentile stats',
+      run: async () => {
+        const { createServer } = await import('node:http');
+        const server = createServer((_req, res) => res.end('OK'));
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        try {
+          return await handlers.handleNetworkLatencyStats({
+            url: `http://127.0.0.1:${port}/`,
+            probeType: 'http',
+            iterations: 5,
+            concurrency: 2,
+            authorization: {
+              allowedHosts: ['127.0.0.1'],
+              allowPrivateNetwork: true,
+              allowInsecureHttp: true,
+            },
+          });
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v: unknown) => {
+        const b = expectSuccess(v);
+        if (Number(b.iterations) !== 5) return `expected iterations=5, got ${b.iterations}`;
+        const stats = b.stats as Record<string, unknown> | undefined;
+        if (!stats) return `missing stats block: ${JSON.stringify(b).slice(0, 160)}`;
+        const text = JSON.stringify(stats).toLowerCase();
+        return text.includes('p95') || text.includes('percentile')
+          ? true
+          : `stats lack percentile fields: ${text.slice(0, 160)}`;
+      },
+    },
   ],
 };
