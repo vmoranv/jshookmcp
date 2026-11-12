@@ -786,5 +786,245 @@ export const tlsInspectorFullSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Coverage batch 3 (2026-11-11 autoresearch): loopback WebSocket session lifecycle ──
+    {
+      name: 'websocket_open/loopback-rfc6455-handshake',
+      tool: 'websocket_open',
+      origin: 'external-vector',
+      reference:
+        'RFC 6455 §4.2: server accepts HTTP Upgrade with Sec-WebSocket-Accept = base64(SHA1(key + GUID))',
+      run: async () => {
+        const server = createNetServer((socket) => {
+          socket.once('data', (d) => {
+            const keyMatch = /Sec-WebSocket-Key: ([^\r\n]+)/.exec(d.toString('utf8'));
+            const crypto = require('node:crypto') as typeof import('node:crypto');
+            const accept = crypto
+              .createHash('sha1')
+              .update(`${keyMatch?.[1] ?? ''}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+              .digest('base64');
+            socket.write(
+              'HTTP/1.1 101 Switching Protocols\r\n' +
+                'Upgrade: websocket\r\n' +
+                'Connection: Upgrade\r\n' +
+                `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
+            );
+            // RFC 6455 masked "hi" text frame from the client, echo it back unmasked
+            socket.once('data', (frame) => {
+              const len = frame[1] & 0x7f;
+              const payload = frame.subarray(frame.length - len);
+              // unmasked text frame "hi" (opcode 0x81, len 0x02)
+              socket.write(Buffer.from([0x81, payload.length, ...payload]));
+            });
+          });
+        });
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const h = handlersFor(keylogPath);
+        try {
+          const openRes = await h.handleWebSocketOpenTool({
+            url: `ws://127.0.0.1:${port}/bench`,
+            timeoutMs: 3000,
+          });
+          const parsed = body(openRes);
+          if (typeof parsed.sessionId === 'string') {
+            await h.handleWebSocketCloseTool({ sessionId: parsed.sessionId, force: true });
+          }
+          return openRes;
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true || typeof b.sessionId !== 'string' || b.kind !== 'websocket')
+          return `expected ok=true kind=websocket sessionId, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'websocket_send_frame/masked-text-frame',
+      tool: 'websocket_send_frame',
+      origin: 'homemade',
+      reference: 'sends a masked RFC 6455 text frame over an open loopback WS session',
+      run: async () => {
+        const server = createNetServer((socket) => {
+          socket.once('data', (d) => {
+            const keyMatch = /Sec-WebSocket-Key: ([^\r\n]+)/.exec(d.toString('utf8'));
+            const crypto = require('node:crypto') as typeof import('node:crypto');
+            const accept = crypto
+              .createHash('sha1')
+              .update(`${keyMatch?.[1] ?? ''}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+              .digest('base64');
+            socket.write(
+              'HTTP/1.1 101 Switching Protocols\r\n' +
+                'Upgrade: websocket\r\n' +
+                'Connection: Upgrade\r\n' +
+                `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
+            );
+          });
+        });
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const h = handlersFor(keylogPath);
+        try {
+          const open = body(
+            await h.handleWebSocketOpenTool({
+              url: `ws://127.0.0.1:${port}/bench`,
+              timeoutMs: 3000,
+            }),
+          );
+          const sessionId = String(open.sessionId ?? '');
+          try {
+            return await h.handleWebSocketSendFrameTool({
+              sessionId,
+              frameType: 'text',
+              dataText: 'ws-bench',
+            });
+          } finally {
+            if (sessionId) await h.handleWebSocketCloseTool({ sessionId, force: true });
+          }
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true) return `websocket_send_frame failed: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'websocket_read_frame/receives-echoed-text',
+      tool: 'websocket_read_frame',
+      origin: 'homemade',
+      reference: 'receives an unmasked text frame echoed by the loopback WS server',
+      run: async () => {
+        const server = createNetServer((socket) => {
+          let stage = 0;
+          socket.on('data', (d) => {
+            if (stage === 0) {
+              stage = 1;
+              const keyMatch = /Sec-WebSocket-Key: ([^\r\n]+)/.exec(d.toString('utf8'));
+              const crypto = require('node:crypto') as typeof import('node:crypto');
+              const accept = crypto
+                .createHash('sha1')
+                .update(`${keyMatch?.[1] ?? ''}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+                .digest('base64');
+              socket.write(
+                'HTTP/1.1 101 Switching Protocols\r\n' +
+                  'Upgrade: websocket\r\n' +
+                  'Connection: Upgrade\r\n' +
+                  `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
+              );
+              return;
+            }
+            // RFC 6455 masked "echo-me" text frame from client → unmask (XOR with
+            // the 4-byte masking key at bytes 2..6) and echo back unmasked
+            const len = d[1] & 0x7f;
+            const masked = (d[1] & 0x80) !== 0;
+            const maskKey = d.subarray(2, 6);
+            const maskedPayload = d.subarray(6, 6 + len);
+            const payload = Buffer.alloc(len);
+            for (let i = 0; i < len; i++) {
+              payload[i] = masked ? maskedPayload[i]! ^ maskKey[i % 4]! : maskedPayload[i]!;
+            }
+            socket.write(Buffer.from([0x81, payload.length, ...payload]));
+          });
+        });
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const h = handlersFor(keylogPath);
+        try {
+          const open = body(
+            await h.handleWebSocketOpenTool({
+              url: `ws://127.0.0.1:${port}/bench`,
+              timeoutMs: 3000,
+            }),
+          );
+          const sessionId = String(open.sessionId ?? '');
+          try {
+            await h.handleWebSocketSendFrameTool({
+              sessionId,
+              frameType: 'text',
+              dataText: 'echo-me',
+            });
+            return await h.handleWebSocketReadFrameTool({ sessionId, timeoutMs: 3000 });
+          } finally {
+            if (sessionId) await h.handleWebSocketCloseTool({ sessionId, force: true });
+          }
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true) return `websocket_read_frame failed: ${JSON.stringify(b)}`;
+        if (b.frameType !== 'text' || b.dataText !== 'echo-me')
+          return `expected echoed text frame 'echo-me', got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'websocket_close/sends-close-frame-and-ends',
+      tool: 'websocket_close',
+      origin: 'homemade',
+      reference: 'sends RFC 6455 close frame (code 1000) and tears down the WS session',
+      run: async () => {
+        const server = createNetServer((socket) => {
+          socket.once('data', (d) => {
+            const keyMatch = /Sec-WebSocket-Key: ([^\r\n]+)/.exec(d.toString('utf8'));
+            const crypto = require('node:crypto') as typeof import('node:crypto');
+            const accept = crypto
+              .createHash('sha1')
+              .update(`${keyMatch?.[1] ?? ''}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+              .digest('base64');
+            socket.write(
+              'HTTP/1.1 101 Switching Protocols\r\n' +
+                'Upgrade: websocket\r\n' +
+                'Connection: Upgrade\r\n' +
+                `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
+            );
+          });
+        });
+        await new Promise<void>((resolve, reject) => {
+          server.on('error', reject);
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        const addr = server.address();
+        const port = typeof addr === 'object' && addr ? addr.port : 0;
+        const h = handlersFor(keylogPath);
+        try {
+          const open = body(
+            await h.handleWebSocketOpenTool({
+              url: `ws://127.0.0.1:${port}/bench`,
+              timeoutMs: 3000,
+            }),
+          );
+          const sessionId = String(open.sessionId ?? '');
+          return await h.handleWebSocketCloseTool({ sessionId, closeCode: 1000, force: true });
+        } finally {
+          await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true || b.closed !== true)
+          return `expected ok=true closed=true, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
   ],
 };

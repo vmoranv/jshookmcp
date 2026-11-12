@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **375 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **379 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -246,14 +246,15 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** [MCP official conformance](https://github.com/modelcontextprotocol/conformance) `tasks-lifecycle` scenario (SEP-1686) — spawn server + run conformance runner in CI. 📋
 - **[自制] ✅** `tasks-lifecycle` suite: working→completed lifecycle transition, terminal cancellation guard, poll-until-terminal result retrieval, lastUpdatedAt sorted listing with status filter.
 
-## tls-inspector (29 tools) — ✅ suite `tls-inspector`
+## tls-inspector (29 tools) — ✅ suite `tls-inspector` (**29/29 tools measured — 100%!**)
 
 - **[外部] ✅** IANA TLS Cipher Suite Registry (official ids 0x1301/0x1302/0x1303/0xC02F + AEAD metadata).
 - **[外部] ✅** Mozilla NSS SSLKEYLOGFILE format (CLIENT_RANDOM lines) — parse + summary.
 - **[外部] ✅** REAL X.509 minted by system OpenSSL, wrapped in the RFC 8446 §4.4.2 Certificate-message wire layout — parse roundtrip incl. SHA-256 fingerprint + subject.
 - **[外部] ✅** (2026-11-11) `tls_parse_handshake`: RFC 8446 ClientHello record parsing, SNI `serverName` extraction, and handshake metadata.
 - **[自制] ✅** (2026-11-11, via `tls-inspector-full`): `tls_keylog_enable` (SSLKEYLOGFILE environment + browser launch flag), `tcp_open`, `tcp_write`, `tcp_read_until`, `tcp_close` (loopback TCP echo session lifecycle).
-- **[自制] ✅** (2026-11-11 Wave 2, +5 tools): `tls_probe_endpoint`, `tls_open`, `tls_write`, `tls_read_until`, `tls_close` (loopback OpenSSL TLS server with self-signed cert echo roundtrip). (25/29 tools measured — only `websocket_*` 4 tools remain!).
+- **[自制] ✅** (2026-11-11 Wave 2, +5 tools): `tls_probe_endpoint`, `tls_open`, `tls_write`, `tls_read_until`, `tls_close` (loopback OpenSSL TLS server with self-signed cert echo roundtrip).
+- **[自制] ✅** (2026-11-12 Wave 3, +4 tools → **29/29 complete**): `websocket_open` (RFC 6455 HTTP-upgrade handshake + Sec-WebSocket-Accept), `websocket_send_frame` (masked text frame), `websocket_read_frame` (server-unmasked echo), `websocket_close` (close frame code 1000).
 - **[外部]** [FoxIO-LLC/ja4](https://github.com/FoxIO-LLC/ja4) pcap test-cases for full fingerprint parity. 📋
 
 ## trace (10 tools) — ✅ suite `trace-query` (10/10 tools measured)
