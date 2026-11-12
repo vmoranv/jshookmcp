@@ -29,7 +29,7 @@ Full-stack HTTP/HTTPS MITM proxy domain for system-level traffic interception, m
 | `proxy_export_ca` | Read the proxy CA certificate. |
 | `proxy_add_rule` | Add an interception rule: forward, mock_response, redirect, or block. |
 | `proxy_remove_rule` | Remove a single proxy interception rule by endpointId. Returns the removed rule record. |
-| `proxy_list_rules` | List active proxy interception rules tracked by this handler. |
+| `proxy_list_rules` | List the active proxy interception rules (URL pattern, action, stage, endpoint id) currently registered on the mock server. |
 | `proxy_clear_rules` | Clear active proxy interception rules while keeping the proxy running. |
 | `proxy_get_requests` | Read captured proxy request/response metadata, body previews, and timing. |
 | `proxy_clear_logs` | Clear all captured proxy request/response logs. |

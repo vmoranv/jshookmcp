@@ -60,6 +60,6 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `network_extract_auth` | Extract authentication data from captured network requests. |
 | `network_export_har` | Export captured network traffic as HAR. |
 | `network_replay_request` | Replay a captured network request with optional changes. |
-| `network_intercept` | Manage network interception rules. |
+| `network_intercept` | Intercept, block, or mock network requests and responses: add URL-pattern rules (glob or regex) that abort, fulfill with a custom status/body, or continue at the request or response stage. List and disable active rules with the same tool. |
 | `network_tls_fingerprint` | Compute TLS/HTTP fingerprints for bot detection. compute_tls/compute_http build fingerprints from user-supplied lists; parse_client_hello parses a raw ClientHello record (hex) and emits JA3 + JA4 from the real wire bytes; analyze_request links a captured requestId. |
 | `network_bot_detect_analyze` | Analyze captured requests for bot-detection signals. Optionally supply a JA3/JA4 TLS fingerprint (from network_tls_fingerprint parse_client_hello) plus user-defined knownBad hash lists; matching hashes raise the bot score. Ships NO hardcoded feature library — the caller decides which hashes are bot-like. |

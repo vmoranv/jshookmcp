@@ -92,7 +92,15 @@ Types & params:
       .required('action')
       .idempotent(),
   ),
-  tool('get_call_stack', (t) => t.desc('Get the current call stack.').query()),
+  tool('get_call_stack', (t) =>
+    t
+      .desc(
+        'Capture the paused call stack: one entry per call frame with function name, URL, ' +
+          'and line/column location, plus the reason for the pause (breakpoint, debugger ' +
+          'statement, exception, DOM event).',
+      )
+      .query(),
+  ),
   tool('debugger_evaluate', (t) =>
     t
       .desc(

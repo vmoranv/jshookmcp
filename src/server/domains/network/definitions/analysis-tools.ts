@@ -95,7 +95,11 @@ export const analysisTools: Tool[] = [
   ),
   tool('network_intercept', (t) =>
     t
-      .desc('Manage network interception rules.')
+      .desc(
+        'Intercept, block, or mock network requests and responses: add URL-pattern rules ' +
+          '(glob or regex) that abort, fulfill with a custom status/body, or continue at the ' +
+          'request or response stage. List and disable active rules with the same tool.',
+      )
       .enum('action', ['add', 'list', 'disable'], 'Intercept operation')
       .string('urlPattern', 'URL pattern to match')
       .enum('urlPatternType', ['glob', 'regex'], 'How to interpret urlPattern', { default: 'glob' })

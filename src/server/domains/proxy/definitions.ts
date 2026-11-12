@@ -197,7 +197,12 @@ export const PROXY_TOOLS: Tool[] = [
       .required('endpointId'),
   ),
   tool('proxy_list_rules', (t) =>
-    t.desc('List active proxy interception rules tracked by this handler.').query(),
+    t
+      .desc(
+        'List the active proxy interception rules (URL pattern, action, stage, endpoint id) ' +
+          'currently registered on the mock server.',
+      )
+      .query(),
   ),
   tool('proxy_clear_rules', (t) =>
     t.desc('Clear active proxy interception rules while keeping the proxy running.').resettable(),

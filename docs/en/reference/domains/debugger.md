@@ -31,7 +31,7 @@ CDP-based debugging domain covering breakpoints, stepping, call stacks, watches,
 | `debugger_run_to_location` | Run execution until a source location by setting a temporary code breakpoint, resuming, waiting for pause, and removing the breakpoint. |
 | `debugger_step` | Step execution: into (enter next call), over (skip next call), out (exit current function). |
 | `breakpoint` | Manage breakpoints: code (line/script), function-name, XHR (URL pattern), event listener, event category, and exception breakpoints. |
-| `get_call_stack` | Get the current call stack. |
+| `get_call_stack` | Capture the paused call stack: one entry per call frame with function name, URL, and line/column location, plus the reason for the pause (breakpoint, debugger statement, exception, DOM event). |
 | `debugger_disassemble` | Disassemble V8 bytecode / instructions at the current paused location (or a given scriptId). Resolves the target scriptId automatically from the current paused call frame — useful when paused inside obfuscated/VM code to decide whether to step in. Native bytecode requires V8 natives syntax; set includeSourceFallback to derive a pseudo-bytecode from source when native extraction is unavailable. |
 | `debugger_evaluate` | Evaluate a JavaScript expression. context="frame" evaluates in the current call frame (requires paused state); context="global" evaluates in the global context (no pause required). |
 | `debugger_wait_for_paused` | Wait for debugger pause after setting breakpoints. |

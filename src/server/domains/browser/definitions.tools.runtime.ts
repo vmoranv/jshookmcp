@@ -146,7 +146,12 @@ export const browserRuntimeTools: Tool[] = [
   ),
   tool('browser_attach', (t) =>
     t
-      .desc('Connect to a running browser.')
+      .desc(
+        'Attach to an already-running browser over the Chrome DevTools Protocol (CDP) — ' +
+          'via remote debugging URL, WebSocket endpoint, or auto-detected local Chrome debug port. ' +
+          'Use instead of browser_launch when the target browser was started outside this server ' +
+          '(e.g. a user profile with logged-in sessions or an anti-fingerprint build).',
+      )
       .string('browserURL', 'Debug endpoint URL')
       .string('wsEndpoint', 'WebSocket URL')
       .boolean('autoConnect', 'Auto-detect local Chrome debug WebSocket', { default: false })

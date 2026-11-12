@@ -27,7 +27,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | --- | --- |
 | `get_detailed_data` | Retrieve large data by detailId. Supports slicing to prevent context window explosion. |
 | `get_offloaded_data` | Retrieve the original bytes of a field that was offloaded to disk (see the `_offload.path` in a placeholder). Returns base64 by default for binary blobs (e.g. decoded data: URIs); use encoding="utf8" for text. |
-| `browser_attach` | Connect to a running browser. |
+| `browser_attach` | Attach to an already-running browser over the Chrome DevTools Protocol (CDP) — via remote debugging URL, WebSocket endpoint, or auto-detected local Chrome debug port. Use instead of browser_launch when the target browser was started outside this server (e.g. a user profile with logged-in sessions or an anti-fingerprint build). |
 | `browser_list_tabs` | List open browser tabs with URLs and titles. |
 | `browser_list_cdp_targets` | List CDP targets with optional type/URL/title filters. |
 | `browser_select_tab` | Switch active tab by index, URL pattern, or title pattern. |

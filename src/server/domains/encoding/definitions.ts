@@ -4,7 +4,10 @@ import { tool } from '@server/registry/tool-builder';
 export const encodingTools: Tool[] = [
   tool('binary_detect_format', (t) =>
     t
-      .desc('Detect binary payload format and encoding signals.')
+      .desc(
+        'Detect binary payload format and encoding signals: container magic bytes ' +
+          '(PE/Mach-O/ELF/ZIP/APK/DEX), text encoding, entropy, and base64/hex shape.',
+      )
       .enum('source', ['base64', 'hex', 'file', 'raw'], 'How to interpret input payload')
       .string('data', 'Input payload for base64/hex/raw sources')
       .string('filePath', 'File path when source=file')
