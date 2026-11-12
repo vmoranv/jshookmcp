@@ -399,3 +399,9 @@ Verified by inspection, not assumption:
 - **`vector_fail = 0`** — nothing to fix.
 
 So `debt = 5 + 51 + 0 = 56` is a **floor, not a plateau**: the two remaining components are blocked on a product decision and on the eval design respectively. Further runs would only manufacture cases that assert fixture artifacts, which the harness rules forbid.
+
+### Run 77: real Win32 engines wired — 736/736 measured (100%) — debt 56→51 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: user chose **Route A**. New `tests/benchmarks/suites/memory.win32.ts` builds `MemoryScanHandlers` with the REAL `hardwareBreakpointEngine`, `Speedhack` and a fresh `MemoryController` (mirroring `manifest.ts`'s `IS_WIN32` branch) instead of nulls, and exports `win32EnginesAvailable()` so hosts without koffi **skip honestly** (repo rule: FFI modules get env-gated runtime tests, not mocks). Nine engine-independent contracts: empty breakpoint registry reporting its `mode`, `pid`/`breakpointId` validation, freeze export over an empty controller, negative-pid refusal, undo/redo on empty stacks (`undone:false` / `redone:false`, `entry:null`), speedhack pid validation, and `find_accesses` hex-address validation.
+- Result: debt 56→**51** (-5, **-565 cumulative**), **`unmeasured = 0` — all 736 tools now have at least one vector case (100%)**, vectors_total **736**, vector_fail 0, rejection_pct 100%, checks.sh green. memory 75/75.
+- Insight: wiring the engines flipped two of the five from "untestable" to "richly testable" — with a real engine the empty-registry/empty-stack contracts become meaningful (before, the null engine short-circuited into a false platform refusal that asserted a *fixture* artifact). `memory_freeze_export` also turned out to validate the pid *after* `listFreezes`, so the negative-pid case exercises the validation that does exist. The remaining `debt = 51` is now **purely** `low_mrr`, which is structurally frozen (see the "structural floor" note).

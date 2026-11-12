@@ -291,16 +291,14 @@ export function resolveSearchQualityToolDomain(name: string): string | null {
 
 const TOOLS: readonly Tool[] = [
   // browser
-  makeTool('page_navigate', 'Navigate to a URL in the browser tab'),
-  makeTool('page_click', 'Click on a DOM element'),
-  makeTool('page_screenshot', 'Take a screenshot of the current page'),
-  makeTool('page_evaluate', 'Evaluate JavaScript in the page context'),
-  makeTool('dom_query', 'Query DOM elements using CSS selectors'),
-  makeTool('tab_workflow', 'Manage browser tabs: create, switch, close'),
-  makeTool('captcha_detect', 'Detect CAPTCHA challenges on the page'),
-  makeTool('stealth_inject', 'Inject stealth scripts to avoid detection'),
-  makeTool('browser_launch', 'Launch a new browser instance for automation'),
-  makeTool('browser_attach', 'Attach to an existing browser page via CDP'),
+  makeTool('page_navigate', 'Navigate the page to a URL with wait and network options.'),
+  makeTool('page_click', 'Click a page element by CSS selector.'),
+  makeTool('page_screenshot', 'Capture a page or element screenshot.'),
+  makeTool('page_evaluate', 'Execute JavaScript in page context.'),
+  makeTool('captcha_detect', 'Detect CAPTCHAs on the current page.'),
+  makeTool('stealth_inject', 'Inject anti-detection scripts to reduce bot fingerprint exposure.'),
+  makeTool('browser_launch', 'Launch Chromium/Camoufox or connect to a running browser.'),
+  makeTool('browser_attach', 'Connect to a running browser.'),
   makeTool(
     'console_inject_fetch_interceptor',
     'Inject a Fetch API interceptor to capture requests',
@@ -310,104 +308,177 @@ const TOOLS: readonly Tool[] = [
     'Inject an XMLHttpRequest interceptor to capture calls',
   ),
   // network
-  makeTool('network_enable', 'Enable network request monitoring and capture'),
-  makeTool('network_monitor', 'Start monitoring network traffic and intercept requests'),
-  makeTool('network_get_requests', 'List captured network requests'),
-  makeTool('network_extract_auth', 'Extract authentication tokens from network traffic'),
-  makeTool('network_export_har', 'Export network capture as HAR file'),
-  makeTool('network_replay_request', 'Replay a previously captured network request'),
+  makeTool('network_enable', 'Enable network request monitoring.'),
+  makeTool('network_monitor', 'Manage network request monitoring.'),
+  makeTool('network_get_requests', 'Get captured network requests.'),
+  makeTool('network_extract_auth', 'Extract authentication data from captured network requests.'),
+  makeTool('network_export_har', 'Export captured network traffic as HAR.'),
+  makeTool('network_replay_request', 'Replay a captured network request with optional changes.'),
   // network interference: real-registry tools that crowd generic queries like
   // "capture"/"sniff traffic" — without these the fixture under-models the
   // ranking difficulty present in the 636-tool catalog.
-  makeTool('network_intercept', 'Intercept and modify network requests in flight'),
-  makeTool('http_plain_request', 'Send a raw plain HTTP request over TCP'),
-  makeTool('http_request_build', 'Build a raw HTTP request payload'),
-  makeTool('http2_probe', 'Probe an HTTP/2 endpoint'),
-  makeTool('ws_monitor', 'Enable or disable WebSocket frame monitoring'),
-  makeTool('ws_get_frames', 'Get captured WebSocket frames'),
-  makeTool('ws_export_capture', 'Export captured WebSocket frames as JSON or NDJSON'),
-  makeTool('sse_monitor_enable', 'Enable Server-Sent Events monitoring'),
-  makeTool('sse_export_capture', 'Export captured SSE events as JSON or NDJSON'),
-  makeTool('webrtc_export_capture', 'Export captured WebRTC data-channel messages'),
-  makeTool('fetch_stream_export_capture', 'Export captured fetch-based stream events'),
+  makeTool('network_intercept', 'Manage network interception rules.'),
+  makeTool('http_plain_request', 'Send a raw HTTP request over plain TCP.'),
+  makeTool('http_request_build', 'Build a raw HTTP/1.x request payload.'),
+  makeTool('http2_probe', 'Probe an HTTP/2 endpoint.'),
+  makeTool('ws_monitor', 'Enable or disable WebSocket frame capture.'),
+  makeTool('ws_get_frames', 'Get captured WebSocket frames with pagination and payload filter.'),
+  makeTool(
+    'ws_export_capture',
+    'Export captured WebSocket frames to artifacts/captures as JSON or NDJSON.',
+  ),
+  makeTool('sse_monitor_enable', 'Enable SSE monitoring by injecting EventSource interceptor.'),
+  makeTool(
+    'sse_export_capture',
+    'Export captured SSE events to artifacts/captures as JSON or NDJSON.',
+  ),
+  makeTool(
+    'webrtc_export_capture',
+    'Export messages captured by the WebRTC data-channel monitor to artifacts/captures as JSON or NDJSON.',
+  ),
+  makeTool(
+    'fetch_stream_export_capture',
+    'Export events captured by the fetch()-based stream monitor to artifacts/captures as JSON or NDJSON.',
+  ),
   // debugger
-  makeTool('debug_pause', 'Pause JavaScript execution'),
-  makeTool('debug_resume', 'Resume paused JavaScript execution'),
-  makeTool('breakpoint', 'Set, remove, or list breakpoints'),
-  makeTool('watch', 'Add, remove, list, evaluate, or clear watch expressions'),
+  makeTool(
+    'breakpoint',
+    'Manage breakpoints: code (line/script), function-name, XHR (URL pattern), event listener, event category, and exception breakpoints.\n\nActions:\n- set: Create a breakpoint. Type determines required params.\n- remove: Remove a breakpoint by ID.\n- list: List active breakpoints of the given type.\n\nTypes & params:\n- code: lineNumber (required), scriptId?, columnNumber?, condition?, logMessage? (logpoint: logs without pausing)\n- function: functionName (required for set) — resolves via globalThis lookup and breaks whenever that function is called\n- xhr: urlPattern (required for set)\n- event: eventName (required for set), targetName?\n- event_category: category (required for set)\n- exception: state (required for set)',
+  ),
+  makeTool(
+    'watch',
+    'Manage watch expressions for monitoring variable values during debugging.\n\nActions:\n- add: Add a watch expression (requires expression)\n- remove: Remove by watchId\n- list: List all watches\n- evaluate_all: Evaluate all enabled watches (optional callFrameId)\n- clear_all: Clear all watches',
+  ),
   // analysis
-  makeTool('search_in_scripts', 'Search for patterns in loaded scripts'),
-  makeTool('collect_code', 'Collect JavaScript source code from the page'),
-  makeTool('detect_crypto', 'Detect cryptographic operations in scripts'),
-  makeTool('manage_hooks', 'Create and manage function hooks and interceptors'),
-  makeTool('extract_function_tree', 'Extract call tree for a function'),
-  makeTool('deobfuscate', 'Deobfuscate JavaScript code'),
-  makeTool('detect_obfuscation', 'Detect code obfuscation techniques'),
+  makeTool('search_in_scripts', 'Search collected scripts by keyword or regex pattern.'),
+  makeTool('collect_code', 'Collect JavaScript from a target website with configurable strategy.'),
+  makeTool('detect_crypto', 'Detect cryptographic algorithms and usage patterns in source code.'),
+  makeTool('manage_hooks', 'Create, inspect, and clear JavaScript runtime hooks.'),
+  makeTool(
+    'extract_function_tree',
+    'Extract a function and its dependency tree from collected scripts.',
+  ),
+  makeTool('deobfuscate', 'Run webcrack-powered JavaScript deobfuscation with bundle unpacking.'),
+  makeTool('detect_obfuscation', 'Detect obfuscation techniques in JavaScript source.'),
   // transform
-  makeTool('webcrack_unpack', 'Unpack webcrack-bundled JavaScript'),
-  makeTool('ast_transform_apply', 'Apply AST transformations to code'),
+  makeTool('webcrack_unpack', 'Run webcrack bundle unpacking and return extracted module graph.'),
+  makeTool('ast_transform_apply', 'Apply transforms to input code or a live page scriptId.'),
   // sourcemap
-  makeTool('js_bundle_search', 'Search for strings in JS bundles'),
-  makeTool('webpack_enumerate', 'Enumerate webpack modules in a bundle'),
-  makeTool('sourcemap_fetch_and_parse', 'Extract and parse source maps'),
+  makeTool(
+    'js_bundle_search',
+    'Fetch a remote JS bundle and search it with named regex patterns, with caching and noise filtering.',
+  ),
+  makeTool(
+    'webpack_enumerate',
+    'Enumerate webpack modules in current page and search for keywords.',
+  ),
+  makeTool(
+    'sourcemap_fetch_and_parse',
+    'Fetch a source map from URL and parse to original sources.',
+  ),
   // hooks
-  makeTool('hook_function', 'Hook a JavaScript function with before/after callbacks'),
   // memory
-  makeTool('memory_scan', 'Scan process memory for patterns'),
-  makeTool('heap_snapshot', 'Capture a heap snapshot'),
+  makeTool(
+    'memory_scan',
+    'Scan process memory for a pattern or value. Requires elevated privileges. If pid is omitted, the active browser renderer PID is auto-discovered from the current browser session.',
+  ),
   // memory interference: tools sharing the "capture/export" suffix that crowd
   // generic "capture" queries in the real registry.
-  makeTool('memory_dump', 'Dump process memory region to a binary buffer'),
-  makeTool('memory_snapshot', 'Capture a memory snapshot of the target process'),
+  makeTool(
+    'memory_dump',
+    'Dump memory region as hex with ASCII column. Outputs a formatted hex dump similar to xxd.',
+  ),
   // evidence
-  makeTool('evidence_query', 'Query evidence graph by URL, function name, or script ID'),
-  makeTool('evidence_export', 'Export evidence graph as JSON or Markdown'),
+  makeTool(
+    'evidence_query',
+    'Query reverse evidence graph by URL, function name, or script ID to find associated nodes.',
+  ),
+  makeTool(
+    'evidence_export',
+    'Export the reverse evidence graph as JSON snapshot or Markdown report.',
+  ),
   // workflow
-  makeTool('run_extension_workflow', 'Run an installed extension workflow'),
-  makeTool('list_extension_workflows', 'List available extension workflows'),
-  makeTool('api_probe_batch', 'Probe multiple API endpoints in a single workflow burst'),
+  makeTool(
+    'run_extension_workflow',
+    'Execute an extension workflow by workflowId with optional config and timeout overrides.',
+  ),
+  makeTool(
+    'list_extension_workflows',
+    'List runtime-loaded extension workflows from plugins/ or workflows/ directories.',
+  ),
+  makeTool(
+    'api_probe_batch',
+    'Batch-probe API endpoints in browser context with auto token injection and HTML skip.',
+  ),
   // v8-inspector
-  makeTool('v8_heap_snapshot_capture', 'Capture V8 heap snapshot via CDP'),
-  makeTool('v8_heap_snapshot_analyze', 'Analyze V8 heap snapshot for leaks'),
-  makeTool('v8_bytecode_extract', 'Attempt V8 bytecode extraction for a script'),
-  makeTool('v8_turbofan_inspect', 'Inspect JIT/TurboFan status and optimization'),
+  makeTool(
+    'v8_heap_snapshot_capture',
+    'Capture a V8 heap snapshot for offline analysis. The snapshot is persisted to artifacts/heap-snapshots/ (data + sidecar meta) so it survives a server restart; set persist=false to keep it in-memory only.',
+  ),
+  makeTool(
+    'v8_heap_snapshot_analyze',
+    'Analyze a heap snapshot: class histogram (object count/sizes by constructor), statistics (total objects, detached DOM nodes), optional dominator tree, and leak detection.',
+  ),
+  makeTool(
+    'v8_bytecode_extract',
+    'Extract V8 bytecode for a script by scriptId, with source fallback.',
+  ),
+  makeTool(
+    'v8_turbofan_inspect',
+    'Inspect JIT/TurboFan compilation state for functions in a script. Reports optimization tier (interpreted/maglev/turbofan) with V8 optimization status codes. Supports actions: inspect (default), optimize (%OptimizeFunctionOnNextCall), deoptimize (%DeoptimizeFunction). Requires V8 natives syntax; falls back to heuristic JIT inspection when natives is unavailable.',
+  ),
   // tls-inspector
-  makeTool('tls_keylog_enable', 'Enable TLS key logging'),
-  makeTool('tls_cert_extract', 'Extract TLS certificates from connections'),
-  makeTool('tls_parse_handshake', 'Parse TLS handshake messages'),
+  makeTool('tls_keylog_enable', 'Enable SSLKEYLOGFILE output for TLS library clients.'),
   // skia-capture
-  makeTool('skia_detect_renderer', 'Detect Skia GPU backend and renderer'),
-  makeTool('skia_extract_scene', 'Extract Skia scene tree from page'),
+  makeTool(
+    'skia_detect_renderer',
+    'Detect the active Skia renderer backend from the current page context.',
+  ),
+  makeTool('skia_extract_scene', 'Extract a lightweight Skia scene tree from the selected canvas.'),
   // binary-instrument
-  makeTool('frida_attach', 'Attach Frida to a target process'),
-  makeTool('ghidra_analyze', 'Analyze binary with Ghidra'),
-  makeTool('jadx_decompile', 'Decompile APK using JADX'),
-  makeTool('generate_hooks', 'Generate Frida hook scripts automatically'),
+  makeTool(
+    'frida_attach',
+    'Attach Frida to a target and open a session. Defaults to the local device; pass device+host for USB/remote devices. On Android the frida process name is the App Label (not the package name) — use frida_list_processes and attach by pid to avoid name mismatches.',
+  ),
+  makeTool('ghidra_analyze', 'Analyze a binary and return metadata.'),
+  makeTool('jadx_decompile', 'Decompile an APK class or method with JADX CLI.'),
+  makeTool('generate_hooks', 'Generate a Frida interceptor script for a list of symbols.'),
   // adb-bridge
-  makeTool('adb_devices', 'List connected Android devices'),
-  makeTool('adb_webview_debug', 'Enable WebView debugging on Android device'),
   // mojo-ipc
-  makeTool('mojo_monitor', 'Start or stop monitoring Chromium Mojo IPC messages'),
-  makeTool('mojo_decode_message', 'Decode a Mojo IPC message'),
+  makeTool(
+    'mojo_monitor',
+    'Start or stop Mojo IPC monitoring for the active Chromium-based target.',
+  ),
+  makeTool('mojo_decode_message', 'Decode a Mojo IPC hex payload into a structured field map.'),
   // syscall-hook
-  makeTool('syscall_start_monitor', 'Start monitoring system calls via ETW/strace'),
-  makeTool('syscall_capture_events', 'Capture and filter syscall events'),
+  makeTool('syscall_start_monitor', 'Start syscall monitoring.'),
+  makeTool(
+    'syscall_capture_events',
+    'Capture syscall events from the active or last monitoring session.',
+  ),
   // protocol-analysis
-  makeTool('protocol_define_pattern', 'Define a protocol message pattern'),
-  makeTool('packet_decode_field', 'Decode fields from a binary packet'),
   // extension-registry
-  makeTool('install_extension', 'Install an extension from registry'),
-  makeTool('extension_list_installed', 'List installed extensions'),
-  makeTool('webhook', 'Create and manage webhook endpoints'),
+  makeTool('install_extension', 'Install an extension from the remote registry.'),
+  makeTool('extension_list_installed', 'List installed extensions from the local registry.'),
+  makeTool(
+    'webhook',
+    'Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands.',
+  ),
   // antidebug
-  makeTool('antidebug_bypass', 'Bypass common anti-debugging protections'),
+  makeTool(
+    'antidebug_bypass',
+    'Bypass one or more anti-debug protection types. Specify types to apply; omit or use ["all"] to apply all bypasses. Types: all, debugger_statement, timing, stack_trace, console_detect.',
+  ),
   // encoding
-  makeTool('decode_base64', 'Decode base64 encoded strings'),
-  makeTool('binary_detect_format', 'Detect binary format, container, and encoding magic bytes'),
-  makeTool('binary_decode', 'Decode binary payload from base64, hex, or raw bytes'),
-  makeTool('binary_encode', 'Encode data into a binary representation'),
+  makeTool(
+    'binary_decode',
+    'Decode binary payloads, transport encodings, and compressed blobs into hex, utf8, or json output.',
+  ),
+  makeTool(
+    'binary_encode',
+    'Encode utf8/hex/json input into transport encodings or compressed base64 blobs.',
+  ),
   // macro
-  makeTool('macro_record', 'Record a macro sequence of tool calls'),
   // --- generated: case-referenced real registry tools (P1 fixture expansion) ---
   makeTool('console_inject_fetch_interceptor', 'Inject a fetch interceptor.'),
   makeTool('debugger_pause', 'Pause execution at the next statement.'),
@@ -455,7 +526,10 @@ const TOOLS: readonly Tool[] = [
     'frida_enumerate_functions',
     'Enumerate exported functions for a specific module in a Frida session.',
   ),
-  makeTool('ghidra_decompile', 'Decompile a function using Ghidra.'),
+  makeTool(
+    'ghidra_decompile',
+    'Decompile a single named function via a stateless Ghidra headless run (no bridge server or plugin needed; ~5-10s per call). Run ghidra_analyze first to list function names — the name must match exactly.',
+  ),
   makeTool('ida_decompile', 'Decompile a function using IDA Pro.'),
   makeTool('adb_webview_list', 'List debuggable WebView targets connected via ADB.'),
   makeTool(
@@ -619,7 +693,10 @@ const TOOLS: readonly Tool[] = [
     'session_progress_record',
     'Record progress markers and evidence in the active session.',
   ),
-  makeTool('tasks_get', 'Get status and details of background MCP tasks.'),
+  makeTool(
+    'tasks_get',
+    'Get the current state of a background task (MCP 2.0 Tasks protocol). Returns status (working/completed/failed/cancelled), progress and message.',
+  ),
   makeTool(
     'create_task_handoff',
     'Create a handoff packet to transfer task context across agent sessions.',
@@ -636,7 +713,7 @@ const TOOLS: readonly Tool[] = [
     'process_find',
     'Search for running processes by name pattern with PID and executable path.',
   ),
-  makeTool('query_trace_sql', 'Run SQLite queries against recorded execution traces.'),
+  makeTool('query_trace_sql', 'Execute a read-only SQL query against a trace database.'),
 ];
 
 // ── evaluation cases ──
