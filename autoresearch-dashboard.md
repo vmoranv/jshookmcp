@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 63 / 200 | **Kept:** 56 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=191 (run #63, 8be082c) | **Baseline:** debt=616 (run #1) — debtΔ -425
+**Runs:** 64 / 200 | **Kept:** 57 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=181 (run #64, 562ae96) | **Baseline:** debt=616 (run #1) — debtΔ -436
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -69,4 +69,5 @@
 | 60 | 1a27849 | 290 | 60 | keep | draft | process contract batch (+20 cases) + REAL BUG #8 (spawn ENOENT crashed the server) — process 26/29 |
 | 61 | 797bebf | 230 | 18 | keep | draft | memory contract batch (+53 cases via real manifest bindings) — memory 72/75 |
 | 62 | eb72573 | 212 | 21 | keep | draft | debugger contract batch (+21 cases): stub-manager admissions/dispatch + antidebug detect/bypass — debugger 21/21 |
-| 63 | 8be082c | 191 | — | keep | draft | adb-bridge contract batch (+26 cases): arg-rejection table + unreachable-device honesty — adb-bridge 26/26 |
+| 63 | 8be082c | 191 | 10 | keep | draft | adb-bridge contract batch (+26 cases): arg-rejection table + unreachable-device honesty — adb-bridge 26/26 |
+| 64 | 562ae96 | 181 | — | keep | draft | network contract batch (+14 cases): dispatch/admission + loopback echo/traceroute honesty — network 38/38 |

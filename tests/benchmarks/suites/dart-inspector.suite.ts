@@ -66,6 +66,113 @@ for (let i = 0; i < 8; i++) {
 const poolSnapFile = join(tmp, 'pool-known.bin');
 writeFileSync(poolSnapFile, poolBlob);
 
+interface DartSessionSpec {
+  readonly tool: string;
+  readonly slug: string;
+  readonly method: string;
+  readonly expect: RegExp;
+  readonly note: string;
+  readonly args?: Record<string, unknown>;
+}
+
+/**
+ * Session-bound tools and the admission they must perform. One row per tool so
+ * a new session tool is one line; the expectation is the *named* prerequisite,
+ * never a generic failure.
+ */
+const DART_SESSION_TABLE: readonly DartSessionSpec[] = [
+  {
+    tool: 'dart_create_session',
+    slug: 'requires-apk-or-libapp',
+    method: 'handleDartCreateSession',
+    expect: /apkPath|libappPath/i,
+    note: 'creating a session needs an APK or a libapp.so path',
+  },
+  {
+    tool: 'dart_load_snapshot',
+    slug: 'requires-session-or-path',
+    method: 'handleDartLoadSnapshot',
+    expect: /sessionId|apkPath|libappPath/i,
+    note: 'loading needs a sessionId or a snapshot path',
+  },
+  {
+    tool: 'dart_list_functions',
+    slug: 'requires-session-or-path',
+    method: 'handleDartListFunctions',
+    expect: /sessionId|apkPath|libappPath/i,
+    note: 'function listing needs a loaded session',
+  },
+  {
+    tool: 'dart_pc_descriptors',
+    slug: 'requires-session-or-path',
+    method: 'handleDartPcDescriptors',
+    expect: /sessionId|apkPath|libappPath/i,
+    note: 'PC descriptor parsing needs a loaded session',
+  },
+  {
+    tool: 'dart_call_graph',
+    slug: 'requires-session-or-path',
+    method: 'handleDartCallGraph',
+    expect: /sessionId|apkPath|libappPath/i,
+    note: 'call-graph construction needs a loaded session',
+  },
+  {
+    tool: 'dart_call_function',
+    slug: 'requires-session-or-path',
+    method: 'handleDartCallFunction',
+    expect: /sessionId|apkPath|libappPath/i,
+    note: 'executing a Dart function needs a loaded session',
+  },
+  {
+    tool: 'dart_trace_execution',
+    slug: 'requires-session-or-path',
+    method: 'handleDartTraceExecution',
+    expect: /sessionId|apkPath|libappPath/i,
+    note: 'execution tracing needs a loaded session',
+  },
+  {
+    tool: 'dart_inspect_object_pool',
+    slug: 'requires-poolAddress',
+    method: 'handleDartInspectObjectPool',
+    expect: /poolAddress/i,
+    note: 'object-pool inspection needs the pool address',
+  },
+  {
+    tool: 'dart_destroy_session',
+    slug: 'requires-sessionId',
+    method: 'handleDartDestroySession',
+    expect: /sessionId/i,
+    note: 'destroying a session needs its id — never a blanket teardown',
+  },
+];
+
+function dartSessionCases() {
+  return DART_SESSION_TABLE.map((spec) => ({
+    name: `${spec.tool}/refuses-${spec.slug}`,
+    tool: spec.tool,
+    origin: 'homemade' as const,
+    reference: `admission contract: ${spec.note}; the missing input is named before any binary parsing`,
+    run: async () => {
+      const fn = (handlers as unknown as Record<string, (a: unknown) => Promise<unknown>>)[
+        spec.method
+      ];
+      if (typeof fn !== 'function') return `__no_handler__:${spec.method}`;
+      try {
+        return JSON.stringify(body(await fn.call(handlers, spec.args ?? {})));
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+    },
+    validate: (v: unknown) => {
+      const serialized = String(v);
+      if (serialized.startsWith('__no_handler__')) return serialized;
+      return spec.expect.test(serialized)
+        ? true
+        : `admission does not name ${spec.expect}: ${serialized.slice(0, 200)}`;
+    },
+  }));
+}
+
 export const dartSuite: BenchSuite = {
   name: 'dart-inspector',
   domain: 'dart-inspector',
@@ -204,5 +311,12 @@ export const dartSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Session-tool contract batch 2026-11-12 (autoresearch) ──────────────
+    // The 9 session-bound tools all need a loaded snapshot session (or an
+    // APK/libapp path to create one). The portable contract: the admission
+    // check names what is missing (sessionId | apkPath/libappPath) before any
+    // binary parsing, and the destroy path demands a concrete sessionId.
+    ...dartSessionCases(),
   ],
 };
