@@ -6,9 +6,15 @@
  *  - process_find: pattern filtering against current process list (at least current pid found)
  */
 import { ProcessToolHandlers } from '@server/domains/process/handlers.impl';
-import { expectSuccess, type BenchSuite } from '../harness';
+import { body, expectSuccess, type BenchSuite } from '../harness';
 
 const handlers = new ProcessToolHandlers();
+
+/**
+ * A PID far outside the range any live process can occupy, so the "target
+ * unreachable" contracts below can never collide with a real process.
+ */
+const MISSING_PID = 2_147_480_000;
 
 export const processSuite: BenchSuite = {
   name: 'process-static',
@@ -119,6 +125,346 @@ export const processSuite: BenchSuite = {
         const b = expectSuccess(v);
         if (typeof b.count !== 'number' || !Array.isArray(b.entries))
           return `expected count and entries array, got ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+
+    // ── Contract batch 2026-11-12 (autoresearch) ────────────────────────────
+    // Every tool below operates on a live process through FFI or a debug
+    // endpoint. The portable contract on any machine: an unreachable target is
+    // refused explicitly (named error, no fabricated data), and arguments are
+    // validated by name before any native call. MISSING_PID is outside any real
+    // PID range, so it can never collide with a running process.
+    {
+      name: 'process_kill/missing-pid-reports-false',
+      tool: 'process_kill',
+      origin: 'homemade',
+      reference:
+        'outcome contract: killing a non-existent PID must report success=false with "Failed to kill process" (regression guard for the -ErrorAction SilentlyContinue false-success bug)',
+      run: () => handlers.handleProcessKillTool({ pid: MISSING_PID }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (b['pid'] !== MISSING_PID) return `pid not echoed: ${JSON.stringify(b)}`;
+        if (!/Failed to kill process/.test(String(b['message'] ?? '')))
+          return `message should report the failure: ${String(b['message'])}`;
+        return true;
+      },
+    },
+    {
+      name: 'process_resume/missing-pid-reports-resumed-false',
+      tool: 'process_resume',
+      origin: 'homemade',
+      reference:
+        'outcome contract: resuming a non-existent PID must set resumed=false with an explanatory message instead of claiming success',
+      run: () => handlers.handleProcessResumeTool({ pid: MISSING_PID }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== true) return `expected a shaped response, got ${JSON.stringify(b)}`;
+        if (b['resumed'] !== false) return `resumed should be false, got ${String(b['resumed'])}`;
+        if (!/Failed to resume process/.test(String(b['message'] ?? '')))
+          return `message should report the failure: ${String(b['message'])}`;
+        return true;
+      },
+    },
+    {
+      name: 'process_suspend/missing-pid-reports-suspended-false',
+      tool: 'process_suspend',
+      origin: 'homemade',
+      reference:
+        'outcome contract: suspending a non-existent PID must set suspended=false with the permissions/exited hint',
+      run: () => handlers.handleProcessSuspendTool({ pid: MISSING_PID }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['suspended'] !== false) return `suspended should be false: ${JSON.stringify(b)}`;
+        if (!/Failed to suspend process/.test(String(b['message'] ?? '')))
+          return `message should report the failure: ${String(b['message'])}`;
+        return true;
+      },
+    },
+    {
+      name: 'process_suspend/rejects-non-positive-pid',
+      tool: 'process_suspend',
+      origin: 'homemade',
+      reference:
+        'argument contract: pid must be a positive integer, rejected before any platform call',
+      run: () => handlers.handleProcessSuspendTool({ pid: 0 }),
+      validate: (v) => {
+        const b = body(v);
+        return b['success'] === false && /pid must be a positive integer/.test(String(b['error']))
+          ? true
+          : `expected a pid validation error, got ${JSON.stringify(b)}`;
+      },
+    },
+    {
+      name: 'inject_dll/rejects-missing-process',
+      tool: 'inject_dll',
+      origin: 'homemade',
+      reference:
+        'injection contract: a target that cannot be opened is refused as a validation failure before any write is attempted',
+      run: () => handlers.handleInjectDllTool({ pid: MISSING_PID, dllPath: 'C:/bench/none.dll' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (b['validationFailed'] !== true) return `expected validationFailed=true`;
+        if (!/does not exist or is not accessible/.test(String(b['error'] ?? '')))
+          return `error should name the inaccessible target: ${String(b['error'])}`;
+        if (b['injected'] === true) return `must not claim injection`;
+        return true;
+      },
+    },
+    {
+      name: 'inject_shellcode/rejects-missing-process',
+      tool: 'inject_shellcode',
+      origin: 'homemade',
+      reference:
+        'injection contract: shellcode injection into an inaccessible process is refused as a validation failure with no claimed write',
+      run: () => handlers.handleInjectShellcodeTool({ pid: MISSING_PID, shellcode: '90909090' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false || b['validationFailed'] !== true)
+          return `expected a validation failure: ${JSON.stringify(b).slice(0, 200)}`;
+        if (b['injected'] === true) return `must not claim injection`;
+        return true;
+      },
+    },
+    {
+      name: 'process_detect_hollowing/rejects-missing-process',
+      tool: 'process_detect_hollowing',
+      origin: 'homemade',
+      reference:
+        'detection contract: hollowing analysis needs an openable target; failure must name the error code and the elevation hint, and never report "clean"',
+      run: () => handlers.handleDetectHollowingTool({ pid: MISSING_PID }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (!/Failed to open process/.test(String(b['error'] ?? '')))
+          return `error should name the open failure: ${String(b['error'])}`;
+        if (b['hollowed'] === true || b['verdict'] === 'clean')
+          return `must not emit a verdict without data: ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'process_enum_handles/no-handles-for-missing-pid',
+      tool: 'process_enum_handles',
+      origin: 'homemade',
+      reference:
+        'enumeration contract: a non-existent PID yields zero matching handles and no security findings while still reporting the system-wide handle total',
+      run: () => handlers.handleProcessEnumHandlesTool({ pid: MISSING_PID }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['pid'] !== MISSING_PID) return `pid not echoed: ${JSON.stringify(b)}`;
+        if (b['totalHandles'] !== 0 || (b['handles'] ?? []).length !== 0)
+          return `expected zero handles for a missing process: ${JSON.stringify(b).slice(0, 200)}`;
+        if ((b['securityFindings'] ?? []).length !== 0) return `must not invent findings`;
+        if (typeof b['totalSystemHandles'] !== 'number')
+          return `system handle total should be reported`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_read/rejects-missing-process',
+      tool: 'memory_read',
+      origin: 'homemade',
+      reference:
+        'read contract: a failed open must return success=false with no data field, echoing the requested address/size so the caller can retry',
+      run: () => handlers.handleMemoryReadTool({ pid: MISSING_PID, address: '0x1000', size: 16 }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (b['data'] !== undefined) return `must not return bytes on failure`;
+        if (b['address'] !== '0x1000' || b['size'] !== 16)
+          return `request not echoed: ${JSON.stringify(b).slice(0, 200)}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_write/rejects-missing-process',
+      tool: 'memory_write',
+      origin: 'homemade',
+      reference:
+        'write contract: a failed open reports success=false while still echoing dataLength/encoding, so no partial-write claim is made. NOTE: dataLength echoes the payload STRING length, not the decoded byte count (byte size is reported separately as `size`) — asserted as-is so a change of meaning is caught',
+      run: () =>
+        handlers.handleMemoryWriteTool({ pid: MISSING_PID, address: '0x1000', data: '4142' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (b['dataLength'] !== '4142'.length)
+          return `dataLength should echo the payload string length (4), got ${String(b['dataLength'])}`;
+        if (b['encoding'] !== 'hex') return `encoding should default to hex`;
+        if (b['bytesWritten'] !== undefined) return `must not report bytesWritten on failure`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_scan/rejects-missing-process',
+      tool: 'memory_scan',
+      origin: 'homemade',
+      reference:
+        'scan contract: an unscannable target returns success=false with an empty addresses array (never partial hits) and echoes the pattern kind',
+      run: () => handlers.handleMemoryScanTool({ pid: MISSING_PID, pattern: '41 42' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (!Array.isArray(b['addresses']) || (b['addresses'] as unknown[]).length !== 0)
+          return `addresses must be an empty array on failure`;
+        if (b['patternType'] !== 'hex') return `patternType should be hex`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_scan_filtered/requires-address-array',
+      tool: 'memory_scan_filtered',
+      origin: 'homemade',
+      reference:
+        'argument contract: the filtered scan needs a list of candidate addresses; an empty list is rejected by name instead of scanning the whole range',
+      run: () =>
+        handlers.handleMemoryScanFilteredTool({
+          pid: MISSING_PID,
+          pattern: '41',
+          addresses: [],
+        }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (!/addresses|No valid addresses/.test(String(b['error'] ?? '')))
+          return `error should name addresses: ${String(b['error'])}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_batch_write/empty-batch-is-noop',
+      tool: 'memory_batch_write',
+      origin: 'homemade',
+      reference:
+        'batch contract: an empty patch list performs no writes and returns an empty results array rather than touching the target',
+      run: () => handlers.handleMemoryBatchWriteTool({ pid: MISSING_PID, patches: [] }),
+      validate: (v) => {
+        const b = expectSuccess(v);
+        if (!Array.isArray(b['results']) || (b['results'] as unknown[]).length !== 0)
+          return `expected an empty results array: ${JSON.stringify(b)}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_dump_region/requires-outputPath',
+      tool: 'memory_dump_region',
+      origin: 'homemade',
+      reference:
+        'artifact contract: a region dump requires an explicit outputPath; the handler must not choose a write location itself',
+      run: () =>
+        handlers.handleMemoryDumpRegionTool({
+          pid: MISSING_PID,
+          address: '0x1000',
+          size: 16,
+          outputPath: '',
+        }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (!/outputPath/.test(String(b['error'] ?? '')))
+          return `error should name outputPath: ${String(b['error'])}`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_list_regions/rejects-missing-process',
+      tool: 'memory_list_regions',
+      origin: 'homemade',
+      reference:
+        'region contract: enumerating a non-existent process fails with the elevation hint and returns no region list',
+      run: () => handlers.handleMemoryListRegionsTool({ pid: MISSING_PID }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (b['regions'] !== undefined && (b['regions'] as unknown[]).length !== 0)
+          return `must not return regions for a missing process`;
+        if (!/Failed to open process/.test(String(b['error'] ?? '')))
+          return `error should name the open failure`;
+        return true;
+      },
+    },
+    {
+      name: 'memory_check_protection/rejects-missing-process',
+      tool: 'memory_check_protection',
+      origin: 'homemade',
+      reference:
+        'protection contract: querying page protection on a missing process fails explicitly instead of guessing a protection value',
+      run: () => handlers.handleMemoryCheckProtectionTool({ pid: MISSING_PID, address: '0x1000' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (b['protection'] !== undefined) return `must not report a protection value`;
+        if (!/Failed to open process/.test(String(b['error'] ?? '')))
+          return `unexpected error text`;
+        return true;
+      },
+    },
+    {
+      name: 'check_debug_port/rejects-missing-process',
+      tool: 'check_debug_port',
+      origin: 'homemade',
+      reference:
+        'debug-port contract: an unopenable process yields isDebugged=null (unknown, not false) with a named error',
+      run: () => handlers.handleCheckDebugPortTool({ pid: MISSING_PID }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (b['isDebugged'] !== null)
+          return `isDebugged must be null (unknown) rather than a guess: ${String(b['isDebugged'])}`;
+        if (!/Failed to open process/.test(String(b['error'] ?? '')))
+          return `unexpected error text`;
+        return true;
+      },
+    },
+    {
+      name: 'electron_attach/rejects-out-of-range-port',
+      tool: 'electron_attach',
+      origin: 'homemade',
+      reference:
+        'argument contract: the debug port must be an integer in 1-65535 and is rejected by name before any connection attempt',
+      run: () => handlers.handleElectronAttachTool({ port: 99999 }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (!/Invalid port/.test(String(b['error'] ?? '')))
+          return `error should name the invalid port: ${String(b['error'])}`;
+        return true;
+      },
+    },
+    {
+      name: 'electron_attach/unreachable-endpoint-honest',
+      tool: 'electron_attach',
+      origin: 'homemade',
+      reference:
+        'connect contract: with no debugger listening on the port the tool fails naming the URL and pointing at the launch helper, never a fabricated target list',
+      run: () => handlers.handleElectronAttachTool({ port: 1 }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        const error = String(b['error'] ?? '');
+        if (!/Cannot connect to Electron CDP/.test(error))
+          return `error should name the unreachable endpoint: ${error.slice(0, 160)}`;
+        if (!/9229|127\.0\.0\.1:1/.test(error)) return `error should include the endpoint address`;
+        if (b['targets'] !== undefined) return `must not return targets on failure`;
+        return true;
+      },
+    },
+    {
+      name: 'process_launch_debug/missing-executable-honest',
+      tool: 'process_launch_debug',
+      origin: 'homemade',
+      reference:
+        'launch contract: a non-existent executable yields success=false with a launch failure message, no fabricated pid or debug port',
+      run: () =>
+        handlers.handleProcessLaunchDebugTool({ executablePath: 'C:/bench/no-such-binary.exe' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] !== false) return `expected success=false, got ${JSON.stringify(b)}`;
+        if (b['pid'] !== undefined) return `must not report a pid for a failed launch`;
+        if (!/Failed to launch/.test(String(b['message'] ?? b['error'] ?? '')))
+          return `message should report the launch failure: ${JSON.stringify(b).slice(0, 200)}`;
         return true;
       },
     },
