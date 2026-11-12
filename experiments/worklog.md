@@ -297,3 +297,10 @@
 - Result: debt 191→**181** (-10, **-436 cumulative**), unmeasured 140→130, vectors_total 596→**606 (82.3%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **network 38/38 measured (100%)**.
 - Insight: `handleNetworkIcmpProbe`/`handleNetworkTraceroute` answer loopback successfully on this host, so the cases assert real echo semantics — but they also accept a named capability refusal (`root`/`CAP_NET_RAW`) because raw ICMP is privilege-gated on other machines. Writing that fallback in the *contract* (not as a skip) keeps the case portable and still fails if the tool reports "unreachable" for loopback.
 - Next: `dart-inspector` (9), `syscall-hook` (8), `graphql` (7), `v8-inspector` (7), `core` (6), then `browser` (59).
+
+### Run 65: dart-inspector session contracts (+9 cases) — debt 181→172 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: a `DART_SESSION_TABLE` (one row per session tool) expanded into 9 cases: `dart_create_session` (apkPath | libappPath), the six session consumers `dart_load_snapshot` / `dart_list_functions` / `dart_pc_descriptors` / `dart_call_graph` / `dart_call_function` / `dart_trace_execution` (sessionId | apkPath | libappPath), `dart_inspect_object_pool` (poolAddress), and `dart_destroy_session` (a concrete sessionId — never a blanket teardown).
+- Result: debt 181→**172** (-9, **-445 cumulative**), unmeasured 130→121, vectors_total 606→**615 (83.6%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **dart-inspector 16/16 measured (100%)**.
+- Insight: first run crashed with `Cannot access 'DART_SESSION_TABLE' before initialization` — a `...spread` runs at module-init, so any table declared *below* the suite object is in the temporal dead zone. Hoisting the table + factory above the suite fixed it without changing a single case. Worth remembering for every declaration-driven suite in this session.
+- Next: `syscall-hook` (8), `graphql` (7), `v8-inspector` (7), `core` (6), `workflow` (5), then `browser` (59).

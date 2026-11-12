@@ -16,6 +16,7 @@
 import type { SyscallEvent } from '@modules/syscall-hook';
 import { SyscallHookHandlers } from '@server/domains/syscall-hook/handlers.impl';
 import { body, type BenchSuite } from '../harness';
+import { syscallContractCases } from './syscall-hook.contracts';
 
 // No monitor/mapper/eventBus deps supplied: the four pure handlers create their
 // own idle SyscallMonitor() / SyscallToJSMapper() lazily via ensure*(), which is
@@ -353,5 +354,10 @@ export const syscallHookSuite: BenchSuite = {
           : `expected empty origins, got ${JSON.stringify(b.origins)}`;
       },
     },
+
+    // ── Backend/monitor contract batch 2026-11-12 (autoresearch) ───────────
+    // Backend validation, idle-monitor honesty and SSN/stub resolution
+    // (tables live in syscall-hook.contracts.ts).
+    ...syscallContractCases,
   ],
 };

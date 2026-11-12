@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 64 / 200 | **Kept:** 57 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=181 (run #64, 562ae96) | **Baseline:** debt=616 (run #1) — debtΔ -436
+**Runs:** 65 / 200 | **Kept:** 58 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=172 (run #65, 0d87d13) | **Baseline:** debt=616 (run #1) — debtΔ -445
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -70,4 +70,5 @@
 | 61 | 797bebf | 230 | 18 | keep | draft | memory contract batch (+53 cases via real manifest bindings) — memory 72/75 |
 | 62 | eb72573 | 212 | 21 | keep | draft | debugger contract batch (+21 cases): stub-manager admissions/dispatch + antidebug detect/bypass — debugger 21/21 |
 | 63 | 8be082c | 191 | 10 | keep | draft | adb-bridge contract batch (+26 cases): arg-rejection table + unreachable-device honesty — adb-bridge 26/26 |
-| 64 | 562ae96 | 181 | — | keep | draft | network contract batch (+14 cases): dispatch/admission + loopback echo/traceroute honesty — network 38/38 |
+| 64 | 562ae96 | 181 | 9 | keep | draft | network contract batch (+14 cases): dispatch/admission + loopback echo/traceroute honesty — network 38/38 |
+| 65 | 0d87d13 | 172 | — | keep | draft | dart-inspector session contracts (+9 cases): admission table — dart-inspector 16/16 |
