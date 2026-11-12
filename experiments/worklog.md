@@ -189,3 +189,10 @@
 - Result: debt 395→392 (-3, -224 cumulative), unmeasured 344→341, vectors_total 395 (53.7%), vector_fail 0, rejection_pct 100%, checks.sh pass. network 25→28/38 measured.
 - Insight: The outbound network tools are testable offline iff the authorization bag explicitly whitelists loopback — `handleHttp2Probe` additionally requires `url` (not host/port) and was left out of this batch. Probing first avoided two wasted authorings (`graphql_*` blocks loopback at the SSRF gate with no escape; `dart-inspector` dynamic tools reject the committed fixture).
 - Next: `browser` jsdom-backed storage handlers, or `maintenance` registry tools with a fetch stub.
+
+### Run 51: v8-inspector honest-unavailable batch (+3 cases) — debt 392→389 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added 3 cases to `v8-inspector.suite.ts` covering the offline contract of browser-dependent tools: `v8_wasm_inspect` (no page → success=false, totalModules=0, explicit PageController reason), `v8_deopt_trace` (no CDP → mode=unavailable, traceEnabled=false, 0 events), `v8_object_inspect` (client lacking getObjectByObjectId → named capability error, not an unhandled TypeError).
+- Result: debt 392→389 (-3, -227 cumulative), unmeasured 341→338, vectors_total 398 (54.1%), vector_fail 0, rejection_pct 100%, checks.sh pass. v8-inspector 11→14/21 measured.
+- Insight: "honest unavailable" is a real, checkable contract (explicit failure + named reason + zero fabricated data) — distinct from Run 35's discard, which merely flipped skips without changing withVectors. Probe-first again avoided wasted work: `v8_heap_stats`/`v8_allocation_track`/`v8_version_detect` also error on a missing PageController but their payloads carry no additional structure worth asserting.
+- Next: `browser` jsdom-backed storage handlers, or `maintenance` registry tools with a fetch stub.

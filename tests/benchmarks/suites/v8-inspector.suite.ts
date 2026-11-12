@@ -19,7 +19,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { BenchSuite } from '../harness';
-import { expectSuccess } from '../harness';
+import { body, expectSuccess } from '../harness';
 
 const mockDeps = {
   ctx: {
@@ -396,6 +396,60 @@ export const v8InspectorSuite: BenchSuite = {
         if (fn?.functionName !== 'hotLoop' || Number(fn?.totalNodeCount ?? 0) !== 4)
           return `expected hotLoop with 4 nodes, got ${JSON.stringify(fn)}`;
         return true;
+      },
+    },
+
+    // ── Coverage batch 3 (2026-11-12 autoresearch): honest unavailable contracts (no live browser) ──
+    {
+      name: 'v8_wasm_inspect/no-page-honest-empty',
+      tool: 'v8_wasm_inspect',
+      origin: 'homemade',
+      reference:
+        'without a browser the tool must report success=false with zero wasm modules and an explicit PageController reason — never fabricate module data',
+      run: () => handlers.handle('v8_wasm_inspect', {}),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success !== false) return `expected success=false offline, got ${b.success}`;
+        if (Number(b.totalModules) !== 0) return `expected totalModules=0, got ${b.totalModules}`;
+        if (!Array.isArray(b.modules) || b.modules.length !== 0)
+          return `expected empty modules array, got ${JSON.stringify(b.modules)}`;
+        return /PageController not available/i.test(String(b.error))
+          ? true
+          : `expected explicit PageController reason, got ${String(b.error)}`;
+      },
+    },
+    {
+      name: 'v8_deopt_trace/no-cdp-session-unavailable',
+      tool: 'v8_deopt_trace',
+      origin: 'homemade',
+      reference:
+        'without a CDP session the deopt tracer must report mode=unavailable with zero events rather than pretend a trace ran',
+      run: () => handlers.handle('v8_deopt_trace', {}),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success !== false) return `expected success=false offline, got ${b.success}`;
+        if (b.mode !== 'unavailable') return `expected mode=unavailable, got ${String(b.mode)}`;
+        if (b.traceEnabled !== false)
+          return `traceEnabled must be false, got ${String(b.traceEnabled)}`;
+        return b.eventCount === 0 && Array.isArray(b.events) && b.events.length === 0
+          ? true
+          : `expected zero captured events, got ${JSON.stringify(b).slice(0, 160)}`;
+      },
+    },
+    {
+      name: 'v8_object_inspect/missing-client-method-clean-error',
+      tool: 'v8_object_inspect',
+      origin: 'homemade',
+      reference:
+        'an inspector client without getObjectByObjectId must surface a clean, named capability error instead of throwing an unhandled TypeError',
+      run: () => handlers.handle('v8_object_inspect', { address: '0x1234' }),
+      validate: (v: unknown) => {
+        const b = body(v);
+        if (b.success !== false) return `expected success=false, got ${b.success}`;
+        const err = String(b.error ?? '');
+        return /getObjectByObjectId|Could not inspect/i.test(err)
+          ? true
+          : `expected named capability error, got ${err}`;
       },
     },
   ],
