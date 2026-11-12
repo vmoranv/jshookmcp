@@ -688,7 +688,7 @@ describe('HookHandlers', () => {
     it('returns success on resume action', async () => {
       vi.doMock('@modules/process/memory/scanner', () => ({
         suspendProcess: vi.fn(),
-        resumeProcess: vi.fn().mockResolvedValue(undefined),
+        resumeProcess: vi.fn().mockResolvedValue(true),
       }));
 
       const response = await handlers.handleProcessControl({ action: 'resume', pid: 1234 });
@@ -696,6 +696,19 @@ describe('HookHandlers', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.action).toBe('resume');
       expect(parsed.resumed).toBe(true);
+    });
+
+    it('reports resumed:false with a failure hint when the resume primitive fails', async () => {
+      vi.doMock('@modules/process/memory/scanner', () => ({
+        suspendProcess: vi.fn(),
+        resumeProcess: vi.fn().mockResolvedValue(false),
+      }));
+
+      const response = await handlers.handleProcessControl({ action: 'resume', pid: 1234 });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(true);
+      expect(parsed.resumed).toBe(false);
+      expect(String(parsed.hint)).toContain('Failed to resume process 1234');
     });
 
     it('returns error on invalid action', async () => {

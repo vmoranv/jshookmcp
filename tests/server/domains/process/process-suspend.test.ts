@@ -82,8 +82,8 @@ describe('ProcessSuspendHandlers', () => {
   });
 
   describe('handleProcessResume', () => {
-    it('returns success shape when resumeProcess resolves', async () => {
-      state.resumeProcess.mockResolvedValue(undefined);
+    it('returns success shape when resumeProcess resolves true', async () => {
+      state.resumeProcess.mockResolvedValue(true);
 
       const result = await handlers.handleProcessResume({ pid: 1234 });
 
@@ -94,6 +94,20 @@ describe('ProcessSuspendHandlers', () => {
         platform: expect.any(String),
       });
       expect(state.resumeProcess).toHaveBeenCalledWith(expect.any(String), 1234);
+    });
+
+    it('reports resumed:false with an explanatory message when the primitive fails', async () => {
+      state.resumeProcess.mockResolvedValue(false);
+
+      const result = (await handlers.handleProcessResume({ pid: 1234 })) as {
+        success: boolean;
+        resumed: boolean;
+        message?: string;
+      };
+
+      expect(result.success).toBe(true);
+      expect(result.resumed).toBe(false);
+      expect(String(result.message)).toContain('Failed to resume process 1234');
     });
 
     it('rejects pid <= 0 with error shape', async () => {

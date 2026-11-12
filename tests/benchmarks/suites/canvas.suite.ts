@@ -267,7 +267,8 @@ export const canvasSuite: BenchSuite = {
         if (b['success'] !== false)
           return `expected success=false, got ${JSON.stringify(b).slice(0, 200)}`;
         if (b['picked'] !== null) return `picked must be null without an adapter`;
-        if ((b['candidates'] ?? []).length !== 0) return `candidates must be empty`;
+        const candidates = (b['candidates'] ?? []) as unknown[];
+        if (candidates.length !== 0) return `candidates must be empty`;
         if (b['hitTestMethod'] !== 'none') return `hitTestMethod should be "none"`;
         const coords = b['coordinates'] as Record<string, unknown> | undefined;
         if (!coords || (coords['canvas'] as Record<string, unknown>)?.['x'] !== 10)
@@ -295,9 +296,11 @@ export const canvasSuite: BenchSuite = {
         const flow = (b['inputFlow'] ?? []) as unknown[];
         if (flow.length !== 5 || flow[0] !== 'pointerdown' || flow[4] !== 'click')
           return `event chain wrong: ${JSON.stringify(flow)}`;
-        if ((b['handlerFrames'] ?? []).length !== 0)
-          return `handler frames must be empty when the debugger never pauses: ${JSON.stringify(b['handlerFrames'])}`;
-        if ((b['networkEmitted'] ?? []).length !== 0) return `no network events were dispatched`;
+        const handlerFrames = (b['handlerFrames'] ?? []) as unknown[];
+        if (handlerFrames.length !== 0)
+          return `handler frames must be empty when the debugger never pauses: ${JSON.stringify(handlerFrames)}`;
+        const networkEmitted = (b['networkEmitted'] ?? []) as unknown[];
+        if (networkEmitted.length !== 0) return `no network events were dispatched`;
         return true;
       },
     },
@@ -440,7 +443,8 @@ export const canvasSuite: BenchSuite = {
         if (!recs.some((x) => x['kind'] === 'force-context-release'))
           return `expected a force-context-release recommendation`;
         const clean = r['clean'] ?? {};
-        if (clean['violationCount'] !== 0 || (clean['checks'] ?? []).length !== 4)
+        const cleanChecks = (clean['checks'] ?? []) as unknown[];
+        if (clean['violationCount'] !== 0 || cleanChecks.length !== 4)
           return `clean metrics must pass all 4 invariants: ${JSON.stringify(clean).slice(0, 200)}`;
         return true;
       },

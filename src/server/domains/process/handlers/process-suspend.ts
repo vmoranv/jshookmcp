@@ -57,12 +57,17 @@ export class ProcessSuspendHandlers {
 
     try {
       const { resumeProcess } = await import('@modules/process/memory/scanner');
-      await resumeProcess(platform, pid);
+      const resumed = await resumeProcess(platform, pid);
       return {
         success: true,
         pid,
-        resumed: true,
+        resumed,
         platform,
+        ...(resumed
+          ? {}
+          : {
+              message: `Failed to resume process ${pid} (already exited? permissions?)`,
+            }),
       };
     } catch (err) {
       return { success: false, pid, error: String(err) };

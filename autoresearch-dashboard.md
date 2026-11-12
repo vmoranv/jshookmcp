@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 57 / 200 | **Kept:** 50 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=320 (run #57, 793b55b) | **Baseline:** debt=616 (run #1) — debtΔ -296
+**Runs:** 58 / 200 | **Kept:** 51 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=308 (run #58, 50e7ddf) | **Baseline:** debt=616 (run #1) — debtΔ -308
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -63,4 +63,5 @@
 | 54 | e521cde | 369 | 11 | keep | draft | canvas host-side batch (+10 cases): scripted page substrate — canvas 11/11 (incl. skia) |
 | 55 | 50a7e96 | 358 | 12 | keep | draft | browser host-side batch (+11 cases): status/tabs/workers/console/scripts/codegen/page_back — browser 27/85 |
 | 56 | c87972f | 346 | 26 | keep | draft | wasm wave 2 (+12 cases): hook-state stub + runs-or-names-missing-binary contracts — wasm 17/17 |
-| 57 | 793b55b | 320 | — | keep | draft | binary-instrument toolchain contracts (+21 cases): arg-rejection, unknown-session refusal, honest toolchain errors — 44/46 |
+| 57 | 793b55b | 320 | 12 | keep | draft | binary-instrument toolchain contracts (+21 cases): arg-rejection, unknown-session refusal, honest toolchain errors — 44/46 |
+| 58 | 50e7ddf | 308 | — | keep | draft | streaming monitor contracts (+13 cases): enable/disable reporting + not-enabled refusals + API-missing honesty — streaming 17/17 |

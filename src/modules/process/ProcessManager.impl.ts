@@ -545,10 +545,12 @@ export class ProcessManager {
       }
 
       const normalizedPid = Math.trunc(pid);
-      const psCommand =
-        `Stop-Process -Id ${normalizedPid} -Force -ErrorAction SilentlyContinue; Write-Output` +
-        ` "Process ${normalizedPid}` +
-        ` killed"`;
+      // `-ErrorAction Stop` is load-bearing: with `SilentlyContinue` a
+      // non-existent PID leaves PowerShell at exit code 0, so the caller was
+      // told "killed successfully" for a process that never existed. With Stop
+      // the cmdlet error becomes a non-zero exit and the catch below reports
+      // the honest false.
+      const psCommand = `Stop-Process -Id ${normalizedPid} -Force -ErrorAction Stop; Write-Output "killed"`;
 
       await execAsync(`${this.powershellPath} -NoProfile -Command "${psCommand}"`, {
         maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES,

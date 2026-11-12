@@ -142,6 +142,28 @@ async function withScopedTaskPort<R>(pid: number, fn: (task: number) => R): Prom
   }
 }
 
+/**
+ * Build the Win32 PowerShell invocation that calls an ntdll thread-control
+ * primitive (`NtSuspendProcess` / `NtResumeProcess`) on a PID.
+ *
+ * IMPORTANT: the inner `[DllImport("ntdll.dll")]` quotes MUST be backslash
+ * escaped. The whole `-Command` argument is wrapped in double quotes, so
+ * unescaped inner quotes end the argument early: PowerShell then receives
+ * `[DllImport(` + `)] …` and fails with "source code contains no type name
+ * 'ntdll'". Both call sites were silently broken before this helper existed
+ * (verified on Windows 11: Add-Type error, exit 1).
+ */
+function buildWin32SignalCommand(
+  symbol: 'NtSuspendProcess' | 'NtResumeProcess',
+  pid: number,
+): string {
+  const memberDefinition = `[DllImport(\\"ntdll.dll\\")] public static extern int ${symbol}(IntPtr h);`;
+  return (
+    `powershell -NoProfile -Command "(Add-Type -MemberDefinition '${memberDefinition}' ` +
+    `-Name W -Namespace N -PassThru)::${symbol}((Get-Process -Id ${pid}).Handle)"`
+  );
+}
+
 export async function suspendProcess(platform: Platform, pid: number): Promise<boolean> {
   try {
     switch (platform) {
@@ -159,12 +181,9 @@ export async function suspendProcess(platform: Platform, pid: number): Promise<b
       }
       case 'win32': {
         const { execAsync } = await import('@modules/process/memory/types');
-        await execAsync(
-          `powershell -NoProfile -Command "(Add-Type -MemberDefinition '[DllImport("ntdll.dll")] public static extern` +
-            ` int NtSuspendProcess(IntPtr h);' -Name W -Namespace N -PassThru)::NtSuspendProcess((Get-Process -Id ` +
-            `${pid}).Handle)"`,
-          { timeout: MEMORY_PROBE_CMD_TIMEOUT_MS },
-        );
+        await execAsync(buildWin32SignalCommand('NtSuspendProcess', pid), {
+          timeout: MEMORY_PROBE_CMD_TIMEOUT_MS,
+        });
         return true;
       }
       default:
@@ -176,7 +195,15 @@ export async function suspendProcess(platform: Platform, pid: number): Promise<b
   }
 }
 
-export async function resumeProcess(platform: Platform, pid: number): Promise<void> {
+/**
+ * Resume a suspended process.
+ *
+ * Returns whether the platform primitive actually succeeded — callers that
+ * report `resumed: true` to the user must use this value. Before it returned
+ * void, a failed resume (e.g. PID already exited, quoting bug) was swallowed
+ * by the log line and every caller still claimed success.
+ */
+export async function resumeProcess(platform: Platform, pid: number): Promise<boolean> {
   try {
     switch (platform) {
       case 'darwin': {
@@ -184,25 +211,25 @@ export async function resumeProcess(platform: Platform, pid: number): Promise<vo
         await withScopedTaskPort(pid, (task) => {
           taskResume(task);
         });
-        break;
+        return true;
       }
       case 'linux': {
         const { execAsync } = await import('@modules/process/memory/types');
         await execAsync(`kill -CONT ${pid}`, { timeout: MEMORY_PROCESS_SIGNAL_TIMEOUT_MS });
-        break;
+        return true;
       }
       case 'win32': {
         const { execAsync } = await import('@modules/process/memory/types');
-        await execAsync(
-          `powershell -NoProfile -Command "(Add-Type -MemberDefinition '[DllImport("ntdll.dll")] public ` +
-            `static extern int NtResumeProcess(IntPtr h);' -Name W -Namespace N ` +
-            `-PassThru)::NtResumeProcess((Get-Process -Id ${pid}).Handle)"`,
-          { timeout: MEMORY_PROBE_CMD_TIMEOUT_MS },
-        );
-        break;
+        await execAsync(buildWin32SignalCommand('NtResumeProcess', pid), {
+          timeout: MEMORY_PROBE_CMD_TIMEOUT_MS,
+        });
+        return true;
       }
+      default:
+        return false;
     }
   } catch (err) {
     logger.error(`CRITICAL: Failed to resume process ${pid} — may need manual SIGCONT:`, err);
+    return false;
   }
 }

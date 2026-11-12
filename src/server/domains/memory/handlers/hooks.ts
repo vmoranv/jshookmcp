@@ -814,14 +814,16 @@ export class HookHandlers {
       }
 
       // resume
-      await resumeProcess(platform, pid);
+      const resumed = await resumeProcess(platform, pid);
       return {
         success: true,
         pid,
         action: 'resume',
-        resumed: true,
+        resumed,
         platform,
-        hint: `Process ${pid} resumed.`,
+        hint: resumed
+          ? `Process ${pid} resumed.`
+          : `Failed to resume process ${pid}. Check permissions (Administrator required) or the process may have exited.`,
       };
     });
   }
