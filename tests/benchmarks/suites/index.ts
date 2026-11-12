@@ -4,6 +4,7 @@ import { protocolSuite } from './protocol-analysis.suite';
 import { transformSuite } from './transform.suite';
 import { networkSuite } from './network.suite';
 import { graphqlSuite } from './graphql.suite';
+import { browserSuite } from './browser.suite';
 import { exploitSuite } from './exploit-dev.suite';
 import { sourcemapSuite } from './sourcemap.suite';
 import { binarySuite } from './binary-instrument.suite';
@@ -47,6 +48,7 @@ export const ALL_SUITES: readonly BenchSuite[] = [
   transformSuite,
   networkSuite,
   graphqlSuite,
+  browserSuite,
   exploitSuite,
   sourcemapSuite,
   binarySuite,

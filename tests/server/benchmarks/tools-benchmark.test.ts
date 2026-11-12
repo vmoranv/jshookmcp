@@ -75,12 +75,21 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   // graphql admission/SSRF contracts (2026-11-12 autoresearch) — deterministic offline;
   // every case is an explicit refusal, so any failure is a real regression.
   graphql: 90,
+  // browser CDP/page-bound contract subset (2026-11-12 autoresearch) — every case
+  // asserts an explicit no-browser/argument refusal, so any failure is a regression.
+  browser: 90,
 };
 
 const results: BenchSuiteResult[] = [];
 
 describe('tool benchmark gate', () => {
-  it('runs all tool benchmark suites and meets thresholds', { timeout: 120_000 }, async () => {
+  // Timeout raised from 120s → 300s (2026-11-12). As of the coverage campaign the
+  // gate re-executes 43 suites plus the per-tool scorecard re-run, totalling ~110s
+  // on a warm machine and crossing two external-tool probes (frida-ls-devices
+  // ~15s, ghidra analyzeHeadless ~5s × 2) that cost far more on a cold one. The
+  // timeout is a wall-clock guard, NOT part of the metric definition — no case,
+  // threshold or measurement changed.
+  it('runs all tool benchmark suites and meets thresholds', { timeout: 300_000 }, async () => {
     const failures: string[] = [];
 
     // Drift guard: every gated suite must carry an EXPLICIT floor. The `?? 80`
