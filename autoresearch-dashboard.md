@@ -1,7 +1,7 @@
 # Autoresearch Dashboard: per-tool-quality-debt
 
-**Runs:** 52 / 200 | **Kept:** 45 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
-**Best:** debt=387 (run #52, 207578e) | **Baseline:** debt=616 (run #1) — debtΔ -229
+**Runs:** 53 / 200 | **Kept:** 46 | **Discarded:** 1 | **Crashed:** 6 | **Checks-failed:** 0
+**Best:** debt=379 (run #53, 940dfaf) | **Baseline:** debt=616 (run #1) — debtΔ -237
 **Noise floor:** 0 (harness deterministic)
 **Note:** debt2 == extractor debt (constant +51 low_mrr offset); comparisons delta-based.
 
@@ -58,4 +58,5 @@
 | 49 | ebe42fe | 395 | 6 | keep | draft | syscall-hook (+4 pure handlers): filter invalid-names + idle honesty,  |
 | 50 | a984241 | 392 | 3 | keep | draft | network loopback probes (+3 cases): http_plain_request 200 roundtrip,  |
 | 51 | 3ed780e | 389 | 2 | keep | draft | v8-inspector honest-unavailable batch (+3 cases): wasm_inspect no-page |
-| 52 | 207578e | 387 | — | keep | draft | browser storage handlers (+4 cases): local_storage roundtrip + empty-key reject, session_storage get, storage_info estimate |
+| 52 | 207578e | 387 | 8 | keep | draft | browser storage handlers (+4 cases): local_storage roundtrip + empty-key reject, session_storage get, storage_info estimate |
+| 53 | 940dfaf | 379 | — | keep | draft | webgpu honest-unavailable batch (+8 cases): no-page explicit failure + arg-schema validation — webgpu 10/10 |
