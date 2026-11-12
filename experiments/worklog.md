@@ -440,3 +440,10 @@ So `debt = 5 + 51 + 0 = 56` is a **floor, not a plateau**: the two remaining com
 - Result: debt stays **29** — the enrichment added true capabilities but the eval queries correctly rank better-matching tools higher for the queries that target these tools. This is correct retrieval behavior: a generic description loses to a specific one for any query.
 - **The remaining 29 low_mrr is the structural floor for description enrichment.** The eval set has 152 cases, and these 29 tools are already in the expectations of cases that target them — but the search engine correctly ranks tools whose descriptions more precisely match the query vocabulary. Adding more synonyms/capabilities would be keyword stuffing (explicitly forbidden by the repo rule).
 - The campaign has reached its measurable limit. debt = 29 = pure `low_mrr`, irreducible without either expanding the eval set further (diminishing returns) or modifying the engine parameters (Off Limits).
+
+### Run 83: distinctive description enrichment — debt stays 29 (KEEP, no metric change)
+- Timestamp: 2026-11-12
+- What changed: rewrote 5 tool descriptions to emphasize each tool's unique function using distinctive vocabulary: binary_detect_format (magic number signature detection + entropy estimation + encoding recognition), deobfuscate (reverse bundler packaging + unminify + anti-obfuscation wrappers), ghidra_analyze (headless function/import/export/string extraction), network_enable (CDP Network domain traffic capture), network_monitor (filter + paginate + incrementally fetch captured requests). Re-synced fixture (63 makeTool calls).
+- Result: debt stays **29** — the enrichment added distinctive vocabulary but the eval queries correctly rank better-matching tools higher.
+- **The description enrichment lever is exhausted.** Three rounds of enrichment (runs 78/79/82/83) have confirmed that for these 29 tools, the search engine correctly ranks them lower than better matches. This is correct retrieval behavior, not a defect.
+- Remaining 29 low_mrr requires eval redesign (see `autoresearch.ideas.md`).
