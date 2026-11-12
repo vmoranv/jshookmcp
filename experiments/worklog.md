@@ -325,3 +325,10 @@
 - Result: debt 157→**150** (-7, **-467 cumulative**), unmeasured 106→99, vectors_total 630→**637 (86.6%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **v8-inspector 21/21 measured (100%)**.
 - Insight: asserting *forbidden keys* (not just the refusal text) is what makes an honest-unavailable case regression-proof — a future change that returns `{success:false, stats:{totalSize:0}}` still fails, because zeroed stats presented next to a failure is exactly the "fabricated data" shape these cases exist to catch.
 - Next: `core` (6), `workflow` (5), `instrumentation` (4), `maintenance`/`coordination`/`platform` (2 each), `native-bridge`/`mojo-ipc` (3 each), then the 59 `browser` tools.
+
+### Run 69: core-analysis argument contracts (+6 cases) — debt 150→144 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: 6 cases on the existing `CoreAnalysisHandlers` stub set plus a `callCore()` helper (flattens the ToolResponse or captures the throw, so thrown validation errors count as named refusals): `collect_code` requires `url`; `search_in_scripts` needs an initialised `ScriptManager` and must not report an empty match list as success; `extract_function_tree` requires `scriptId` **and** points at `get_all_scripts`; `manage_hooks` requires `action`; `webpack_enumerate` refuses without a page and returns no chunks; `ai_suggest_exploits` requires a structured `vulnerability`.
+- Result: debt 150→**144** (-6, **-472 cumulative**), unmeasured 99→93, vectors_total 637→**643 (87.4%)**, vector_fail 0, rejection_pct 100%, checks.sh green. **core 25/25 measured (100%)**.
+- Insight: this domain's handlers throw on bad args instead of returning `{success:false}` — the opposite of the `memory` domain. The `callCore` wrapper normalizes both shapes so one assertion style covers the domain; without it I'd have needed two validators and would have mis-scored thrown cases as errors.
+- Next: `workflow` (5), `instrumentation` (4), `native-bridge`/`mojo-ipc` (3 each), `maintenance`/`coordination`/`platform` (2 each), `transform`/`proxy`/`sourcemap`/`process`(3)/`binary-instrument`(2)/`memory`(5) singletons, then `browser` (59).

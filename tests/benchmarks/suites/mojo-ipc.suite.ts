@@ -15,7 +15,7 @@
  * case's run() return are not unwrapped by the harness body() extractor.
  */
 import { MojoIPCHandlers } from '@server/domains/mojo-ipc/handlers';
-import { type BenchSuite } from '../harness';
+import { body, type BenchSuite } from '../harness';
 
 const handlers = new MojoIPCHandlers();
 
@@ -137,6 +137,65 @@ export const mojoIpcSuite: BenchSuite = {
         if (!tools.includes('mojo_monitor'))
           return `capability tools missing mojo_monitor, got ${tools.join(',')}`;
         return true;
+      },
+    },
+
+    // ── Stub-contract batch 2026-11-12 (autoresearch) ────────────────────────
+    // Mojo monitoring needs a live Chromium. The three monitoring tools say so
+    // explicitly with the "simulated" stub envelope; what they must NOT do is
+    // claim real captured messages.
+    {
+      name: 'mojo_monitor/reports-simulated-stub-honestly',
+      tool: 'mojo_monitor',
+      origin: 'homemade',
+      reference:
+        'stub contract: without a live Mojo IPC channel the monitor reports stubType "simulated" with a named reason instead of pretending to capture',
+      run: () => handlers.handleMojoMonitorDispatch({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === false) {
+          return String(b['reason'] ?? b['error'] ?? '').length > 0
+            ? true
+            : 'refusal without a reason';
+        }
+        if (b['stubType'] !== 'simulated' && b['_stub'] !== 'simulated')
+          return `expected a simulated stub, got ${JSON.stringify(b).slice(0, 200)}`;
+        return String(b['reason'] ?? '').length > 0 ? true : 'stub without a named reason';
+      },
+    },
+    {
+      name: 'mojo_messages_get/simulated-envelope-not-captured-data',
+      tool: 'mojo_messages_get',
+      origin: 'homemade',
+      reference:
+        'stub contract: message retrieval without a live channel returns the simulated envelope naming the limitation — never fabricated decoded messages',
+      run: () => handlers.handleMojoMessagesGet({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === false)
+          return String(b['reason'] ?? b['error'] ?? '').length > 0 ? true : 'no reason';
+        if (b['stubType'] !== 'simulated' && b['_stub'] !== 'simulated')
+          return `expected a simulated stub, got ${JSON.stringify(b).slice(0, 200)}`;
+        const messages = b['messages'];
+        if (Array.isArray(messages) && messages.length > 0)
+          return 'must not present simulated rows as captured messages';
+        return true;
+      },
+    },
+    {
+      name: 'mojo_messages_summarize/simulated-envelope',
+      tool: 'mojo_messages_summarize',
+      origin: 'homemade',
+      reference:
+        'stub contract: the summariser reports the simulated limitation instead of a zeroed-but-authoritative summary',
+      run: () => handlers.handleMojoMessagesSummarize({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === false)
+          return String(b['reason'] ?? b['error'] ?? '').length > 0 ? true : 'no reason';
+        return b['stubType'] === 'simulated' || b['_stub'] === 'simulated'
+          ? true
+          : `expected a simulated stub, got ${JSON.stringify(b).slice(0, 200)}`;
       },
     },
   ],

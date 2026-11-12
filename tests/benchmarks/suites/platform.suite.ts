@@ -429,5 +429,41 @@ export const platformSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Electron-contract batch 2026-11-12 (autoresearch) ────────────────────
+    // Two Electron entry points: IPC sniffing returns the how-to guide (it
+    // installs nothing by itself), and launching for debug needs an exe path.
+    {
+      name: 'electron_ipc_sniff/returns-guide-not-capture',
+      tool: 'electron_ipc_sniff',
+      origin: 'homemade',
+      reference:
+        'guide contract: IPC sniffing returns the interception guide (what/how) rather than claiming to have captured IPC traffic',
+      run: () => handlers.handleElectronIPCSniff({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === false) return String(b['error'] ?? '').length > 0 ? true : 'no reason';
+        const guide = b['guide'] as Record<string, unknown> | undefined;
+        if (!guide || typeof guide !== 'object')
+          return `guide object missing: ${JSON.stringify(b).slice(0, 200)}`;
+        if (!String(guide['what'] ?? '').length) return 'guide.what missing';
+        const messages = b['messages'];
+        if (Array.isArray(messages) && messages.length > 0)
+          return 'must not present captured messages';
+        return true;
+      },
+    },
+    {
+      name: 'electron_launch_debug/requires-exePath',
+      tool: 'electron_launch_debug',
+      origin: 'homemade',
+      reference:
+        'argument contract: launching an Electron app for debugging needs the executable path',
+      run: () => handlers.handleElectronLaunchDebug({}),
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        return /exePath/i.test(text) ? true : `expected an exePath error: ${text.slice(0, 180)}`;
+      },
+    },
   ],
 };
