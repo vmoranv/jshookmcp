@@ -14,7 +14,7 @@ Runnable suites today: 38 suites / 252 cases (243 pass, 9 env-gated/placeholder 
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **389 tools measured** |
+| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **392 tools measured** |
 | throughput | µs/call (measured wall time) | same execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
 | e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
@@ -237,9 +237,10 @@ The gate runs inside the normal `pnpm test` (server project) with per-suite floo
 - **[外部]** WHATWG SSE event-stream parsing examples; RFC 6455 WebSocket frame vectors ([autobahn testsuite](https://github.com/crossbario/autobahn-testsuite)). 📋
 - **[自制]** monitor fixtures over local echo servers. 📋
 
-## syscall-hook (15 tools) — ✅ suite `syscall-hook` (offline subset)
+## syscall-hook (15 tools) — ✅ suite `syscall-hook` (8/15 tools measured)
 
-- **[自制] ✅** `syscall-hook` suite: 4 offline-pure tools (correlate_js, trace_compare, get_stats, ebpf_trace script-generation). Monitor/root-gated tools remain 📋.
+- **[自制] ✅** `syscall-hook` suite: 4 offline-pure tools (correlate_js, trace_compare, get_stats, ebpf_trace script-generation).
+- **[自制] ✅** (2026-11-12, +4 tools): `syscall_filter` (non-array `names` rejected + idle-monitor zero-result honesty), `syscall_pattern_detect` (empty event stream → 0 patterns), `syscall_origin_map` (empty event stream → 0 origins). Monitor/root-gated tools remain 📋.
 
 - **[外部]** bpftrace test suite (Linux-only, root-gated). 📋
 - **[自制]** event filter/trace-diff/NDJSON export on synthetic event arrays (pure compute). 📋

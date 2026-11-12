@@ -175,3 +175,10 @@
 - Result: debt 401→398 (-3, **-218 cumulative — crossed the `debt < 400` milestone**), unmeasured 350→347, vectors_total 389 (52.9%), vector_fail 0, rejection_pct 100%, checks.sh pass. network 25/38 measured.
 - Insight: A single parameterised loopback DNS stub covers resolve/probe/cname/bulk — the NODATA branch is where honesty matters (the tool must report zero records, never fabricate an answer).
 - Next: `streaming` SSE loopback capture, `syscall-hook` pure handlers (`syscall_filter`, `syscall_resolve_ssn`), or `dart-inspector` pure session tools.
+
+### Run 49: syscall-hook pure handlers (+4 cases) — debt 398→395 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added 4 pure-compute cases to `syscall-hook.suite.ts`: `syscall_filter` (non-array `names` rejected with explicit error; idle monitor returns ok=true / 0 events / 0 counters with no fabricated rows), `syscall_pattern_detect` (empty event stream → 0 patterns, eventsAnalyzed=0), `syscall_origin_map` (empty stream → 0 origins, heuristic mode).
+- Result: debt 398→395 (-3, -221 cumulative), unmeasured 347→344, vectors_total 392 (53.3%), vector_fail 0, rejection_pct 100%, checks.sh pass. syscall-hook 8/15 measured.
+- Insight: Probing before authoring paid off — `dart-inspector` dynamic tools reject the committed `tiny-libapp.so` (`Invalid Dart snapshot magic 0xffffffff`), so that domain needs a purpose-built snapshot rather than the existing fixture; `handleSyscallResolveSsn` reads the real ntdll (host-dependent), so only the validation/empty-stream branches are honestly offline.
+- Next: `streaming` SSE loopback capture, or `browser` jsdom-backed storage (`page_local_storage`/`page_session_storage`/`page_storage_info`) if they accept a jsdom session without a live page.

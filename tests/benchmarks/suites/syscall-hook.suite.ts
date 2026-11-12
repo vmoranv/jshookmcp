@@ -289,5 +289,69 @@ export const syscallHookSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Coverage batch (2026-11-12 autoresearch): pure filter/analysis handlers ──
+    {
+      name: 'syscall_filter/rejects-non-array-names',
+      tool: 'syscall_filter',
+      origin: 'homemade',
+      reference:
+        'validation contract: a non-array `names` argument must be rejected with an explicit error, never coerced',
+      run: () => handlers.handleSyscallFilterTool({ names: 'not-an-array' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== false) return `expected ok=false, got ${JSON.stringify(b)}`;
+        return /names must be an array/i.test(String(b.error))
+          ? true
+          : `unexpected error text: ${String(b.error)}`;
+      },
+    },
+    {
+      name: 'syscall_filter/idle-monitor-empty-result',
+      tool: 'syscall_filter',
+      origin: 'homemade',
+      reference:
+        'with an idle monitor the filter reports ok=true, zero events, and totalBeforeFilters=0 (no fabricated rows)',
+      run: () => handlers.handleSyscallFilterTool({ errorOnly: true }),
+      validate: (v) => {
+        const b = body(v);
+        if (b.ok !== true) return `expected ok=true, got ${JSON.stringify(b)}`;
+        if (!Array.isArray(b.events) || b.events.length !== 0)
+          return `expected empty events array, got ${JSON.stringify(b.events)}`;
+        return b.count === 0 && b.totalBeforeFilters === 0
+          ? true
+          : `counters must be zero: ${JSON.stringify(b).slice(0, 160)}`;
+      },
+    },
+    {
+      name: 'syscall_pattern_detect/empty-event-stream',
+      tool: 'syscall_pattern_detect',
+      origin: 'homemade',
+      reference:
+        'an empty captured-event stream must yield zero detected patterns with eventsAnalyzed=0',
+      run: () => handlers.handleSyscallPatternDetectTool({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b.eventsAnalyzed !== 0) return `expected eventsAnalyzed=0, got ${b.eventsAnalyzed}`;
+        return Array.isArray(b.patterns) && b.patterns.length === 0
+          ? true
+          : `expected empty patterns, got ${JSON.stringify(b.patterns)}`;
+      },
+    },
+    {
+      name: 'syscall_origin_map/empty-event-stream',
+      tool: 'syscall_origin_map',
+      origin: 'homemade',
+      reference: 'an empty captured-event stream must report zero mapped origins in heuristic mode',
+      run: () => handlers.handleSyscallOriginMapTool({}),
+      validate: (v) => {
+        const b = body(v);
+        if (b.eventsAnalyzed !== 0 || b.unmappedCount !== 0)
+          return `expected zero counters, got ${JSON.stringify(b).slice(0, 160)}`;
+        return Array.isArray(b.origins) && b.origins.length === 0
+          ? true
+          : `expected empty origins, got ${JSON.stringify(b.origins)}`;
+      },
+    },
   ],
 };
