@@ -140,3 +140,10 @@
 - Result: debt 408→406 (-2, -210 cumulative), unmeasured 357→355, vectors_total 381 (51.8%), vector_fail 0, rejection_pct 100%, checks.sh pass. 19/21 exploit-dev + 11/21 v8-inspector measured.
 - Insight: `handleBuildJopChain` returns success=false WITH a found dispatcher when no functional gadgets follow it — the validator must use body() (expectSuccess throws on success=false) and accept the honest empty-gadget outcome. `v8_turbofan_graph` traceDir mode parses real --trace-turbo JSON completely offline.
 - Next: `extension-registry` webhook loopback HMAC server, `network` DNS loopback stub, or `session.suite.ts` 1ms flake fix → target `debt < 400`!
+
+### Run 44: extension-registry webhook batch (+3 cases) — debt 406→405 (KEEP)
+- Timestamp: 2026-11-12
+- What changed: added 3 loopback webhook C2 cases to `extension-registry.suite.ts` using a REAL `WebhookServer` (ephemeral 127.0.0.1 port, injected via the proxy-suite reflection seam): webhook create, webhook list+delete, and a signed POST whose HMAC-SHA256 `X-Webhook-Signature` is verified server-side and whose payload is confirmed to land in the shared `CommandQueue` (via getCommandQueue().dequeue()).
+- Result: debt 406→405 (-1, -211 cumulative), unmeasured 355→354, vectors_total 382 (51.9%), vector_fail 0, rejection_pct 100%, checks.sh pass. Suite 6→9 cases @ 100%. **extension-registry is now 7/7 (100%)** — 6th fully-measured domain.
+- Insight: `WebhookServer` accepts a `port` option (constructor) so the fixed default `WEBHOOK_PORT` can be avoided entirely; the signed-POST path exercises verifySignature (raw-body HMAC) and command enqueue with zero external traffic.
+- Next: `network` DNS loopback stub (`dns_resolve`), `streaming` SSE loopback capture, or `session.suite.ts` 1ms flake fix → target `debt < 400` (only 6 away)!

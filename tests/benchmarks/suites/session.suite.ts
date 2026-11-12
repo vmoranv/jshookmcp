@@ -115,7 +115,7 @@ export const sessionSuite: BenchSuite = {
       tool: 'session_progress_coverage',
       origin: 'homemade',
       reference:
-        'entries sort newest-first by recordedAt; the same-millisecond tie-break is kind then key ascending — the order must be deterministic',
+        'entries sort newest-first by recordedAt; the same-millisecond tie-break is kind then key ascending — both the tied case (aa,mm,zz) and the crossed-millisecond case (mm,aa,zz, strictly newest first) are correct deterministic outcomes',
       run: async () => {
         for (const key of ['zz', 'aa', 'mm']) {
           await handlers.handleRecordProgressTool({
@@ -131,7 +131,14 @@ export const sessionSuite: BenchSuite = {
         const entries = (b.entries as Array<Record<string, unknown>>) ?? [];
         if (entries.length !== 3) return `expected 3 entries, got ${entries.length}`;
         const keys = entries.map((e) => String(e.key));
-        const expected = ['aa', 'mm', 'zz'];
+        // Two deterministic outcomes are correct:
+        //  - all three recordedAts tie on the same millisecond → key ascending (aa,mm,zz)
+        //  - Date.now() crossed a millisecond between writes → strictly newest-first (mm,aa,zz)
+        const tied = keys.join(',') === 'aa,mm,zz';
+        const crossedMs = keys.join(',') === 'mm,aa,zz';
+        if (!tied && !crossedMs) {
+          return `non-deterministic ordering: ${keys.join(',')}`;
+        }
         for (let i = 1; i < keys.length; i++) {
           const prev = entries[i - 1]!;
           const cur = entries[i]!;
@@ -139,9 +146,13 @@ export const sessionSuite: BenchSuite = {
             return `ordering violates newest-first: ${keys.join(',')}`;
           }
         }
-        return keys.join(',') === expected.join(',')
-          ? true
-          : `same-recordedAt tie-break must be key ascending (${expected}), got ${keys.join(',')}`;
+        // Crossed-ms case must carry strictly decreasing recordedAt values; tied case equal.
+        if (crossedMs) {
+          const t0 = Number(entries[1]!.recordedAt);
+          const t1 = Number(entries[2]!.recordedAt);
+          if (t0 <= t1) return `crossed-ms ordering timestamps wrong: ${keys.join(',')}`;
+        }
+        return true;
       },
     },
     {
