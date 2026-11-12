@@ -643,5 +643,75 @@ export const instrumentationSuite: BenchSuite = {
         return true;
       },
     },
+
+    // ── Hook-contract batch 2026-11-12 (autoresearch) ────────────────────────
+    // The four hook/replay tools: two dispatchers (ai_hook, hook_preset) whose
+    // contract is "reject an unknown action with the valid list, and require a
+    // preset/session before injecting anything", and two session-scoped tools
+    // (instrumentation_hook_preset, instrumentation_network_replay) that must
+    // name the missing sessionId.
+    {
+      name: 'ai_hook/rejects-unknown-action',
+      tool: 'ai_hook',
+      origin: 'homemade',
+      reference:
+        'dispatch contract: ai_hook lists its valid actions (inject/get_data/list/clear/toggle/export) on an unknown one',
+      run: async () => {
+        const { AIHookToolHandlers } =
+          await import('@server/domains/instrumentation/hooks/ai-handlers');
+        const handlers = new AIHookToolHandlers({ getActivePage: async () => null } as never);
+        return handlers.handleAIHook({ action: 'nope' });
+      },
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        return /inject, get_data, list, clear, toggle, export/.test(text)
+          ? true
+          : `expected the action list: ${text.slice(0, 220)}`;
+      },
+    },
+    {
+      name: 'hook_preset/requires-preset-or-list',
+      tool: 'hook_preset',
+      origin: 'homemade',
+      reference:
+        'argument contract: hook_preset needs a preset/presets payload, or listPresets=true — the refusal names all three options',
+      run: async () => {
+        const { HookPresetToolHandlers } =
+          await import('@server/domains/instrumentation/hooks/preset-handlers');
+        const handlers = new HookPresetToolHandlers({ getActivePage: async () => null } as never);
+        return handlers.handleHookPreset({});
+      },
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        if (!/preset/i.test(text)) return `expected a preset error: ${text.slice(0, 200)}`;
+        return /listPresets/i.test(text) ? true : `refusal should mention listPresets`;
+      },
+    },
+    {
+      name: 'instrumentation_hook_preset/requires-sessionId',
+      tool: 'instrumentation_hook_preset',
+      origin: 'homemade',
+      reference:
+        'session contract: installing a hook preset targets one instrumentation session and names it when absent',
+      run: () =>
+        new InstrumentationHandlers(new InstrumentationSessionManager()).handleHookPreset({}),
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        return /sessionId/i.test(text) ? true : `expected a sessionId error: ${text.slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'instrumentation_network_replay/requires-sessionId',
+      tool: 'instrumentation_network_replay',
+      origin: 'homemade',
+      reference:
+        'session contract: replaying recorded traffic needs the session that holds it, and names sessionId when absent',
+      run: () =>
+        new InstrumentationHandlers(new InstrumentationSessionManager()).handleNetworkReplay({}),
+      validate: (v) => {
+        const text = JSON.stringify(body(v));
+        return /sessionId/i.test(text) ? true : `expected a sessionId error: ${text.slice(0, 200)}`;
+      },
+    },
   ],
 };
