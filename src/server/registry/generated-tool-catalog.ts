@@ -5104,6 +5104,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['ring buffer contents', 'captured console data store', '缓冲区数据'],
   },
   {
     tool: {
@@ -5168,6 +5169,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'uncaught errors list',
+      'js exceptions thrown',
+      'thrown page errors',
+      'uncaught error events',
+      '页面报错',
+    ],
   },
   {
     tool: {
@@ -5232,6 +5240,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['add console hook script', 'patch console methods', '注入控制台钩子'],
   },
   {
     tool: {
@@ -5255,6 +5264,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['log all fetch calls', 'hook window.fetch', '拦截 fetch 请求'],
   },
   {
     tool: {
@@ -5278,6 +5288,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['log ajax requests', 'hook XMLHttpRequest', '拦截 xhr'],
   },
   {
     tool: {
@@ -7208,6 +7219,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['resolve many domains at once', 'batch dns lookup', '批量解析域名'],
   },
   {
     tool: {
@@ -7242,6 +7254,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['follow alias records', 'cname chain trace', 'cname 链'],
   },
   {
     tool: {
@@ -7274,6 +7287,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['structured dns record query', 'query record types', 'dns 记录探测'],
   },
   {
     tool: {
@@ -7307,6 +7321,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['lookup domain ip', 'resolve hostname address', '域名解析'],
   },
   {
     tool: {
@@ -7334,6 +7349,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['ip to hostname', 'reverse dns lookup', '反查域名'],
   },
   {
     tool: {
@@ -10588,6 +10604,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['assemble grpc frame', 'craft grpc message bytes', '构造 grpc 帧'],
   },
   {
     tool: {
@@ -10617,6 +10634,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['decode grpc frame', 'split length prefixed messages', '解析 grpc 帧'],
   },
   {
     tool: {
@@ -10884,6 +10902,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['send raw tcp http', 'manual socket request', '裸发 http'],
   },
   {
     tool: {
@@ -10950,6 +10969,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['craft raw http message', 'construct request text', '构造 http 报文'],
   },
   {
     tool: {
@@ -11050,6 +11070,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['craft h2 frame bytes', 'construct http2 frame', '构造 http2 帧'],
   },
   {
     tool: {
@@ -11075,6 +11096,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['decode h2 frame', 'dissect http2 frame bytes', '解析 http2 帧'],
   },
   {
     tool: {
@@ -11177,6 +11199,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['test h2 support', 'check http2 endpoint', '测试 http2 支持'],
   },
   {
     tool: {
@@ -19099,6 +19122,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['detect bot signals', 'anti bot scoring', '机器人检测'],
   },
   {
     tool: {
@@ -19116,6 +19140,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'stop capturing traffic',
+      'turn off request monitoring',
+      'stop recording requests',
+      'disable traffic capture',
+      '停止抓包',
+    ],
   },
   {
     tool: {
@@ -19140,6 +19171,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'start capturing http traffic',
+      'begin request recording',
+      '开启抓包',
+      'record api calls',
+    ],
   },
   {
     tool: {
@@ -19168,6 +19205,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['save capture as har', 'export har file', '导出 har'],
   },
   {
     tool: {
@@ -19193,6 +19231,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['find tokens in traffic', 'pull api keys from captured requests', '提取凭据'],
   },
   {
     tool: {
@@ -19279,6 +19318,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['show captured requests', 'list recorded http calls', '查看抓到的请求'],
   },
   {
     tool: {
@@ -19338,6 +19378,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['download response content', 'read returned payload', '查看响应内容'],
   },
   {
     tool: {
@@ -19355,6 +19396,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'traffic summary numbers',
+      'capture overview counters',
+      'traffic counters overview',
+      'request count summary',
+      '流量统计',
+    ],
   },
   {
     tool: {
@@ -19372,6 +19420,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'is capture running',
+      'monitoring state',
+      'capture active state',
+      'is monitoring on',
+      '抓包状态',
+    ],
   },
   {
     tool: {
@@ -19397,6 +19452,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['akamai fingerprint hash', 'h2 settings fingerprint', 'http2 指纹'],
   },
   {
     tool: {
@@ -19480,6 +19536,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['icmp echo check', 'ping a host', 'ping 探测'],
   },
   {
     tool: {
@@ -19593,6 +19650,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['block or mock requests', 'fake responses', '拦截模拟请求'],
   },
   {
     tool: {
@@ -19682,6 +19740,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['latency percentiles', 'p95 delay distribution', '延迟分布'],
   },
   {
     tool: {
@@ -19712,6 +19771,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['manage traffic capture', 'watch requests live', '监控网络请求'],
   },
   {
     tool: {
@@ -19891,6 +19951,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['resend captured request', 'replay with modifications', '重放请求'],
   },
   {
     tool: {
@@ -19973,6 +20034,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['ping latency to host', 'round trip time', '测延迟'],
   },
   {
     tool: {
@@ -20083,6 +20145,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['ja3 ja4 hash', 'client hello fingerprint', 'tls 指纹'],
   },
   {
     tool: {
@@ -20166,6 +20229,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['hop by hop path', 'trace route to host', '路由跳数'],
   },
   {
     tool: {
@@ -21508,6 +21572,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['page performance numbers', 'runtime metrics snapshot', '页面性能指标'],
   },
   {
     tool: {
@@ -21548,6 +21613,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['chrome tracing capture', 'record performance trace', '性能追踪'],
   },
   {
     tool: {
@@ -22006,6 +22072,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'cpu usage sampling',
+      'javascript cpu profile',
+      'start cpu profiling',
+      'cpu profiler sampling',
+      'cpu 火焰图',
+    ],
   },
   {
     tool: {
