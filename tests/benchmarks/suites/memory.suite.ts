@@ -42,7 +42,7 @@ const memoryBindings = new Map<string, (args: Record<string, unknown>) => Promis
 function bindingFor(tool: string): ((args: Record<string, unknown>) => Promise<unknown>) | null {
   const cached = memoryBindings.get(tool);
   if (cached) return cached;
-  memoryHandlers ??= new MemoryScanHandlers();
+  memoryHandlers ??= new MemoryScanHandlers({} as never, {} as never, {} as never, {} as never);
   const manifest = memoryManifest as unknown as {
     depKey: string;
     registrations?: Array<{

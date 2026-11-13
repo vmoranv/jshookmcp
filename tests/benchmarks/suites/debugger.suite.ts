@@ -396,7 +396,7 @@ export const debuggerSuite: BenchSuite = {
       validate: (v) => {
         const res = v as { ok: boolean; body?: Record<string, unknown>; text?: string };
         if (!res.ok) {
-          return /Timeout waiting for paused/i.test(res.text)
+          return /Timeout waiting for paused/i.test(res.text ?? '')
             ? true
             : `unexpected throw: ${res.text}`;
         }
@@ -418,7 +418,7 @@ export const debuggerSuite: BenchSuite = {
       validate: (v) => {
         const res = v as { ok: boolean; body?: Record<string, unknown>; text?: string };
         if (!res.ok) {
-          return /Timeout waiting for paused/i.test(res.text)
+          return /Timeout waiting for paused/i.test(res.text ?? '')
             ? true
             : `unexpected throw: ${res.text}`;
         }
@@ -485,7 +485,7 @@ export const debuggerSuite: BenchSuite = {
       },
       validate: (v) => {
         const res = v as { ok: boolean; body?: Record<string, unknown>; text?: string };
-        if (!res.ok) return res.text.length > 0 ? true : `threw without a message`;
+        if (!res.ok) return (res.text ?? '').length > 0 ? true : 'threw without a message';
         if (res.body?.['success'] === false) {
           return String(res.body?.['error'] ?? res.body?.['message'] ?? '').length > 0
             ? true
