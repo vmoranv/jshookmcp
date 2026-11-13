@@ -42,7 +42,24 @@ const memoryBindings = new Map<string, (args: Record<string, unknown>) => Promis
 function bindingFor(tool: string): ((args: Record<string, unknown>) => Promise<unknown>) | null {
   const cached = memoryBindings.get(tool);
   if (cached) return cached;
-  memoryHandlers ??= new MemoryScanHandlers({} as never, {} as never, {} as never, {} as never);
+  // 13 required ctor deps (scanner … antiCheatDetector); the trailing nullable
+  // engines take null, the untouched ones get {} as never. Every case below
+  // asserts a refusal that happens BEFORE any of these are dereferenced.
+  memoryHandlers ??= new MemoryScanHandlers(
+    {} as never, // scanner
+    {} as never, // sessionManager
+    {} as never, // ptrEngine
+    {} as never, // structAnalyzer
+    null, // bpEngine
+    null, // vehEngine
+    null, // softBpEngine
+    {} as never, // injector
+    {} as never, // memCtrl
+    null, // speedhackEngine
+    null, // heapAnalyzer
+    null, // peAnalyzer
+    null, // antiCheatDetector
+  );
   const manifest = memoryManifest as unknown as {
     depKey: string;
     registrations?: Array<{

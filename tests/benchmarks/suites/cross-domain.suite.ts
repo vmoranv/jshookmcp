@@ -139,7 +139,7 @@ export const crossDomainSuite: BenchSuite = {
           url: withPath(TEST_URLS.api, 'items'),
         });
         const n2 = bridge.addNode('v8-heap-object', 'obj-stat-1', { address: '0x2000' });
-        bridge.getGraph().addEdge(n1.id, n2.id, 'network-triggers-heap', { confidence: 0.9 });
+        bridge.getGraph().addEdge(n1.id, n2.id, 'v8-triggers-network', { confidence: 0.9 });
         return handlers.handleEvidenceStatsTool();
       },
       validate: (v) => {

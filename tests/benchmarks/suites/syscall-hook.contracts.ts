@@ -68,7 +68,7 @@ export const syscallContractCases = [
     origin: 'homemade' as const,
     reference:
       'monitor contract: stopping an idle monitor reports stopped=true with zero captured/dropped events',
-    run: async () => JSON.stringify(text(await handlers.handleSyscallStopMonitorTool({}))),
+    run: async () => JSON.stringify(text(await handlers.handleSyscallStopMonitorTool())),
     validate: (v: unknown) => {
       const b = JSON.parse(String(v)) as Record<string, unknown>;
       if (b['success'] === false) return `stop failed: ${String(v).slice(0, 160)}`;

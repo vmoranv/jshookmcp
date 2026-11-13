@@ -347,17 +347,14 @@ export const traceSuite: BenchSuite = {
             streamingSupported: null,
             streamingError: null,
             bodyCaptureState: 'inline',
-            responseBodyPath: null,
-            responseBodyInline: '{"ok":true}',
-            responseBodySize: 11,
-            responseBodyIsBase64: false,
+            bodyArtifactPath: null,
+            bodyInline: '{"ok":true}',
+            bodySize: 11,
+            bodyBase64Encoded: false,
             bodyTruncated: false,
             bodyError: null,
             failed: false,
-            failureReason: null,
             errorText: null,
-            canceled: false,
-            canceling: false,
           });
           db.flush();
           const recorder = new TraceRecorder();

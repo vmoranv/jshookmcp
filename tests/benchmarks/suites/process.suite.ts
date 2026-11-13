@@ -255,9 +255,11 @@ export const processSuite: BenchSuite = {
       validate: (v) => {
         const b = body(v);
         if (b['pid'] !== MISSING_PID) return `pid not echoed: ${JSON.stringify(b)}`;
-        if (b['totalHandles'] !== 0 || (b['handles'] ?? []).length !== 0)
+        const handles = Array.isArray(b['handles']) ? b['handles'] : [];
+        if (b['totalHandles'] !== 0 || handles.length !== 0)
           return `expected zero handles for a missing process: ${JSON.stringify(b).slice(0, 200)}`;
-        if ((b['securityFindings'] ?? []).length !== 0) return `must not invent findings`;
+        const findings = Array.isArray(b['securityFindings']) ? b['securityFindings'] : [];
+        if (findings.length !== 0) return `must not invent findings`;
         if (typeof b['totalSystemHandles'] !== 'number')
           return `system handle total should be reported`;
         return true;

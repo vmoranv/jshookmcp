@@ -811,7 +811,8 @@ export const tlsInspectorFullSuite: BenchSuite = {
             );
             // RFC 6455 masked "hi" text frame from the client, echo it back unmasked
             socket.once('data', (frame) => {
-              const len = frame[1] & 0x7f;
+              if (typeof frame === 'string') return; // frames are binary
+              const len = frame[1]! & 0x7f;
               const payload = frame.subarray(frame.length - len);
               // unmasked text frame "hi" (opcode 0x81, len 0x02)
               socket.write(Buffer.from([0x81, payload.length, ...payload]));
@@ -929,8 +930,9 @@ export const tlsInspectorFullSuite: BenchSuite = {
             }
             // RFC 6455 masked "echo-me" text frame from client → unmask (XOR with
             // the 4-byte masking key at bytes 2..6) and echo back unmasked
-            const len = d[1] & 0x7f;
-            const masked = (d[1] & 0x80) !== 0;
+            if (typeof d === 'string') return; // frames are binary
+            const len = d[1]! & 0x7f;
+            const masked = (d[1]! & 0x80) !== 0;
             const maskKey = d.subarray(2, 6);
             const maskedPayload = d.subarray(6, 6 + len);
             const payload = Buffer.alloc(len);
