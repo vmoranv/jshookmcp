@@ -175,9 +175,83 @@ describe('registry-corpus retrieval benchmark', () => {
       // 47.4 / S@3 63.2 (38 network cases over the full 736-tool corpus).
       expect(cases.length).toBeGreaterThanOrEqual(30);
       expect(coveredTools).toBeGreaterThanOrEqual(30);
-      expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.55);
-      expect(agg.pAt1).toBeGreaterThanOrEqual(0.44);
-      expect(agg.successAt3).toBeGreaterThanOrEqual(0.6);
+      // Calibrated 2026-11-13 on the measured full-coverage baseline
+      // (MRR 70.7 / P@1 60.7 / S@3 76.8, 569 cases over 736 tools, minus a
+      // ~5pp buffer) — only-tighten policy.
+      expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.65);
+      expect(agg.pAt1).toBeGreaterThanOrEqual(0.55);
+      expect(agg.successAt3).toBeGreaterThanOrEqual(0.71);
+    },
+  );
+
+  it(
+    'measures held-out blind queries (generalization, no floors yet)',
+    { timeout: 180_000 },
+    async () => {
+      const tools: Tool[] = [];
+      const domains = new Map<string, string>();
+      const sceneKeywords = new Map<string, readonly string[]>();
+      for (const entry of GENERATED_TOOL_CATALOG) {
+        tools.push(entry.tool as Tool);
+        domains.set(entry.tool.name, entry.domain);
+        if (entry.sceneKeywords?.length) sceneKeywords.set(entry.tool.name, entry.sceneKeywords);
+      }
+      const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+      const engine = new ToolSearchEngine(
+        tools,
+        domains,
+        undefined,
+        undefined,
+        { vectorEnabled: false } as SearchConfig,
+        sceneKeywords,
+      );
+
+      const { buildRegistryHoldoutCases } =
+        await import('@tests/server/search/fixtures/registry-holdout.fixture');
+      const cases = buildRegistryHoldoutCases();
+      const rankedByCase = new Map<string, RankedResult[]>();
+      const caseMetrics = [];
+      for (const testCase of cases) {
+        const results = await engine.search(testCase.query, Math.max(testCase.topK, 10));
+        const ranked: RankedResult[] = results.map((r) => ({
+          name: r.name,
+          score: Number(r.score ?? 0),
+          domain: (r as { domain?: string | null }).domain ?? null,
+        }));
+        caseMetrics.push(evaluateCase(ranked, testCase));
+        rankedByCase.set(testCase.id, ranked);
+      }
+      const agg = aggregateSearchMetrics(caseMetrics);
+
+      const report = {
+        generatedAt: new Date().toISOString(),
+        dataset: 'registry holdout (blind phrasings, authored without expansion keywords)',
+        cases: cases.length,
+        mrrAt10: agg.mrrAt10,
+        ndcgAt10: agg.ndcgAt10,
+        pAt1: agg.pAt1,
+        pAt3: agg.pAt3,
+        successAt3: agg.successAt3,
+        worstCases: summarizeFailedCases(rankedByCase, cases).slice(0, 10),
+      };
+      const outDir = resolve(ROOT, 'artifacts/benchmarks');
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, 'registry-holdout.json'),
+        `${JSON.stringify(report, null, 2)}\n`,
+      );
+      // eslint-disable-next-line no-console
+      console.log(
+        `[registry-holdout] MRR@10=${(agg.mrrAt10 * 100).toFixed(1)}% P@1=${(agg.pAt1 * 100).toFixed(1)}% S@3=${(agg.successAt3 * 100).toFixed(1)}%`,
+      );
+
+      // No floors yet — first baseline collected 2026-11-13: blind colloquial
+      // Chinese against an English-token lexical index scores very low
+      // (MRR 7.9% vs 70.7% same-distribution) — the generalization wall the
+      // production vector layer exists to close. Bound only guards against a
+      // fully-broken index; quality floors come after calibration.
+      expect(cases.length).toBeGreaterThanOrEqual(25);
+      expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.05);
     },
   );
 });

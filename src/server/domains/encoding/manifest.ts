@@ -41,7 +41,12 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  binary_decode: ['decode base64 blob', 'turn hex into bytes', '解码二进制'],
+  binary_decode: [
+    'decode base64 blob',
+    'turn hex into bytes',
+    '解码二进制',
+    'blob to raw bytes conversion',
+  ],
   binary_detect_format: ['identify file type', 'magic bytes sniff', '识别文件格式'],
   binary_encode: ['encode bytes to base64', 'serialize buffer', '编码二进制'],
   binary_entropy_analysis: ['measure randomness', 'shannon entropy of bytes', '熵分析'],

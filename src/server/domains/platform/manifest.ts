@@ -49,8 +49,18 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  asar_deobfuscate: ['deobfuscate electron archive code', 'decode asar scripts', 'asar 反混淆'],
-  asar_extract: ['unpack electron app archive', 'pull files out of asar', '解包 asar'],
+  asar_deobfuscate: [
+    'deobfuscate electron archive code',
+    'decode asar scripts',
+    'asar 反混淆',
+    'decode obfuscated archive scripts',
+  ],
+  asar_extract: [
+    'unpack electron app archive',
+    'pull files out of asar',
+    '解包 asar',
+    'unpack electron archive contents',
+  ],
   asar_repack: ['rebuild the app archive', 'pack files back into asar', '重打包 asar'],
   asar_search: ['search inside the app archive', 'find code in asar', 'asar 内检索'],
   electron_check_fuses: ['read electron fuse state', 'which fuses are flipped', '检查 fuse'],
@@ -76,7 +86,12 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   electron_verify_signature: ['check code signature', 'verify app signing', '签名校验'],
   miniapp_pkg_analyze: ['analyze a wechat mini app', 'inspect mini program package', '小程序分析'],
   miniapp_pkg_scan: ['scan mini program contents', 'list package internals', '小程序扫描'],
-  miniapp_pkg_unpack: ['unpack a mini app package', 'extract wxapkg files', '解包小程序'],
+  miniapp_pkg_unpack: [
+    'unpack a mini app package',
+    'extract wxapkg files',
+    '解包小程序',
+    'extract wxapkg package files',
+  ],
   platform_capabilities: ['what can this host do', 'environment feature probe', '平台能力'],
   v8_bytecode_decompile: ['decompile v8 bytecode', 'read cached bytecode', '反编译字节码'],
 };

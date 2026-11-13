@@ -158,12 +158,22 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   browser_launch: ['open a new browser here', 'spin up chrome for me', '启动浏览器'],
   browser_attach: ['take over my chrome', 'connect to the running browser', '接管浏览器'],
-  browser_close: ['shut the browser down', 'kill the chrome session', '关闭浏览器'],
+  browser_close: [
+    'shut the browser down',
+    'kill the chrome session',
+    '关闭浏览器',
+    'shut down chrome instance session',
+  ],
   browser_status: ['browser alive check', 'is a page open', '浏览器状态'],
   browser_list_tabs: ['which tabs are open', 'enumerate open tabs', '列出标签页'],
   browser_select_tab: ['switch to that tab', 'focus another tab', '切换标签页'],
   browser_list_workers: ['page web workers list', 'enumerate worker threads', '列出 worker'],
-  browser_worker_scripts: ['scripts running in workers', 'worker code list', 'worker 脚本'],
+  browser_worker_scripts: [
+    'scripts running in workers',
+    'worker code list',
+    'worker 脚本',
+    'worker thread code listing',
+  ],
   browser_attach_cdp_target: [
     'take over a cdp target',
     'attach to iframe context',
@@ -178,6 +188,7 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'run js inside that target',
     'evaluate in iframe context',
     '目标内求值',
+    'run expression inside isolated context',
   ],
   browser_list_cdp_targets: ['what contexts exist', 'enumerate cdp targets', '列出 cdp 目标'],
   browser_codegen_start: ['record my actions as code', 'start codegen capture', '开始录制代码'],
@@ -205,7 +216,12 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   ],
   browser_jsdom_parse: ['parse html without a browser', 'offline dom from markup', '离线解析 html'],
   browser_jsdom_query: ['query the offline dom', 'css selectors without browser', '离线 dom 查询'],
-  browser_jsdom_execute: ['run scripts on the offline dom', 'execute jsdom code', '离线执行脚本'],
+  browser_jsdom_execute: [
+    'run scripts on the offline dom',
+    'execute jsdom code',
+    '离线执行脚本',
+    'offline script execution sandbox',
+  ],
   browser_jsdom_serialize: [
     'serialize the offline dom back',
     'output html from jsdom',
@@ -307,7 +323,12 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     '生成指纹',
   ],
   stealth_verify: ['check for automation leaks', 'verify stealth is applied', '验证隐身'],
-  tab_workflow: ['coordinate work across tabs', 'multi tab orchestration', '多标签编排'],
+  tab_workflow: [
+    'coordinate work across tabs',
+    'multi tab orchestration',
+    '多标签编排',
+    'multi tab orchestration coordination',
+  ],
   v8_type_profile: ['collect v8 type feedback', 'which types each function sees', '类型画像'],
 };
 

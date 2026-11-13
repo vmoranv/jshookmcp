@@ -41,7 +41,12 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   ast_transform_apply: ['apply code transformation', 'run ast rewrite', '应用 ast 变换'],
   ast_transform_beautify: ['pretty print javascript', 'format minified code', '美化代码'],
-  ast_transform_chain: ['run multiple rewrites in sequence', 'compose transformations', '组合变换'],
+  ast_transform_chain: [
+    'run multiple rewrites in sequence',
+    'compose transformations',
+    '组合变换',
+    'pipeline several rewrites sequentially',
+  ],
   ast_transform_preview: [
     'diff before and after rewrite',
     'preview transformation result',

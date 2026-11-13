@@ -143,6 +143,7 @@ const manifest = {
       'what can this server do across domains',
       'list cross domain skills',
       '跨域能力',
+      'server wide skill inventory',
     ],
     cross_domain_correlate_all: [
       'correlate every evidence source',

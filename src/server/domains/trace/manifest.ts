@@ -69,7 +69,12 @@ const manifest = {
     diff_heap_snapshots: ['compare two heap dumps', 'heap snapshot delta', '堆快照对比'],
     export_trace: ['save recording to file', 'dump trace data', '导出 trace'],
     query_trace_sql: ['filter events with sql', 'query recorded events', 'sql 查询事件'],
-    seek_to_timestamp: ['jump to a moment in the recording', 'time travel in trace', '时间定位'],
+    seek_to_timestamp: [
+      'jump to a moment in the recording',
+      'time travel in trace',
+      '时间定位',
+      'time travel jump within recording',
+    ],
     start_trace_recording: ['begin capturing a recording', 'start tracing session', '开始录制'],
     stop_trace_recording: ['finish the recording', 'end the trace session', '停止录制'],
     summarize_trace: ['overview of the recording', 'what happened in the trace', 'trace 摘要'],

@@ -2105,7 +2105,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['deobfuscate electron archive code', 'decode asar scripts', 'asar 反混淆'],
+    sceneKeywords: [
+      'deobfuscate electron archive code',
+      'decode asar scripts',
+      'asar 反混淆',
+      'decode obfuscated archive scripts',
+    ],
   },
   {
     tool: {
@@ -2138,7 +2143,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['unpack electron app archive', 'pull files out of asar', '解包 asar'],
+    sceneKeywords: [
+      'unpack electron app archive',
+      'pull files out of asar',
+      '解包 asar',
+      'unpack electron archive contents',
+    ],
   },
   {
     tool: {
@@ -2330,7 +2340,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
-    sceneKeywords: ['run multiple rewrites in sequence', 'compose transformations', '组合变换'],
+    sceneKeywords: [
+      'run multiple rewrites in sequence',
+      'compose transformations',
+      '组合变换',
+      'pipeline several rewrites sequentially',
+    ],
   },
   {
     tool: {
@@ -2426,7 +2441,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
-    sceneKeywords: ['decode base64 blob', 'turn hex into bytes', '解码二进制'],
+    sceneKeywords: [
+      'decode base64 blob',
+      'turn hex into bytes',
+      '解码二进制',
+      'blob to raw bytes conversion',
+    ],
   },
   {
     tool: {
@@ -3084,7 +3104,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['shut the browser down', 'kill the chrome session', '关闭浏览器'],
+    sceneKeywords: [
+      'shut the browser down',
+      'kill the chrome session',
+      '关闭浏览器',
+      'shut down chrome instance session',
+    ],
   },
   {
     tool: {
@@ -3258,7 +3283,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['run js inside that target', 'evaluate in iframe context', '目标内求值'],
+    sceneKeywords: [
+      'run js inside that target',
+      'evaluate in iframe context',
+      '目标内求值',
+      'run expression inside isolated context',
+    ],
   },
   {
     tool: {
@@ -3428,7 +3458,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['run scripts on the offline dom', 'execute jsdom code', '离线执行脚本'],
+    sceneKeywords: [
+      'run scripts on the offline dom',
+      'execute jsdom code',
+      '离线执行脚本',
+      'offline script execution sandbox',
+    ],
   },
   {
     tool: {
@@ -4173,7 +4208,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['scripts running in workers', 'worker code list', 'worker 脚本'],
+    sceneKeywords: [
+      'scripts running in workers',
+      'worker code list',
+      'worker 脚本',
+      'worker thread code listing',
+    ],
   },
   {
     tool: {
@@ -5236,7 +5276,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['ring buffer contents', 'captured console data store', '缓冲区数据'],
+    sceneKeywords: [
+      'ring buffer contents',
+      'captured console data store',
+      '缓冲区数据',
+      'intercepted payload ring store',
+    ],
   },
   {
     tool: {
@@ -5308,6 +5353,7 @@ export const GENERATED_TOOL_CATALOG = [
       'thrown page errors',
       'uncaught error events',
       '页面报错',
+      'runtime exception feed retrieval',
     ],
   },
   {
@@ -5374,7 +5420,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['add console hook script', 'patch console methods', '注入控制台钩子'],
+    sceneKeywords: [
+      'add console hook script',
+      'patch console methods',
+      '注入控制台钩子',
+      'wrap native logging functions',
+    ],
   },
   {
     tool: {
@@ -5561,6 +5612,7 @@ export const GENERATED_TOOL_CATALOG = [
       'what can this server do across domains',
       'list cross domain skills',
       '跨域能力',
+      'server wide skill inventory',
     ],
   },
   {
@@ -16672,7 +16724,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['unpack a mini app package', 'extract wxapkg files', '解包小程序'],
+    sceneKeywords: [
+      'unpack a mini app package',
+      'extract wxapkg files',
+      '解包小程序',
+      'extract wxapkg package files',
+    ],
   },
   {
     tool: {
@@ -19633,6 +19690,7 @@ export const GENERATED_TOOL_CATALOG = [
       'stop recording requests',
       'disable traffic capture',
       '停止抓包',
+      'halt packet capture session',
     ],
   },
   {
@@ -19889,6 +19947,7 @@ export const GENERATED_TOOL_CATALOG = [
       'traffic counters overview',
       'request count summary',
       '流量统计',
+      'capture counters totals only',
     ],
   },
   {
@@ -19913,6 +19972,7 @@ export const GENERATED_TOOL_CATALOG = [
       'capture active state',
       'is monitoring on',
       '抓包状态',
+      'capture session state probe',
     ],
   },
   {
@@ -22631,6 +22691,7 @@ export const GENERATED_TOOL_CATALOG = [
       'start cpu profiling',
       'cpu profiler sampling',
       'cpu 火焰图',
+      'profiler sampling session control',
     ],
   },
   {
@@ -23960,7 +24021,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['jump to a moment in the recording', 'time travel in trace', '时间定位'],
+    sceneKeywords: [
+      'jump to a moment in the recording',
+      'time travel in trace',
+      '时间定位',
+      'time travel jump within recording',
+    ],
   },
   {
     tool: {
@@ -24336,7 +24402,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
-    sceneKeywords: ['check map completeness', 'missing mappings audit', '覆盖检查'],
+    sceneKeywords: [
+      'check map completeness',
+      'missing mappings audit',
+      '覆盖检查',
+      'mapping completeness gaps audit',
+    ],
   },
   {
     tool: {
@@ -25753,7 +25824,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['coordinate work across tabs', 'multi tab orchestration', '多标签编排'],
+    sceneKeywords: [
+      'coordinate work across tabs',
+      'multi tab orchestration',
+      '多标签编排',
+      'multi tab orchestration coordination',
+    ],
   },
   {
     tool: {
@@ -26143,7 +26219,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['stop ssl key logging', 'turn off secret capture', '关闭密钥日志'],
+    sceneKeywords: [
+      'stop ssl key logging',
+      'turn off secret capture',
+      '关闭密钥日志',
+      'halt secret logging session',
+    ],
   },
   {
     tool: {
@@ -26196,7 +26277,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['read sslkeylog file', 'parse secret log lines', '解析密钥日志'],
+    sceneKeywords: [
+      'read sslkeylog file',
+      'parse secret log lines',
+      '解析密钥日志',
+      'read secret log lines file',
+    ],
   },
   {
     tool: {
@@ -29079,7 +29165,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['push ws frame manually', 'send raw websocket message', '发送 ws 帧'],
+    sceneKeywords: [
+      'push ws frame manually',
+      'send raw websocket message',
+      '发送 ws 帧',
+      'inject outbound ws payload manually',
+    ],
   },
   {
     tool: {

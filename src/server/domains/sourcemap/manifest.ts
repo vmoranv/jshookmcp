@@ -38,7 +38,12 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  sourcemap_coverage: ['check map completeness', 'missing mappings audit', '覆盖检查'],
+  sourcemap_coverage: [
+    'check map completeness',
+    'missing mappings audit',
+    '覆盖检查',
+    'mapping completeness gaps audit',
+  ],
   sourcemap_diff: ['compare two maps', 'map version delta', '对比映射'],
   sourcemap_discover: [
     'find sourceMappingURL comment',
