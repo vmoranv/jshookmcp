@@ -853,6 +853,12 @@ export const memorySuite: BenchSuite = {
       tool: spec.tool,
       origin: 'homemade' as const,
       reference: spec.note,
+      // Win32-only tools (mono/inject/auto-assembler/hypervisor/...) are pruned
+      // from the registry on non-Windows platforms, so there is no manifest
+      // binding to call. A missing binding is a platform boundary, not a
+      // handler regression — skip instead of failing (__no_binding__).
+      skip: () => bindingFor(spec.tool) === null,
+      skipReason: 'tool pruned from the registry on this platform (no manifest binding)',
       run: async () => {
         const out = await callMemory(spec.tool, spec.args ?? { pid: MISSING_PID });
         if (typeof out === 'string') return out;
@@ -865,6 +871,8 @@ export const memorySuite: BenchSuite = {
       tool: spec.tool,
       origin: 'homemade' as const,
       reference: spec.note,
+      skip: () => bindingFor(spec.tool) === null,
+      skipReason: 'tool pruned from the registry on this platform (no manifest binding)',
       run: async () => {
         const out = await callMemory(spec.tool, spec.args ?? { pid: MISSING_PID });
         if (typeof out === 'string') return out;
