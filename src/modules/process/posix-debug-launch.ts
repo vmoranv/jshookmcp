@@ -36,13 +36,28 @@ export async function launchWithDebugPosix(
       stdio: 'ignore',
     });
 
+    // A spawn failure (ENOENT for a missing executable, EACCES, …) is
+    // delivered as an async 'error' EVENT, not a throw — without this
+    // listener Node raises an uncaught exception and takes the whole server
+    // down. The Windows implementation (ProcessManager.impl.ts launchWithDebug)
+    // carries the same guard; this shared POSIX path was missing it, which is
+    // what crashed linux-full CI (spawn ENOENT → uncaught exception). Capture
+    // it so the launch reports a clean failure instead.
+    const spawnFailure = new Promise<Error>((resolve) => {
+      child.once('error', resolve);
+    });
+
     child.unref();
     ProcessRegistry.register(child);
 
     await new Promise((resolve) => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
-    if (!child.pid) {
-      logger.error(`Failed to spawn process: PID is undefined for ${executablePath}`);
+    const spawnError = await Promise.race([spawnFailure, Promise.resolve(null)]);
+
+    if (spawnError !== null || !child.pid) {
+      logger.error(
+        `Failed to spawn process: ${spawnError?.message ?? `PID is undefined for ${executablePath}`}`,
+      );
       return null;
     }
     // Fast-fail (issue #206): a target that died immediately must not be
