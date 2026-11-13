@@ -36,6 +36,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'analyze the apk on the phone',
+      'inspect the installed package',
+      '分析手机 apk',
+    ],
   },
   {
     tool: {
@@ -81,6 +86,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['download the apk from device', 'pull installer off the phone', '拉取 apk'],
   },
   {
     tool: {
@@ -130,6 +136,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['measure app cold start', 'launch timing trace', '冷启动追踪'],
   },
   {
     tool: {
@@ -147,6 +154,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['what phones are connected', 'list adb devices', '列出设备'],
   },
   {
     tool: {
@@ -184,6 +192,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['dump android system services', 'read dumpsys output', '系统服务转储'],
   },
   {
     tool: {
@@ -215,6 +224,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['copy a file off the phone', 'download from device', '拉取文件'],
   },
   {
     tool: {
@@ -246,6 +256,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['copy a file onto the phone', 'upload to device', '推送文件'],
   },
   {
     tool: {
@@ -275,6 +286,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['read android system properties', 'device build fingerprint', '系统属性'],
   },
   {
     tool: {
@@ -302,6 +314,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['send a key press to the phone', 'inject keyevent', '注入按键'],
   },
   {
     tool: {
@@ -345,6 +358,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['swipe', 'gesture', 'on', 'the', 'phone', 'screen'],
   },
   {
     tool: {
@@ -376,6 +390,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['tap the phone screen at a point', 'inject a touch', '注入点击'],
   },
   {
     tool: {
@@ -403,6 +418,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['type text on the phone', 'inject text input', '注入文本'],
   },
   {
     tool: {
@@ -466,6 +482,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['install an apk on the device', 'sideload the package', '安装 apk'],
   },
   {
     tool: {
@@ -529,6 +546,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['read the android logcat', 'filter device logs', '查 logcat'],
   },
   {
     tool: {
@@ -557,6 +575,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['package info on device', 'summarize installed app', '包摘要'],
   },
   {
     tool: {
@@ -598,6 +617,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['forward a device port', 'adb tcp forwarding', '端口转发'],
   },
   {
     tool: {
@@ -639,6 +659,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['read process memory maps on device', 'proc maps of android app', '进程 maps'],
   },
   {
     tool: {
@@ -677,6 +698,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['download the native libraries', 'pull so files from app', '拉取 so 库'],
   },
   {
     tool: {
@@ -700,6 +722,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['is the phone rooted', 'check su availability', '检查 root'],
   },
   {
     tool: {
@@ -744,6 +767,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['record the phone screen', 'capture device video', '录屏'],
   },
   {
     tool: {
@@ -771,6 +795,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['capture the phone screen', 'take device screenshot', '手机截图'],
   },
   {
     tool: {
@@ -812,6 +837,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['run a shell command on the phone', 'adb shell exec', '手机执行命令'],
   },
   {
     tool: {
@@ -849,6 +875,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['dump the ui hierarchy', 'view the android view tree', 'ui 树'],
   },
   {
     tool: {
@@ -881,6 +908,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['remove an app from the device', 'uninstall package', '卸载应用'],
   },
   {
     tool: {
@@ -913,6 +941,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['debug the app webview', 'attach to webview cdp', '接管 webview'],
   },
   {
     tool: {
@@ -941,6 +970,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['list webviews in the app', 'which webviews are debuggable', '列出 webview'],
   },
   {
     tool: {
@@ -2017,6 +2047,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['craft an arp packet', 'build arp frame bytes', '构造 arp 包'],
   },
   {
     tool: {
@@ -4882,6 +4913,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'is a debugger attached to pid',
+      'check the debug port of process',
+      '查调试端口',
+    ],
   },
   {
     tool: {
@@ -4935,6 +4971,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['fix the packet checksum', 'recompute checksums', '计算校验和'],
   },
   {
     tool: {
@@ -7531,6 +7568,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['hook into the electron app', 'attach debugging to electron', '接管 electron'],
   },
   {
     tool: {
@@ -7867,6 +7905,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['list loaded dlls of a process', 'enumerate module list', '枚举模块'],
   },
   {
     tool: {
@@ -7904,6 +7943,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['craft an ethernet frame', 'build l2 frame bytes', '构造以太网帧'],
   },
   {
     tool: {
@@ -11600,6 +11640,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['craft an icmp ping packet', 'build icmp echo bytes', '构造 icmp 包'],
   },
   {
     tool: {
@@ -11806,6 +11847,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['load my dll into the target', 'dll injection into process', 'dll 注入'],
   },
   {
     tool: {
@@ -11851,6 +11893,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['run shellcode in the target', 'code injection into process', '注入 shellcode'],
   },
   {
     tool: {
@@ -13291,6 +13334,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['export the write audit trail', 'dump audit log', '导出审计'],
   },
   {
     tool: {
@@ -13441,6 +13485,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['write many values at once', 'batch memory writes', '批量写内存'],
   },
   {
     tool: {
@@ -13688,6 +13733,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['page protection of this address', 'memory guard bits', '查内存保护'],
   },
   {
     tool: {
@@ -13783,6 +13829,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['dump a memory range', 'save region bytes', '转储内存区域'],
   },
   {
     tool: {
@@ -14573,6 +14620,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['list address ranges of process', 'enumerate memory regions', '列出内存区域'],
   },
   {
     tool: {
@@ -15369,6 +15417,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['read bytes from process memory', 'read memory at address', '读内存'],
   },
   {
     tool: {
@@ -15700,6 +15749,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['search memory for a value', 'scan process for pattern', '扫描内存'],
   },
   {
     tool: {
@@ -15741,6 +15791,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['narrow the previous scan', 'filter scan results', '过滤扫描'],
   },
   {
     tool: {
@@ -16310,6 +16361,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['write bytes into process memory', 'patch memory value', '写内存'],
   },
   {
     tool: {
@@ -16506,6 +16558,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['decode a mojo message', 'parse chrome ipc payload', '解码 mojo 消息'],
   },
   {
     tool: {
@@ -16593,6 +16646,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['build a mojo message', 'encode chrome ipc payload', '编码 mojo 消息'],
   },
   {
     tool: {
@@ -16610,6 +16664,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['mojo tooling availability', 'what mojo features exist', 'mojo 能力'],
   },
   {
     tool: {
@@ -16627,6 +16682,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['list mojo interfaces', 'enumerate ipc interfaces', '列出 mojo 接口'],
   },
   {
     tool: {
@@ -16677,6 +16733,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['captured mojo messages', 'fetch recorded ipc messages', '取 mojo 消息'],
   },
   {
     tool: {
@@ -16728,6 +16785,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['mojo traffic summary', 'ipc message overview', 'mojo 消息摘要'],
   },
   {
     tool: {
@@ -16756,6 +16814,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['watch chrome internal ipc', 'follow mojo messages live', '监控 mojo'],
   },
   {
     tool: {
@@ -16795,6 +16854,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['is mojo capture working', 'verify live ipc stream', '验证 mojo 活性'],
   },
   {
     tool: {
@@ -21508,6 +21568,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['mutate the payload bytes', 'fuzz the packet content', '变异载荷'],
   },
   {
     tool: {
@@ -21568,6 +21629,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['build packet from template', 'create payload template', '载荷模板'],
   },
   {
     tool: {
@@ -21601,6 +21663,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['read a pcap capture file', 'open packet dump', '读 pcap'],
   },
   {
     tool: {
@@ -21672,6 +21735,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['write packets to pcap', 'save capture file', '写 pcap'],
   },
   {
     tool: {
@@ -21716,6 +21780,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['read a pcapng file', 'open next-gen capture', '读 pcapng'],
   },
   {
     tool: {
@@ -21809,6 +21874,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['write pcapng capture', 'save next-gen packet dump', '写 pcapng'],
   },
   {
     tool: {
@@ -21915,6 +21981,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['debug port of another process', 'is process being debugged', '查进程调试口'],
   },
   {
     tool: {
@@ -21939,6 +22006,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['detect apc injection tricks', 'apc queue abuse scan', '检测 apc 注入'],
   },
   {
     tool: {
@@ -21971,6 +22039,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['is the process hollowed', 'detect process hollowing', '检测掏空'],
   },
   {
     tool: {
@@ -22009,6 +22078,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['list open handles of process', 'enumerate handle table', '枚举句柄'],
   },
   {
     tool: {
@@ -22038,6 +22108,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['list threads of a process', 'enumerate thread ids', '枚举线程'],
   },
   {
     tool: {
@@ -22062,6 +22133,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['find the pid of a program', 'look up process by name', '找进程'],
   },
   {
     tool: {
@@ -22086,6 +22158,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['details of one process', 'process info by pid', '进程详情'],
   },
   {
     tool: {
@@ -22125,6 +22198,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['scan for hollowed processes', 'system wide hollowing check', '全量掏空扫描'],
   },
   {
     tool: {
@@ -22148,6 +22222,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['kill this process', 'terminate the pid', '杀进程'],
   },
   {
     tool: {
@@ -22185,6 +22260,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['start a program under debugging', 'launch with debug port', '带调试启动进程'],
   },
   {
     tool: {
@@ -22203,6 +22279,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['show all running processes', 'enumerate the process table', '列出进程'],
   },
   {
     tool: {
@@ -22227,6 +22304,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['resume the suspended process', 'unfreeze process', '恢复进程'],
   },
   {
     tool: {
@@ -22251,6 +22329,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['runtime facts about the process', 'process internals readout', '运行时信息'],
   },
   {
     tool: {
@@ -22275,6 +22354,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['freeze this process', 'suspend the pid', '挂起进程'],
   },
   {
     tool: {
@@ -22298,6 +22378,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['list the windows of a process', 'enumerate window titles', '枚举窗口'],
   },
   {
     tool: {
@@ -22366,6 +22447,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: [
+      'guess the protocol automatically',
+      'identify protocol from bytes',
+      '自动识别协议',
+    ],
   },
   {
     tool: {
@@ -22394,6 +22480,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['define a protocol pattern', 'describe my custom protocol', '定义协议模式'],
   },
   {
     tool: {
@@ -22422,6 +22509,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['dissect dns packet bytes', 'parse dns message', '解析 dns 包'],
   },
   {
     tool: {
@@ -22447,6 +22535,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['dissect http bytes', 'parse raw http message', '解析 http 包'],
   },
   {
     tool: {
@@ -22477,6 +22566,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['export the protocol schema', 'save dissected format', '导出协议 schema'],
   },
   {
     tool: {
@@ -22513,6 +22603,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['fingerprint the protocol dialect', 'identify protocol variant', '协议指纹'],
   },
   {
     tool: {
@@ -22539,6 +22630,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['infer field boundaries', 'guess packet field layout', '推断字段'],
   },
   {
     tool: {
@@ -22586,6 +22678,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['infer the protocol state machine', 'learn message sequence', '推断状态机'],
   },
   {
     tool: {
@@ -22609,6 +22702,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['draw the state machine', 'visualize protocol transitions', '可视化状态机'],
   },
   {
     tool: {
@@ -23207,6 +23301,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['craft a raw ip packet', 'build l3 packet bytes', '构造 ip 包'],
   },
   {
     tool: {
@@ -24810,6 +24905,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['collect syscall events', 'fetch captured syscalls', '采集系统调用'],
   },
   {
     tool: {
@@ -24866,6 +24962,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'link syscalls to js callsites',
+      'correlate kernel calls with script',
+      '关联 js 调用点',
+    ],
   },
   {
     tool: {
@@ -24890,6 +24991,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['invoke a syscall directly', 'raw syscall call', '直接系统调用'],
   },
   {
     tool: {
@@ -24938,6 +25040,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['attach an ebpf program', 'load bpf tracer', '挂载 ebpf'],
   },
   {
     tool: {
@@ -24980,6 +25083,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['read the ebpf trace', 'collect bpf events', '读 ebpf 追踪'],
   },
   {
     tool: {
@@ -25022,6 +25126,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['filter syscall stream', 'narrow captured syscalls', '过滤系统调用'],
   },
   {
     tool: {
@@ -25039,6 +25144,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['syscall counter summary', 'how many syscalls captured', '系统调用统计'],
   },
   {
     tool: {
@@ -25070,6 +25176,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'map syscalls to their origin',
+      'where did the syscall come from',
+      '系统调用来源',
+    ],
   },
   {
     tool: {
@@ -25096,6 +25207,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['spot syscall patterns', 'detect suspicious syscall sequences', '系统调用模式'],
   },
   {
     tool: {
@@ -25119,6 +25231,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['resolve syscall numbers', 'find the ssn table entries', '解析 ssn'],
   },
   {
     tool: {
@@ -25150,6 +25263,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['capture stack at syscall', 'stack trace per syscall', '系统调用栈捕获'],
   },
   {
     tool: {
@@ -25191,6 +25305,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['start tracing syscalls', 'begin syscall monitoring', '开始监控系统调用'],
   },
   {
     tool: {
@@ -25208,6 +25323,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['stop the syscall tracer', 'end syscall capture', '停止系统调用监控'],
   },
   {
     tool: {
@@ -25307,6 +25423,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['compare two syscall traces', 'trace session delta', '对比系统调用轨迹'],
   },
   {
     tool: {
@@ -25349,6 +25466,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['save syscall trace', 'export captured syscalls', '导出系统调用轨迹'],
   },
   {
     tool: {

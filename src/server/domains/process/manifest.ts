@@ -95,6 +95,70 @@ const registrations = allRegistrations.filter((r) => {
   return !WIN32_ONLY_TOOLS.has(r.tool.name) && !LINUX_ONLY_TOOLS.has(r.tool.name);
 });
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  check_debug_port: [
+    'is a debugger attached to pid',
+    'check the debug port of process',
+    '查调试端口',
+  ],
+  electron_attach: ['hook into the electron app', 'attach debugging to electron', '接管 electron'],
+  enumerate_modules: ['list loaded dlls of a process', 'enumerate module list', '枚举模块'],
+  inject_dll: ['load my dll into the target', 'dll injection into process', 'dll 注入'],
+  inject_shellcode: [
+    'run shellcode in the target',
+    'code injection into process',
+    '注入 shellcode',
+  ],
+  memory_audit_export: ['export the write audit trail', 'dump audit log', '导出审计'],
+  memory_batch_write: ['write many values at once', 'batch memory writes', '批量写内存'],
+  memory_check_protection: ['page protection of this address', 'memory guard bits', '查内存保护'],
+  memory_dump_region: ['dump a memory range', 'save region bytes', '转储内存区域'],
+  memory_list_regions: [
+    'list address ranges of process',
+    'enumerate memory regions',
+    '列出内存区域',
+  ],
+  memory_read: ['read bytes from process memory', 'read memory at address', '读内存'],
+  memory_scan: ['search memory for a value', 'scan process for pattern', '扫描内存'],
+  memory_scan_filtered: ['narrow the previous scan', 'filter scan results', '过滤扫描'],
+  memory_write: ['write bytes into process memory', 'patch memory value', '写内存'],
+  process_check_debug_port: [
+    'debug port of another process',
+    'is process being debugged',
+    '查进程调试口',
+  ],
+  process_detect_apc: ['detect apc injection tricks', 'apc queue abuse scan', '检测 apc 注入'],
+  process_detect_hollowing: ['is the process hollowed', 'detect process hollowing', '检测掏空'],
+  process_enum_handles: ['list open handles of process', 'enumerate handle table', '枚举句柄'],
+  process_enum_threads: ['list threads of a process', 'enumerate thread ids', '枚举线程'],
+  process_find: ['find the pid of a program', 'look up process by name', '找进程'],
+  process_get: ['details of one process', 'process info by pid', '进程详情'],
+  process_hollowing_scan: [
+    'scan for hollowed processes',
+    'system wide hollowing check',
+    '全量掏空扫描',
+  ],
+  process_kill: ['kill this process', 'terminate the pid', '杀进程'],
+  process_launch_debug: [
+    'start a program under debugging',
+    'launch with debug port',
+    '带调试启动进程',
+  ],
+  process_list: ['show all running processes', 'enumerate the process table', '列出进程'],
+  process_resume: ['resume the suspended process', 'unfreeze process', '恢复进程'],
+  process_runtime_info: [
+    'runtime facts about the process',
+    'process internals readout',
+    '运行时信息',
+  ],
+  process_suspend: ['freeze this process', 'suspend the pid', '挂起进程'],
+  process_windows: ['list the windows of a process', 'enumerate window titles', '枚举窗口'],
+};
+
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   kind: 'domain-manifest',
   version: 1,
@@ -103,6 +167,9 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   profiles: ['full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 };
 
 export default manifest;

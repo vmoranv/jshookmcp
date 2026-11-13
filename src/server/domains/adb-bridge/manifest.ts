@@ -58,6 +58,43 @@ async function ensure(ctx: MCPServerContext): Promise<ADBBridgeHandlers> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  adb_apk_analyze: [
+    'analyze the apk on the phone',
+    'inspect the installed package',
+    '分析手机 apk',
+  ],
+  adb_apk_pull: ['download the apk from device', 'pull installer off the phone', '拉取 apk'],
+  adb_app_cold_start_trace: ['measure app cold start', 'launch timing trace', '冷启动追踪'],
+  adb_device_list: ['what phones are connected', 'list adb devices', '列出设备'],
+  adb_dumpsys: ['dump android system services', 'read dumpsys output', '系统服务转储'],
+  adb_file_pull: ['copy a file off the phone', 'download from device', '拉取文件'],
+  adb_file_push: ['copy a file onto the phone', 'upload to device', '推送文件'],
+  adb_getprop: ['read android system properties', 'device build fingerprint', '系统属性'],
+  adb_input_keyevent: ['send a key press to the phone', 'inject keyevent', '注入按键'],
+  adb_input_swipe: 'swipe gesture on the phone screen'.split(' '),
+  adb_input_tap: ['tap the phone screen at a point', 'inject a touch', '注入点击'],
+  adb_input_text: ['type text on the phone', 'inject text input', '注入文本'],
+  adb_install: ['install an apk on the device', 'sideload the package', '安装 apk'],
+  adb_logcat_query: ['read the android logcat', 'filter device logs', '查 logcat'],
+  adb_package_summary: ['package info on device', 'summarize installed app', '包摘要'],
+  adb_port_forward: ['forward a device port', 'adb tcp forwarding', '端口转发'],
+  adb_proc_maps: ['read process memory maps on device', 'proc maps of android app', '进程 maps'],
+  adb_pull_native_libs: ['download the native libraries', 'pull so files from app', '拉取 so 库'],
+  adb_root_check: ['is the phone rooted', 'check su availability', '检查 root'],
+  adb_screenrecord: ['record the phone screen', 'capture device video', '录屏'],
+  adb_screenshot: ['capture the phone screen', 'take device screenshot', '手机截图'],
+  adb_shell: ['run a shell command on the phone', 'adb shell exec', '手机执行命令'],
+  adb_ui_dump: ['dump the ui hierarchy', 'view the android view tree', 'ui 树'],
+  adb_uninstall: ['remove an app from the device', 'uninstall package', '卸载应用'],
+  adb_webview_attach: ['debug the app webview', 'attach to webview cdp', '接管 webview'],
+  adb_webview_list: ['list webviews in the app', 'which webviews are debuggable', '列出 webview'],
+};
+
 const manifest: DomainManifest<'adbBridgeHandlers', ADBBridgeHandlers, 'adb-bridge'> = {
   kind: 'domain-manifest',
   version: 1,
@@ -65,6 +102,10 @@ const manifest: DomainManifest<'adbBridgeHandlers', ADBBridgeHandlers, 'adb-brid
   depKey: DEP_KEY,
   profiles: ['full'],
   registrations,
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
+
   ensure,
   workflowRule: {
     patterns: [

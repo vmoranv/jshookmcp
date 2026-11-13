@@ -52,6 +52,49 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  arp_build: ['craft an arp packet', 'build arp frame bytes', '构造 arp 包'],
+  checksum_apply: ['fix the packet checksum', 'recompute checksums', '计算校验和'],
+  ethernet_frame_build: ['craft an ethernet frame', 'build l2 frame bytes', '构造以太网帧'],
+  icmp_echo_build: ['craft an icmp ping packet', 'build icmp echo bytes', '构造 icmp 包'],
+  payload_mutate: ['mutate the payload bytes', 'fuzz the packet content', '变异载荷'],
+  payload_template_build: ['build packet from template', 'create payload template', '载荷模板'],
+  pcap_read: ['read a pcap capture file', 'open packet dump', '读 pcap'],
+  pcap_write: ['write packets to pcap', 'save capture file', '写 pcap'],
+  pcapng_read: ['read a pcapng file', 'open next-gen capture', '读 pcapng'],
+  pcapng_write: ['write pcapng capture', 'save next-gen packet dump', '写 pcapng'],
+  proto_auto_detect: [
+    'guess the protocol automatically',
+    'identify protocol from bytes',
+    '自动识别协议',
+  ],
+  proto_define_pattern: [
+    'define a protocol pattern',
+    'describe my custom protocol',
+    '定义协议模式',
+  ],
+  proto_dissect_dns: ['dissect dns packet bytes', 'parse dns message', '解析 dns 包'],
+  proto_dissect_http: ['dissect http bytes', 'parse raw http message', '解析 http 包'],
+  proto_export_schema: ['export the protocol schema', 'save dissected format', '导出协议 schema'],
+  proto_fingerprint: ['fingerprint the protocol dialect', 'identify protocol variant', '协议指纹'],
+  proto_infer_fields: ['infer field boundaries', 'guess packet field layout', '推断字段'],
+  proto_infer_state_machine: [
+    'infer the protocol state machine',
+    'learn message sequence',
+    '推断状态机',
+  ],
+  proto_visualize_state: [
+    'draw the state machine',
+    'visualize protocol transitions',
+    '可视化状态机',
+  ],
+  raw_ip_packet_build: ['craft a raw ip packet', 'build l3 packet bytes', '构造 ip 包'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -155,6 +198,9 @@ const manifest = {
       weight: 0.7,
     },
   ],
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;
