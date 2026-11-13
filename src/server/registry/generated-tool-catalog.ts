@@ -1001,6 +1001,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['let ai place the hooks', 'smart hook placement', 'ai 挂钩'],
   },
   {
     tool: {
@@ -1484,6 +1485,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['probe many endpoints at once', 'batch request health check', '批量探测接口'],
   },
   {
     tool: {
@@ -2052,6 +2054,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['deobfuscate electron archive code', 'decode asar scripts', 'asar 反混淆'],
   },
   {
     tool: {
@@ -2084,6 +2087,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['unpack electron app archive', 'pull files out of asar', '解包 asar'],
   },
   {
     tool: {
@@ -2112,6 +2116,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['rebuild the app archive', 'pack files back into asar', '重打包 asar'],
   },
   {
     tool: {
@@ -2151,6 +2156,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['search inside the app archive', 'find code in asar', 'asar 内检索'],
   },
   {
     tool: {
@@ -7473,6 +7479,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['read electron fuse state', 'which fuses are flipped', '检查 fuse'],
   },
   {
     tool: {
@@ -7495,6 +7502,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['electron debugging reachable', 'debug port open on electron', '调试状态'],
   },
   {
     tool: {
@@ -7518,6 +7526,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['inspect an electron app', 'analyze the packaged app', '检视应用'],
   },
   {
     tool: {
@@ -7558,6 +7567,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['listen to electron ipc messages', 'sniff internal channels', '嗅探 ipc'],
   },
   {
     tool: {
@@ -7620,6 +7630,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'start electron with debugging',
+      'launch app with remote debugging',
+      '带调试启动',
+    ],
   },
   {
     tool: {
@@ -7661,6 +7676,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['flip electron fuses', 'change fuse configuration', '改 fuse'],
   },
   {
     tool: {
@@ -7698,6 +7714,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['scan electron user data dir', 'inspect profile storage', '扫描用户数据'],
   },
   {
     tool: {
@@ -7726,6 +7743,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['check app integrity', 'verify files are unmodified', '完整性校验'],
   },
   {
     tool: {
@@ -7750,6 +7768,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['check code signature', 'verify app signing', '签名校验'],
   },
   {
     tool: {
@@ -7839,6 +7858,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['build the evidence chain', 'link findings together', '证据链'],
   },
   {
     tool: {
@@ -7863,6 +7883,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['save evidence bundle', 'export findings to file', '导出证据'],
   },
   {
     tool: {
@@ -7892,6 +7913,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['search recorded evidence', 'query findings store', '查询证据'],
   },
   {
     tool: {
@@ -8818,6 +8840,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: [
+      'run code inside plugin context',
+      'execute in extension scope',
+      '插件上下文执行',
+    ],
   },
   {
     tool: {
@@ -8841,6 +8868,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['plugin details', 'what does this extension do', '插件详情'],
   },
   {
     tool: {
@@ -8916,6 +8944,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['install a plugin', 'add extension to registry', '安装插件'],
   },
   {
     tool: {
@@ -8933,6 +8962,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['installed plugins list', 'what extensions are loaded', '已装插件'],
   },
   {
     tool: {
@@ -8956,6 +8986,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['reload a plugin', 'refresh extension code', '重载插件'],
   },
   {
     tool: {
@@ -8979,6 +9010,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['remove a plugin', 'uninstall extension', '卸载插件'],
   },
   {
     tool: {
@@ -10870,6 +10902,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['ready-made hook templates', 'pick a hook preset', '挂钩预设'],
   },
   {
     tool: {
@@ -11809,6 +11842,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['collected instrumentation artifact', 'session artifact store', '插桩产物'],
   },
   {
     tool: {
@@ -11872,6 +11906,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['instrumentation template hooks', 'preset instrumentation set', '插桩预设'],
   },
   {
     tool: {
@@ -11972,6 +12007,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['replay captured traffic in session', 're-run recorded requests', '会话内重放'],
   },
   {
     tool: {
@@ -12025,6 +12061,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['single instrumentation operation', 'one instrumentation action', '插桩操作'],
   },
   {
     tool: {
@@ -12058,6 +12095,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['open instrumentation session', 'start instrumented run', '插桩会话'],
   },
   {
     tool: {
@@ -12086,6 +12124,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['compare two instrumented runs', 'session behavior delta', '会话对比'],
   },
   {
     tool: {
@@ -12113,6 +12152,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['export instrumentation session', 'save session data', '导出会话'],
   },
   {
     tool: {
@@ -12145,6 +12185,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['merge instrumented sessions', 'combine session data', '合并会话'],
   },
   {
     tool: {
@@ -12430,6 +12471,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['find code inside bundles', 'search bundled javascript', 'bundle 内检索'],
   },
   {
     tool: {
@@ -12717,6 +12759,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['what workflows exist', 'enumerate plugin recipes', '列出工作流'],
   },
   {
     tool: {
@@ -12759,6 +12802,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
+    sceneKeywords: ['show saved macros', 'enumerate macro library', '列出宏'],
   },
   {
     tool: {
@@ -16265,6 +16309,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['analyze a wechat mini app', 'inspect mini program package', '小程序分析'],
   },
   {
     tool: {
@@ -16288,6 +16333,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['scan mini program contents', 'list package internals', '小程序扫描'],
   },
   {
     tool: {
@@ -16315,6 +16361,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['unpack a mini app package', 'extract wxapkg files', '解包小程序'],
   },
   {
     tool: {
@@ -20943,6 +20990,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: [
+      'install a script before page load',
+      'persistent inject on navigate',
+      '预载脚本',
+    ],
   },
   {
     tool: {
@@ -20972,6 +21024,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['run a script right now in page', 'execute ad hoc page code', '执行页面脚本'],
   },
   {
     tool: {
@@ -21695,6 +21748,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['what can this host do', 'environment feature probe', '平台能力'],
   },
   {
     tool: {
@@ -23134,6 +23188,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
+    sceneKeywords: ['start a reversing session', 'begin analysis workspace', '开逆向会话'],
   },
   {
     tool: {
@@ -23238,6 +23293,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['execute a plugin recipe', 'run the workflow steps', '运行工作流'],
   },
   {
     tool: {
@@ -23277,6 +23333,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
+    sceneKeywords: ['play back a macro', 'execute recorded macro', '运行宏'],
   },
   {
     tool: {
@@ -26465,6 +26522,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['decompile v8 bytecode', 'read cached bytecode', '反编译字节码'],
   },
   {
     tool: {
@@ -28146,6 +28204,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['outbound webhook endpoint', 'c2 callback url', 'webhook 端点'],
   },
   {
     tool: {
@@ -28626,6 +28685,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['branch workflow on condition', 'if step in recipe', '条件步骤'],
   },
   {
     tool: {
@@ -28667,6 +28727,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['configure retry behavior', 'rerun on failure policy', '重试策略'],
   },
   {
     tool: {
@@ -28702,6 +28763,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['inspect a workflow execution', 'see run details', '检查运行'],
   },
   {
     tool: {
@@ -28730,6 +28792,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['recommend a recipe', 'which workflow fits this task', '推荐工作流'],
   },
   {
     tool: {

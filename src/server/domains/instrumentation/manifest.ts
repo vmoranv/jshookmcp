@@ -191,6 +191,54 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.instrumentationHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  ai_hook: ['let ai place the hooks', 'smart hook placement', 'ai 挂钩'],
+  evidence_chain: ['build the evidence chain', 'link findings together', '证据链'],
+  evidence_export: ['save evidence bundle', 'export findings to file', '导出证据'],
+  evidence_query: ['search recorded evidence', 'query findings store', '查询证据'],
+  hook_preset: ['ready-made hook templates', 'pick a hook preset', '挂钩预设'],
+  instrumentation_artifact: [
+    'collected instrumentation artifact',
+    'session artifact store',
+    '插桩产物',
+  ],
+  instrumentation_hook_preset: [
+    'instrumentation template hooks',
+    'preset instrumentation set',
+    '插桩预设',
+  ],
+  instrumentation_network_replay: [
+    'replay captured traffic in session',
+    're-run recorded requests',
+    '会话内重放',
+  ],
+  instrumentation_operation: [
+    'single instrumentation operation',
+    'one instrumentation action',
+    '插桩操作',
+  ],
+  instrumentation_session: ['open instrumentation session', 'start instrumented run', '插桩会话'],
+  instrumentation_session_diff: [
+    'compare two instrumented runs',
+    'session behavior delta',
+    '会话对比',
+  ],
+  instrumentation_session_export: [
+    'export instrumentation session',
+    'save session data',
+    '导出会话',
+  ],
+  instrumentation_session_merge: [
+    'merge instrumented sessions',
+    'combine session data',
+    '合并会话',
+  ],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -233,6 +281,9 @@ const manifest = {
     ...hookPresetRegistrations,
     ...evidenceRegistrations,
   ],
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

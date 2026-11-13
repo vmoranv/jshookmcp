@@ -87,6 +87,30 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.workflowHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  api_probe_batch: ['probe many endpoints at once', 'batch request health check', '批量探测接口'],
+  js_bundle_search: ['find code inside bundles', 'search bundled javascript', 'bundle 内检索'],
+  list_extension_workflows: ['what workflows exist', 'enumerate plugin recipes', '列出工作流'],
+  list_macros: ['show saved macros', 'enumerate macro library', '列出宏'],
+  page_script_register: [
+    'install a script before page load',
+    'persistent inject on navigate',
+    '预载脚本',
+  ],
+  page_script_run: ['run a script right now in page', 'execute ad hoc page code', '执行页面脚本'],
+  reverse_session: ['start a reversing session', 'begin analysis workspace', '开逆向会话'],
+  run_extension_workflow: ['execute a plugin recipe', 'run the workflow steps', '运行工作流'],
+  run_macro: ['play back a macro', 'execute recorded macro', '运行宏'],
+  workflow_conditional_step: ['branch workflow on condition', 'if step in recipe', '条件步骤'],
+  workflow_retry_policy: ['configure retry behavior', 'rerun on failure policy', '重试策略'],
+  workflow_run_inspect: ['inspect a workflow execution', 'see run details', '检查运行'],
+  workflow_suggest: ['recommend a recipe', 'which workflow fits this task', '推荐工作流'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -134,6 +158,9 @@ const manifest = {
   },
 
   registrations: [...registrations, ...macroRegistrations],
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;
