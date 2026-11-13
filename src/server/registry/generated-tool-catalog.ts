@@ -2368,7 +2368,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'binary_detect_format',
-      description: 'Detect binary payload format and encoding signals.',
+      description:
+        'Detect binary payload format and encoding signals: container magic bytes (PE/Mach-O/ELF/ZIP/APK/DEX), text encoding, entropy, and base64/hex shape.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -2903,7 +2904,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'browser_attach',
-      description: 'Connect to a running browser.',
+      description:
+        'Attach to an already-running browser over the Chrome DevTools Protocol (CDP) — via remote debugging URL, WebSocket endpoint, or auto-detected local Chrome debug port. Use instead of browser_launch when the target browser was started outside this server (e.g. a user profile with logged-in sessions or an anti-fingerprint build).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -6934,7 +6936,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'deobfuscate',
-      description: 'Run webcrack-powered JavaScript deobfuscation with bundle unpacking.',
+      description:
+        'Reverse engineer obfuscated and minified JavaScript back to readable source code: unpack webpack, Vite, esbuild, and Rollup bundles into individual modules; restore meaningful variable and function names stripped by minification; undo string array obfuscation, control flow flattening, and self-defending code wrappers.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -9843,7 +9846,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'get_call_stack',
-      description: 'Get the current call stack.',
+      description:
+        'Capture the paused call stack: one entry per call frame with function name, URL, and line/column location, plus the reason for the pause (breakpoint, debugger statement, exception, DOM event).',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -10118,7 +10122,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'ghidra_analyze',
-      description: 'Analyze a binary and return metadata.',
+      description:
+        'Run Ghidra headless analysis on a native binary to extract the function list, import address table, export symbols, and printable strings — the first step in native reverse engineering before decompiling individual functions.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -19115,7 +19120,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'network_enable',
-      description: 'Enable network request monitoring.',
+      description:
+        'Enable network traffic capture on the browser page via the Chrome DevTools Protocol Network domain: records every HTTP request, response, header, timing, and body for later inspection by network_get_requests and network_get_response_body.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -19478,7 +19484,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'network_intercept',
-      description: 'Manage network interception rules.',
+      description:
+        'Intercept, block, or mock network requests and responses: add URL-pattern rules (glob or regex) that abort, fulfill with a custom status/body, or continue at the request or response stage. List and disable active rules with the same tool.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -19679,7 +19686,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'network_monitor',
-      description: 'Manage network request monitoring.',
+      description:
+        'Query and filter captured network traffic: filter HTTP requests by URL pattern, resource type, or status code; paginate through results; and incrementally fetch new requests since the last checkpoint. Requires network_enable first.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -22610,7 +22618,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'proxy_list_rules',
-      description: 'List active proxy interception rules tracked by this handler.',
+      description:
+        'List the active proxy interception rules (URL pattern, action, stage, endpoint id) currently registered on the mock server.',
       inputSchema: {
         type: 'object',
         properties: {},
