@@ -394,7 +394,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.captchaDetector).toBe(deps.captchaDetector);
     });
 
-    it('evaluates and passes current captcha settings', async () => {
+    it('passes live getter functions for captcha settings', async () => {
       const deps = makeDeps();
       (deps.getAutoDetectCaptcha as any).mockReturnValue(true);
       (deps.getAutoSwitchHeadless as any).mockReturnValue(true);
@@ -403,9 +403,15 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       initializeBrowserHandlerModules(deps);
 
       const call = handlers.CaptchaHandlers.mock.calls[0]![0];
-      expect(call.autoDetectCaptcha).toBe(true);
-      expect(call.autoSwitchHeadless).toBe(true);
-      expect(call.captchaTimeout).toBe(60000);
+      // The facade injects lazy getters — captcha_config must read live state,
+      // not a construction-time snapshot (facade-initializer.ts wraps each
+      // deps getter: `getAutoDetectCaptcha: () => deps.getAutoDetectCaptcha()`).
+      expect(call.getAutoDetectCaptcha).toBeTypeOf('function');
+      expect(call.getAutoSwitchHeadless).toBeTypeOf('function');
+      expect(call.getCaptchaTimeout).toBeTypeOf('function');
+      expect(call.getAutoDetectCaptcha()).toBe(true);
+      expect(call.getAutoSwitchHeadless()).toBe(true);
+      expect(call.getCaptchaTimeout()).toBe(60000);
     });
 
     it('passes setter functions for captcha settings', async () => {
