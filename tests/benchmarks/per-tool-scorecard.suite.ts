@@ -6,7 +6,12 @@
  * correctness is vectors-passed/total, coverage is a fraction executed).
  *
  * Columns (all measured, "—" when a layer has no measurement yet):
- *   correctness  x/y vectors   — deterministic vector-bench cases actually executed & passed
+ *   correctness  x/y vectors   — deterministic vector-bench cases actually executed & passed.
+ *                               Env-gated `skipped` cases are excluded: a skip is not a
+ *                               measurement (same accounting as suite-level scoring).
+ *                               Stats are derived from the gate run's already-collected
+ *                               results — suites are NOT re-executed here (re-executing
+ *                               dirtied module-level-state suites and doubled gate time).
  *   throughput   µs/call       — wall time of those executed cases (measured, not modeled)
  *   handler-fn   %             — V8 function-level coverage: bound handler functions executed
  *                               in a real `vitest --coverage` run (pnpm bench:coverage)
@@ -24,7 +29,7 @@
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runBenchSuite, body, type BenchSuite } from './harness';
+import { body, type BenchSuite, type BenchSuiteResult } from './harness';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const COVERAGE_FILE = join(ROOT, 'coverage', 'coverage-final.json');
@@ -114,27 +119,51 @@ function loadCoverageMeta(): CoverageMeta {
   return { available: true, fnHit, fnTotal, instrumentedDomains };
 }
 
-interface ExecStats {
+export interface ExecStats {
   passed: number;
   total: number;
   totalMs: number;
+  /** Env-gated cases skipped locally — tracked for the Missing note, NEVER counted into `total`. */
+  skipped: number;
 }
 
+/** Suites whose cases must not feed the per-tool correctness/throughput columns. */
+const STATS_EXCLUDED_SUITES: ReadonlySet<string> = new Set([
+  'existing-tests-coverage',
+  'per-tool-scorecard',
+]);
+
 /**
- * RE-EXECUTE every vector-bench suite — the correctness and throughput columns are
- * measured fresh on this run, never carried over from a previous report.
+ * Derive per-tool correctness/throughput stats from ALREADY-RUN gate results.
+ *
+ * The gate loop (tests/server/benchmarks/tools-benchmark.test.ts) executes every
+ * suite exactly once and collects BenchSuiteResults; this function is a pure
+ * reduction over them. Two accounting rules, both locked by
+ * tests/server/benchmarks/per-tool-scorecard.stats.test.ts:
+ *   - `skipped` cases are excluded from `total` — a skip is not a measurement
+ *     (suite-level scoring has always excluded them; the per-tool layer used to
+ *     disagree, showing "0/1 vectors" for tools whose only cases are env-gated).
+ *   - suites are not re-executed — the previous `measureVectorBenches` re-run
+ *     dirtied module-level-state suites (session ledger singleton, tls tmpdir
+ *     fixtures), which both reported false per-tool failures on the second pass
+ *     and added ~42s to every `pnpm bench:tools`.
  */
-async function measureVectorBenches(): Promise<Map<string, ExecStats>> {
+export function statsFromSuiteResults(
+  results: readonly BenchSuiteResult[],
+): Map<string, ExecStats> {
   const stats = new Map<string, ExecStats>();
-  for (const suite of depthSuites) {
-    if (suite.name === 'existing-tests-coverage' || suite.name === 'per-tool-scorecard') continue;
-    const result = await runBenchSuite(suite);
+  for (const result of results) {
+    if (STATS_EXCLUDED_SUITES.has(result.suite)) continue;
     for (const c of result.cases) {
       if (c.tool.startsWith('*')) continue;
-      const cur = stats.get(c.tool) ?? { passed: 0, total: 0, totalMs: 0 };
-      cur.total += 1;
-      if (c.status === 'pass') cur.passed += 1;
-      cur.totalMs += c.ms;
+      const cur = stats.get(c.tool) ?? { passed: 0, total: 0, totalMs: 0, skipped: 0 };
+      if (c.status === 'skipped') {
+        cur.skipped += 1;
+      } else {
+        cur.total += 1;
+        if (c.status === 'pass') cur.passed += 1;
+        cur.totalMs += c.ms;
+      }
       stats.set(c.tool, cur);
     }
   }
@@ -144,10 +173,10 @@ async function measureVectorBenches(): Promise<Map<string, ExecStats>> {
 let vectorStatsCache = new Map<string, ExecStats>();
 let cache: ToolMetrics[] | null = null;
 let depthSuites: readonly BenchSuite[] = [];
+let getGateResults: () => readonly BenchSuiteResult[] = () => [];
 
-async function refreshMeasurements(suites: readonly BenchSuite[]): Promise<void> {
-  depthSuites = suites;
-  vectorStatsCache = await measureVectorBenches();
+function refreshMeasurements(): void {
+  vectorStatsCache = statsFromSuiteResults(getGateResults());
   cache = null;
 }
 
@@ -279,6 +308,9 @@ function summarizeTool(
 
   const missing: string[] = [];
   if (!exec) missing.push('no vector case');
+  else if (exec.total === 0 && exec.skipped > 0)
+    missing.push(`all ${exec.skipped} vector case(s) skipped in this env — not measurements`);
+  else if (exec.skipped > 0) missing.push(`${exec.skipped} vector case(s) skipped in this env`);
   if (handlerFn === 'not measured') missing.push('coverage not measured (pnpm bench:coverage)');
   if (handlerFn === 'no manifest binding') missing.push('inline binding (method not extractable)');
   if (!loaders.e2eAvailable) missing.push('e2e not measured (pnpm bench:e2e)');
@@ -380,8 +412,20 @@ function renderPerToolScorecard(): { md: string; stats: Record<string, number> }
   };
 }
 
-export function createPerToolScorecardSuite(allSuites: readonly BenchSuite[]): BenchSuite {
+/**
+ * @param allSuites the gate's full suite list — used for the orphan check
+ *   (benchmark cases referencing tools absent from the registry).
+ * @param gateResults accessor for the gate loop's already-collected first-run
+ *   results. The per-tool suite runs LAST in the gate, so by the time its cases
+ *   execute the array holds every other suite's result. Passing them in here is
+ *   what removed the double execution — see `statsFromSuiteResults`.
+ */
+export function createPerToolScorecardSuite(
+  allSuites: readonly BenchSuite[],
+  gateResults: () => readonly BenchSuiteResult[],
+): BenchSuite {
   depthSuites = allSuites;
+  getGateResults = gateResults;
   return {
     name: 'per-tool-scorecard',
     domain: '*all*',
@@ -394,7 +438,7 @@ export function createPerToolScorecardSuite(allSuites: readonly BenchSuite[]): B
         origin: 'homemade',
         reference: 'registry 736 tools × native-metric columns',
         run: async () => {
-          await refreshMeasurements(depthSuites);
+          refreshMeasurements();
           const metrics = perToolMetrics();
           const depthTools = new Set(
             depthSuites

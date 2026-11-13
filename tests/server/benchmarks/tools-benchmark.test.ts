@@ -14,7 +14,15 @@ import { runBenchSuite, renderScorecard, type BenchSuiteResult } from '@tests/be
 import { ALL_SUITES } from '@tests/benchmarks/suites';
 import { createPerToolScorecardSuite } from '@tests/benchmarks/per-tool-scorecard.suite';
 
-const GATE_SUITES = [...ALL_SUITES, createPerToolScorecardSuite(ALL_SUITES)];
+// Module-scope and declared BEFORE GATE_SUITES: the per-tool scorecard factory
+// closes over this array and reads the gate loop's first-run results when its
+// own cases execute (it runs last, after every other suite result is pushed).
+// This replaced the old in-suite re-execution of every vector suite, which
+// doubled gate time and dirtied module-level-state suites (session ledger,
+// tls tmpdir fixtures) into false per-tool failures.
+const results: BenchSuiteResult[] = [];
+
+const GATE_SUITES = [...ALL_SUITES, createPerToolScorecardSuite(ALL_SUITES, () => results)];
 
 // Per-suite floor (percent of non-skipped cases that must pass).
 const SUITE_THRESHOLDS: Record<string, number> = {
@@ -80,15 +88,14 @@ const SUITE_THRESHOLDS: Record<string, number> = {
   browser: 90,
 };
 
-const results: BenchSuiteResult[] = [];
-
 describe('tool benchmark gate', () => {
-  // Timeout raised from 120s → 300s (2026-11-12). As of the coverage campaign the
-  // gate re-executes 43 suites plus the per-tool scorecard re-run, totalling ~110s
-  // on a warm machine and crossing two external-tool probes (frida-ls-devices
-  // ~15s, ghidra analyzeHeadless ~5s × 2) that cost far more on a cold one. The
-  // timeout is a wall-clock guard, NOT part of the metric definition — no case,
-  // threshold or measurement changed.
+  // Timeout raised from 120s → 300s (2026-11-12). The gate runs all 43 suites,
+  // crossing two external-tool probes (frida-ls-devices ~15s, ghidra
+  // analyzeHeadless ~5s × 2) that cost far more on a cold machine. 2026-11-13:
+  // the per-tool scorecard no longer re-executes every suite (it aggregates this
+  // loop's results), so warm-gate wall time dropped ~110s → ~55s — the 300s
+  // guard stays for cold machines. The timeout is a wall-clock guard, NOT part
+  // of the metric definition — no case, threshold or measurement changed.
   it('runs all tool benchmark suites and meets thresholds', { timeout: 300_000 }, async () => {
     const failures: string[] = [];
 

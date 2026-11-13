@@ -24,7 +24,7 @@ score, no letter grades:
 
 | Column | Unit | Measurement |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites re-executed on every `pnpm bench:tools` |
+| correctness | x/y vectors passed | vector-bench cases aggregated from the same gate run (`pnpm bench:tools`) — no suite re-execution; env-gated `skipped` cases are excluded (a skip is not a measurement) and noted in the Missing column |
 | throughput | µs/call | measured wall time of those executions |
 | handler-fn | % | V8 function-level coverage from a real `vitest --coverage` run |
 | e2e-tasks | count | real-task e2e files (≥90% pass-rate) that exercise the tool |
@@ -64,7 +64,7 @@ with `pnpm bench:tools` (µs/call, same harness, before → after):
 | `tasks_result` | 110.4ms | 69.0ms | poll interval 100→10ms (`handlers.ts` + `TaskStoreAdapter.ts`) |
 | `process_find` | 186.4ms | 189µs | single shared all-processes PowerShell snapshot (one `Get-Process` per TTL) + JS-side case-insensitive name filter, instead of one `Get-Process -Name "*pattern*"` spawn per distinct pattern |
 
-The 92µs / 189µs figures are steady-state (the scorecard re-executes suites in one
+The 92µs / 189µs figures are steady-state (the gate runs every suite once, in one
 process); a **cold first call** is still ~80ms for crypto (inherent WASM compile),
 ~50ms for platform (inherent first `probeAll` subprocess batch), and one cold
 PowerShell spawn for `process_find`. Repeated calls — including **different**
