@@ -30,6 +30,17 @@ const registrations = defineMethodRegistrations<H, (typeof taskTools)[number]['n
   ],
 });
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  tasks_cancel: ['abort background job', 'stop a running task', '取消任务'],
+  tasks_get: ['fetch task status', 'check background job', '查任务状态'],
+  tasks_list: ['enumerate running jobs', 'show all tasks', '列出任务'],
+  tasks_result: ['fetch task output', 'get job payload', '取任务结果'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -49,6 +60,9 @@ const manifest = {
   },
 
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

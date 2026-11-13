@@ -1944,6 +1944,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['add finding to session log', 'record a discovery', '补充会话发现'],
   },
   {
     tool: {
@@ -2195,6 +2196,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: ['apply code transformation', 'run ast rewrite', '应用 ast 变换'],
   },
   {
     tool: {
@@ -2228,6 +2230,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: ['pretty print javascript', 'format minified code', '美化代码'],
   },
   {
     tool: {
@@ -2270,6 +2273,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: ['run multiple rewrites in sequence', 'compose transformations', '组合变换'],
   },
   {
     tool: {
@@ -2314,6 +2318,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: ['diff before and after rewrite', 'preview transformation result', '预览变换'],
   },
   {
     tool: {
@@ -2364,6 +2369,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: ['decode base64 blob', 'turn hex into bytes', '解码二进制'],
   },
   {
     tool: {
@@ -2401,6 +2407,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: ['identify file type', 'magic bytes sniff', '识别文件格式'],
   },
   {
     tool: {
@@ -2448,6 +2455,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: ['encode bytes to base64', 'serialize buffer', '编码二进制'],
   },
   {
     tool: {
@@ -2487,6 +2495,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: ['measure randomness', 'shannon entropy of bytes', '熵分析'],
   },
   {
     tool: {
@@ -2691,6 +2700,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: ['talk to binary ninja', 'bn decompiler bridge', 'binja 桥'],
   },
   {
     tool: {
@@ -5080,6 +5090,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['finalize handoff to next agent', 'close out the handoff', '完成交接'],
   },
   {
     tool: {
@@ -5338,6 +5349,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['bring back saved browser state', 'reload coordination snapshot', '恢复快照'],
   },
   {
     tool: {
@@ -5403,6 +5415,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['prepare handoff for another agent', 'start a task transfer', '创建交接'],
   },
   {
     tool: {
@@ -5420,6 +5433,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: [
+      'what can this server do across domains',
+      'list cross domain skills',
+      '跨域能力',
+    ],
   },
   {
     tool: {
@@ -5587,6 +5605,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['correlate every evidence source', 'build full correlation graph', '全量关联'],
   },
   {
     tool: {
@@ -5604,6 +5623,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['export the evidence graph', 'save correlation data', '导出证据'],
   },
   {
     tool: {
@@ -5663,6 +5683,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['search the evidence graph', 'query correlated findings', '查询证据'],
   },
   {
     tool: {
@@ -5680,6 +5701,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['evidence graph summary', 'how many nodes and edges', '证据统计'],
   },
   {
     tool: {
@@ -5697,6 +5719,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['which domains are ready', 'cross domain availability', '跨域健康'],
   },
   {
     tool: {
@@ -5725,6 +5748,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['recommend a multi tool recipe', 'suggest next actions', '建议工作流'],
   },
   {
     tool: {
@@ -5756,6 +5780,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['find related term across domains', 'synonym bridge lookup', '跨域同义词'],
   },
   {
     tool: {
@@ -5794,6 +5819,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: ['side by side crypto output', 'diff two cipher outputs', '对比加密结果'],
   },
   {
     tool: {
@@ -5823,6 +5849,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'pull crypto routine out of bundle',
+      'isolate encryption function',
+      '提取加密函数',
+    ],
   },
   {
     tool: {
@@ -5858,6 +5889,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: ['verify crypto implementation', 'run cipher test vectors', '加密测试'],
   },
   {
     tool: {
@@ -7177,6 +7209,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['compare two heap dumps', 'heap snapshot delta', '堆快照对比'],
   },
   {
     tool: {
@@ -8743,6 +8776,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['save recording to file', 'dump trace data', '导出 trace'],
   },
   {
     tool: {
@@ -10116,6 +10150,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['read handoff context', 'what did the previous agent leave', '获取交接上下文'],
   },
   {
     tool: {
@@ -10229,6 +10264,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: ['drive ghidra headless', 'ghidra decompiler bridge', 'ghidra 桥'],
   },
   {
     tool: {
@@ -11481,6 +11517,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: ['drive ida pro', 'ida decompiler bridge', 'ida 桥'],
   },
   {
     tool: {
@@ -12720,6 +12757,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['show saved page states', 'enumerate snapshots', '列出页面快照'],
   },
   {
     tool: {
@@ -16629,6 +16667,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: ['which reverse tools are reachable', 'bridge availability check', '桥状态'],
   },
   {
     tool: {
@@ -16673,6 +16712,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: ['sync symbols between tools', 'import export symbol tables', '符号同步'],
   },
   {
     tool: {
@@ -22393,6 +22433,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: ['decode protobuf without schema', 'parse wire format', '解析 protobuf'],
   },
   {
     tool: {
@@ -22846,6 +22887,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['filter events with sql', 'query recorded events', 'sql 查询事件'],
   },
   {
     tool: {
@@ -22993,6 +23035,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['go back to a saved page state', 'load snapshot again', '恢复页面快照'],
   },
   {
     tool: {
@@ -23114,6 +23157,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: ['drive rizin', 'rizin cutter bridge', 'rizin 桥'],
   },
   {
     tool: {
@@ -23221,6 +23265,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['capture current page state for later', 'store page snapshot', '保存页面快照'],
   },
   {
     tool: {
@@ -23366,6 +23411,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['jump to a moment in the recording', 'time travel in trace', '时间定位'],
   },
   {
     tool: {
@@ -23465,6 +23511,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
+    sceneKeywords: ['wipe progress entries', 'reset session ledger', '清空进度'],
   },
   {
     tool: {
@@ -23494,6 +23541,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
+    sceneKeywords: ['what has been covered so far', 'progress checklist', '进度覆盖'],
   },
   {
     tool: {
@@ -23537,6 +23585,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
+    sceneKeywords: ['note down completed step', 'log milestone', '记录进度'],
   },
   {
     tool: {
@@ -23729,6 +23778,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: ['check map completeness', 'missing mappings audit', '覆盖检查'],
   },
   {
     tool: {
@@ -23771,6 +23821,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: ['compare two maps', 'map version delta', '对比映射'],
   },
   {
     tool: {
@@ -23794,6 +23845,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: [
+      'find sourceMappingURL comment',
+      'locate map files on a page',
+      '发现 sourcemap',
+    ],
   },
   {
     tool: {
@@ -23821,6 +23877,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: ['download and load a map', 'pull remote sourcemap', '拉取解析 map'],
   },
   {
     tool: {
@@ -23874,6 +23931,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: ['map generated line to original', 'position mapping', '位置映射'],
   },
   {
     tool: {
@@ -23912,6 +23970,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: ['read vlq mappings', 'parse map index section', '解析 vlq'],
   },
   {
     tool: {
@@ -23952,6 +24011,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: ['rebuild original source tree', 'restore file layout', '重建源码树'],
   },
   {
     tool: {
@@ -24121,6 +24181,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['begin capturing a recording', 'start tracing session', '开始录制'],
   },
   {
     tool: {
@@ -24176,6 +24237,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
+    sceneKeywords: ['shared key value board', 'read coordination state', '共享状态板'],
   },
   {
     tool: {
@@ -24216,6 +24278,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
+    sceneKeywords: ['write to shared board', 'put state entries', '写状态板'],
   },
   {
     tool: {
@@ -24256,6 +24319,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
+    sceneKeywords: ['subscribe to state changes', 'notify on board updates', '监听状态板'],
   },
   {
     tool: {
@@ -24403,6 +24467,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['finish the recording', 'end the trace session', '停止录制'],
   },
   {
     tool: {
@@ -24431,6 +24496,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['overview of the recording', 'what happened in the trace', 'trace 摘要'],
   },
   {
     tool: {
@@ -25122,6 +25188,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
+    sceneKeywords: ['abort background job', 'stop a running task', '取消任务'],
   },
   {
     tool: {
@@ -25146,6 +25213,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
+    sceneKeywords: ['fetch task status', 'check background job', '查任务状态'],
   },
   {
     tool: {
@@ -25180,6 +25248,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
+    sceneKeywords: ['enumerate running jobs', 'show all tasks', '列出任务'],
   },
   {
     tool: {
@@ -25212,6 +25281,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
+    sceneKeywords: ['fetch task output', 'get job payload', '取任务结果'],
   },
   {
     tool: {
@@ -25857,6 +25927,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['network events inside the recording', 'request flow in trace', 'trace 网络流'],
   },
   {
     tool: {
@@ -25917,6 +25988,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['profiling samples from trace', 'cpu samples in recording', '采样点'],
   },
   {
     tool: {
@@ -25978,6 +26050,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['current recording info', 'is a trace active', '录制状态'],
   },
   {
     tool: {
@@ -26042,6 +26115,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'interactive code rewrite workspace',
+      'transform pipeline playground',
+      '变换工作台',
+    ],
   },
   {
     tool: {
@@ -26267,6 +26345,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['amend the handoff notes', 'revise handoff content', '更新交接'],
   },
   {
     tool: {

@@ -63,6 +63,24 @@ const manifest = {
     hint: 'Start recording → perform actions → stop recording → summarize/query/seek/diff/export',
   },
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (search sceneKeywords).
+  sceneKeywords: {
+    diff_heap_snapshots: ['compare two heap dumps', 'heap snapshot delta', '堆快照对比'],
+    export_trace: ['save recording to file', 'dump trace data', '导出 trace'],
+    query_trace_sql: ['filter events with sql', 'query recorded events', 'sql 查询事件'],
+    seek_to_timestamp: ['jump to a moment in the recording', 'time travel in trace', '时间定位'],
+    start_trace_recording: ['begin capturing a recording', 'start tracing session', '开始录制'],
+    stop_trace_recording: ['finish the recording', 'end the trace session', '停止录制'],
+    summarize_trace: ['overview of the recording', 'what happened in the trace', 'trace 摘要'],
+    trace_get_network_flow: [
+      'network events inside the recording',
+      'request flow in trace',
+      'trace 网络流',
+    ],
+    trace_get_samples: ['profiling samples from trace', 'cpu samples in recording', '采样点'],
+    trace_recording: ['current recording info', 'is a trace active', '录制状态'],
+  },
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;
