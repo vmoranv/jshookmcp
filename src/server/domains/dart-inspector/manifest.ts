@@ -39,6 +39,29 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.dartInspectorHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  dart_call_function: ['call a dart function', 'invoke the dart method'],
+  dart_call_graph: ['dart function call graph', 'who calls whom in dart'],
+  dart_create_session: ['open a dart snapshot session', 'start dart analysis'],
+  dart_destroy_session: ['close the dart session', 'release dart analysis'],
+  dart_inspect_object_pool: ['look at the object pool', 'dart pool entries'],
+  dart_list_functions: ['list dart functions', 'enumerate dart methods'],
+  dart_load_snapshot: ['load the dart snapshot', 'open the aot snapshot'],
+  dart_object_pool_dump: ['dump the dart object pool', 'export pool contents'],
+  dart_pc_descriptors: ['read pc descriptors table', 'offset mapping for dart code'],
+  dart_smi_scan: ['scan for smi values', 'find small integers in snapshot'],
+  dart_snapshot_header_parse: ['parse the snapshot header', 'read dart version info'],
+  dart_strings_extract: ['extract dart strings', 'pull text from snapshot'],
+  dart_symbolize: ['symbolize dart offsets', 'map addresses to dart names'],
+  dart_trace_execution: ['trace dart execution', 'record dart calls at runtime'],
+  dart_version_fingerprint: ['which dart version wrote this', 'fingerprint the snapshot'],
+  flutter_packages_detect: ['which flutter packages are used', 'detect the pub packages'],
+};
+
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   kind: 'domain-manifest',
   version: 1,
@@ -47,6 +70,9 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   profiles: ['full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 };
 
 export default manifest;

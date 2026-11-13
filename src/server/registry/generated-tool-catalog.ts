@@ -1313,6 +1313,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['dump the android runtime state', 'capture art runtime info'],
   },
   {
     tool: {
@@ -1583,6 +1584,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['ingest a dex file', 'bring the dex into the pipeline'],
   },
   {
     tool: {
@@ -1606,6 +1608,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['read the android manifest', 'dump manifest xml'],
   },
   {
     tool: {
@@ -1645,6 +1648,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['query the manifest contents', 'check permissions in manifest'],
   },
   {
     tool: {
@@ -1668,6 +1672,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['which native libs ship in the apk', 'list so libraries'],
   },
   {
     tool: {
@@ -1737,6 +1742,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['is this apk packed', 'detect the packer vendor'],
   },
   {
     tool: {
@@ -1760,6 +1766,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['packer signature list', 'which packers are known'],
   },
   {
     tool: {
@@ -1805,6 +1812,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['sign the apk again', 're-sign the package'],
   },
   {
     tool: {
@@ -1829,6 +1837,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['parse the signing block', 'read the v2 signature block'],
   },
   {
     tool: {
@@ -1868,6 +1877,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['static triage of the apk', 'first pass apk assessment'],
   },
   {
     tool: {
@@ -1901,6 +1911,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['rebuild the decoded apk', 'apktool back to apk'],
   },
   {
     tool: {
@@ -1933,6 +1944,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['decode resources with apktool', 'unpack the apk resources'],
   },
   {
     tool: {
@@ -2579,6 +2591,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['entropy profile of sections', 'where is the binary packed'],
   },
   {
     tool: {
@@ -2596,6 +2609,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['what binary tooling exists', 'feature check for instrument'],
   },
   {
     tool: {
@@ -2681,6 +2695,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['pull keys out of the binary', 'find embedded secrets'],
   },
   {
     tool: {
@@ -2784,6 +2799,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['dump strings from the binary', 'extract readable text'],
   },
   {
     tool: {
@@ -6056,6 +6072,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['call a dart function', 'invoke the dart method'],
   },
   {
     tool: {
@@ -6092,6 +6109,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['dart function call graph', 'who calls whom in dart'],
   },
   {
     tool: {
@@ -6119,6 +6137,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['open a dart snapshot session', 'start dart analysis'],
   },
   {
     tool: {
@@ -6143,6 +6162,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['close the dart session', 'release dart analysis'],
   },
   {
     tool: {
@@ -6179,6 +6199,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['look at the object pool', 'dart pool entries'],
   },
   {
     tool: {
@@ -6215,6 +6236,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['list dart functions', 'enumerate dart methods'],
   },
   {
     tool: {
@@ -6246,6 +6268,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['load the dart snapshot', 'open the aot snapshot'],
   },
   {
     tool: {
@@ -6310,6 +6333,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['dump the dart object pool', 'export pool contents'],
   },
   {
     tool: {
@@ -6366,6 +6390,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['read pc descriptors table', 'offset mapping for dart code'],
   },
   {
     tool: {
@@ -6442,6 +6467,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['scan for smi values', 'find small integers in snapshot'],
   },
   {
     tool: {
@@ -6471,6 +6497,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['parse the snapshot header', 'read dart version info'],
   },
   {
     tool: {
@@ -6599,6 +6626,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['extract dart strings', 'pull text from snapshot'],
   },
   {
     tool: {
@@ -6664,6 +6692,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['symbolize dart offsets', 'map addresses to dart names'],
   },
   {
     tool: {
@@ -6718,6 +6747,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['trace dart execution', 'record dart calls at runtime'],
   },
   {
     tool: {
@@ -6752,6 +6782,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['which dart version wrote this', 'fingerprint the snapshot'],
   },
   {
     tool: {
@@ -7304,6 +7335,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['scan the dex for classes', 'inspect dex contents'],
   },
   {
     tool: {
@@ -8103,6 +8135,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['what mitigations are on this binary', 'check nx canary aslr'],
   },
   {
     tool: {
@@ -8138,6 +8171,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['build a format string exploit', 'craft the fmt bug payload'],
   },
   {
     tool: {
@@ -8178,6 +8212,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['spray the heap with this', 'heap spray payload'],
   },
   {
     tool: {
@@ -8219,6 +8254,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['build a jop chain', 'jump oriented programming gadgets'],
   },
   {
     tool: {
@@ -8261,6 +8297,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['ret2dlresolve payload', 'resolve attack chain'],
   },
   {
     tool: {
@@ -8311,6 +8348,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['build a rop chain', 'chain the gadgets for execve'],
   },
   {
     tool: {
@@ -8344,6 +8382,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['pivot the stack to my buffer', 'stack pivot gadget chain'],
   },
   {
     tool: {
@@ -8357,6 +8396,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['clear the exploit cache', 'drop cached results'],
   },
   {
     tool: {
@@ -8399,6 +8439,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['configure the result cache', 'cache policy for gadgets'],
   },
   {
     tool: {
@@ -8418,6 +8459,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['invalidate the cached entries', 'drop stale cache'],
   },
   {
     tool: {
@@ -8431,6 +8473,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['cache hit stats', 'exploit cache usage'],
   },
   {
     tool: {
@@ -8453,6 +8496,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['calculate the exploit offsets', 'distance to the return address'],
   },
   {
     tool: {
@@ -8481,6 +8525,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['find a one gadget', 'single gadget exec constraint'],
   },
   {
     tool: {
@@ -8519,6 +8564,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['encode the shellcode', 'bad character avoidance'],
   },
   {
     tool: {
@@ -8563,6 +8609,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['find rop gadgets in this binary', 'search for pop rdi ret'],
   },
   {
     tool: {
@@ -8589,6 +8636,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['find a jmp esp', 'stack register gadget'],
   },
   {
     tool: {
@@ -8619,6 +8667,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['generate an egghunter', 'small stage one shellcode'],
   },
   {
     tool: {
@@ -8641,6 +8690,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['cyclic pattern for offset finding', 'de bruijn string'],
   },
   {
     tool: {
@@ -8708,6 +8758,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['generate a pwntools script', 'python exploit template'],
   },
   {
     tool: {
@@ -8762,6 +8813,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['solve the exploit constraints', 'work out the chain values'],
   },
   {
     tool: {
@@ -8867,6 +8919,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['verify my rop chain', 'check the gadget sequence'],
   },
   {
     tool: {
@@ -8889,6 +8942,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['export my hooks as a script', 'save the hook script'],
   },
   {
     tool: {
@@ -9359,6 +9413,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['which flutter packages are used', 'detect the pub packages'],
   },
   {
     tool: {
@@ -9430,6 +9485,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['hook onto a running process with frida', 'attach the frida session'],
   },
   {
     tool: {
@@ -9487,6 +9543,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['intercept calls via frida', 'frida interceptor attach'],
   },
   {
     tool: {
@@ -9510,6 +9567,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['release the frida session', 'unhook the process'],
   },
   {
     tool: {
@@ -9562,6 +9620,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['dump dex from memory', 'grab the unpacked dex at runtime'],
   },
   {
     tool: {
@@ -9589,6 +9648,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['list functions via frida', 'enumerate the module functions'],
   },
   {
     tool: {
@@ -9618,6 +9678,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['list loaded modules via frida', 'enumerate libraries'],
   },
   {
     tool: {
@@ -9645,6 +9706,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['find symbols with frida', 'locate the function addresses'],
   },
   {
     tool: {
@@ -9700,6 +9762,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['generate a frida script', 'write the hook code for me'],
   },
   {
     tool: {
@@ -9718,6 +9781,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['which devices does frida see', 'list frida targets'],
   },
   {
     tool: {
@@ -9746,6 +9810,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['processes frida can attach to', 'list frida process targets'],
   },
   {
     tool: {
@@ -9763,6 +9828,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['active frida sessions', 'list my frida hooks'],
   },
   {
     tool: {
@@ -9795,6 +9861,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['read memory through frida', 'frida read at address'],
   },
   {
     tool: {
@@ -9851,6 +9918,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['scan memory through frida', 'frida pattern scan'],
   },
   {
     tool: {
@@ -9874,6 +9942,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['resume the frida spawned process', 'continue the spawned target'],
   },
   {
     tool: {
@@ -9923,6 +9992,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['run this frida script', 'execute the hook code'],
   },
   {
     tool: {
@@ -9956,6 +10026,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['spawn the app under frida', 'start the process gated'],
   },
   {
     tool: {
@@ -9996,6 +10067,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['write hook code for these functions', 'generate the interceptor code'],
   },
   {
     tool: {
@@ -10037,6 +10109,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['which binary tool plugins exist', 'list decompiler plugins'],
   },
   {
     tool: {
@@ -10369,6 +10442,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['run ghidra headless analysis', 'extract functions with ghidra'],
   },
   {
     tool: {
@@ -10470,6 +10544,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['decompile with ghidra', 'ghidra pseudocode for this function'],
   },
   {
     tool: {
@@ -11730,6 +11805,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['ida pseudocode output', 'decompile in ida pro'],
   },
   {
     tool: {
@@ -12353,6 +12429,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['decompile the apk with jadx', 'jadx java sources'],
   },
   {
     tool: {
@@ -12391,6 +12468,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['full jadx run on the apk', 'decompile the whole package'],
   },
   {
     tool: {
@@ -12459,6 +12537,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['search inside the jadx output', 'find code in the java sources'],
   },
   {
     tool: {
@@ -13121,6 +13200,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['allocate memory in the target', 'reserve a memory block'],
   },
   {
     tool: {
@@ -13144,6 +13224,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['which anticheat is watching', 'detect the ac module'],
   },
   {
     tool: {
@@ -13174,6 +13255,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['hide my memory operations', 'anti ac concealment'],
   },
   {
     tool: {
@@ -13198,6 +13280,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['is my tooling visible', 'check concealment state'],
   },
   {
     tool: {
@@ -13270,6 +13353,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['scan for this byte pattern', 'array of bytes search'],
   },
   {
     tool: {
@@ -13317,6 +13401,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['assemble this instruction text', 'turn assembly into bytes'],
   },
   {
     tool: {
@@ -13363,6 +13448,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['run an auto assembler script', 'apply aa script'],
   },
   {
     tool: {
@@ -13391,6 +13477,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['remove the aa script', 'undo auto assemble'],
   },
   {
     tool: {
@@ -13438,6 +13525,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['edit many addresses at once', 'batch value changes'],
   },
   {
     tool: {
@@ -13527,6 +13615,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['bookmark this address', 'save the location for later'],
   },
   {
     tool: {
@@ -13600,6 +13689,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['break on memory access', 'stop when this address is touched'],
   },
   {
     tool: {
@@ -13632,6 +13722,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['walk the stack of this thread', 'capture the call frames'],
   },
   {
     tool: {
@@ -13705,6 +13796,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['export a cheat table', 'ct file with my entries'],
   },
   {
     tool: {
@@ -13761,6 +13853,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['find a code cave', 'empty space in the sections'],
   },
   {
     tool: {
@@ -13793,6 +13886,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['dump this memory range to file', 'save the region bytes'],
   },
   {
     tool: {
@@ -13864,6 +13958,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['is this an emulator environment', 'detect emulator artifacts'],
   },
   {
     tool: {
@@ -13931,6 +14026,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['what reads this address', 'find code touching the value'],
   },
   {
     tool: {
@@ -13968,6 +14064,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['what points to this address', 'find pointers to it'],
   },
   {
     tool: {
@@ -14073,6 +14170,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['first search for this value', 'initial exact scan'],
   },
   {
     tool: {
@@ -14101,6 +14199,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['free the allocated block', 'release reserved memory'],
   },
   {
     tool: {
@@ -14166,6 +14265,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['freeze this value in place', 'lock the value constant'],
   },
   {
     tool: {
@@ -14189,6 +14289,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['export the frozen entries', 'save the freeze list'],
   },
   {
     tool: {
@@ -14225,6 +14326,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['generate a scan signature', 'aob signature from this address'],
   },
   {
     tool: {
@@ -14293,6 +14395,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['scan for several values together', 'grouped value search'],
   },
   {
     tool: {
@@ -14320,6 +14423,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['set guard pages on the region', 'protect with guard'],
   },
   {
     tool: {
@@ -14358,6 +14462,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['enumerate open handles', 'list process handles'],
   },
   {
     tool: {
@@ -14381,6 +14486,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['heap anomalies in the target', 'odd heap structures'],
   },
   {
     tool: {
@@ -14408,6 +14514,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['walk the heap allocations', 'list heap blocks'],
   },
   {
     tool: {
@@ -14431,6 +14538,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['heap usage numbers', 'heap totals'],
   },
   {
     tool: {
@@ -14461,6 +14569,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['hypervisor backed operations', 'vt powered memory ops'],
   },
   {
     tool: {
@@ -14494,6 +14603,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['inject a dll into the game', 'load my library in target'],
   },
   {
     tool: {
@@ -14527,6 +14637,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['inject shellcode into the game', 'run my code in target'],
   },
   {
     tool: {
@@ -14570,6 +14681,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['detect inline hooks', 'patched prologue scan'],
   },
   {
     tool: {
@@ -14597,6 +14709,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['check code integrity of sections', 'verify section hashes'],
   },
   {
     tool: {
@@ -14638,6 +14751,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['registered custom types', 'list my type definitions'],
   },
   {
     tool: {
@@ -14665,6 +14779,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['list mono assemblies in the game', 'unity assembly list'],
   },
   {
     tool: {
@@ -14701,6 +14816,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['list mono classes in the assembly', 'unity class enumeration'],
   },
   {
     tool: {
@@ -14724,6 +14840,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['is this a mono game', 'detect the unity runtime'],
   },
   {
     tool: {
@@ -14752,6 +14869,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['fields of this mono class', 'unity field offsets'],
   },
   {
     tool: {
@@ -14784,6 +14902,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['methods of this mono class', 'unity method list'],
   },
   {
     tool: {
@@ -14816,6 +14935,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['find instances of this class', 'unity object instances'],
   },
   {
     tool: {
@@ -14887,6 +15007,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['narrow the scan results', 'next scan with the new value'],
   },
   {
     tool: {
@@ -14943,6 +15064,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['parse the dumped region', 'read the dump structure'],
   },
   {
     tool: {
@@ -14978,6 +15100,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['patch these bytes in place', 'write instruction bytes'],
   },
   {
     tool: {
@@ -15010,6 +15133,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['nop out this instruction', 'replace with nops'],
   },
   {
     tool: {
@@ -15033,6 +15157,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['undo the last patch', 'restore original bytes'],
   },
   {
     tool: {
@@ -15065,6 +15190,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['read the pe headers', 'section table of the module'],
   },
   {
     tool: {
@@ -15102,6 +15228,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['imports and exports of the module', 'pe iat eat'],
   },
   {
     tool: {
@@ -15167,6 +15294,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['walk this pointer chain', 'follow the multi level pointer'],
   },
   {
     tool: {
@@ -15254,6 +15382,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['map the pointer paths', 'pointer relationships'],
   },
   {
     tool: {
@@ -15319,6 +15448,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['scan for pointers to this address', 'pointer search'],
   },
   {
     tool: {
@@ -15348,6 +15478,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['suspend or resume from memory tool', 'control target execution'],
   },
   {
     tool: {
@@ -15385,6 +15516,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['change memory protection flags', 'set the guard bits'],
   },
   {
     tool: {
@@ -15471,6 +15603,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['read a typed value', 'read as int or float'],
   },
   {
     tool: {
@@ -15507,6 +15640,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['compare two memory regions', 'region byte delta'],
   },
   {
     tool: {
@@ -15549,6 +15683,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['list committed regions', 'enumerate readable ranges'],
   },
   {
     tool: {
@@ -15590,6 +15725,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['register a custom type', 'define a new struct type'],
   },
   {
     tool: {
@@ -15647,6 +15783,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['operate on a remote target', 'remote memory session'],
   },
   {
     tool: {
@@ -15680,6 +15817,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['reverse the write trace timing', 'mwt timing reversal'],
   },
   {
     tool: {
@@ -15709,6 +15847,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['rtti class info of this object', 'read the vtable type'],
   },
   {
     tool: {
@@ -15821,6 +15960,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['saved scan sessions', 'list my scan history'],
   },
   {
     tool: {
@@ -15866,6 +16006,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['search memory for this string', 'find text in memory'],
   },
   {
     tool: {
@@ -15890,6 +16031,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['export the scan session', 'save scan state'],
   },
   {
     tool: {
@@ -15923,6 +16065,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['speed up the game time', 'adjust the game clock'],
   },
   {
     tool: {
@@ -15965,6 +16108,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['analyze this structure', 'field layout discovery'],
   },
   {
     tool: {
@@ -16015,6 +16159,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['compare two structures', 'struct layout delta'],
   },
   {
     tool: {
@@ -16050,6 +16195,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['export the struct as c code', 'generate c header'],
   },
   {
     tool: {
@@ -16098,6 +16244,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['trace which code executes here', 'record execution at region'],
   },
   {
     tool: {
@@ -16136,6 +16283,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['define a structure type', 'create a custom layout'],
   },
   {
     tool: {
@@ -16212,6 +16360,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['scan for unknown initial value', 'changed or unchanged scan'],
   },
   {
     tool: {
@@ -16235,6 +16384,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['remove my custom type', 'delete the type definition'],
   },
   {
     tool: {
@@ -16263,6 +16413,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['parse the vtable entries', 'read the virtual table'],
   },
   {
     tool: {
@@ -16323,6 +16474,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['watch this address for changes', 'notify on value change'],
   },
   {
     tool: {
@@ -16392,6 +16544,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['history of writes to this address', 'who wrote this value'],
   },
   {
     tool: {
@@ -16443,6 +16596,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['write this value to the address', 'set the memory value'],
   },
   {
     tool: {
@@ -16981,6 +17135,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['reserve guest memory in the emulator', 'allocate in the arm64 vm'],
   },
   {
     tool: {
@@ -17018,6 +17173,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['bind every import in the emulated library', 'resolve all imports'],
   },
   {
     tool: {
@@ -17051,6 +17207,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['bind a host function to the guest', 'native callback into emulator'],
   },
   {
     tool: {
@@ -17075,6 +17232,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['decode arm64 instruction bytes', 'disassemble one encoding'],
   },
   {
     tool: {
@@ -17119,6 +17277,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['scan for instruction encodings', 'find gadgets in emulator memory'],
   },
   {
     tool: {
@@ -17162,6 +17321,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['call this guest address', 'run the emulated function at addr'],
   },
   {
     tool: {
@@ -17207,6 +17367,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['call the jni export in emulation', 'run the registered jni method'],
   },
   {
     tool: {
@@ -17272,6 +17433,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['call a symbol in the emulated lib', 'run by symbol name'],
   },
   {
     tool: {
@@ -17290,6 +17452,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['what can the emulator do', 'nemu feature check'],
   },
   {
     tool: {
@@ -17328,6 +17491,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['create a jni handle', 'new java object handle'],
   },
   {
     tool: {
@@ -17367,6 +17531,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['start an emulation session', 'new arm64 emulator instance'],
   },
   {
     tool: {
@@ -17402,6 +17567,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['build a c++ vtable in guest', 'set up the virtual table'],
   },
   {
     tool: {
@@ -17446,6 +17612,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['dump guest data bytes', 'read emulator memory range'],
   },
   {
     tool: {
@@ -17470,6 +17637,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['close the emulation session', 'tear down the emulator'],
   },
   {
     tool: {
@@ -17537,6 +17705,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['disassemble emulator memory', 'list guest instructions'],
   },
   {
     tool: {
@@ -17567,6 +17736,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['why did dlsym fail', 'diagnose symbol resolution'],
   },
   {
     tool: {
@@ -17595,6 +17765,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['dump the current guest frame', 'stack frame contents'],
   },
   {
     tool: {
@@ -17619,6 +17790,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['dump the got entries', 'global offset table state'],
   },
   {
     tool: {
@@ -17643,6 +17815,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['pull libraries from the apk for emulation', 'extract so files'],
   },
   {
     tool: {
@@ -17684,6 +17857,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['start a gdb server on the emulator', 'debug the guest over gdb'],
   },
   {
     tool: {
@@ -17713,6 +17887,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['get the jni stub for this function', 'jni bridge stub'],
   },
   {
     tool: {
@@ -17737,6 +17912,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['list the imports of the emulated lib', 'what does the library need'],
   },
   {
     tool: {
@@ -17767,6 +17943,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['diagnose jni problems', 'why is the jni call failing'],
   },
   {
     tool: {
@@ -17800,6 +17977,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['list live jni handles', 'java handle table'],
   },
   {
     tool: {
@@ -17817,6 +17995,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['emulation sessions running', 'list nemu instances'],
   },
   {
     tool: {
@@ -17841,6 +18020,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['symbols of the emulated library', 'exported names'],
   },
   {
     tool: {
@@ -17873,6 +18053,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load a library from the apk', 'emulate the packaged so'],
   },
   {
     tool: {
@@ -17901,6 +18082,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load an so into the emulator', 'map the library into guest'],
   },
   {
     tool: {
@@ -17936,6 +18118,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load the library with dependencies', 'resolve the so dependency chain'],
   },
   {
     tool: {
@@ -18034,6 +18217,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['inspect guest memory at address', 'look at emulated memory'],
   },
   {
     tool: {
@@ -18066,6 +18250,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['guest memory map', 'regions mapped in the emulator'],
   },
   {
     tool: {
@@ -18103,6 +18288,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['shadow memory view', 'intercepted memory regions'],
   },
   {
     tool: {
@@ -18131,6 +18317,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['create a jni byte array', 'new java byte buffer'],
   },
   {
     tool: {
@@ -18178,6 +18365,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['apply a patch in the guest', 'patch emulated code bytes'],
   },
   {
     tool: {
@@ -18222,6 +18410,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['walk a pointer chain in guest memory', 'follow guest pointers'],
   },
   {
     tool: {
@@ -18246,6 +18435,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['set up tls for the guest thread', 'thread local storage setup'],
   },
   {
     tool: {
@@ -18274,6 +18464,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['read back the jni byte array', 'get java array contents'],
   },
   {
     tool: {
@@ -18319,6 +18510,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['read guest memory', 'emulator memory read'],
   },
   {
     tool: {
@@ -18355,6 +18547,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['restore the saved registers', 'load register state back'],
   },
   {
     tool: {
@@ -18383,6 +18576,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['save the register state', 'snapshot the cpu registers'],
   },
   {
     tool: {
@@ -18429,6 +18623,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['relay calls to the host', 'forward native calls to real library'],
   },
   {
     tool: {
@@ -18470,6 +18665,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['scan guest memory for a value', 'search emulated memory'],
   },
   {
     tool: {
@@ -18494,6 +18690,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['emulation session details', 'nemu session state'],
   },
   {
     tool: {
@@ -18522,6 +18719,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load a saved emulation session', 'resume the session file'],
   },
   {
     tool: {
@@ -18556,6 +18754,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['set the pointer auth key', 'pac key configuration'],
   },
   {
     tool: {
@@ -18585,6 +18784,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['set the cpu registers', 'write guest register state'],
   },
   {
     tool: {
@@ -18622,6 +18822,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['set a vtable slot entry', 'patch the virtual method pointer'],
   },
   {
     tool: {
@@ -18670,6 +18871,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['mock a java field value', 'set up the java field in guest'],
   },
   {
     tool: {
@@ -18733,6 +18935,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['mock a java object for jni', 'fake the java side'],
   },
   {
     tool: {
@@ -18794,6 +18997,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['mock several java objects', 'prepare the jni environment'],
   },
   {
     tool: {
@@ -18914,6 +19118,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['trace the emulated execution', 'record guest instructions'],
   },
   {
     tool: {
@@ -18968,6 +19173,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['compare two vm states', 'emulator state delta'],
   },
   {
     tool: {
@@ -19019,6 +19225,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['dump the vm state', 'save emulator state to file'],
   },
   {
     tool: {
@@ -19086,6 +19293,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load a saved vm state', 'restore emulator state'],
   },
   {
     tool: {
@@ -19122,6 +19330,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['write into guest memory', 'emulator memory write'],
   },
   {
     tool: {
@@ -19168,6 +19377,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['write several guest regions', 'batch memory writes in emulator'],
   },
   {
     tool: {
@@ -19210,6 +19420,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['xor a guest memory region', 'decode the region in place'],
   },
   {
     tool: {
@@ -26586,6 +26797,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['call a function in unidbg', 'invoke the native method emulated'],
   },
   {
     tool: {
@@ -26620,6 +26832,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['emulate the native library', 'run the so file in unidbg'],
   },
   {
     tool: {
@@ -26647,6 +26860,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['start an unidbg instance', 'load the library into the emulator'],
   },
   {
     tool: {
@@ -26670,6 +26884,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['trace the emulated execution', 'unidbg instruction trace'],
   },
   {
     tool: {

@@ -119,6 +119,59 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  android_runtime_dump_session: ['dump the android runtime state', 'capture art runtime info'],
+  apk_dex_intake: ['ingest a dex file', 'bring the dex into the pipeline'],
+  apk_manifest_dump: ['read the android manifest', 'dump manifest xml'],
+  apk_manifest_query: ['query the manifest contents', 'check permissions in manifest'],
+  apk_native_libs_list: ['which native libs ship in the apk', 'list so libraries'],
+  apk_packer_detect: ['is this apk packed', 'detect the packer vendor'],
+  apk_packer_list_signatures: ['packer signature list', 'which packers are known'],
+  apk_sign: ['sign the apk again', 're-sign the package'],
+  apk_signing_block_parse: ['parse the signing block', 'read the v2 signature block'],
+  apk_static_triage: ['static triage of the apk', 'first pass apk assessment'],
+  apktool_build: ['rebuild the decoded apk', 'apktool back to apk'],
+  apktool_decode: ['decode resources with apktool', 'unpack the apk resources'],
+  binary_entropy_profile: ['entropy profile of sections', 'where is the binary packed'],
+  binary_instrument_capabilities: ['what binary tooling exists', 'feature check for instrument'],
+  binary_key_extract: ['pull keys out of the binary', 'find embedded secrets'],
+  binary_strings_extract: ['dump strings from the binary', 'extract readable text'],
+  dex_scan_file: ['scan the dex for classes', 'inspect dex contents'],
+  export_hook_script: ['export my hooks as a script', 'save the hook script'],
+  frida_attach: ['hook onto a running process with frida', 'attach the frida session'],
+  frida_attach_interceptor: ['intercept calls via frida', 'frida interceptor attach'],
+  frida_detach: ['release the frida session', 'unhook the process'],
+  frida_dex_dump: ['dump dex from memory', 'grab the unpacked dex at runtime'],
+  frida_enumerate_functions: ['list functions via frida', 'enumerate the module functions'],
+  frida_enumerate_modules: ['list loaded modules via frida', 'enumerate libraries'],
+  frida_find_symbols: ['find symbols with frida', 'locate the function addresses'],
+  frida_generate_script: ['generate a frida script', 'write the hook code for me'],
+  frida_list_devices: ['which devices does frida see', 'list frida targets'],
+  frida_list_processes: ['processes frida can attach to', 'list frida process targets'],
+  frida_list_sessions: ['active frida sessions', 'list my frida hooks'],
+  frida_memory_read: ['read memory through frida', 'frida read at address'],
+  frida_memory_scan: ['scan memory through frida', 'frida pattern scan'],
+  frida_resume: ['resume the frida spawned process', 'continue the spawned target'],
+  frida_run_script: ['run this frida script', 'execute the hook code'],
+  frida_spawn: ['spawn the app under frida', 'start the process gated'],
+  generate_hooks: ['write hook code for these functions', 'generate the interceptor code'],
+  get_available_plugins: ['which binary tool plugins exist', 'list decompiler plugins'],
+  ghidra_analyze: ['run ghidra headless analysis', 'extract functions with ghidra'],
+  ghidra_decompile: ['decompile with ghidra', 'ghidra pseudocode for this function'],
+  ida_decompile: ['ida pseudocode output', 'decompile in ida pro'],
+  jadx_decompile: ['decompile the apk with jadx', 'jadx java sources'],
+  jadx_decompile_apk: ['full jadx run on the apk', 'decompile the whole package'],
+  jadx_search_code: ['search inside the jadx output', 'find code in the java sources'],
+  unidbg_call: ['call a function in unidbg', 'invoke the native method emulated'],
+  unidbg_emulate: ['emulate the native library', 'run the so file in unidbg'],
+  unidbg_launch: ['start an unidbg instance', 'load the library into the emulator'],
+  unidbg_trace: ['trace the emulated execution', 'unidbg instruction trace'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -128,6 +181,9 @@ const manifest = {
   profiles: ['full'],
   ensure,
   registrations: allRegistrations,
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
   workflowRule: {
     patterns: [
       /\b(frida|ghidra|ida|unidbg|jadx|binary|disassemb|decompil|dump\s?so)\b/i,
