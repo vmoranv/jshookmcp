@@ -227,9 +227,9 @@ describe('initializeBrowserHandlerModules', () => {
     initializeBrowserHandlerModules(deps);
 
     const call = handlers.CaptchaHandlers.mock.calls[0]![0];
-    expect(call.autoDetectCaptcha).toBe(true);
-    expect(call.captchaTimeout).toBe(60000);
-    expect(call.setAutoDetectCaptcha).toBe(deps.setAutoDetectCaptcha);
+    expect(call.getAutoDetectCaptcha).toBeTypeOf('function');
+    expect(call.getCaptchaTimeout).toBeTypeOf('function');
+    expect(call.setAutoDetectCaptcha).toBeTypeOf('function');
   });
 
   it('provides getActivePage to framework state handlers', async () => {
