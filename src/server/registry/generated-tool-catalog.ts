@@ -1336,6 +1336,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'debugger',
     profiles: ['full'],
+    sceneKeywords: ['get past anti debugging', 'defeat the debugger detection', '绕过反调试'],
   },
   {
     tool: {
@@ -1354,6 +1355,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'debugger',
     profiles: ['full'],
+    sceneKeywords: ['what anti debug is active', 'spot protection tricks', '检测反调试'],
   },
   {
     tool: {
@@ -2775,6 +2777,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['skip this library while stepping', 'mark code as library code', '加入黑盒'],
   },
   {
     tool: {
@@ -2793,6 +2796,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['ignore common libraries when stepping', 'blackbox vendor code', '黑盒常见库'],
   },
   {
     tool: {
@@ -2810,6 +2814,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['which files are blackboxed', 'show ignore list', '列出黑盒'],
   },
   {
     tool: {
@@ -2897,6 +2902,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['set a breakpoint here', 'stop on this line', '下断点'],
   },
   {
     tool: {
@@ -2922,6 +2928,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['browse the plugin marketplace', 'list registry entries', '浏览插件仓库'],
   },
   {
     tool: {
@@ -4996,6 +5003,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['delete old artifacts', 'clean the output directory', '清理产物'],
   },
   {
     tool: {
@@ -5013,6 +5021,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['flush every cache', 'wipe cached data', '清空缓存'],
   },
   {
     tool: {
@@ -6754,6 +6763,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['capture the breakpoint hit', 'record pause context', '捕获断点命中'],
   },
   {
     tool: {
@@ -6790,6 +6800,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'show the wasm or bytecode disassembly',
+      'list low level instructions',
+      '反汇编',
+    ],
   },
   {
     tool: {
@@ -6825,6 +6840,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['run an expression while paused', 'evaluate in the paused frame', '断点内求值'],
   },
   {
     tool: {
@@ -6842,6 +6858,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['why are we paused', 'current pause reason', '暂停状态'],
   },
   {
     tool: {
@@ -6866,6 +6883,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['attach or detach the debugger', 'manage debugger session', '调试器生命周期'],
   },
   {
     tool: {
@@ -6883,6 +6901,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['pause execution now', 'break into the debugger', '暂停执行'],
   },
   {
     tool: {
@@ -6900,6 +6919,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['continue execution', 'let the page keep running', '恢复执行'],
   },
   {
     tool: {
@@ -6949,6 +6969,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['run until this spot', 'continue up to a location', '运行到指定位置'],
   },
   {
     tool: {
@@ -6987,6 +7008,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['start a debugging session', 'open debugger for this target', '开调试会话'],
   },
   {
     tool: {
@@ -7012,6 +7034,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['step one instruction', 'step into or over', '单步执行'],
   },
   {
     tool: {
@@ -7037,6 +7060,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['block until a pause happens', 'wait for breakpoint hit', '等待暂停'],
   },
   {
     tool: {
@@ -7470,6 +7494,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['diagnose my setup', 'what is broken in this environment', '环境诊断'],
   },
   {
     tool: {
@@ -8019,6 +8044,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['full'],
+    sceneKeywords: ['run code in the sandbox', 'safe script execution', '沙箱执行'],
   },
   {
     tool: {
@@ -9989,6 +10015,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['cache hit numbers', 'how full are the caches', '缓存统计'],
   },
   {
     tool: {
@@ -10007,6 +10034,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['show the current call frames', 'what is on the stack', '调用栈'],
   },
   {
     tool: {
@@ -10085,6 +10113,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['inspect this object fields', 'show object shape', '对象属性'],
   },
   {
     tool: {
@@ -10156,6 +10185,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['list variables in this scope', 'what is in scope now', '作用域变量'],
   },
   {
     tool: {
@@ -10270,6 +10300,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['token budget usage', 'how many tokens left', 'token 预算'],
   },
   {
     tool: {
@@ -11847,6 +11878,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['install a plugin from the registry', 'add this extension', '安装插件'],
   },
   {
     tool: {
@@ -12852,6 +12884,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['show installed plugins', 'what extensions exist', '列出插件'],
   },
   {
     tool: {
@@ -12950,6 +12983,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['detect the gpu on this host', 'graphics adapter probe', 'gpu 探测'],
   },
   {
     tool: {
@@ -13015,6 +13049,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['manually trim the token budget', 'free token budget now', '手动清理 token'],
   },
   {
     tool: {
@@ -23190,6 +23225,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['hot reload all plugins', 'refresh extensions', '重载插件'],
   },
   {
     tool: {
@@ -23208,6 +23244,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['reset the token budget', 'give me a fresh budget', '重置 token 预算'],
   },
   {
     tool: {
@@ -23880,6 +23917,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['intelligently clean caches', 'cleanup with retention policy', '智能清理'],
   },
   {
     tool: {
@@ -23909,6 +23947,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['take a state snapshot', 'save the current server state', '创建快照'],
   },
   {
     tool: {
@@ -23933,6 +23972,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['snapshots available', 'list saved states', '列出快照'],
   },
   {
     tool: {
@@ -23962,6 +24002,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['go back to a saved snapshot', 'restore server state', '恢复快照'],
   },
   {
     tool: {
@@ -26621,6 +26662,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['track memory allocations', 'sample allocation sites', '内存分配追踪'],
   },
   {
     tool: {
@@ -26676,6 +26718,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['pull the generated bytecode', 'extract cached bytecode', '提取字节码'],
   },
   {
     tool: {
@@ -26712,6 +26755,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['why did this function deoptimize', 'deoptimization reasons', '反优化追踪'],
   },
   {
     tool: {
@@ -26750,6 +26794,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['what keeps this function alive', 'retained size of fn', '函数保留大小'],
   },
   {
     tool: {
@@ -26781,6 +26826,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['heap before and after', 'compare two heap snapshots', '堆快照对比'],
   },
   {
     tool: {
@@ -26813,6 +26859,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['which objects are leaking', 'growing retained set', '找内存泄漏'],
   },
   {
     tool: {
@@ -26848,6 +26895,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['who references this object', 'retention chain', '引用链'],
   },
   {
     tool: {
@@ -26884,6 +26932,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['sample heap growth over time', 'allocation profile', '堆采样'],
   },
   {
     tool: {
@@ -26928,6 +26977,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['analyze the heap dump', 'break down heap contents', '堆快照分析'],
   },
   {
     tool: {
@@ -26952,6 +27002,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['take a heap snapshot', 'dump the heap now', '拍堆快照'],
   },
   {
     tool: {
@@ -26979,6 +27030,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['remove an old heap snapshot', 'free snapshot storage', '删除堆快照'],
   },
   {
     tool: {
@@ -27003,6 +27055,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['save heap snapshot to file', 'export the dump', '导出堆快照'],
   },
   {
     tool: {
@@ -27031,6 +27084,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['snapshots taken so far', 'list heap dumps', '列出堆快照'],
   },
   {
     tool: {
@@ -27048,6 +27102,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['heap size numbers', 'memory totals by space', '堆统计'],
   },
   {
     tool: {
@@ -27097,6 +27152,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['diff two js objects', 'object state delta', '对象对比'],
   },
   {
     tool: {
@@ -27120,6 +27176,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['deep inspect this runtime object', 'look inside the object', '检视对象'],
   },
   {
     tool: {
@@ -27175,6 +27232,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['turbofan sea of nodes', 'jit compiler graph', 'turbofan 图'],
   },
   {
     tool: {
@@ -27213,6 +27271,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['inspect the optimizing compiler output', 'jit decisions', '检视 turbofan'],
   },
   {
     tool: {
@@ -27266,6 +27325,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['which v8 version is running', 'engine version fingerprint', 'v8 版本'],
   },
   {
     tool: {
@@ -27295,6 +27355,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['inspect wasm inside v8', 'wasm module in the engine', 'v8 内 wasm'],
   },
   {
     tool: {
@@ -27319,6 +27380,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['check weak references', 'finalization state', '弱引用检视'],
   },
   {
     tool: {
@@ -27919,6 +27981,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['watch this expression', 'track a value over time', '监视表达式'],
   },
   {
     tool: {
