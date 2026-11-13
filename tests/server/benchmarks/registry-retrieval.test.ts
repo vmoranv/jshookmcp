@@ -245,11 +245,15 @@ describe('registry-corpus retrieval benchmark', () => {
         `[registry-holdout] MRR@10=${(agg.mrrAt10 * 100).toFixed(1)}% P@1=${(agg.pAt1 * 100).toFixed(1)}% S@3=${(agg.successAt3 * 100).toFixed(1)}%`,
       );
 
-      // No floors yet — first baseline collected 2026-11-13: blind colloquial
-      // Chinese against an English-token lexical index scores very low
-      // (MRR 7.9% vs 70.7% same-distribution) — the generalization wall the
-      // production vector layer exists to close. Bound only guards against a
-      // fully-broken index; quality floors come after calibration.
+      // No floors yet. Baseline history (2026-11-13): the first holdout draft
+      // used colloquial Chinese — a distribution that does not occur (agents
+      // query in English) — and scored 7.9%, measuring the language gap, not
+      // retrieval. The English-only paraphrase set below scored MRR 32.6 /
+      // P@1 23.3 / S@3 36.7 vs 70.7/60.7/76.8 same-distribution: a ~38pp
+      // SYNONYM-GENERALIZATION gap inside English — expansion phrases do not
+      // cover the paraphrase space. Fix direction: per-tool synonym breadth in
+      // sceneKeywords / SynonymExpander groups, then the vector layer.
+      // Bound only guards against a fully-broken index.
       expect(cases.length).toBeGreaterThanOrEqual(25);
       expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.05);
     },
