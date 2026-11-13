@@ -152,5 +152,9 @@ docs/agents
 # CodeGraph local index (codegraph CLI)
 .codegraph/
 
-# Local-only telemetry ingress deployment (wrangler config holds account-specific database_id)
-telemetry/
+# Local-only telemetry ingress deployment (wrangler config holds account-specific database_id).
+# Anchored to the repo root: the bare `telemetry/` form also matched
+# skills/telemetry/ (a bundled guide) and silently excluded it from git —
+# CI checkouts then had only 5 of the 6 skills and the skills-extension
+# test failed on Linux while passing on case-insensitive Windows.
+/telemetry/
