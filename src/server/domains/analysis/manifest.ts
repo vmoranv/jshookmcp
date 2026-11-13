@@ -293,6 +293,67 @@ const manifest = {
       bind: b((h, a) => h.handleAnalysisSecurityScan(a)),
     },
   ],
+
+  // Document-expansion keywords for the retrieval layer (search sceneKeywords).
+  sceneKeywords: {
+    collect_code: ['grab the page javascript', 'pull down all scripts', '采集代码'],
+    search_in_scripts: [
+      'grep across the downloaded scripts',
+      'find pattern in collected code',
+      '脚本内搜索',
+    ],
+    extract_function_tree: ['show function nesting', 'outline the code structure', '函数树'],
+    deobfuscate: ['un obfuscate this script', 'make the code readable again', '反混淆'],
+    understand_code: ['explain what this code does', 'summarize the logic', '理解代码'],
+    detect_crypto: ['spot encryption usage', 'where does it use crypto', '检测加密'],
+    manage_hooks: ['list and remove my hooks', 'control attached hooks', '管理钩子'],
+    detect_obfuscation: ['is this code obfuscated', 'which obfuscator was used', '检测混淆'],
+    webcrack_unpack: ['unpack the webpack bundle', 'split bundle into modules', '解包 bundle'],
+    clear_collected_data: ['drop the collected scripts', 'empty the code cache', '清空采集'],
+    get_collection_stats: ['collection summary', 'how much code was grabbed', '采集统计'],
+    webpack_enumerate: ['list modules in the bundle', 'enumerate chunk contents', '枚举模块'],
+    llm_suggest_names: ['ask ai for better names', 'rename obfuscated identifiers', 'ai 命名'],
+    js_deobfuscate_jsvmp: ['restore jsvmp bytecode', 'unpack the vm protected code', 'jsvmp 还原'],
+    js_deobfuscate_pipeline: [
+      'run the full deobfuscation pipeline',
+      'multi pass cleanup',
+      '反混淆管线',
+    ],
+    js_analyze_vm: ['analyze the custom vm', 'understand the interpreter loop', '分析 vm'],
+    js_solve_constraints: [
+      'solve the string array constraints',
+      'decode encoded literals',
+      '解约束',
+    ],
+    js_symbolic_execute: [
+      'symbolically run this function',
+      'explore paths symbolically',
+      '符号执行',
+    ],
+    js_symbolic_execute_jsvmp: [
+      'symbolic execution on jsvmp',
+      'explore vm paths',
+      'jsvmp 符号执行',
+    ],
+    analysis_ast_match: ['match this ast pattern', 'find code matching the shape', 'ast 匹配'],
+    analysis_deflat_control_flow: [
+      'deflatten the control flow',
+      'undo control flow flattening',
+      '去平坦化',
+    ],
+    analysis_decode_string_array: [
+      'decode the string array',
+      'rotate and decode literals',
+      '解码字符串数组',
+    ],
+    ai_suggest_exploits: ['ask ai for attack ideas', 'what could be exploited here', 'ai 漏洞建议'],
+    analysis_data_flow: ['trace how data flows', 'follow the value through code', '数据流分析'],
+    analysis_security_scan: [
+      'scan the code for weaknesses',
+      'security review of the script',
+      '安全扫描',
+    ],
+  },
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

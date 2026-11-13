@@ -1059,6 +1059,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['ask ai for attack ideas', 'what could be exploited here', 'ai 漏洞建议'],
   },
   {
     tool: {
@@ -1098,6 +1099,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['match this ast pattern', 'find code matching the shape', 'ast 匹配'],
   },
   {
     tool: {
@@ -1123,6 +1125,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['trace how data flows', 'follow the value through code', '数据流分析'],
   },
   {
     tool: {
@@ -1158,6 +1161,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['decode the string array', 'rotate and decode literals', '解码字符串数组'],
   },
   {
     tool: {
@@ -1186,6 +1190,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['deflatten the control flow', 'undo control flow flattening', '去平坦化'],
   },
   {
     tool: {
@@ -1211,6 +1216,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['scan the code for weaknesses', 'security review of the script', '安全扫描'],
   },
   {
     tool: {
@@ -2963,6 +2969,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['take over my chrome', 'connect to the running browser', '接管浏览器'],
   },
   {
     tool: {
@@ -2986,6 +2993,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['take over a cdp target', 'attach to iframe context', '接管 cdp 目标'],
   },
   {
     tool: {
@@ -3004,6 +3012,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['cdp performance counters', 'raw performance numbers', 'cdp 性能指标'],
   },
   {
     tool: {
@@ -3021,6 +3030,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['shut the browser down', 'kill the chrome session', '关闭浏览器'],
   },
   {
     tool: {
@@ -3038,6 +3048,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['record my actions as code', 'start codegen capture', '开始录制代码'],
   },
   {
     tool: {
@@ -3055,6 +3066,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['finish action recording', 'stop codegen and emit script', '结束录制代码'],
   },
   {
     tool: {
@@ -3081,6 +3093,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['start sampling the cpu', 'begin js cpu profiling', '开始 cpu 采样'],
   },
   {
     tool: {
@@ -3110,6 +3123,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['finish cpu sampling', 'collect cpu profile result', '停止 cpu 采样'],
   },
   {
     tool: {
@@ -3127,6 +3141,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['release the cdp target', 'stop driving that context', '分离 cdp 目标'],
   },
   {
     tool: {
@@ -3189,6 +3204,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['run js inside that target', 'evaluate in iframe context', '目标内求值'],
   },
   {
     tool: {
@@ -3223,6 +3239,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['enumerate font fingerprints', 'which fonts are detectable', '字体指纹'],
   },
   {
     tool: {
@@ -3247,6 +3264,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['page counters snapshot', 'runtime metrics readout', '页面指标'],
   },
   {
     tool: {
@@ -3322,6 +3340,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['offline cookie parsing', 'read cookies from html', '离线 cookie'],
   },
   {
     tool: {
@@ -3355,6 +3374,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['run scripts on the offline dom', 'execute jsdom code', '离线执行脚本'],
   },
   {
     tool: {
@@ -3411,6 +3431,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['parse html without a browser', 'offline dom from markup', '离线解析 html'],
   },
   {
     tool: {
@@ -3465,6 +3486,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['query the offline dom', 'css selectors without browser', '离线 dom 查询'],
   },
   {
     tool: {
@@ -3497,6 +3519,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['serialize the offline dom back', 'output html from jsdom', '离线 dom 序列化'],
   },
   {
     tool: {
@@ -3681,6 +3704,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['open a new browser here', 'spin up chrome for me', '启动浏览器'],
   },
   {
     tool: {
@@ -3755,6 +3779,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['what contexts exist', 'enumerate cdp targets', '列出 cdp 目标'],
   },
   {
     tool: {
@@ -3796,6 +3821,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['which tabs are open', 'enumerate open tabs', '列出标签页'],
   },
   {
     tool: {
@@ -3834,6 +3860,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['page web workers list', 'enumerate worker threads', '列出 worker'],
   },
   {
     tool: {
@@ -3877,6 +3904,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['seed webauthn passkeys', 'fake passkey credentials', 'passkey 种子'],
   },
   {
     tool: {
@@ -3915,6 +3943,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['observe page performance entries', 'long tasks and paints', '性能观察'],
   },
   {
     tool: {
@@ -3950,6 +3979,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['how long each resource took', 'resource load timings', '资源耗时'],
   },
   {
     tool: {
@@ -3980,6 +4010,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['switch to that tab', 'focus another tab', '切换标签页'],
   },
   {
     tool: {
@@ -3997,6 +4028,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['browser alive check', 'is a page open', '浏览器状态'],
   },
   {
     tool: {
@@ -4028,6 +4060,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['begin a chrome trace', 'record tracing categories', '开始 trace'],
   },
   {
     tool: {
@@ -4051,6 +4084,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['finish the chrome trace', 'collect trace result', '停止 trace'],
   },
   {
     tool: {
@@ -4085,6 +4119,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['scripts running in workers', 'worker code list', 'worker 脚本'],
   },
   {
     tool: {
@@ -4140,6 +4175,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['fake gps in camoufox', 'set spoofed location', '伪造定位'],
   },
   {
     tool: {
@@ -4294,6 +4330,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['start the stealth firefox', 'launch camoufox browser', '启动 camoufox'],
   },
   {
     tool: {
@@ -4684,6 +4721,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['configure captcha handling', 'set captcha switches', '验证码配置'],
   },
   {
     tool: {
@@ -4701,6 +4739,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['is there a captcha here', 'check for challenge widgets', '检测验证码'],
   },
   {
     tool: {
@@ -4718,6 +4757,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['which solvers are available', 'captcha solving support', '求解能力'],
   },
   {
     tool: {
@@ -4786,6 +4826,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['solve the captcha by vision', 'ocr the challenge image', '视觉过验证码'],
   },
   {
     tool: {
@@ -4809,6 +4850,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['wait until the captcha resolves', 'poll challenge status', '等待验证码'],
   },
   {
     tool: {
@@ -4988,6 +5030,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['drop the collected scripts', 'empty the code cache', '清空采集'],
   },
   {
     tool: {
@@ -5063,6 +5106,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['grab the page javascript', 'pull down all scripts', '采集代码'],
   },
   {
     tool: {
@@ -5166,6 +5210,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['run code in the console context', 'evaluate on the console', '控制台执行'],
   },
   {
     tool: {
@@ -5233,6 +5278,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['show console output', 'collected console messages', '控制台日志'],
   },
   {
     tool: {
@@ -5339,6 +5385,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['watch console output live', 'follow console messages', '监控控制台'],
   },
   {
     tool: {
@@ -7102,6 +7149,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['un obfuscate this script', 'make the code readable again', '反混淆'],
   },
   {
     tool: {
@@ -7126,6 +7174,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
+    sceneKeywords: ['spot encryption usage', 'where does it use crypto', '检测加密'],
   },
   {
     tool: {
@@ -7155,6 +7204,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
+    sceneKeywords: ['is this code obfuscated', 'which obfuscator was used', '检测混淆'],
   },
   {
     tool: {
@@ -9057,6 +9107,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['show function nesting', 'outline the code structure', '函数树'],
   },
   {
     tool: {
@@ -9275,6 +9326,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['pull react or vue state', 'extract framework internals', '提取框架状态'],
   },
   {
     tool: {
@@ -9901,6 +9953,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['list scripts on the page', 'enumerate loaded js files', '列出脚本'],
   },
   {
     tool: {
@@ -9971,6 +10024,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['collection summary', 'how much code was grabbed', '采集统计'],
   },
   {
     tool: {
@@ -10007,6 +10061,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['fetch the stored detail chunks', 'read offloaded response data', '取分片数据'],
   },
   {
     tool: {
@@ -10061,6 +10116,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['read the offloaded raw bytes', 'large response store read', '取落盘数据'],
   },
   {
     tool: {
@@ -10148,6 +10204,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['fetch a script its code', 'download script text', '取脚本源码'],
   },
   {
     tool: {
@@ -11361,6 +11418,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['move the mouse like a person', 'humanlike mouse path', '拟人鼠标'],
   },
   {
     tool: {
@@ -11414,6 +11472,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['scroll like a human would', 'natural scroll behavior', '拟人滚动'],
   },
   {
     tool: {
@@ -11469,6 +11528,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['type with human rhythm', 'keystroke cadence typing', '拟人输入'],
   },
   {
     tool: {
@@ -11671,6 +11731,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['dump the indexeddb store', 'export offline database', '导出 indexeddb'],
   },
   {
     tool: {
@@ -12356,6 +12417,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['analyze the custom vm', 'understand the interpreter loop', '分析 vm'],
   },
   {
     tool: {
@@ -12518,6 +12580,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['restore jsvmp bytecode', 'unpack the vm protected code', 'jsvmp 还原'],
   },
   {
     tool: {
@@ -12561,6 +12624,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['run the full deobfuscation pipeline', 'multi pass cleanup', '反混淆管线'],
   },
   {
     tool: {
@@ -12594,6 +12658,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['search strings in the heap', 'find values inside js memory', '堆内搜索'],
   },
   {
     tool: {
@@ -12629,6 +12694,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['solve the string array constraints', 'decode encoded literals', '解约束'],
   },
   {
     tool: {
@@ -12679,6 +12745,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['symbolically run this function', 'explore paths symbolically', '符号执行'],
   },
   {
     tool: {
@@ -12741,6 +12808,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['symbolic execution on jsvmp', 'explore vm paths', 'jsvmp 符号执行'],
   },
   {
     tool: {
@@ -12848,6 +12916,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['ask ai for better names', 'rename obfuscated identifiers', 'ai 命名'],
   },
   {
     tool: {
@@ -12928,6 +12997,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['list and remove my hooks', 'control attached hooks', '管理钩子'],
   },
   {
     tool: {
@@ -20358,6 +20428,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['go back one page', 'navigate to previous entry', '后退'],
   },
   {
     tool: {
@@ -20392,6 +20463,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['stop these scripts from loading', 'block urls from loading', '拦截脚本'],
   },
   {
     tool: {
@@ -20449,6 +20521,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['click this element', 'press a dom node', '点击元素'],
   },
   {
     tool: {
@@ -20519,6 +20592,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['read and set cookies', 'manage browser cookies', '管理 cookie'],
   },
   {
     tool: {
@@ -20537,6 +20611,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['start js coverage collection', 'record executed code', '开始覆盖率'],
   },
   {
     tool: {
@@ -20555,6 +20630,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['collect js coverage result', 'stop coverage recording', '停止覆盖率'],
   },
   {
     tool: {
@@ -20578,6 +20654,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['pretend to be a phone', 'device emulation profile', '设备模拟'],
   },
   {
     tool: {
@@ -20640,6 +20717,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'run javascript in the page',
+      'evaluate an expression in page context',
+      '页面执行 js',
+    ],
   },
   {
     tool: {
@@ -20657,6 +20739,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['go forward again', 'next history entry', '前进'],
   },
   {
     tool: {
@@ -20690,6 +20773,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['accept or dismiss the popup', 'answer the js dialog', '处理弹窗'],
   },
   {
     tool: {
@@ -20721,6 +20805,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['hover over this element', 'mouse over the node', '悬停元素'],
   },
   {
     tool: {
@@ -20744,6 +20829,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['inject custom js into the page', 'add my own script', '注入脚本'],
   },
   {
     tool: {
@@ -20761,6 +20847,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['list frames on the page', 'enumerate iframes', '列出 iframe'],
   },
   {
     tool: {
@@ -20793,6 +20880,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'inspect localstorage entries',
+      'read local key value store',
+      '查看 localStorage',
+    ],
   },
   {
     tool: {
@@ -20834,6 +20926,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['open this url', 'go to a web address', '打开网址'],
   },
   {
     tool: {
@@ -20857,6 +20950,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['press a keyboard key', 'send a key press', '按键'],
   },
   {
     tool: {
@@ -20874,6 +20968,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['refresh the page', 'reload current document', '刷新页面'],
   },
   {
     tool: {
@@ -20952,6 +21047,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['take a picture of the page', 'capture visual snapshot', '页面截图'],
   },
   {
     tool: {
@@ -21053,6 +21149,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['scroll the page down', 'scroll to this position', '滚动页面'],
   },
   {
     tool: {
@@ -21091,6 +21188,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['choose an option in the dropdown', 'pick a select value', '选择下拉项'],
   },
   {
     tool: {
@@ -21123,6 +21221,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'inspect sessionstorage entries',
+      'per-tab storage values',
+      '查看 sessionStorage',
+    ],
   },
   {
     tool: {
@@ -21150,6 +21253,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['resize the page viewport', 'change window size', '设置视口'],
   },
   {
     tool: {
@@ -21168,6 +21272,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['storage usage overview', 'quota and usage numbers', '存储概况'],
   },
   {
     tool: {
@@ -21209,6 +21314,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['type text into a field', 'enter keyboard input', '输入文本'],
   },
   {
     tool: {
@@ -21247,6 +21353,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['attach files to the input', 'upload through the file picker', '上传文件'],
   },
   {
     tool: {
@@ -21277,6 +21384,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['wait until this element appears', 'block on selector match', '等待元素'],
   },
   {
     tool: {
@@ -23459,6 +23567,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
+    sceneKeywords: [
+      'grep across the downloaded scripts',
+      'find pattern in collected code',
+      '脚本内搜索',
+    ],
   },
   {
     tool: {
@@ -23537,6 +23650,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['deliver a push event to the worker', 'fire push payload', '推送事件'],
   },
   {
     tool: {
@@ -23575,6 +23689,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['dispatch a sync event', 'trigger background sync', '同步事件'],
   },
   {
     tool: {
@@ -24457,6 +24572,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['randomize stealth timings', 'configure fingerprint jitter', '抖动配置'],
   },
   {
     tool: {
@@ -24491,6 +24607,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['build a fake fingerprint', 'generate consistent identity', '生成指纹'],
   },
   {
     tool: {
@@ -24508,6 +24625,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['apply stealth hardening', 'mask automation signals', '注入隐身'],
   },
   {
     tool: {
@@ -24532,6 +24650,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['change the user agent', 'override the ua string', '改 ua'],
   },
   {
     tool: {
@@ -24549,6 +24668,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['check for automation leaks', 'verify stealth is applied', '验证隐身'],
   },
   {
     tool: {
@@ -25263,6 +25383,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['coordinate work across tabs', 'multi tab orchestration', '多标签编排'],
   },
   {
     tool: {
@@ -26278,6 +26399,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
+    sceneKeywords: ['explain what this code does', 'summarize the logic', '理解代码'],
   },
   {
     tool: {
@@ -27126,6 +27248,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['collect v8 type feedback', 'which types each function sees', '类型画像'],
   },
   {
     tool: {
@@ -27890,6 +28013,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['unpack the webpack bundle', 'split bundle into modules', '解包 bundle'],
   },
   {
     tool: {
@@ -28239,6 +28363,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['list modules in the bundle', 'enumerate chunk contents', '枚举模块'],
   },
   {
     tool: {
@@ -28616,6 +28741,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['solve the checkbox widget', 'handle cf challenge', '过挑战组件'],
   },
   {
     tool: {

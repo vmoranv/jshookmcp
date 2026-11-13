@@ -151,6 +151,166 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.browserHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  browser_launch: ['open a new browser here', 'spin up chrome for me', '启动浏览器'],
+  browser_attach: ['take over my chrome', 'connect to the running browser', '接管浏览器'],
+  browser_close: ['shut the browser down', 'kill the chrome session', '关闭浏览器'],
+  browser_status: ['browser alive check', 'is a page open', '浏览器状态'],
+  browser_list_tabs: ['which tabs are open', 'enumerate open tabs', '列出标签页'],
+  browser_select_tab: ['switch to that tab', 'focus another tab', '切换标签页'],
+  browser_list_workers: ['page web workers list', 'enumerate worker threads', '列出 worker'],
+  browser_worker_scripts: ['scripts running in workers', 'worker code list', 'worker 脚本'],
+  browser_attach_cdp_target: [
+    'take over a cdp target',
+    'attach to iframe context',
+    '接管 cdp 目标',
+  ],
+  browser_detach_cdp_target: [
+    'release the cdp target',
+    'stop driving that context',
+    '分离 cdp 目标',
+  ],
+  browser_evaluate_cdp_target: [
+    'run js inside that target',
+    'evaluate in iframe context',
+    '目标内求值',
+  ],
+  browser_list_cdp_targets: ['what contexts exist', 'enumerate cdp targets', '列出 cdp 目标'],
+  browser_codegen_start: ['record my actions as code', 'start codegen capture', '开始录制代码'],
+  browser_codegen_stop: ['finish action recording', 'stop codegen and emit script', '结束录制代码'],
+  browser_get_metrics: ['page counters snapshot', 'runtime metrics readout', '页面指标'],
+  browser_cdp_performance_metrics: [
+    'cdp performance counters',
+    'raw performance numbers',
+    'cdp 性能指标',
+  ],
+  browser_performance_observer: [
+    'observe page performance entries',
+    'long tasks and paints',
+    '性能观察',
+  ],
+  browser_resource_timing: ['how long each resource took', 'resource load timings', '资源耗时'],
+  browser_trace_start: ['begin a chrome trace', 'record tracing categories', '开始 trace'],
+  browser_trace_stop: ['finish the chrome trace', 'collect trace result', '停止 trace'],
+  browser_cpu_profile_start: ['start sampling the cpu', 'begin js cpu profiling', '开始 cpu 采样'],
+  browser_cpu_profile_stop: ['finish cpu sampling', 'collect cpu profile result', '停止 cpu 采样'],
+  browser_font_fingerprint: [
+    'enumerate font fingerprints',
+    'which fonts are detectable',
+    '字体指纹',
+  ],
+  browser_jsdom_parse: ['parse html without a browser', 'offline dom from markup', '离线解析 html'],
+  browser_jsdom_query: ['query the offline dom', 'css selectors without browser', '离线 dom 查询'],
+  browser_jsdom_execute: ['run scripts on the offline dom', 'execute jsdom code', '离线执行脚本'],
+  browser_jsdom_serialize: [
+    'serialize the offline dom back',
+    'output html from jsdom',
+    '离线 dom 序列化',
+  ],
+  browser_jsdom_cookies: ['offline cookie parsing', 'read cookies from html', '离线 cookie'],
+  browser_passkey_seed: ['seed webauthn passkeys', 'fake passkey credentials', 'passkey 种子'],
+  camoufox_server: ['start the stealth firefox', 'launch camoufox browser', '启动 camoufox'],
+  camoufox_geolocation: ['fake gps in camoufox', 'set spoofed location', '伪造定位'],
+  captcha_config: ['configure captcha handling', 'set captcha switches', '验证码配置'],
+  captcha_detect: ['is there a captcha here', 'check for challenge widgets', '检测验证码'],
+  captcha_wait: ['wait until the captcha resolves', 'poll challenge status', '等待验证码'],
+  captcha_vision_solve: ['solve the captcha by vision', 'ocr the challenge image', '视觉过验证码'],
+  captcha_solver_capabilities: [
+    'which solvers are available',
+    'captcha solving support',
+    '求解能力',
+  ],
+  widget_challenge_solve: ['solve the checkbox widget', 'handle cf challenge', '过挑战组件'],
+  console_execute: ['run code in the console context', 'evaluate on the console', '控制台执行'],
+  console_get_logs: ['show console output', 'collected console messages', '控制台日志'],
+  console_monitor: ['watch console output live', 'follow console messages', '监控控制台'],
+  framework_state_extract: [
+    'pull react or vue state',
+    'extract framework internals',
+    '提取框架状态',
+  ],
+  get_all_scripts: ['list scripts on the page', 'enumerate loaded js files', '列出脚本'],
+  get_script_source: ['fetch a script its code', 'download script text', '取脚本源码'],
+  get_detailed_data: [
+    'fetch the stored detail chunks',
+    'read offloaded response data',
+    '取分片数据',
+  ],
+  get_offloaded_data: ['read the offloaded raw bytes', 'large response store read', '取落盘数据'],
+  human_mouse: ['move the mouse like a person', 'humanlike mouse path', '拟人鼠标'],
+  human_scroll: ['scroll like a human would', 'natural scroll behavior', '拟人滚动'],
+  human_typing: ['type with human rhythm', 'keystroke cadence typing', '拟人输入'],
+  indexeddb_dump: ['dump the indexeddb store', 'export offline database', '导出 indexeddb'],
+  js_heap_search: ['search strings in the heap', 'find values inside js memory', '堆内搜索'],
+  page_back: ['go back one page', 'navigate to previous entry', '后退'],
+  page_forward: ['go forward again', 'next history entry', '前进'],
+  page_navigate: ['open this url', 'go to a web address', '打开网址'],
+  page_reload: ['refresh the page', 'reload current document', '刷新页面'],
+  page_click: ['click this element', 'press a dom node', '点击元素'],
+  page_type: ['type text into a field', 'enter keyboard input', '输入文本'],
+  page_select: ['choose an option in the dropdown', 'pick a select value', '选择下拉项'],
+  page_hover: ['hover over this element', 'mouse over the node', '悬停元素'],
+  page_scroll: ['scroll the page down', 'scroll to this position', '滚动页面'],
+  page_upload_files: ['attach files to the input', 'upload through the file picker', '上传文件'],
+  page_wait_for_selector: [
+    'wait until this element appears',
+    'block on selector match',
+    '等待元素',
+  ],
+  page_evaluate: [
+    'run javascript in the page',
+    'evaluate an expression in page context',
+    '页面执行 js',
+  ],
+  page_screenshot: ['take a picture of the page', 'capture visual snapshot', '页面截图'],
+  page_cookies: ['read and set cookies', 'manage browser cookies', '管理 cookie'],
+  page_local_storage: [
+    'inspect localstorage entries',
+    'read local key value store',
+    '查看 localStorage',
+  ],
+  page_session_storage: [
+    'inspect sessionstorage entries',
+    'per-tab storage values',
+    '查看 sessionStorage',
+  ],
+  page_storage_info: ['storage usage overview', 'quota and usage numbers', '存储概况'],
+  page_set_viewport: ['resize the page viewport', 'change window size', '设置视口'],
+  page_emulate_device: ['pretend to be a phone', 'device emulation profile', '设备模拟'],
+  page_press_key: ['press a keyboard key', 'send a key press', '按键'],
+  page_handle_dialog: ['accept or dismiss the popup', 'answer the js dialog', '处理弹窗'],
+  page_list_frames: ['list frames on the page', 'enumerate iframes', '列出 iframe'],
+  page_inject_script: ['inject custom js into the page', 'add my own script', '注入脚本'],
+  page_block_script: ['stop these scripts from loading', 'block urls from loading', '拦截脚本'],
+  page_coverage_start: ['start js coverage collection', 'record executed code', '开始覆盖率'],
+  page_coverage_stop: ['collect js coverage result', 'stop coverage recording', '停止覆盖率'],
+  service_worker_deliver_push: [
+    'deliver a push event to the worker',
+    'fire push payload',
+    '推送事件',
+  ],
+  service_worker_dispatch_sync: ['dispatch a sync event', 'trigger background sync', '同步事件'],
+  stealth_inject: ['apply stealth hardening', 'mask automation signals', '注入隐身'],
+  stealth_set_user_agent: ['change the user agent', 'override the ua string', '改 ua'],
+  stealth_configure_jitter: [
+    'randomize stealth timings',
+    'configure fingerprint jitter',
+    '抖动配置',
+  ],
+  stealth_generate_fingerprint: [
+    'build a fake fingerprint',
+    'generate consistent identity',
+    '生成指纹',
+  ],
+  stealth_verify: ['check for automation leaks', 'verify stealth is applied', '验证隐身'],
+  tab_workflow: ['coordinate work across tabs', 'multi tab orchestration', '多标签编排'],
+  v8_type_profile: ['collect v8 type feedback', 'which types each function sees', '类型画像'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -219,6 +379,9 @@ const manifest = {
   },
 
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;
