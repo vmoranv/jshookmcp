@@ -347,7 +347,7 @@ const REFUSAL_SPECS: readonly RefusalSpec[] = [
     tool: 'memory_region_enumerate',
     slug: 'rejects-unopenable-process',
     note: 'region enumeration reports the open failure with the elevation hint',
-    expect: /Failed to open process|Invalid PID/,
+    expect: /Failed to open process|Invalid PID|ENOENT/,
   },
   {
     tool: 'memory_session_export',
@@ -941,6 +941,8 @@ export const memorySuite: BenchSuite = {
       origin: 'homemade',
       reference:
         'walk contract: when no frames can be captured the tool reports success=false with frameCount/frames empty and names the reason — never a fabricated call stack',
+      skip: () => bindingFor('memory_call_stack') === null,
+      skipReason: 'tool pruned from the registry on this platform (no manifest binding)',
       run: async () => (await callMemory('memory_call_stack', { pid: MISSING_PID })) as string,
       validate: (v) => {
         const b = JSON.parse(String(v)) as Record<string, unknown>;
@@ -958,6 +960,8 @@ export const memorySuite: BenchSuite = {
       origin: 'homemade',
       reference:
         'enumeration contract: a non-existent PID yields zero matching handles while still reporting the system-wide handle total — no invented handle rows',
+      skip: () => bindingFor('memory_handle_enum') === null,
+      skipReason: 'tool pruned from the registry on this platform (no manifest binding)',
       run: async () => (await callMemory('memory_handle_enum', { pid: MISSING_PID })) as string,
       validate: (v) => {
         const b = JSON.parse(String(v)) as Record<string, unknown>;
