@@ -183,6 +183,41 @@ const manifest = {
   ],
 
   registrations: [...registrations, ...skiaRegistrations],
+
+  // Document-expansion keywords for the retrieval layer (search sceneKeywords).
+  sceneKeywords: {
+    canvas_engine_fingerprint: [
+      'which game engine renders here',
+      'detect canvas engine',
+      'canvas 引擎指纹',
+    ],
+    canvas_scene_dump: ['dump the rendered scene', 'export scene graph', '导出场景'],
+    canvas_scene_search: ['find objects in the scene', 'search rendered elements', '场景搜索'],
+    canvas_pick_object_at_point: [
+      'what is under this pixel',
+      'pick sprite at coordinates',
+      '拾取对象',
+    ],
+    canvas_inject_draw_hook: ['hook the draw calls', 'intercept canvas rendering', '挂钩绘制'],
+    canvas_trace_click_handler: [
+      'trace click to canvas code',
+      'map click to handler',
+      '追踪点击处理',
+    ],
+    canvas_dump_shaders: ['list webgl shaders', 'dump shader programs', '导出着色器'],
+    canvas_memory_invariants: [
+      'check scene memory consistency',
+      'verify invariants in memory',
+      '内存不变量',
+    ],
+    skia_detect_renderer: ['is skia rendering here', 'detect skia backend', '检测 skia'],
+    skia_extract_scene: ['pull skia display list', 'extract render ops', '提取 skia 场景'],
+    skia_correlate_objects: [
+      'match skia ops to objects',
+      'correlate scene items',
+      '关联 skia 对象',
+    ],
+  },
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;
