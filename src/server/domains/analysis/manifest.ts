@@ -314,7 +314,13 @@ const manifest = {
       'restore scrambled code to readable source',
       'unscramble a minified script',
     ],
-    understand_code: ['explain what this code does', 'summarize the logic', 'understand the code'],
+    understand_code: [
+      'explain what this code does',
+      'summarize the logic',
+      'understand the code',
+      'trace how a value flows through the code with data flow analysis',
+      'outline the function structure of a script',
+    ],
     detect_crypto: ['spot encryption usage', 'where does it use crypto', 'detect the encryption'],
     manage_hooks: ['list and remove my hooks', 'control attached hooks', 'manage the hooks'],
     detect_obfuscation: [
