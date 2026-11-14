@@ -34,6 +34,28 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.proxyHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  proxy_start: ['launch mitm proxy', 'spin up intercepting proxy', 'start the intercepting proxy'],
+  proxy_stop: ['shut the proxy down', 'kill mitm session', 'shut the proxy down'],
+  proxy_status: ['proxy running check', 'mitm state', 'proxy status'],
+  proxy_add_rule: ['add rewrite rule to proxy', 'new traffic rule', 'add a proxy rule'],
+  proxy_remove_rule: ['delete proxy rule', 'drop traffic rule', 'remove a proxy rule'],
+  proxy_list_rules: ['show proxy rules', 'enumerate traffic rules', 'list the proxy rules'],
+  proxy_clear_rules: ['wipe proxy rules', 'reset rule set', 'remove all the proxy rules'],
+  proxy_get_requests: ['traffic seen through proxy', 'mitm captured requests', 'proxy traffic log'],
+  proxy_clear_logs: ['flush proxy history', 'empty traffic log', 'clear the proxy log'],
+  proxy_export_ca: ['export proxy certificate', 'get mitm root ca', 'export the ca certificate'],
+  proxy_setup_adb_device: [
+    'route phone through proxy',
+    'configure device wifi proxy',
+    'route the phone through the proxy',
+  ],
+};
+
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   kind: 'domain-manifest',
   version: 1,
@@ -42,6 +64,9 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   profiles: ['full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 };
 
 export default manifest;

@@ -95,6 +95,132 @@ const registrations = allRegistrations.filter((r) => {
   return !WIN32_ONLY_TOOLS.has(r.tool.name) && !LINUX_ONLY_TOOLS.has(r.tool.name);
 });
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  check_debug_port: [
+    'is a debugger attached to pid',
+    'check the debug port of process',
+    'check the debug port of the process',
+  ],
+  electron_attach: [
+    'hook into the electron app',
+    'attach debugging to electron',
+    'take over the electron app',
+  ],
+  enumerate_modules: [
+    'list loaded dlls of a process',
+    'enumerate module list',
+    'enumerate the loaded modules',
+  ],
+  inject_dll: [
+    'load my dll into the target',
+    'dll injection into process',
+    'inject a dll into the process',
+  ],
+  inject_shellcode: [
+    'run shellcode in the target',
+    'code injection into process',
+    'inject shellcode into the process',
+  ],
+  memory_audit_export: ['export the write audit trail', 'dump audit log', 'export the audit trail'],
+  memory_batch_write: [
+    'write many values at once',
+    'batch memory writes',
+    'write many memory values at once',
+  ],
+  memory_check_protection: [
+    'page protection of this address',
+    'memory guard bits',
+    'check the memory protection of an address',
+  ],
+  memory_dump_region: ['dump a memory range', 'save region bytes', 'dump a memory region'],
+  memory_list_regions: [
+    'list address ranges of process',
+    'enumerate memory regions',
+    'list the memory regions',
+  ],
+  memory_read: ['read bytes from process memory', 'read memory at address', 'read process memory'],
+  memory_scan: [
+    'search memory for a value',
+    'scan process for pattern',
+    'hunt for a number in memory',
+    'locate a value inside the target',
+    'find a value inside the target',
+    'search the process memory for a pattern',
+  ],
+  memory_scan_filtered: [
+    'narrow the previous scan',
+    'filter scan results',
+    'filter the memory scan results',
+  ],
+  memory_write: [
+    'write bytes into process memory',
+    'patch memory value',
+    'overwrite the value at an address',
+    'set a new value at that address',
+    'overwrite the value at that address',
+    'write into the process memory',
+  ],
+  process_check_debug_port: [
+    'debug port of another process',
+    'is process being debugged',
+    'check the debug port of a process',
+  ],
+  process_detect_apc: [
+    'detect apc injection tricks',
+    'apc queue abuse scan',
+    'detect apc injection',
+  ],
+  process_detect_hollowing: [
+    'is the process hollowed',
+    'detect process hollowing',
+    'detect process hollowing',
+  ],
+  process_enum_handles: [
+    'list open handles of process',
+    'enumerate handle table',
+    'enumerate the open handles',
+  ],
+  process_enum_threads: [
+    'list threads of a process',
+    'enumerate thread ids',
+    'enumerate the threads',
+  ],
+  process_find: ['find the pid of a program', 'look up process by name', 'find the process'],
+  process_get: ['details of one process', 'process info by pid', 'process details'],
+  process_hollowing_scan: [
+    'scan for hollowed processes',
+    'system wide hollowing check',
+    'system wide hollowing scan',
+  ],
+  process_kill: ['kill this process', 'terminate the pid', 'kill the process'],
+  process_launch_debug: [
+    'start a program under debugging',
+    'launch with debug port',
+    'launch the process under the debugger',
+  ],
+  process_list: [
+    'show all running processes',
+    'enumerate the process table',
+    'list the running processes',
+  ],
+  process_resume: ['resume the suspended process', 'unfreeze process', 'resume the process'],
+  process_runtime_info: [
+    'runtime facts about the process',
+    'process internals readout',
+    'runtime information about the process',
+  ],
+  process_suspend: ['freeze this process', 'suspend the pid', 'suspend the process'],
+  process_windows: [
+    'list the windows of a process',
+    'enumerate window titles',
+    'enumerate the windows',
+  ],
+};
+
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   kind: 'domain-manifest',
   version: 1,
@@ -103,6 +229,9 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   profiles: ['full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 };
 
 export default manifest;

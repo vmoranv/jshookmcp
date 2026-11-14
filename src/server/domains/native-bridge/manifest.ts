@@ -42,6 +42,32 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   profiles: ['full'],
   registrations,
   ensure,
+
+  // Document-expansion keywords for the retrieval layer (search sceneKeywords).
+  sceneKeywords: {
+    binary_ninja_bridge: [
+      'talk to binary ninja',
+      'bn decompiler bridge',
+      'talk to the binary ninja bridge',
+    ],
+    ghidra_bridge: [
+      'drive ghidra headless',
+      'ghidra decompiler bridge',
+      'talk to the ghidra bridge',
+    ],
+    ida_bridge: ['drive ida pro', 'ida decompiler bridge', 'talk to the ida bridge'],
+    native_bridge_status: [
+      'which reverse tools are reachable',
+      'bridge availability check',
+      'bridge health status',
+    ],
+    native_symbol_sync: [
+      'sync symbols between tools',
+      'import export symbol tables',
+      'sync the symbols',
+    ],
+    rizin_bridge: ['drive rizin', 'rizin cutter bridge', 'talk to the rizin bridge'],
+  },
   workflowRule: {
     patterns: [
       /\b(native\s?bridge|ghidra|ida|rizin|radare2|r2|binary\s?ninja|decompiler)\b/i,

@@ -136,6 +136,51 @@ const manifest = {
     },
   ],
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (search sceneKeywords).
+  sceneKeywords: {
+    cross_domain_capabilities: [
+      'what can this server do across domains',
+      'list cross domain skills',
+      'show the cross domain capabilities',
+      'server wide skill inventory',
+    ],
+    cross_domain_correlate_all: [
+      'correlate every evidence source',
+      'build full correlation graph',
+      'link everything together',
+    ],
+    cross_domain_evidence_export: [
+      'export the evidence graph',
+      'save correlation data',
+      'export the evidence',
+    ],
+    cross_domain_evidence_query: [
+      'search the evidence graph',
+      'query correlated findings',
+      'query the evidence',
+    ],
+    cross_domain_evidence_stats: [
+      'evidence graph summary',
+      'how many nodes and edges',
+      'summarise the evidence graph',
+    ],
+    cross_domain_health: [
+      'which domains are ready',
+      'cross domain availability',
+      'cross domain health check',
+    ],
+    cross_domain_suggest_workflow: [
+      'recommend a multi tool recipe',
+      'suggest next actions',
+      'suggest a workflow',
+    ],
+    cross_domain_synonym: [
+      'find related term across domains',
+      'synonym bridge lookup',
+      'cross domain synonyms',
+    ],
+  },
 } satisfies DomainManifest<typeof DEP_KEY, Handlers, typeof DOMAIN>;
 
 export default manifest;

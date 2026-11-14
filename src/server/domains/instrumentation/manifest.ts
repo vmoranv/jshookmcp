@@ -191,6 +191,62 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.instrumentationHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  ai_hook: ['let ai place the hooks', 'smart hook placement', 'apply an ai generated hook'],
+  evidence_chain: [
+    'build the evidence chain',
+    'link findings together',
+    'build the evidence chain',
+  ],
+  evidence_export: ['save evidence bundle', 'export findings to file', 'export the evidence'],
+  evidence_query: ['search recorded evidence', 'query findings store', 'query the evidence'],
+  hook_preset: ['ready-made hook templates', 'pick a hook preset', 'hook presets'],
+  instrumentation_artifact: [
+    'collected instrumentation artifact',
+    'session artifact store',
+    'instrumentation artifacts',
+  ],
+  instrumentation_hook_preset: [
+    'instrumentation template hooks',
+    'preset instrumentation set',
+    'instrumentation presets',
+  ],
+  instrumentation_network_replay: [
+    'replay captured traffic in session',
+    're-run recorded requests',
+    'replay inside the session',
+  ],
+  instrumentation_operation: [
+    'single instrumentation operation',
+    'one instrumentation action',
+    'perform an instrumentation operation',
+  ],
+  instrumentation_session: [
+    'open instrumentation session',
+    'start instrumented run',
+    'instrumentation session',
+  ],
+  instrumentation_session_diff: [
+    'compare two instrumented runs',
+    'session behavior delta',
+    'compare the sessions',
+  ],
+  instrumentation_session_export: [
+    'export instrumentation session',
+    'save session data',
+    'export the session',
+  ],
+  instrumentation_session_merge: [
+    'merge instrumented sessions',
+    'combine session data',
+    'merge the sessions',
+  ],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -233,6 +289,9 @@ const manifest = {
     ...hookPresetRegistrations,
     ...evidenceRegistrations,
   ],
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

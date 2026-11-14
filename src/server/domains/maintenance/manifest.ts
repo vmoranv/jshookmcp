@@ -183,6 +183,66 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.coreMaintenanceHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  browse_extension_registry: [
+    'browse the plugin marketplace',
+    'list registry entries',
+    'browse the plugin repository',
+  ],
+  cleanup_artifacts: [
+    'delete old artifacts',
+    'clean the output directory',
+    'clean up the artifacts',
+  ],
+  clear_all_caches: ['flush every cache', 'wipe cached data', 'clear the cache'],
+  doctor_environment: [
+    'diagnose my setup',
+    'what is broken in this environment',
+    'diagnose the environment',
+  ],
+  execute_sandbox_script: [
+    'run code in the sandbox',
+    'safe script execution',
+    'run inside the sandbox',
+  ],
+  get_cache_stats: ['cache hit numbers', 'how full are the caches', 'cache statistics'],
+  get_token_budget_stats: ['token budget usage', 'how many tokens left', 'token budget'],
+  install_extension: [
+    'install a plugin from the registry',
+    'add this extension',
+    'install a plugin',
+  ],
+  list_extensions: ['show installed plugins', 'what extensions exist', 'list the plugins'],
+  maintenance_detect_gpu: [
+    'detect the gpu on this host',
+    'graphics adapter probe',
+    'detect the gpu',
+  ],
+  manual_token_cleanup: [
+    'manually trim the token budget',
+    'free token budget now',
+    'manually reclaim the tokens',
+  ],
+  reload_extensions: ['hot reload all plugins', 'refresh extensions', 'reload the plugin'],
+  reset_token_budget: [
+    'reset the token budget',
+    'give me a fresh budget',
+    'reset the token budget',
+  ],
+  smart_cache_cleanup: [
+    'intelligently clean caches',
+    'cleanup with retention policy',
+    'smart cleanup of the snapshots',
+  ],
+  snapshot_create: ['take a state snapshot', 'save the current server state', 'create a snapshot'],
+  snapshot_list: ['snapshots available', 'list saved states', 'list the snapshots'],
+  snapshot_restore: ['go back to a saved snapshot', 'restore server state', 'restore the snapshot'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -192,6 +252,9 @@ const manifest = {
   profiles: ['workflow', 'full'],
   ensure,
   registrations: [...coreRegistrations, ...extensionRegistrations, ...sandboxRegistrations],
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

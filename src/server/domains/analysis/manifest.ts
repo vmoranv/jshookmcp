@@ -293,6 +293,123 @@ const manifest = {
       bind: b((h, a) => h.handleAnalysisSecurityScan(a)),
     },
   ],
+
+  // Document-expansion keywords for the retrieval layer (search sceneKeywords).
+  sceneKeywords: {
+    collect_code: ['grab the page javascript', 'pull down all scripts', 'capture the source code'],
+    search_in_scripts: [
+      'grep across the downloaded scripts',
+      'find pattern in collected code',
+      'search inside the scripts',
+    ],
+    extract_function_tree: [
+      'show function nesting',
+      'outline the code structure',
+      'show the function tree',
+    ],
+    deobfuscate: [
+      'un obfuscate this script',
+      'make the code readable again',
+      'deobfuscate the code',
+      'restore scrambled code to readable source',
+      'unscramble a minified script',
+    ],
+    understand_code: ['explain what this code does', 'summarize the logic', 'understand the code'],
+    detect_crypto: ['spot encryption usage', 'where does it use crypto', 'detect the encryption'],
+    manage_hooks: ['list and remove my hooks', 'control attached hooks', 'manage the hooks'],
+    detect_obfuscation: [
+      'is this code obfuscated',
+      'which obfuscator was used',
+      'detect the obfuscation',
+    ],
+    webcrack_unpack: [
+      'unpack the webpack bundle',
+      'split bundle into modules',
+      'unpack the javascript bundle',
+      'break the bundle into its module graph',
+      'separate the bundled modules',
+    ],
+    clear_collected_data: [
+      'drop the collected scripts',
+      'empty the code cache',
+      'clear the collected data',
+    ],
+    get_collection_stats: [
+      'collection summary',
+      'how much code was grabbed',
+      'collection statistics',
+    ],
+    webpack_enumerate: [
+      'list modules in the bundle',
+      'enumerate chunk contents',
+      'enumerate the loaded modules',
+    ],
+    llm_suggest_names: [
+      'ask ai for better names',
+      'rename obfuscated identifiers',
+      'suggest identifiers with ai',
+    ],
+    js_deobfuscate_jsvmp: [
+      'restore jsvmp bytecode',
+      'unpack the vm protected code',
+      'devirtualise the jsvmp code',
+    ],
+    js_deobfuscate_pipeline: [
+      'run the full deobfuscation pipeline',
+      'multi pass cleanup',
+      'deobfuscation pipeline for a bundle',
+    ],
+    js_analyze_vm: [
+      'analyze the custom vm',
+      'understand the interpreter loop',
+      'analyse the virtual machine',
+    ],
+    js_solve_constraints: [
+      'solve the string array constraints',
+      'decode encoded literals',
+      'solve the constraints',
+    ],
+    js_symbolic_execute: [
+      'symbolically run this function',
+      'explore paths symbolically',
+      'symbolic execution',
+    ],
+    js_symbolic_execute_jsvmp: [
+      'symbolic execution on jsvmp',
+      'explore vm paths',
+      'symbolic execution on jsvmp code',
+    ],
+    analysis_ast_match: [
+      'match this ast pattern',
+      'find code matching the shape',
+      'match against the ast',
+    ],
+    analysis_deflat_control_flow: [
+      'deflatten the control flow',
+      'undo control flow flattening',
+      'undo control flow flattening',
+    ],
+    analysis_decode_string_array: [
+      'decode the string array',
+      'rotate and decode literals',
+      'decode a string array',
+    ],
+    ai_suggest_exploits: [
+      'ask ai for attack ideas',
+      'what could be exploited here',
+      'ask ai for exploit suggestions',
+    ],
+    analysis_data_flow: [
+      'trace how data flows',
+      'follow the value through code',
+      'run dataflow analysis',
+    ],
+    analysis_security_scan: [
+      'scan the code for weaknesses',
+      'security review of the script',
+      'scan for security issues',
+    ],
+  },
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

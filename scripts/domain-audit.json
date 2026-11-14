@@ -19,10 +19,10 @@
     "domain": "binary-instrument",
     "dir": "binary-instrument",
     "dims": {
-      "d1_toolCount": 44,
-      "d2_testFiles": 20,
+      "d1_toolCount": 46,
+      "d2_testFiles": 23,
       "d3_coverageExcluded": [],
-      "d4_bareCatch": 11,
+      "d4_bareCatch": 6,
       "d5_handleSafeRefs": 8,
       "d6_manifestMeta": {
         "hasWorkflowRule": true,
@@ -36,7 +36,7 @@
     "dir": "browser",
     "dims": {
       "d1_toolCount": 85,
-      "d2_testFiles": 87,
+      "d2_testFiles": 88,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 16,
       "d5_handleSafeRefs": 68,
@@ -90,7 +90,7 @@
     "dir": "analysis",
     "dims": {
       "d1_toolCount": 25,
-      "d2_testFiles": 19,
+      "d2_testFiles": 20,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 12,
       "d5_handleSafeRefs": 11,
@@ -138,7 +138,7 @@
     "dir": "debugger",
     "dims": {
       "d1_toolCount": 21,
-      "d2_testFiles": 53,
+      "d2_testFiles": 54,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 1,
       "d5_handleSafeRefs": 8,
@@ -154,9 +154,9 @@
     "dir": "encoding",
     "dims": {
       "d1_toolCount": 5,
-      "d2_testFiles": 11,
+      "d2_testFiles": 9,
       "d3_coverageExcluded": [],
-      "d4_bareCatch": 12,
+      "d4_bareCatch": 7,
       "d5_handleSafeRefs": 6,
       "d6_manifestMeta": {
         "hasWorkflowRule": false,
@@ -170,7 +170,7 @@
     "dir": "exploit-dev",
     "dims": {
       "d1_toolCount": 21,
-      "d2_testFiles": 30,
+      "d2_testFiles": 32,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 8,
       "d5_handleSafeRefs": 25,
@@ -236,7 +236,7 @@
       "d1_toolCount": 17,
       "d2_testFiles": 9,
       "d3_coverageExcluded": [],
-      "d4_bareCatch": 5,
+      "d4_bareCatch": 4,
       "d5_handleSafeRefs": 13,
       "d6_manifestMeta": {
         "hasWorkflowRule": false,
@@ -282,7 +282,7 @@
     "dir": "native-bridge",
     "dims": {
       "d1_toolCount": 6,
-      "d2_testFiles": 5,
+      "d2_testFiles": 6,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 0,
       "d5_handleSafeRefs": 7,
@@ -298,7 +298,7 @@
     "dir": "native-emulator",
     "dims": {
       "d1_toolCount": 57,
-      "d2_testFiles": 85,
+      "d2_testFiles": 89,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 12,
       "d5_handleSafeRefs": 55,
@@ -316,8 +316,8 @@
       "d1_toolCount": 38,
       "d2_testFiles": 48,
       "d3_coverageExcluded": [],
-      "d4_bareCatch": 13,
-      "d5_handleSafeRefs": 48,
+      "d4_bareCatch": 12,
+      "d5_handleSafeRefs": 24,
       "d6_manifestMeta": {
         "hasWorkflowRule": true,
         "hasPrerequisites": true,
@@ -330,7 +330,7 @@
     "dir": "platform",
     "dims": {
       "d1_toolCount": 18,
-      "d2_testFiles": 21,
+      "d2_testFiles": 22,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 23,
       "d5_handleSafeRefs": 37,
@@ -345,11 +345,11 @@
     "domain": "process",
     "dir": "process",
     "dims": {
-      "d1_toolCount": 28,
-      "d2_testFiles": 67,
+      "d1_toolCount": 29,
+      "d2_testFiles": 71,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 9,
-      "d5_handleSafeRefs": 28,
+      "d5_handleSafeRefs": 29,
       "d6_manifestMeta": {
         "hasWorkflowRule": false,
         "hasPrerequisites": false,
@@ -416,7 +416,7 @@
       "d2_testFiles": 14,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 21,
-      "d5_handleSafeRefs": 10,
+      "d5_handleSafeRefs": 8,
       "d6_manifestMeta": {
         "hasWorkflowRule": false,
         "hasPrerequisites": false,
@@ -429,9 +429,9 @@
     "dir": "streaming",
     "dims": {
       "d1_toolCount": 17,
-      "d2_testFiles": 17,
+      "d2_testFiles": 13,
       "d3_coverageExcluded": [],
-      "d4_bareCatch": 22,
+      "d4_bareCatch": 19,
       "d5_handleSafeRefs": 18,
       "d6_manifestMeta": {
         "hasWorkflowRule": false,
@@ -531,7 +531,7 @@
       "d1_toolCount": 21,
       "d2_testFiles": 32,
       "d3_coverageExcluded": [],
-      "d4_bareCatch": 19,
+      "d4_bareCatch": 18,
       "d5_handleSafeRefs": 20,
       "d6_manifestMeta": {
         "hasWorkflowRule": true,

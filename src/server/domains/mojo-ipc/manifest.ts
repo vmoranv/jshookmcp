@@ -36,6 +36,53 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  mojo_decode_message: [
+    'decode a mojo message',
+    'parse chrome ipc payload',
+    'decode a mojo message',
+  ],
+  mojo_encode_message: [
+    'build a mojo message',
+    'encode chrome ipc payload',
+    'encode a mojo message',
+  ],
+  mojo_ipc_capabilities: [
+    'mojo tooling availability',
+    'what mojo features exist',
+    'mojo capabilities',
+  ],
+  mojo_list_interfaces: [
+    'list mojo interfaces',
+    'enumerate ipc interfaces',
+    'list the mojo interfaces',
+  ],
+  mojo_messages_get: [
+    'captured mojo messages',
+    'fetch recorded ipc messages',
+    'get the mojo messages',
+  ],
+  mojo_messages_summarize: [
+    'mojo traffic summary',
+    'ipc message overview',
+    'summarise the mojo messages',
+  ],
+  mojo_monitor: [
+    'watch chrome internal ipc',
+    'follow mojo messages live',
+    'monitor the mojo traffic',
+  ],
+  mojo_verify_live: [
+    'is mojo capture working',
+    'verify live ipc stream',
+    'verify the mojo pipe is live',
+  ],
+};
+
 const manifest: DomainManifest<typeof DEP_KEY, MojoIPCHandlers, typeof DOMAIN> = {
   kind: 'domain-manifest',
   version: 1,
@@ -43,6 +90,10 @@ const manifest: DomainManifest<typeof DEP_KEY, MojoIPCHandlers, typeof DOMAIN> =
   depKey: DEP_KEY,
   profiles: ['full'],
   registrations,
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
+
   ensure,
   workflowRule: {
     patterns: [

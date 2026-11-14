@@ -183,6 +183,53 @@ const manifest = {
   ],
 
   registrations: [...registrations, ...skiaRegistrations],
+
+  // Document-expansion keywords for the retrieval layer (search sceneKeywords).
+  sceneKeywords: {
+    canvas_engine_fingerprint: [
+      'which game engine renders here',
+      'detect canvas engine',
+      'fingerprint the canvas engine',
+    ],
+    canvas_scene_dump: ['dump the rendered scene', 'export scene graph', 'export the canvas scene'],
+    canvas_scene_search: [
+      'find objects in the scene',
+      'search rendered elements',
+      'search the canvas scene',
+    ],
+    canvas_pick_object_at_point: [
+      'what is under this pixel',
+      'pick sprite at coordinates',
+      'pick the object under the cursor',
+    ],
+    canvas_inject_draw_hook: [
+      'hook the draw calls',
+      'intercept canvas rendering',
+      'hook the canvas draw calls',
+    ],
+    canvas_trace_click_handler: [
+      'trace click to canvas code',
+      'map click to handler',
+      'trace the click handler',
+    ],
+    canvas_dump_shaders: [
+      'list webgl shaders',
+      'dump shader programs',
+      'export the shader sources',
+    ],
+    canvas_memory_invariants: [
+      'check scene memory consistency',
+      'verify invariants in memory',
+      'check the memory invariants',
+    ],
+    skia_detect_renderer: ['is skia rendering here', 'detect skia backend', 'detect skia'],
+    skia_extract_scene: ['pull skia display list', 'extract render ops', 'extract the skia scene'],
+    skia_correlate_objects: [
+      'match skia ops to objects',
+      'correlate scene items',
+      'link the skia objects together',
+    ],
+  },
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

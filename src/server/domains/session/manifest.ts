@@ -38,6 +38,20 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  session_progress_clear: ['wipe progress entries', 'reset session ledger', 'clear the progress'],
+  session_progress_coverage: [
+    'what has been covered so far',
+    'progress checklist',
+    'overwrite the progress',
+  ],
+  session_progress_record: ['note down completed step', 'log milestone', 'record the progress'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -46,6 +60,9 @@ const manifest = {
   profiles: ['workflow', 'full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

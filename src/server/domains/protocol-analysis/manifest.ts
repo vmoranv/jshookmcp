@@ -52,6 +52,69 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  arp_build: ['craft an arp packet', 'build arp frame bytes', 'craft an arp packet'],
+  checksum_apply: ['fix the packet checksum', 'recompute checksums', 'compute the checksum'],
+  ethernet_frame_build: [
+    'craft an ethernet frame',
+    'build l2 frame bytes',
+    'craft an ethernet frame',
+  ],
+  icmp_echo_build: ['craft an icmp ping packet', 'build icmp echo bytes', 'craft an icmp packet'],
+  payload_mutate: ['mutate the payload bytes', 'fuzz the packet content', 'mutate the payload'],
+  payload_template_build: [
+    'build packet from template',
+    'create payload template',
+    'payload template',
+  ],
+  pcap_read: ['read a pcap capture file', 'open packet dump', 'read a pcap file'],
+  pcap_write: ['write packets to pcap', 'save capture file', 'write a pcap file'],
+  pcapng_read: ['read a pcapng file', 'open next-gen capture', 'read a pcapng file'],
+  pcapng_write: ['write pcapng capture', 'save next-gen packet dump', 'write a pcapng file'],
+  proto_auto_detect: [
+    'guess the protocol automatically',
+    'identify protocol from bytes',
+    'automatically detect the protocol',
+  ],
+  proto_define_pattern: [
+    'define a protocol pattern',
+    'describe my custom protocol',
+    'define the protocol pattern',
+  ],
+  proto_dissect_dns: ['dissect dns packet bytes', 'parse dns message', 'parse a dns packet'],
+  proto_dissect_http: ['dissect http bytes', 'parse raw http message', 'parse an http packet'],
+  proto_export_schema: [
+    'export the protocol schema',
+    'save dissected format',
+    'export the protocol schema',
+  ],
+  proto_fingerprint: [
+    'fingerprint the protocol dialect',
+    'identify protocol variant',
+    'protocol fingerprint',
+  ],
+  proto_infer_fields: [
+    'infer field boundaries',
+    'guess packet field layout',
+    'infer the field layout',
+  ],
+  proto_infer_state_machine: [
+    'infer the protocol state machine',
+    'learn message sequence',
+    'infer the state machine',
+  ],
+  proto_visualize_state: [
+    'draw the state machine',
+    'visualize protocol transitions',
+    'visualise the state machine',
+  ],
+  raw_ip_packet_build: ['craft a raw ip packet', 'build l3 packet bytes', 'craft an ip packet'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -155,6 +218,9 @@ const manifest = {
       weight: 0.7,
     },
   ],
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

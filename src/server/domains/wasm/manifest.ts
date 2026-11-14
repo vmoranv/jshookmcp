@@ -43,6 +43,76 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.wasmHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  wasm_inspect: [
+    'look inside a wasm module',
+    'module overview',
+    'inspect the wasm module',
+    'overview of a webassembly module',
+    'what is inside this webassembly binary',
+  ],
+  wasm_inspect_sections: [
+    'list wasm sections',
+    'enumerate module sections',
+    'list the wasm sections',
+  ],
+  wasm_disassemble: [
+    'wasm bytecode to text',
+    'list wasm instructions',
+    'disassemble the wasm module',
+  ],
+  wasm_decompile: [
+    'readable wasm pseudocode',
+    'decompile wasm module',
+    'decompile the wasm module',
+  ],
+  wasm_to_c: ['translate wasm to c code', 'generate c from wasm', 'convert wasm to c'],
+  wasm_dump: ['dump wasm module bytes', 'save module to disk', 'export the wasm module'],
+  wasm_diff: ['compare two wasm modules', 'module version delta', 'diff the two wasm modules'],
+  wasm_detect_obfuscation: [
+    'spot wasm obfuscation',
+    'detect packed module',
+    'detect wasm obfuscation',
+  ],
+  wasm_string_extract: [
+    'pull strings from wasm',
+    'extract module text',
+    'extract the strings from wasm',
+  ],
+  wasm_capabilities: [
+    'what wasm tooling exists',
+    'check wasm feature support',
+    'wasm capabilities',
+  ],
+  wasm_offline_run: ['execute wasm without browser', 'run module offline', 'run the wasm offline'],
+  wasm_optimize: ['shrink wasm module', 'optimize module size', 'optimise the wasm module'],
+  wasm_instrument_binary: [
+    'patch wasm at binary level',
+    'hook module bytes',
+    'instrument the wasm binary',
+  ],
+  wasm_instrument_block: ['hook a basic block', 'trace block entry', 'instrument the basic blocks'],
+  wasm_instrument_trace: [
+    'trace wasm execution',
+    'record instruction trace',
+    'trace the wasm execution',
+  ],
+  wasm_memory_inspect: [
+    'look at wasm linear memory',
+    'inspect memory sections',
+    'inspect the wasm memory',
+  ],
+  wasm_vmp_trace: [
+    'trace vmp-protected wasm',
+    'follow vm interpreter loop',
+    'trace the virtual machine code',
+  ],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -51,6 +121,9 @@ const manifest = {
   profiles: ['full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

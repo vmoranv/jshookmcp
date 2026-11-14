@@ -40,6 +40,28 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  extension_execute_in_context: [
+    'run code inside plugin context',
+    'execute in extension scope',
+    'run in the plugin context',
+  ],
+  extension_info: ['plugin details', 'what does this extension do', 'show the plugin details'],
+  extension_install: ['install a plugin', 'add extension to registry', 'install a plugin'],
+  extension_list_installed: [
+    'installed plugins list',
+    'what extensions are loaded',
+    'list the installed plugins',
+  ],
+  extension_reload: ['reload a plugin', 'refresh extension code', 'reload the plugin'],
+  extension_uninstall: ['remove a plugin', 'uninstall extension', 'uninstall a plugin'],
+  webhook: ['outbound webhook endpoint', 'c2 callback url', 'webhook endpoint'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -48,6 +70,9 @@ const manifest = {
   profiles: ['full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
   workflowRule: {
     patterns: [
       /\b(extension|plugin|addon|webhook|c2|registry)\b/i,

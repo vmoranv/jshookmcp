@@ -33,6 +33,41 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.sourcemapHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  sourcemap_coverage: [
+    'check map completeness',
+    'missing mappings audit',
+    'coverage check',
+    'mapping completeness gaps audit',
+  ],
+  sourcemap_diff: ['compare two maps', 'map version delta', 'compare the mappings'],
+  sourcemap_discover: [
+    'find sourceMappingURL comment',
+    'locate map files on a page',
+    'discover the sourcemap file',
+  ],
+  sourcemap_fetch_and_parse: [
+    'download and load a map',
+    'pull remote sourcemap',
+    'fetch and parse the sourcemap',
+  ],
+  sourcemap_lookup: [
+    'map generated line to original',
+    'position mapping',
+    'map a position back to the source',
+  ],
+  sourcemap_parse_v4: ['read vlq mappings', 'parse map index section', 'decode the vlq mappings'],
+  sourcemap_reconstruct_tree: [
+    'rebuild original source tree',
+    'restore file layout',
+    'rebuild the source tree',
+  ],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -41,6 +76,9 @@ const manifest = {
   profiles: ['full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

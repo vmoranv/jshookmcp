@@ -116,6 +116,162 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.advancedHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+//
+// Query phrases a user would type that bridge to this tool's vocabulary but
+// do NOT share tokens with its name/description (those are already indexed).
+// Folded by scripts/generate-domains-index.mjs into generated-tool-catalog.ts
+// and fed to ToolSearchEngine as sceneKeywords (SEARCH_SCENE_KEYWORD_WEIGHT).
+// Bilingual on purpose — SynonymExpander is bilingual and so are real queries.
+// Expansion phrases are retrieval metadata, not a security feature library.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  network_enable: [
+    'start capturing http traffic',
+    'begin request recording',
+    'start capturing traffic',
+    'record api calls',
+  ],
+  network_disable: [
+    'stop capturing traffic',
+    'turn off request monitoring',
+    'stop recording requests',
+    'disable traffic capture',
+    'stop capturing traffic',
+    'halt packet capture session',
+  ],
+  network_get_status: [
+    'is capture running',
+    'monitoring state',
+    'capture active state',
+    'is monitoring on',
+    'capture status',
+    'capture session state probe',
+  ],
+  network_monitor: [
+    'manage traffic capture',
+    'watch requests live',
+    'watch every outgoing request',
+    'log all the calls the page makes',
+    'see each request as it goes out',
+  ],
+  network_get_requests: [
+    'show captured requests',
+    'list recorded http calls',
+    'list the captured requests',
+  ],
+  network_get_response_body: [
+    'download response content',
+    'read returned payload',
+    'read the response body',
+    'see what the server returned for this request',
+    'fetch the body of a captured response',
+    'see what the server sent back for a request',
+  ],
+  network_get_stats: [
+    'traffic summary numbers',
+    'capture overview counters',
+    'traffic counters overview',
+    'request count summary',
+    'traffic statistics',
+    'capture counters totals only',
+  ],
+  performance_get_metrics: [
+    'page performance numbers',
+    'runtime metrics snapshot',
+    'page performance metrics',
+  ],
+  performance_trace: ['chrome tracing capture', 'record performance trace', 'performance trace'],
+  profiler_cpu: [
+    'cpu usage sampling',
+    'javascript cpu profile',
+    'start cpu profiling',
+    'cpu profiler sampling',
+    'cpu flame graph',
+    'profiler sampling session control',
+  ],
+  console_get_exceptions: [
+    'uncaught errors list',
+    'js exceptions thrown',
+    'thrown page errors',
+    'uncaught error events',
+    'read the page errors',
+    'runtime exception feed retrieval',
+  ],
+  console_inject: [
+    'add console hook script',
+    'patch console methods',
+    'inject a console hook',
+    'wrap native logging functions',
+  ],
+  console_inject_fetch_interceptor: [
+    'log all fetch calls',
+    'hook window.fetch',
+    'intercept fetch requests',
+  ],
+  console_inject_xhr_interceptor: [
+    'log ajax requests',
+    'hook XMLHttpRequest',
+    'intercept xhr calls',
+  ],
+  console_buffers: [
+    'ring buffer contents',
+    'captured console data store',
+    'read the buffer contents',
+    'intercepted payload ring store',
+  ],
+  http_request_build: [
+    'craft raw http message',
+    'construct request text',
+    'build a raw http message',
+  ],
+  http_plain_request: ['send raw tcp http', 'manual socket request', 'send a raw http request'],
+  http2_probe: ['test h2 support', 'check http2 endpoint', 'test whether http2 is supported'],
+  http2_frame_build: ['craft h2 frame bytes', 'construct http2 frame', 'build an http2 frame'],
+  http2_frame_parse: ['decode h2 frame', 'dissect http2 frame bytes', 'parse an http2 frame'],
+  network_http2_fingerprint: [
+    'akamai fingerprint hash',
+    'h2 settings fingerprint',
+    'http2 fingerprint',
+  ],
+  grpc_frame_parse: ['decode grpc frame', 'split length prefixed messages', 'parse a grpc frame'],
+  grpc_frame_build: ['assemble grpc frame', 'craft grpc message bytes', 'build a grpc frame'],
+  network_rtt_measure: ['ping latency to host', 'round trip time', 'measure the latency'],
+  network_latency_stats: ['latency percentiles', 'p95 delay distribution', 'latency distribution'],
+  network_traceroute: ['hop by hop path', 'trace route to host', 'traceroute hops'],
+  network_icmp_probe: ['icmp echo check', 'ping a host', 'ping the host'],
+  dns_resolve: ['lookup domain ip', 'resolve hostname address', 'resolve the domain name'],
+  dns_reverse: ['ip to hostname', 'reverse dns lookup', 'reverse lookup the domain'],
+  dns_probe: ['structured dns record query', 'query record types', 'probe the dns records'],
+  dns_cname_chain: ['follow alias records', 'cname chain trace', 'follow the cname chain'],
+  dns_bulk_resolve: [
+    'resolve many domains at once',
+    'batch dns lookup',
+    'resolve many domain names at once',
+  ],
+  network_extract_auth: [
+    'find tokens in traffic',
+    'pull api keys from captured requests',
+    'extract the credentials',
+  ],
+  network_export_har: [
+    'save capture as har',
+    'export har file',
+    'export the traffic as a har file',
+  ],
+  network_replay_request: [
+    'resend captured request',
+    'replay with modifications',
+    'replay the request',
+  ],
+  network_intercept: [
+    'block or mock requests',
+    'fake responses',
+    'intercept and mock the requests',
+  ],
+  network_tls_fingerprint: ['ja3 ja4 hash', 'client hello fingerprint', 'tls fingerprint'],
+  network_bot_detect_analyze: ['detect bot signals', 'anti bot scoring', 'bot detection'],
+};
+
 const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   kind: 'domain-manifest',
   version: 1,
@@ -167,6 +323,9 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   },
 
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (see SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 };
 
 export default manifest;

@@ -36,6 +36,19 @@ const COVERAGE_FILE = join(ROOT, 'coverage', 'coverage-final.json');
 const E2E_RESULTS_FILE = join(ROOT, 'artifacts/benchmarks/e2e-results.json');
 const RETRIEVAL_FILE = join(ROOT, 'artifacts/benchmarks/retrieval-metrics.json');
 
+// Preferred per-tool evidence source: the registry-corpus benchmark (736
+// tools, real descriptions + expansion). Falls back to the legacy
+// search-quality evidence (114 tools, proxy corpus) when the registry run
+// has not been executed yet.
+const RETRIEVAL_PER_TOOL_EVIDENCE_FILE = join(
+  ROOT,
+  'artifacts/benchmarks/registry-retrieval-per-tool.json',
+);
+const LEGACY_RETRIEVAL_PER_TOOL_EVIDENCE_FILE = join(
+  ROOT,
+  'artifacts/benchmarks/retrieval-per-tool.json',
+);
+
 const DOMAIN_ENVIRONMENT: Record<string, string> = {
   'adb-bridge': 'device/emulator',
   'binary-instrument': 'offline core · jadx/ghidra/frida/unidbg optional',
@@ -189,8 +202,6 @@ interface Loaders {
   methodMap: Map<string, string[]>;
 }
 
-const RETRIEVAL_PER_TOOL_EVIDENCE_FILE = join(ROOT, 'artifacts/benchmarks/retrieval-per-tool.json');
-
 interface PerToolRetrievalEvidence {
   queries: number;
   hitAt3: number;
@@ -200,12 +211,18 @@ interface PerToolRetrievalEvidence {
 }
 
 function loadPerToolRetrievalEvidence(): Record<string, PerToolRetrievalEvidence> | null {
-  if (!existsSync(RETRIEVAL_PER_TOOL_EVIDENCE_FILE)) return null;
-  try {
-    return JSON.parse(readFileSync(RETRIEVAL_PER_TOOL_EVIDENCE_FILE, 'utf8'));
-  } catch {
-    return null;
+  // Registry-corpus evidence first (736 tools, real descriptions); fall back
+  // to the legacy search-quality evidence when the registry run has not been
+  // executed in this checkout yet.
+  for (const file of [RETRIEVAL_PER_TOOL_EVIDENCE_FILE, LEGACY_RETRIEVAL_PER_TOOL_EVIDENCE_FILE]) {
+    if (!existsSync(file)) continue;
+    try {
+      return JSON.parse(readFileSync(file, 'utf8')) as Record<string, PerToolRetrievalEvidence>;
+    } catch {
+      // try the next source
+    }
   }
+  return null;
 }
 
 function loadE2eCoverage(): { byTool: Map<string, number>; available: boolean } {

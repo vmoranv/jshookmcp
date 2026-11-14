@@ -89,6 +89,73 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  nemu_alloc_memory: ['reserve guest memory in the emulator', 'allocate in the arm64 vm'],
+  nemu_bind_all_imports: ['bind every import in the emulated library', 'resolve all imports'],
+  nemu_bind_host_fn: ['bind a host function to the guest', 'native callback into emulator'],
+  nemu_bytecode_decode: ['decode arm64 instruction bytes', 'disassemble one encoding'],
+  nemu_bytecode_scan: ['scan for instruction encodings', 'find gadgets in emulator memory'],
+  nemu_call_address: ['call this guest address', 'run the emulated function at addr'],
+  nemu_call_jni_export: ['call the jni export in emulation', 'run the registered jni method'],
+  nemu_call_symbol: ['call a symbol in the emulated lib', 'run by symbol name'],
+  nemu_capabilities: ['what can the emulator do', 'nemu feature check'],
+  nemu_create_jni_handle: ['create a jni handle', 'new java object handle'],
+  nemu_create_session: ['start an emulation session', 'new arm64 emulator instance'],
+  nemu_create_vtable: ['build a c++ vtable in guest', 'set up the virtual table'],
+  nemu_data_dump: ['dump guest data bytes', 'read emulator memory range'],
+  nemu_destroy_session: ['close the emulation session', 'tear down the emulator'],
+  nemu_disassemble: ['disassemble emulator memory', 'list guest instructions'],
+  nemu_dlsym_diag: ['why did dlsym fail', 'diagnose symbol resolution'],
+  nemu_dump_frame: ['dump the current guest frame', 'stack frame contents'],
+  nemu_dump_got: ['dump the got entries', 'global offset table state'],
+  nemu_extract_apk_libs: ['pull libraries from the apk for emulation', 'extract so files'],
+  nemu_gdbserver: ['start a gdb server on the emulator', 'debug the guest over gdb'],
+  nemu_get_jni_stub: ['get the jni stub for this function', 'jni bridge stub'],
+  nemu_inspect_imports: ['list the imports of the emulated lib', 'what does the library need'],
+  nemu_jni_diag: ['diagnose jni problems', 'why is the jni call failing'],
+  nemu_jni_handles: ['list live jni handles', 'java handle table'],
+  nemu_list_sessions: ['emulation sessions running', 'list nemu instances'],
+  nemu_list_symbols: ['symbols of the emulated library', 'exported names'],
+  nemu_load_apk_library: ['load a library from the apk', 'emulate the packaged so'],
+  nemu_load_library: ['load an so into the emulator', 'map the library into guest'],
+  nemu_load_library_chain: [
+    'load the library with dependencies',
+    'resolve the so dependency chain',
+  ],
+  nemu_mem_inspect: ['inspect guest memory at address', 'look at emulated memory'],
+  nemu_mem_map: ['guest memory map', 'regions mapped in the emulator'],
+  nemu_mem_shadow: ['shadow memory view', 'intercepted memory regions'],
+  nemu_new_byte_array: ['create a jni byte array', 'new java byte buffer'],
+  nemu_patch_apply: ['apply a patch in the guest', 'patch emulated code bytes'],
+  nemu_pointer_chain: ['walk a pointer chain in guest memory', 'follow guest pointers'],
+  nemu_prepare_tls: ['set up tls for the guest thread', 'thread local storage setup'],
+  nemu_read_byte_array: ['read back the jni byte array', 'get java array contents'],
+  nemu_read_memory: ['read guest memory', 'emulator memory read'],
+  nemu_regs_restore: ['restore the saved registers', 'load register state back'],
+  nemu_regs_save: ['save the register state', 'snapshot the cpu registers'],
+  nemu_relay: ['relay calls to the host', 'forward native calls to real library'],
+  nemu_scan_memory: ['scan guest memory for a value', 'search emulated memory'],
+  nemu_session_info: ['emulation session details', 'nemu session state'],
+  nemu_session_load: ['load a saved emulation session', 'resume the session file'],
+  nemu_set_pac_key: ['set the pointer auth key', 'pac key configuration'],
+  nemu_set_registers: ['set the cpu registers', 'write guest register state'],
+  nemu_set_vtable_slot: ['set a vtable slot entry', 'patch the virtual method pointer'],
+  nemu_setup_java_field: ['mock a java field value', 'set up the java field in guest'],
+  nemu_setup_java_mock: ['mock a java object for jni', 'fake the java side'],
+  nemu_setup_java_mocks: ['mock several java objects', 'prepare the jni environment'],
+  nemu_trace: ['trace the emulated execution', 'record guest instructions'],
+  nemu_vm_state_compare: ['compare two vm states', 'emulator state delta'],
+  nemu_vm_state_dump: ['dump the vm state', 'save emulator state to file'],
+  nemu_vm_state_load: ['load a saved vm state', 'restore emulator state'],
+  nemu_write_memory: ['write into guest memory', 'emulator memory write'],
+  nemu_write_regions: ['write several guest regions', 'batch memory writes in emulator'],
+  nemu_xor_region: ['xor a guest memory region', 'decode the region in place'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -97,6 +164,10 @@ const manifest = {
   profiles: ['workflow', 'full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
+
   workflowRule: {
     patterns: [
       /\b(emulate|emulator|nemu)\b.*(so|native|jni|arm64|aarch64)/i,

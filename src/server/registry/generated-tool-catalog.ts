@@ -36,6 +36,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'analyze the apk on the phone',
+      'inspect the installed package',
+      'analyse an android app package on the phone',
+    ],
   },
   {
     tool: {
@@ -81,6 +86,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'download the apk from device',
+      'pull installer off the phone',
+      'pull the apk file off the device',
+    ],
   },
   {
     tool: {
@@ -130,6 +140,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'measure app cold start',
+      'launch timing trace',
+      'trace the app from a cold start',
+    ],
   },
   {
     tool: {
@@ -147,6 +162,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'what phones are connected',
+      'list adb devices',
+      'list the connected android devices',
+    ],
   },
   {
     tool: {
@@ -184,6 +204,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'dump android system services',
+      'read dumpsys output',
+      'dump the android system services',
+    ],
   },
   {
     tool: {
@@ -215,6 +240,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'copy a file off the phone',
+      'download from device',
+      'pull a file from the device',
+    ],
   },
   {
     tool: {
@@ -246,6 +276,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'copy a file onto the phone',
+      'upload to device',
+      'push a file onto the device',
+    ],
   },
   {
     tool: {
@@ -275,6 +310,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'read android system properties',
+      'device build fingerprint',
+      'read the android system properties',
+    ],
   },
   {
     tool: {
@@ -302,6 +342,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'send a key press to the phone',
+      'inject keyevent',
+      'inject a key press on the device',
+    ],
   },
   {
     tool: {
@@ -345,6 +390,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['swipe', 'gesture', 'on', 'the', 'phone', 'screen'],
   },
   {
     tool: {
@@ -376,6 +422,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'tap the phone screen at a point',
+      'inject a touch',
+      'inject a tap on the device',
+    ],
   },
   {
     tool: {
@@ -403,6 +454,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['type text on the phone', 'inject text input', 'inject text into the device'],
   },
   {
     tool: {
@@ -466,6 +518,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'install an apk on the device',
+      'sideload the package',
+      'install an apk on the device',
+    ],
   },
   {
     tool: {
@@ -529,6 +586,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'read the android logcat',
+      'filter device logs',
+      'read the android logcat buffer',
+    ],
   },
   {
     tool: {
@@ -557,6 +619,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'package info on device',
+      'summarize installed app',
+      'summarise the package manifest',
+    ],
   },
   {
     tool: {
@@ -598,6 +665,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'forward a device port',
+      'adb tcp forwarding',
+      'set up a port forward to the device',
+    ],
   },
   {
     tool: {
@@ -639,6 +711,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'read process memory maps on device',
+      'proc maps of android app',
+      'show the process memory maps',
+    ],
   },
   {
     tool: {
@@ -677,6 +754,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'download the native libraries',
+      'pull so files from app',
+      'pull the native shared libraries',
+    ],
   },
   {
     tool: {
@@ -700,6 +782,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'is the phone rooted',
+      'check su availability',
+      'check whether the device is rooted',
+    ],
   },
   {
     tool: {
@@ -744,6 +831,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['record the phone screen', 'capture device video', 'record the device screen'],
   },
   {
     tool: {
@@ -771,6 +859,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'capture the phone screen',
+      'take device screenshot',
+      'take a screenshot of the phone',
+    ],
   },
   {
     tool: {
@@ -812,6 +905,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'run a shell command on the phone',
+      'adb shell exec',
+      'run a shell command on the phone',
+    ],
   },
   {
     tool: {
@@ -849,6 +947,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'dump the ui hierarchy',
+      'view the android view tree',
+      'dump the android ui hierarchy',
+    ],
   },
   {
     tool: {
@@ -881,6 +984,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'remove an app from the device',
+      'uninstall package',
+      'uninstall an app from the device',
+    ],
   },
   {
     tool: {
@@ -913,6 +1021,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: ['debug the app webview', 'attach to webview cdp', 'take over the app webview'],
   },
   {
     tool: {
@@ -941,6 +1050,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
+    sceneKeywords: [
+      'list webviews in the app',
+      'which webviews are debuggable',
+      'list the app webviews',
+    ],
   },
   {
     tool: {
@@ -1001,6 +1115,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['let ai place the hooks', 'smart hook placement', 'apply an ai generated hook'],
   },
   {
     tool: {
@@ -1058,6 +1173,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
+    sceneKeywords: [
+      'ask ai for attack ideas',
+      'what could be exploited here',
+      'ask ai for exploit suggestions',
+    ],
   },
   {
     tool: {
@@ -1097,6 +1217,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'match this ast pattern',
+      'find code matching the shape',
+      'match against the ast',
+    ],
   },
   {
     tool: {
@@ -1122,6 +1247,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
+    sceneKeywords: [
+      'trace how data flows',
+      'follow the value through code',
+      'run dataflow analysis',
+    ],
   },
   {
     tool: {
@@ -1157,6 +1287,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'decode the string array',
+      'rotate and decode literals',
+      'decode a string array',
+    ],
   },
   {
     tool: {
@@ -1185,6 +1320,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'deflatten the control flow',
+      'undo control flow flattening',
+      'undo control flow flattening',
+    ],
   },
   {
     tool: {
@@ -1210,6 +1350,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
+    sceneKeywords: [
+      'scan the code for weaknesses',
+      'security review of the script',
+      'scan for security issues',
+    ],
   },
   {
     tool: {
@@ -1276,6 +1421,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['dump the android runtime state', 'capture art runtime info'],
   },
   {
     tool: {
@@ -1329,6 +1475,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'debugger',
     profiles: ['full'],
+    sceneKeywords: [
+      'get past anti debugging',
+      'defeat the debugger detection',
+      'bypass the anti debug checks',
+    ],
   },
   {
     tool: {
@@ -1347,6 +1498,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'debugger',
     profiles: ['full'],
+    sceneKeywords: [
+      'what anti debug is active',
+      'spot protection tricks',
+      'detect the anti debug tricks',
+    ],
   },
   {
     tool: {
@@ -1484,6 +1640,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: [
+      'probe many endpoints at once',
+      'batch request health check',
+      'probe many api endpoints at once',
+    ],
   },
   {
     tool: {
@@ -1543,6 +1704,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['ingest a dex file', 'bring the dex into the pipeline'],
   },
   {
     tool: {
@@ -1566,6 +1728,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['read the android manifest', 'dump manifest xml'],
   },
   {
     tool: {
@@ -1605,6 +1768,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['query the manifest contents', 'check permissions in manifest'],
   },
   {
     tool: {
@@ -1628,6 +1792,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['which native libs ship in the apk', 'list so libraries'],
   },
   {
     tool: {
@@ -1697,6 +1862,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['is this apk packed', 'detect the packer vendor'],
   },
   {
     tool: {
@@ -1720,6 +1886,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['packer signature list', 'which packers are known'],
   },
   {
     tool: {
@@ -1765,6 +1932,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['sign the apk again', 're-sign the package'],
   },
   {
     tool: {
@@ -1789,6 +1957,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['parse the signing block', 'read the v2 signature block'],
   },
   {
     tool: {
@@ -1828,6 +1997,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['static triage of the apk', 'first pass apk assessment'],
   },
   {
     tool: {
@@ -1861,6 +2031,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['rebuild the decoded apk', 'apktool back to apk'],
   },
   {
     tool: {
@@ -1893,6 +2064,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['decode resources with apktool', 'unpack the apk resources'],
   },
   {
     tool: {
@@ -1944,6 +2116,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: [
+      'add finding to session log',
+      'record a discovery',
+      'discover more about the session',
+    ],
   },
   {
     tool: {
@@ -2006,6 +2183,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['craft an arp packet', 'build arp frame bytes', 'craft an arp packet'],
   },
   {
     tool: {
@@ -2051,6 +2229,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'deobfuscate electron archive code',
+      'decode asar scripts',
+      'deobfuscate an asar archive bundle',
+      'decode obfuscated archive scripts',
+    ],
   },
   {
     tool: {
@@ -2083,6 +2267,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'unpack electron app archive',
+      'pull files out of asar',
+      'unpack an asar archive',
+      'unpack electron archive contents',
+    ],
   },
   {
     tool: {
@@ -2111,6 +2301,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'rebuild the app archive',
+      'pack files back into asar',
+      'repack an asar archive bundle',
+    ],
   },
   {
     tool: {
@@ -2150,6 +2345,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'search inside the app archive',
+      'find code in asar',
+      'search inside an asar archive',
+    ],
   },
   {
     tool: {
@@ -2195,6 +2395,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: ['apply code transformation', 'run ast rewrite', 'apply an ast transform'],
   },
   {
     tool: {
@@ -2228,6 +2429,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'pretty print javascript',
+      'format minified code',
+      'pretty print the source code',
+    ],
   },
   {
     tool: {
@@ -2270,6 +2476,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'run multiple rewrites in sequence',
+      'compose transformations',
+      'compose several transforms together',
+      'pipeline several rewrites sequentially',
+    ],
   },
   {
     tool: {
@@ -2314,6 +2526,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'diff before and after rewrite',
+      'preview transformation result',
+      'preview a transform without applying it',
+    ],
   },
   {
     tool: {
@@ -2364,6 +2581,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: [
+      'decode base64 blob',
+      'turn hex into bytes',
+      'decode binary data',
+      'blob to raw bytes conversion',
+    ],
   },
   {
     tool: {
@@ -2401,6 +2624,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: ['identify file type', 'magic bytes sniff', 'identify the file format'],
   },
   {
     tool: {
@@ -2448,6 +2672,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: ['encode bytes to base64', 'serialize buffer', 'encode binary data'],
   },
   {
     tool: {
@@ -2487,6 +2712,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: [
+      'measure randomness',
+      'shannon entropy of bytes',
+      'measure the entropy of the data',
+    ],
   },
   {
     tool: {
@@ -2525,6 +2755,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['entropy profile of sections', 'where is the binary packed'],
   },
   {
     tool: {
@@ -2542,6 +2773,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['what binary tooling exists', 'feature check for instrument'],
   },
   {
     tool: {
@@ -2627,6 +2859,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['pull keys out of the binary', 'find embedded secrets'],
   },
   {
     tool: {
@@ -2691,6 +2924,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: [
+      'talk to binary ninja',
+      'bn decompiler bridge',
+      'talk to the binary ninja bridge',
+    ],
   },
   {
     tool: {
@@ -2729,6 +2967,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['dump strings from the binary', 'extract readable text'],
   },
   {
     tool: {
@@ -2753,6 +2992,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'skip this library while stepping',
+      'mark code as library code',
+      'add a blackbox function',
+    ],
   },
   {
     tool: {
@@ -2771,6 +3015,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'ignore common libraries when stepping',
+      'blackbox vendor code',
+      'common blackbox library functions',
+    ],
   },
   {
     tool: {
@@ -2788,6 +3037,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'which files are blackboxed',
+      'show ignore list',
+      'list the blackbox functions',
+    ],
   },
   {
     tool: {
@@ -2875,6 +3129,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'set a breakpoint here',
+      'stop on this line',
+      'set a breakpoint',
+      'pause execution when it reaches this line',
+      'halt the program at this spot',
+    ],
   },
   {
     tool: {
@@ -2900,6 +3161,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: [
+      'browse the plugin marketplace',
+      'list registry entries',
+      'browse the plugin repository',
+    ],
   },
   {
     tool: {
@@ -2947,6 +3213,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'take over my chrome',
+      'connect to the running browser',
+      'take over the browser session',
+      'attach to an existing chrome instance',
+      'hook up to the already open browser',
+    ],
   },
   {
     tool: {
@@ -2970,6 +3243,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'take over a cdp target',
+      'attach to iframe context',
+      'attach to the cdp target',
+    ],
   },
   {
     tool: {
@@ -2988,6 +3266,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'cdp performance counters',
+      'raw performance numbers',
+      'collect cdp performance metrics',
+    ],
   },
   {
     tool: {
@@ -3005,6 +3288,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'shut the browser down',
+      'kill the chrome session',
+      'close the browser',
+      'shut down chrome instance session',
+    ],
   },
   {
     tool: {
@@ -3022,6 +3311,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['record my actions as code', 'start codegen capture', 'start recording code'],
   },
   {
     tool: {
@@ -3039,6 +3329,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'finish action recording',
+      'stop codegen and emit script',
+      'stop recording code',
+    ],
   },
   {
     tool: {
@@ -3065,6 +3360,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['start sampling the cpu', 'begin js cpu profiling', 'start cpu profiling'],
   },
   {
     tool: {
@@ -3094,6 +3390,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['finish cpu sampling', 'collect cpu profile result', 'stop cpu profiling'],
   },
   {
     tool: {
@@ -3111,6 +3408,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'release the cdp target',
+      'stop driving that context',
+      'detach from the cdp target',
+    ],
   },
   {
     tool: {
@@ -3173,6 +3475,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'run js inside that target',
+      'evaluate in iframe context',
+      'evaluate inside the target',
+      'run expression inside isolated context',
+    ],
   },
   {
     tool: {
@@ -3207,6 +3515,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'enumerate font fingerprints',
+      'which fonts are detectable',
+      'fingerprint the installed fonts',
+    ],
   },
   {
     tool: {
@@ -3231,6 +3544,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['page counters snapshot', 'runtime metrics readout', 'read the page metrics'],
   },
   {
     tool: {
@@ -3306,6 +3620,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'offline cookie parsing',
+      'read cookies from html',
+      'read cookies without a browser',
+    ],
   },
   {
     tool: {
@@ -3339,6 +3658,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'run scripts on the offline dom',
+      'execute jsdom code',
+      'run a script without a browser',
+      'offline script execution sandbox',
+    ],
   },
   {
     tool: {
@@ -3395,6 +3720,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'parse html without a browser',
+      'offline dom from markup',
+      'parse html without a browser',
+    ],
   },
   {
     tool: {
@@ -3449,6 +3779,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'query the offline dom',
+      'css selectors without browser',
+      'query the dom without a browser',
+    ],
   },
   {
     tool: {
@@ -3481,6 +3816,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'serialize the offline dom back',
+      'output html from jsdom',
+      'serialise the dom without a browser',
+    ],
   },
   {
     tool: {
@@ -3665,6 +4005,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['open a new browser here', 'spin up chrome for me', 'launch the browser'],
   },
   {
     tool: {
@@ -3739,6 +4080,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['what contexts exist', 'enumerate cdp targets', 'list the cdp targets'],
   },
   {
     tool: {
@@ -3780,6 +4122,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['which tabs are open', 'enumerate open tabs', 'list the open tabs'],
   },
   {
     tool: {
@@ -3818,6 +4161,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['page web workers list', 'enumerate worker threads', 'list the web workers'],
   },
   {
     tool: {
@@ -3861,6 +4205,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'seed webauthn passkeys',
+      'fake passkey credentials',
+      'generate a passkey seed',
+    ],
   },
   {
     tool: {
@@ -3899,6 +4248,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'observe page performance entries',
+      'long tasks and paints',
+      'watch the performance timeline',
+    ],
   },
   {
     tool: {
@@ -3934,6 +4288,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'how long each resource took',
+      'resource load timings',
+      'measure how long resources take',
+    ],
   },
   {
     tool: {
@@ -3964,6 +4323,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['switch to that tab', 'focus another tab', 'switch to another tab'],
   },
   {
     tool: {
@@ -3981,6 +4341,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['browser alive check', 'is a page open', 'show the browser state'],
   },
   {
     tool: {
@@ -4012,6 +4373,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'begin a chrome trace',
+      'record tracing categories',
+      'start a performance trace',
+    ],
   },
   {
     tool: {
@@ -4035,6 +4401,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'finish the chrome trace',
+      'collect trace result',
+      'stop the performance trace',
+    ],
   },
   {
     tool: {
@@ -4069,6 +4440,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'scripts running in workers',
+      'worker code list',
+      'read the worker script',
+      'worker thread code listing',
+    ],
   },
   {
     tool: {
@@ -4096,6 +4473,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
+    sceneKeywords: [
+      'build call graph from code',
+      'function call relationships',
+      'analyse the call graph',
+    ],
   },
   {
     tool: {
@@ -4123,6 +4505,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['fake gps in camoufox', 'set spoofed location', 'spoof the geolocation'],
   },
   {
     tool: {
@@ -4277,6 +4660,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'start the stealth firefox',
+      'launch camoufox browser',
+      'launch the camoufox browser',
+    ],
   },
   {
     tool: {
@@ -4318,6 +4706,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
+    sceneKeywords: ['list webgl shaders', 'dump shader programs', 'export the shader sources'],
   },
   {
     tool: {
@@ -4336,6 +4725,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
+    sceneKeywords: [
+      'which game engine renders here',
+      'detect canvas engine',
+      'fingerprint the canvas engine',
+    ],
   },
   {
     tool: {
@@ -4398,6 +4792,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
+    sceneKeywords: [
+      'hook the draw calls',
+      'intercept canvas rendering',
+      'hook the canvas draw calls',
+    ],
   },
   {
     tool: {
@@ -4422,6 +4821,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
+    sceneKeywords: [
+      'check scene memory consistency',
+      'verify invariants in memory',
+      'check the memory invariants',
+    ],
   },
   {
     tool: {
@@ -4460,6 +4864,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
+    sceneKeywords: [
+      'what is under this pixel',
+      'pick sprite at coordinates',
+      'pick the object under the cursor',
+    ],
   },
   {
     tool: {
@@ -4504,6 +4913,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
+    sceneKeywords: ['dump the rendered scene', 'export scene graph', 'export the canvas scene'],
   },
   {
     tool: {
@@ -4586,6 +4996,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
+    sceneKeywords: [
+      'find objects in the scene',
+      'search rendered elements',
+      'search the canvas scene',
+    ],
   },
   {
     tool: {
@@ -4629,6 +5044,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
+    sceneKeywords: [
+      'trace click to canvas code',
+      'map click to handler',
+      'trace the click handler',
+    ],
   },
   {
     tool: {
@@ -4659,6 +5079,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'configure captcha handling',
+      'set captcha switches',
+      'configure the captcha solver',
+    ],
   },
   {
     tool: {
@@ -4676,6 +5101,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'is there a captcha here',
+      'check for challenge widgets',
+      'detect a captcha challenge',
+    ],
   },
   {
     tool: {
@@ -4693,6 +5123,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'which solvers are available',
+      'captcha solving support',
+      'show the captcha solving capability',
+    ],
   },
   {
     tool: {
@@ -4761,6 +5196,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'solve the captcha by vision',
+      'ocr the challenge image',
+      'solve the captcha visually',
+    ],
   },
   {
     tool: {
@@ -4784,6 +5224,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'wait until the captcha resolves',
+      'poll challenge status',
+      'wait for the captcha to appear',
+    ],
   },
   {
     tool: {
@@ -4808,6 +5253,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'is a debugger attached to pid',
+      'check the debug port of process',
+      'check the debug port of the process',
+    ],
   },
   {
     tool: {
@@ -4861,6 +5311,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['fix the packet checksum', 'recompute checksums', 'compute the checksum'],
   },
   {
     tool: {
@@ -4929,6 +5380,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['delete old artifacts', 'clean the output directory', 'clean up the artifacts'],
   },
   {
     tool: {
@@ -4946,6 +5398,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['flush every cache', 'wipe cached data', 'clear the cache'],
   },
   {
     tool: {
@@ -4963,6 +5416,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'drop the collected scripts',
+      'empty the code cache',
+      'clear the collected data',
+    ],
   },
   {
     tool: {
@@ -5038,6 +5496,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['grab the page javascript', 'pull down all scripts', 'capture the source code'],
   },
   {
     tool: {
@@ -5080,6 +5539,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: [
+      'finalize handoff to next agent',
+      'close out the handoff',
+      'complete the handoff',
+    ],
   },
   {
     tool: {
@@ -5104,6 +5568,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'ring buffer contents',
+      'captured console data store',
+      'read the buffer contents',
+      'intercepted payload ring store',
+    ],
   },
   {
     tool: {
@@ -5139,6 +5609,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'run code in the console context',
+      'evaluate on the console',
+      'run code in the console',
+    ],
   },
   {
     tool: {
@@ -5168,6 +5643,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'uncaught errors list',
+      'js exceptions thrown',
+      'thrown page errors',
+      'uncaught error events',
+      'read the page errors',
+      'runtime exception feed retrieval',
+    ],
   },
   {
     tool: {
@@ -5199,6 +5682,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['show console output', 'collected console messages', 'read the console logs'],
   },
   {
     tool: {
@@ -5232,6 +5716,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'add console hook script',
+      'patch console methods',
+      'inject a console hook',
+      'wrap native logging functions',
+    ],
   },
   {
     tool: {
@@ -5255,6 +5745,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['log all fetch calls', 'hook window.fetch', 'intercept fetch requests'],
   },
   {
     tool: {
@@ -5278,6 +5769,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['log ajax requests', 'hook XMLHttpRequest', 'intercept xhr calls'],
   },
   {
     tool: {
@@ -5302,6 +5794,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'watch console output live',
+      'follow console messages',
+      'watch the console output',
+    ],
   },
   {
     tool: {
@@ -5327,6 +5824,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: [
+      'bring back saved browser state',
+      'reload coordination snapshot',
+      'restore the snapshot',
+    ],
   },
   {
     tool: {
@@ -5392,6 +5894,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: [
+      'prepare handoff for another agent',
+      'start a task transfer',
+      'create a handoff',
+    ],
   },
   {
     tool: {
@@ -5409,6 +5916,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: [
+      'what can this server do across domains',
+      'list cross domain skills',
+      'show the cross domain capabilities',
+      'server wide skill inventory',
+    ],
   },
   {
     tool: {
@@ -5576,6 +6089,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: [
+      'correlate every evidence source',
+      'build full correlation graph',
+      'link everything together',
+    ],
   },
   {
     tool: {
@@ -5593,6 +6111,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['export the evidence graph', 'save correlation data', 'export the evidence'],
   },
   {
     tool: {
@@ -5652,6 +6171,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['search the evidence graph', 'query correlated findings', 'query the evidence'],
   },
   {
     tool: {
@@ -5669,6 +6189,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: [
+      'evidence graph summary',
+      'how many nodes and edges',
+      'summarise the evidence graph',
+    ],
   },
   {
     tool: {
@@ -5686,6 +6211,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: [
+      'which domains are ready',
+      'cross domain availability',
+      'cross domain health check',
+    ],
   },
   {
     tool: {
@@ -5714,6 +6244,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: ['recommend a multi tool recipe', 'suggest next actions', 'suggest a workflow'],
   },
   {
     tool: {
@@ -5745,6 +6276,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
+    sceneKeywords: [
+      'find related term across domains',
+      'synonym bridge lookup',
+      'cross domain synonyms',
+    ],
   },
   {
     tool: {
@@ -5783,6 +6319,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'side by side crypto output',
+      'diff two cipher outputs',
+      'compare the encrypted outputs',
+    ],
   },
   {
     tool: {
@@ -5812,6 +6353,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'pull crypto routine out of bundle',
+      'isolate encryption function',
+      'extract the crypto functions',
+    ],
   },
   {
     tool: {
@@ -5847,6 +6393,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'verify crypto implementation',
+      'run cipher test vectors',
+      'run the crypto test harness',
+    ],
   },
   {
     tool: {
@@ -5905,6 +6456,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['call a dart function', 'invoke the dart method'],
   },
   {
     tool: {
@@ -5941,6 +6493,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['dart function call graph', 'who calls whom in dart'],
   },
   {
     tool: {
@@ -5968,6 +6521,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['open a dart snapshot session', 'start dart analysis'],
   },
   {
     tool: {
@@ -5992,6 +6546,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['close the dart session', 'release dart analysis'],
   },
   {
     tool: {
@@ -6028,6 +6583,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['look at the object pool', 'dart pool entries'],
   },
   {
     tool: {
@@ -6064,6 +6620,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['list dart functions', 'enumerate dart methods'],
   },
   {
     tool: {
@@ -6095,6 +6652,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['load the dart snapshot', 'open the aot snapshot'],
   },
   {
     tool: {
@@ -6159,6 +6717,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['dump the dart object pool', 'export pool contents'],
   },
   {
     tool: {
@@ -6215,6 +6774,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['read pc descriptors table', 'offset mapping for dart code'],
   },
   {
     tool: {
@@ -6291,6 +6851,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['scan for smi values', 'find small integers in snapshot'],
   },
   {
     tool: {
@@ -6320,6 +6881,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['parse the snapshot header', 'read dart version info'],
   },
   {
     tool: {
@@ -6448,6 +7010,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['extract dart strings', 'pull text from snapshot'],
   },
   {
     tool: {
@@ -6513,6 +7076,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['symbolize dart offsets', 'map addresses to dart names'],
   },
   {
     tool: {
@@ -6567,6 +7131,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['trace dart execution', 'record dart calls at runtime'],
   },
   {
     tool: {
@@ -6601,6 +7166,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['which dart version wrote this', 'fingerprint the snapshot'],
   },
   {
     tool: {
@@ -6649,6 +7215,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'capture the breakpoint hit',
+      'record pause context',
+      'capture a breakpoint hit',
+    ],
   },
   {
     tool: {
@@ -6685,6 +7256,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'show the wasm or bytecode disassembly',
+      'list low level instructions',
+      'disassemble the code',
+    ],
   },
   {
     tool: {
@@ -6720,6 +7296,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'run an expression while paused',
+      'evaluate in the paused frame',
+      'evaluate inside the breakpoint',
+    ],
   },
   {
     tool: {
@@ -6737,6 +7318,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['why are we paused', 'current pause reason', 'show the paused state'],
   },
   {
     tool: {
@@ -6761,6 +7343,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'attach or detach the debugger',
+      'manage debugger session',
+      'debugger session lifecycle',
+    ],
   },
   {
     tool: {
@@ -6778,6 +7365,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['pause execution now', 'break into the debugger', 'pause the execution'],
   },
   {
     tool: {
@@ -6795,6 +7383,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['continue execution', 'let the page keep running', 'resume the execution'],
   },
   {
     tool: {
@@ -6844,6 +7433,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'run until this spot',
+      'continue up to a location',
+      'run to a specific location',
+    ],
   },
   {
     tool: {
@@ -6882,6 +7476,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'start a debugging session',
+      'open debugger for this target',
+      'open a debug session',
+    ],
   },
   {
     tool: {
@@ -6907,6 +7506,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'step one instruction',
+      'step into or over',
+      'step through the execution one step at a time',
+      'advance to the next instruction',
+      'single step the debugger',
+    ],
   },
   {
     tool: {
@@ -6932,6 +7538,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'block until a pause happens',
+      'wait for breakpoint hit',
+      'wait for the debugger to pause',
+    ],
   },
   {
     tool: {
@@ -7044,6 +7655,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'un obfuscate this script',
+      'make the code readable again',
+      'deobfuscate the code',
+      'restore scrambled code to readable source',
+      'unscramble a minified script',
+    ],
   },
   {
     tool: {
@@ -7068,6 +7686,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
+    sceneKeywords: ['spot encryption usage', 'where does it use crypto', 'detect the encryption'],
   },
   {
     tool: {
@@ -7097,6 +7716,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
+    sceneKeywords: [
+      'is this code obfuscated',
+      'which obfuscator was used',
+      'detect the obfuscation',
+    ],
   },
   {
     tool: {
@@ -7135,6 +7759,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['scan the dex for classes', 'inspect dex contents'],
   },
   {
     tool: {
@@ -7166,6 +7791,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['compare two heap dumps', 'heap snapshot delta', 'diff the two heap snapshots'],
   },
   {
     tool: {
@@ -7208,6 +7834,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'resolve many domains at once',
+      'batch dns lookup',
+      'resolve many domain names at once',
+    ],
   },
   {
     tool: {
@@ -7242,6 +7873,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['follow alias records', 'cname chain trace', 'follow the cname chain'],
   },
   {
     tool: {
@@ -7274,6 +7906,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['structured dns record query', 'query record types', 'probe the dns records'],
   },
   {
     tool: {
@@ -7307,6 +7940,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['lookup domain ip', 'resolve hostname address', 'resolve the domain name'],
   },
   {
     tool: {
@@ -7334,6 +7968,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['ip to hostname', 'reverse dns lookup', 'reverse lookup the domain'],
   },
   {
     tool: {
@@ -7356,6 +7991,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: [
+      'diagnose my setup',
+      'what is broken in this environment',
+      'diagnose the environment',
+    ],
   },
   {
     tool: {
@@ -7392,6 +8032,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'hook into the electron app',
+      'attach debugging to electron',
+      'take over the electron app',
+    ],
   },
   {
     tool: {
@@ -7415,6 +8060,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'read electron fuse state',
+      'which fuses are flipped',
+      'check the electron fuse settings',
+    ],
   },
   {
     tool: {
@@ -7437,6 +8087,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'electron debugging reachable',
+      'debug port open on electron',
+      'show the debug status',
+    ],
   },
   {
     tool: {
@@ -7460,6 +8115,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'inspect an electron app',
+      'analyze the packaged app',
+      'inspect the electron app',
+    ],
   },
   {
     tool: {
@@ -7500,6 +8160,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'listen to electron ipc messages',
+      'sniff internal channels',
+      'sniff the electron ipc channel',
+    ],
   },
   {
     tool: {
@@ -7562,6 +8227,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'start electron with debugging',
+      'launch app with remote debugging',
+      'launch with the debugger attached',
+    ],
   },
   {
     tool: {
@@ -7603,6 +8273,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['flip electron fuses', 'change fuse configuration', 'flip the electron fuse'],
   },
   {
     tool: {
@@ -7640,6 +8311,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'scan electron user data dir',
+      'inspect profile storage',
+      'scan the user data directory',
+    ],
   },
   {
     tool: {
@@ -7668,6 +8344,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['check app integrity', 'verify files are unmodified', 'verify the integrity'],
   },
   {
     tool: {
@@ -7692,6 +8369,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['check code signature', 'verify app signing', 'verify the signature'],
   },
   {
     tool: {
@@ -7715,6 +8393,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'list loaded dlls of a process',
+      'enumerate module list',
+      'enumerate the loaded modules',
+    ],
   },
   {
     tool: {
@@ -7752,6 +8435,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['craft an ethernet frame', 'build l2 frame bytes', 'craft an ethernet frame'],
   },
   {
     tool: {
@@ -7781,6 +8465,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: [
+      'build the evidence chain',
+      'link findings together',
+      'build the evidence chain',
+    ],
   },
   {
     tool: {
@@ -7805,6 +8494,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['save evidence bundle', 'export findings to file', 'export the evidence'],
   },
   {
     tool: {
@@ -7834,6 +8524,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['search recorded evidence', 'query findings store', 'query the evidence'],
   },
   {
     tool: {
@@ -7889,6 +8580,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['full'],
+    sceneKeywords: ['run code in the sandbox', 'safe script execution', 'run inside the sandbox'],
   },
   {
     tool: {
@@ -7907,6 +8599,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['what mitigations are on this binary', 'check nx canary aslr'],
   },
   {
     tool: {
@@ -7942,6 +8635,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['build a format string exploit', 'craft the fmt bug payload'],
   },
   {
     tool: {
@@ -7982,6 +8676,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['spray the heap with this', 'heap spray payload'],
   },
   {
     tool: {
@@ -8023,6 +8718,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['build a jop chain', 'jump oriented programming gadgets'],
   },
   {
     tool: {
@@ -8065,6 +8761,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['ret2dlresolve payload', 'resolve attack chain'],
   },
   {
     tool: {
@@ -8115,6 +8812,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['build a rop chain', 'chain the gadgets for execve'],
   },
   {
     tool: {
@@ -8148,6 +8846,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['pivot the stack to my buffer', 'stack pivot gadget chain'],
   },
   {
     tool: {
@@ -8161,6 +8860,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['clear the exploit cache', 'drop cached results'],
   },
   {
     tool: {
@@ -8203,6 +8903,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['configure the result cache', 'cache policy for gadgets'],
   },
   {
     tool: {
@@ -8222,6 +8923,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['invalidate the cached entries', 'drop stale cache'],
   },
   {
     tool: {
@@ -8235,6 +8937,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['cache hit stats', 'exploit cache usage'],
   },
   {
     tool: {
@@ -8257,6 +8960,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['calculate the exploit offsets', 'distance to the return address'],
   },
   {
     tool: {
@@ -8285,6 +8989,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['find a one gadget', 'single gadget exec constraint'],
   },
   {
     tool: {
@@ -8323,6 +9028,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['encode the shellcode', 'bad character avoidance'],
   },
   {
     tool: {
@@ -8367,6 +9073,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['find rop gadgets in this binary', 'search for pop rdi ret'],
   },
   {
     tool: {
@@ -8393,6 +9100,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['find a jmp esp', 'stack register gadget'],
   },
   {
     tool: {
@@ -8423,6 +9131,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['generate an egghunter', 'small stage one shellcode'],
   },
   {
     tool: {
@@ -8445,6 +9154,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['cyclic pattern for offset finding', 'de bruijn string'],
   },
   {
     tool: {
@@ -8512,6 +9222,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['generate a pwntools script', 'python exploit template'],
   },
   {
     tool: {
@@ -8566,6 +9277,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['solve the exploit constraints', 'work out the chain values'],
   },
   {
     tool: {
@@ -8671,6 +9383,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'exploit-dev',
+    sceneKeywords: ['verify my rop chain', 'check the gadget sequence'],
   },
   {
     tool: {
@@ -8693,6 +9406,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['export my hooks as a script', 'save the hook script'],
   },
   {
     tool: {
@@ -8727,6 +9441,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['save recording to file', 'dump trace data', 'export the trace'],
   },
   {
     tool: {
@@ -8759,6 +9474,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: [
+      'run code inside plugin context',
+      'execute in extension scope',
+      'run in the plugin context',
+    ],
   },
   {
     tool: {
@@ -8782,6 +9502,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['plugin details', 'what does this extension do', 'show the plugin details'],
   },
   {
     tool: {
@@ -8857,6 +9578,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['install a plugin', 'add extension to registry', 'install a plugin'],
   },
   {
     tool: {
@@ -8874,6 +9596,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: [
+      'installed plugins list',
+      'what extensions are loaded',
+      'list the installed plugins',
+    ],
   },
   {
     tool: {
@@ -8897,6 +9624,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['reload a plugin', 'refresh extension code', 'reload the plugin'],
   },
   {
     tool: {
@@ -8920,6 +9648,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['remove a plugin', 'uninstall extension', 'uninstall a plugin'],
   },
   {
     tool: {
@@ -8966,6 +9695,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'show function nesting',
+      'outline the code structure',
+      'show the function tree',
+    ],
   },
   {
     tool: {
@@ -9004,6 +9738,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: [
+      'save streaming responses',
+      'dump fetch streams',
+      'export the captured stream traffic',
+    ],
   },
   {
     tool: {
@@ -9049,6 +9788,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: [
+      'show stream chunks received',
+      'captured fetch stream data',
+      'stream the captured events',
+    ],
   },
   {
     tool: {
@@ -9089,6 +9833,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: [
+      'watch streaming fetch bodies',
+      'follow chunked responses',
+      'monitor the streaming responses',
+    ],
   },
   {
     tool: {
@@ -9148,6 +9897,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'dart-inspector',
+    sceneKeywords: ['which flutter packages are used', 'detect the pub packages'],
   },
   {
     tool: {
@@ -9181,6 +9931,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'pull react or vue state',
+      'extract framework internals',
+      'extract the framework state',
+    ],
   },
   {
     tool: {
@@ -9218,6 +9973,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: [
+      'hook onto a running process with frida',
+      'attach the frida session',
+      'hook the live process',
+      'trace the calls of a running program',
+    ],
   },
   {
     tool: {
@@ -9275,6 +10036,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['intercept calls via frida', 'frida interceptor attach'],
   },
   {
     tool: {
@@ -9298,6 +10060,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['release the frida session', 'unhook the process'],
   },
   {
     tool: {
@@ -9350,6 +10113,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['dump dex from memory', 'grab the unpacked dex at runtime'],
   },
   {
     tool: {
@@ -9377,6 +10141,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['list functions via frida', 'enumerate the module functions'],
   },
   {
     tool: {
@@ -9406,6 +10171,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['list loaded modules via frida', 'enumerate libraries'],
   },
   {
     tool: {
@@ -9433,6 +10199,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['find symbols with frida', 'locate the function addresses'],
   },
   {
     tool: {
@@ -9488,6 +10255,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['generate a frida script', 'write the hook code for me'],
   },
   {
     tool: {
@@ -9506,6 +10274,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['which devices does frida see', 'list frida targets'],
   },
   {
     tool: {
@@ -9534,6 +10303,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['processes frida can attach to', 'list frida process targets'],
   },
   {
     tool: {
@@ -9551,6 +10321,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['active frida sessions', 'list my frida hooks'],
   },
   {
     tool: {
@@ -9583,6 +10354,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['read memory through frida', 'frida read at address'],
   },
   {
     tool: {
@@ -9639,6 +10411,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['scan memory through frida', 'frida pattern scan'],
   },
   {
     tool: {
@@ -9662,6 +10435,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['resume the frida spawned process', 'continue the spawned target'],
   },
   {
     tool: {
@@ -9711,6 +10485,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['run this frida script', 'execute the hook code'],
   },
   {
     tool: {
@@ -9744,6 +10519,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['spawn the app under frida', 'start the process gated'],
   },
   {
     tool: {
@@ -9784,6 +10560,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['write hook code for these functions', 'generate the interceptor code'],
   },
   {
     tool: {
@@ -9807,6 +10584,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['list scripts on the page', 'enumerate loaded js files', 'list the scripts'],
   },
   {
     tool: {
@@ -9824,6 +10602,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['which binary tool plugins exist', 'list decompiler plugins'],
   },
   {
     tool: {
@@ -9842,6 +10621,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['cache hit numbers', 'how full are the caches', 'cache statistics'],
   },
   {
     tool: {
@@ -9860,6 +10640,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['show the current call frames', 'what is on the stack', 'read the call stack'],
   },
   {
     tool: {
@@ -9877,6 +10658,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['collection summary', 'how much code was grabbed', 'collection statistics'],
   },
   {
     tool: {
@@ -9913,6 +10695,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'fetch the stored detail chunks',
+      'read offloaded response data',
+      'get the chunked data',
+    ],
   },
   {
     tool: {
@@ -9936,6 +10723,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'inspect this object fields',
+      'show object shape',
+      'read the object properties',
+    ],
   },
   {
     tool: {
@@ -9967,6 +10759,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'read the offloaded raw bytes',
+      'large response store read',
+      'get the stored data',
+    ],
   },
   {
     tool: {
@@ -10006,6 +10803,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: [
+      'list variables in this scope',
+      'what is in scope now',
+      'read the scope variables',
+    ],
   },
   {
     tool: {
@@ -10054,6 +10856,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['fetch a script its code', 'download script text', 'get the script source'],
   },
   {
     tool: {
@@ -10100,6 +10903,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: [
+      'read handoff context',
+      'what did the previous agent leave',
+      'get the handoff context',
+    ],
   },
   {
     tool: {
@@ -10118,6 +10926,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['token budget usage', 'how many tokens left', 'token budget'],
   },
   {
     tool: {
@@ -10146,6 +10955,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['run ghidra headless analysis', 'extract functions with ghidra'],
   },
   {
     tool: {
@@ -10213,6 +11023,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: [
+      'drive ghidra headless',
+      'ghidra decompiler bridge',
+      'talk to the ghidra bridge',
+    ],
   },
   {
     tool: {
@@ -10246,6 +11061,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['decompile with ghidra', 'ghidra pseudocode for this function'],
   },
   {
     tool: {
@@ -10300,6 +11116,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
+    sceneKeywords: ['list graphql enums', 'enum values from schema', 'enumerate the schema types'],
   },
   {
     tool: {
@@ -10323,6 +11140,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
+    sceneKeywords: [
+      'pull graphql from page code',
+      'find queries in scripts',
+      'extract the graphql queries',
+    ],
   },
   {
     tool: {
@@ -10364,6 +11186,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
+    sceneKeywords: ['pull the graphql schema', 'introspection query', 'introspect the schema'],
   },
   {
     tool: {
@@ -10453,6 +11276,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
+    sceneKeywords: [
+      'resend a graphql operation',
+      'replay query with changes',
+      'replay a graphql query',
+    ],
   },
   {
     tool: {
@@ -10516,6 +11344,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
+    sceneKeywords: [
+      'open graphql subscription',
+      'follow subscription stream',
+      'subscribe to graphql events',
+    ],
   },
   {
     tool: {
@@ -10549,6 +11382,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['save grpc traffic', 'dump grpc session', 'export the captured grpc traffic'],
   },
   {
     tool: {
@@ -10588,6 +11422,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['assemble grpc frame', 'craft grpc message bytes', 'build a grpc frame'],
   },
   {
     tool: {
@@ -10617,6 +11452,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['decode grpc frame', 'split length prefixed messages', 'parse a grpc frame'],
   },
   {
     tool: {
@@ -10658,6 +11494,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['list captured grpc calls', 'grpc method invocations', 'list the grpc calls'],
   },
   {
     tool: {
@@ -10694,6 +11531,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['watch grpc traffic live', 'follow grpc calls', 'monitor the grpc traffic'],
   },
   {
     tool: {
@@ -10796,6 +11634,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['ready-made hook templates', 'pick a hook preset', 'hook presets'],
   },
   {
     tool: {
@@ -10884,6 +11723,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['send raw tcp http', 'manual socket request', 'send a raw http request'],
   },
   {
     tool: {
@@ -10950,6 +11790,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['craft raw http message', 'construct request text', 'build a raw http message'],
   },
   {
     tool: {
@@ -11050,6 +11891,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['craft h2 frame bytes', 'construct http2 frame', 'build an http2 frame'],
   },
   {
     tool: {
@@ -11075,6 +11917,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['decode h2 frame', 'dissect http2 frame bytes', 'parse an http2 frame'],
   },
   {
     tool: {
@@ -11177,6 +12020,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['test h2 support', 'check http2 endpoint', 'test whether http2 is supported'],
   },
   {
     tool: {
@@ -11249,6 +12093,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'move the mouse like a person',
+      'humanlike mouse path',
+      'human like mouse movement',
+    ],
   },
   {
     tool: {
@@ -11302,6 +12151,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['scroll like a human would', 'natural scroll behavior', 'human like scrolling'],
   },
   {
     tool: {
@@ -11357,6 +12207,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['type with human rhythm', 'keystroke cadence typing', 'human like typing'],
   },
   {
     tool: {
@@ -11397,6 +12248,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['craft an icmp ping packet', 'build icmp echo bytes', 'craft an icmp packet'],
   },
   {
     tool: {
@@ -11458,6 +12310,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: ['drive ida pro', 'ida decompiler bridge', 'talk to the ida bridge'],
   },
   {
     tool: {
@@ -11485,6 +12338,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['ida pseudocode output', 'decompile in ida pro'],
   },
   {
     tool: {
@@ -11558,6 +12412,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'dump the indexeddb store',
+      'export offline database',
+      'export the indexeddb contents',
+    ],
   },
   {
     tool: {
@@ -11601,6 +12460,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'load my dll into the target',
+      'dll injection into process',
+      'inject a dll into the process',
+    ],
   },
   {
     tool: {
@@ -11646,6 +12510,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'run shellcode in the target',
+      'code injection into process',
+      'inject shellcode into the process',
+    ],
   },
   {
     tool: {
@@ -11673,6 +12542,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['install a plugin from the registry', 'add this extension', 'install a plugin'],
   },
   {
     tool: {
@@ -11729,6 +12599,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: [
+      'collected instrumentation artifact',
+      'session artifact store',
+      'instrumentation artifacts',
+    ],
   },
   {
     tool: {
@@ -11792,6 +12667,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: [
+      'instrumentation template hooks',
+      'preset instrumentation set',
+      'instrumentation presets',
+    ],
   },
   {
     tool: {
@@ -11892,6 +12772,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: [
+      'replay captured traffic in session',
+      're-run recorded requests',
+      'replay inside the session',
+    ],
   },
   {
     tool: {
@@ -11945,6 +12830,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: [
+      'single instrumentation operation',
+      'one instrumentation action',
+      'perform an instrumentation operation',
+    ],
   },
   {
     tool: {
@@ -11978,6 +12868,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: [
+      'open instrumentation session',
+      'start instrumented run',
+      'instrumentation session',
+    ],
   },
   {
     tool: {
@@ -12006,6 +12901,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: [
+      'compare two instrumented runs',
+      'session behavior delta',
+      'compare the sessions',
+    ],
   },
   {
     tool: {
@@ -12033,6 +12933,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['export instrumentation session', 'save session data', 'export the session'],
   },
   {
     tool: {
@@ -12065,6 +12966,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
+    sceneKeywords: ['merge instrumented sessions', 'combine session data', 'merge the sessions'],
   },
   {
     tool: {
@@ -12096,6 +12998,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['decompile the apk with jadx', 'jadx java sources'],
   },
   {
     tool: {
@@ -12134,6 +13037,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['full jadx run on the apk', 'decompile the whole package'],
   },
   {
     tool: {
@@ -12202,6 +13106,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['search inside the jadx output', 'find code in the java sources'],
   },
   {
     tool: {
@@ -12235,6 +13140,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'analyze the custom vm',
+      'understand the interpreter loop',
+      'analyse the virtual machine',
+    ],
   },
   {
     tool: {
@@ -12350,6 +13260,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: [
+      'find code inside bundles',
+      'search bundled javascript',
+      'search inside the javascript bundle',
+    ],
   },
   {
     tool: {
@@ -12396,6 +13311,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'restore jsvmp bytecode',
+      'unpack the vm protected code',
+      'devirtualise the jsvmp code',
+    ],
   },
   {
     tool: {
@@ -12439,6 +13359,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'run the full deobfuscation pipeline',
+      'multi pass cleanup',
+      'deobfuscation pipeline for a bundle',
+    ],
   },
   {
     tool: {
@@ -12472,6 +13397,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'search strings in the heap',
+      'find values inside js memory',
+      'search the heap for an object',
+    ],
   },
   {
     tool: {
@@ -12507,6 +13437,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'solve the string array constraints',
+      'decode encoded literals',
+      'solve the constraints',
+    ],
   },
   {
     tool: {
@@ -12557,6 +13492,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'symbolically run this function',
+      'explore paths symbolically',
+      'symbolic execution',
+    ],
   },
   {
     tool: {
@@ -12619,6 +13559,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'symbolic execution on jsvmp',
+      'explore vm paths',
+      'symbolic execution on jsvmp code',
+    ],
   },
   {
     tool: {
@@ -12637,6 +13582,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['what workflows exist', 'enumerate plugin recipes', 'list the workflows'],
   },
   {
     tool: {
@@ -12661,6 +13607,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['show installed plugins', 'what extensions exist', 'list the plugins'],
   },
   {
     tool: {
@@ -12679,6 +13626,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
+    sceneKeywords: ['show saved macros', 'enumerate macro library', 'list the macros'],
   },
   {
     tool: {
@@ -12697,6 +13645,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['show saved page states', 'enumerate snapshots', 'list the page snapshots'],
   },
   {
     tool: {
@@ -12723,6 +13672,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'ask ai for better names',
+      'rename obfuscated identifiers',
+      'suggest identifiers with ai',
+    ],
   },
   {
     tool: {
@@ -12756,6 +13710,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
+    sceneKeywords: ['detect the gpu on this host', 'graphics adapter probe', 'detect the gpu'],
   },
   {
     tool: {
@@ -12803,6 +13758,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: ['list and remove my hooks', 'control attached hooks', 'manage the hooks'],
   },
   {
     tool: {
@@ -12820,6 +13776,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: [
+      'manually trim the token budget',
+      'free token budget now',
+      'manually reclaim the tokens',
+    ],
   },
   {
     tool: {
@@ -12848,6 +13809,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['allocate memory in the target', 'reserve a memory block'],
   },
   {
     tool: {
@@ -12871,6 +13833,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['which anticheat is watching', 'detect the ac module'],
   },
   {
     tool: {
@@ -12901,6 +13864,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['hide my memory operations', 'anti ac concealment'],
   },
   {
     tool: {
@@ -12925,6 +13889,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['is my tooling visible', 'check concealment state'],
   },
   {
     tool: {
@@ -12997,6 +13962,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['scan for this byte pattern', 'array of bytes search'],
   },
   {
     tool: {
@@ -13044,6 +14010,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['assemble this instruction text', 'turn assembly into bytes'],
   },
   {
     tool: {
@@ -13061,6 +14028,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['export the write audit trail', 'dump audit log', 'export the audit trail'],
   },
   {
     tool: {
@@ -13089,6 +14057,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['run an auto assembler script', 'apply aa script'],
   },
   {
     tool: {
@@ -13117,6 +14086,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['remove the aa script', 'undo auto assemble'],
   },
   {
     tool: {
@@ -13164,6 +14134,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['edit many addresses at once', 'batch value changes'],
   },
   {
     tool: {
@@ -13211,6 +14182,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'write many values at once',
+      'batch memory writes',
+      'write many memory values at once',
+    ],
   },
   {
     tool: {
@@ -13252,6 +14228,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['bookmark this address', 'save the location for later'],
   },
   {
     tool: {
@@ -13325,6 +14302,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['break on memory access', 'stop when this address is touched'],
   },
   {
     tool: {
@@ -13357,6 +14335,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['walk the stack of this thread', 'capture the call frames'],
   },
   {
     tool: {
@@ -13430,6 +14409,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['export a cheat table', 'ct file with my entries'],
   },
   {
     tool: {
@@ -13458,6 +14438,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'page protection of this address',
+      'memory guard bits',
+      'check the memory protection of an address',
+    ],
   },
   {
     tool: {
@@ -13485,6 +14470,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['find a code cave', 'empty space in the sections'],
   },
   {
     tool: {
@@ -13517,6 +14503,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['dump this memory range to file', 'save the region bytes'],
   },
   {
     tool: {
@@ -13553,6 +14540,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['dump a memory range', 'save region bytes', 'dump a memory region'],
   },
   {
     tool: {
@@ -13587,6 +14575,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['is this an emulator environment', 'detect emulator artifacts'],
   },
   {
     tool: {
@@ -13654,6 +14643,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['what reads this address', 'find code touching the value'],
   },
   {
     tool: {
@@ -13691,6 +14681,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['what points to this address', 'find pointers to it'],
   },
   {
     tool: {
@@ -13796,6 +14787,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['first search for this value', 'initial exact scan'],
   },
   {
     tool: {
@@ -13824,6 +14816,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['free the allocated block', 'release reserved memory'],
   },
   {
     tool: {
@@ -13889,6 +14882,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: [
+      'freeze this value in place',
+      'lock the value constant',
+      'keep this value pinned so it never changes',
+      'pin a value at an address',
+      'lock the value so it never changes',
+      'freeze the value in memory',
+    ],
   },
   {
     tool: {
@@ -13912,6 +14913,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['export the frozen entries', 'save the freeze list'],
   },
   {
     tool: {
@@ -13948,6 +14950,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['generate a scan signature', 'aob signature from this address'],
   },
   {
     tool: {
@@ -14016,6 +15019,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['scan for several values together', 'grouped value search'],
   },
   {
     tool: {
@@ -14043,6 +15047,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['set guard pages on the region', 'protect with guard'],
   },
   {
     tool: {
@@ -14081,6 +15086,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['enumerate open handles', 'list process handles'],
   },
   {
     tool: {
@@ -14104,6 +15110,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['heap anomalies in the target', 'odd heap structures'],
   },
   {
     tool: {
@@ -14131,6 +15138,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['walk the heap allocations', 'list heap blocks'],
   },
   {
     tool: {
@@ -14154,6 +15162,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['heap usage numbers', 'heap totals'],
   },
   {
     tool: {
@@ -14184,6 +15193,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['hypervisor backed operations', 'vt powered memory ops'],
   },
   {
     tool: {
@@ -14217,6 +15227,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['inject a dll into the game', 'load my library in target'],
   },
   {
     tool: {
@@ -14250,6 +15261,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['inject shellcode into the game', 'run my code in target'],
   },
   {
     tool: {
@@ -14293,6 +15305,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['detect inline hooks', 'patched prologue scan'],
   },
   {
     tool: {
@@ -14320,6 +15333,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['check code integrity of sections', 'verify section hashes'],
   },
   {
     tool: {
@@ -14343,6 +15357,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'list address ranges of process',
+      'enumerate memory regions',
+      'list the memory regions',
+    ],
   },
   {
     tool: {
@@ -14360,6 +15379,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['registered custom types', 'list my type definitions'],
   },
   {
     tool: {
@@ -14387,6 +15407,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['list mono assemblies in the game', 'unity assembly list'],
   },
   {
     tool: {
@@ -14423,6 +15444,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['list mono classes in the assembly', 'unity class enumeration'],
   },
   {
     tool: {
@@ -14446,6 +15468,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['is this a mono game', 'detect the unity runtime'],
   },
   {
     tool: {
@@ -14474,6 +15497,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['fields of this mono class', 'unity field offsets'],
   },
   {
     tool: {
@@ -14506,6 +15530,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['methods of this mono class', 'unity method list'],
   },
   {
     tool: {
@@ -14538,6 +15563,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['find instances of this class', 'unity object instances'],
   },
   {
     tool: {
@@ -14609,6 +15635,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['narrow the scan results', 'next scan with the new value'],
   },
   {
     tool: {
@@ -14665,6 +15692,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['parse the dumped region', 'read the dump structure'],
   },
   {
     tool: {
@@ -14700,6 +15728,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['patch these bytes in place', 'write instruction bytes'],
   },
   {
     tool: {
@@ -14732,6 +15761,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['nop out this instruction', 'replace with nops'],
   },
   {
     tool: {
@@ -14755,6 +15785,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['undo the last patch', 'restore original bytes'],
   },
   {
     tool: {
@@ -14787,6 +15818,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['read the pe headers', 'section table of the module'],
   },
   {
     tool: {
@@ -14824,6 +15856,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['imports and exports of the module', 'pe iat eat'],
   },
   {
     tool: {
@@ -14889,6 +15922,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['walk this pointer chain', 'follow the multi level pointer'],
   },
   {
     tool: {
@@ -14976,6 +16010,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['map the pointer paths', 'pointer relationships'],
   },
   {
     tool: {
@@ -15041,6 +16076,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['scan for pointers to this address', 'pointer search'],
   },
   {
     tool: {
@@ -15070,6 +16106,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['suspend or resume from memory tool', 'control target execution'],
   },
   {
     tool: {
@@ -15107,6 +16144,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['change memory protection flags', 'set the guard bits'],
   },
   {
     tool: {
@@ -15139,6 +16177,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'read bytes from process memory',
+      'read memory at address',
+      'read process memory',
+    ],
   },
   {
     tool: {
@@ -15192,6 +16235,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['read a typed value', 'read as int or float'],
   },
   {
     tool: {
@@ -15228,6 +16272,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['compare two memory regions', 'region byte delta'],
   },
   {
     tool: {
@@ -15270,6 +16315,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['list committed regions', 'enumerate readable ranges'],
   },
   {
     tool: {
@@ -15311,6 +16357,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['register a custom type', 'define a new struct type'],
   },
   {
     tool: {
@@ -15368,6 +16415,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['operate on a remote target', 'remote memory session'],
   },
   {
     tool: {
@@ -15401,6 +16449,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['reverse the write trace timing', 'mwt timing reversal'],
   },
   {
     tool: {
@@ -15430,6 +16479,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['rtti class info of this object', 'read the vtable type'],
   },
   {
     tool: {
@@ -15470,6 +16520,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'search memory for a value',
+      'scan process for pattern',
+      'hunt for a number in memory',
+      'locate a value inside the target',
+      'find a value inside the target',
+      'search the process memory for a pattern',
+    ],
   },
   {
     tool: {
@@ -15511,6 +16569,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'narrow the previous scan',
+      'filter scan results',
+      'filter the memory scan results',
+    ],
   },
   {
     tool: {
@@ -15540,6 +16603,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['saved scan sessions', 'list my scan history'],
   },
   {
     tool: {
@@ -15585,6 +16649,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['search memory for this string', 'find text in memory'],
   },
   {
     tool: {
@@ -15609,6 +16674,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['export the scan session', 'save scan state'],
   },
   {
     tool: {
@@ -15642,6 +16708,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['speed up the game time', 'adjust the game clock'],
   },
   {
     tool: {
@@ -15684,6 +16751,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['analyze this structure', 'field layout discovery'],
   },
   {
     tool: {
@@ -15734,6 +16802,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['compare two structures', 'struct layout delta'],
   },
   {
     tool: {
@@ -15769,6 +16838,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['export the struct as c code', 'generate c header'],
   },
   {
     tool: {
@@ -15817,6 +16887,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['trace which code executes here', 'record execution at region'],
   },
   {
     tool: {
@@ -15855,6 +16926,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['define a structure type', 'create a custom layout'],
   },
   {
     tool: {
@@ -15931,6 +17003,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['scan for unknown initial value', 'changed or unchanged scan'],
   },
   {
     tool: {
@@ -15954,6 +17027,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['remove my custom type', 'delete the type definition'],
   },
   {
     tool: {
@@ -15982,6 +17056,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['parse the vtable entries', 'read the virtual table'],
   },
   {
     tool: {
@@ -16042,6 +17117,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['watch this address for changes', 'notify on value change'],
   },
   {
     tool: {
@@ -16080,6 +17156,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'write bytes into process memory',
+      'patch memory value',
+      'overwrite the value at an address',
+      'set a new value at that address',
+      'overwrite the value at that address',
+      'write into the process memory',
+    ],
   },
   {
     tool: {
@@ -16110,6 +17194,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['history of writes to this address', 'who wrote this value'],
   },
   {
     tool: {
@@ -16161,6 +17246,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
+    sceneKeywords: ['write this value to the address', 'set the memory value'],
   },
   {
     tool: {
@@ -16184,6 +17270,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'analyze a wechat mini app',
+      'inspect mini program package',
+      'analyse the miniprogram package',
+    ],
   },
   {
     tool: {
@@ -16207,6 +17298,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'scan mini program contents',
+      'list package internals',
+      'scan the miniprogram package',
+    ],
   },
   {
     tool: {
@@ -16234,6 +17330,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: [
+      'unpack a mini app package',
+      'extract wxapkg files',
+      'unpack the miniprogram package',
+      'extract wxapkg package files',
+    ],
   },
   {
     tool: {
@@ -16273,6 +17375,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['decode a mojo message', 'parse chrome ipc payload', 'decode a mojo message'],
   },
   {
     tool: {
@@ -16360,6 +17463,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['build a mojo message', 'encode chrome ipc payload', 'encode a mojo message'],
   },
   {
     tool: {
@@ -16377,6 +17481,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['mojo tooling availability', 'what mojo features exist', 'mojo capabilities'],
   },
   {
     tool: {
@@ -16394,6 +17499,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['list mojo interfaces', 'enumerate ipc interfaces', 'list the mojo interfaces'],
   },
   {
     tool: {
@@ -16444,6 +17550,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: [
+      'captured mojo messages',
+      'fetch recorded ipc messages',
+      'get the mojo messages',
+    ],
   },
   {
     tool: {
@@ -16495,6 +17606,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: ['mojo traffic summary', 'ipc message overview', 'summarise the mojo messages'],
   },
   {
     tool: {
@@ -16523,6 +17635,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: [
+      'watch chrome internal ipc',
+      'follow mojo messages live',
+      'monitor the mojo traffic',
+    ],
   },
   {
     tool: {
@@ -16562,6 +17679,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
+    sceneKeywords: [
+      'is mojo capture working',
+      'verify live ipc stream',
+      'verify the mojo pipe is live',
+    ],
   },
   {
     tool: {
@@ -16606,6 +17728,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: [
+      'which reverse tools are reachable',
+      'bridge availability check',
+      'bridge health status',
+    ],
   },
   {
     tool: {
@@ -16650,6 +17777,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: [
+      'sync symbols between tools',
+      'import export symbol tables',
+      'sync the symbols',
+    ],
   },
   {
     tool: {
@@ -16686,6 +17818,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['reserve guest memory in the emulator', 'allocate in the arm64 vm'],
   },
   {
     tool: {
@@ -16723,6 +17856,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['bind every import in the emulated library', 'resolve all imports'],
   },
   {
     tool: {
@@ -16756,6 +17890,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['bind a host function to the guest', 'native callback into emulator'],
   },
   {
     tool: {
@@ -16780,6 +17915,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['decode arm64 instruction bytes', 'disassemble one encoding'],
   },
   {
     tool: {
@@ -16824,6 +17960,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['scan for instruction encodings', 'find gadgets in emulator memory'],
   },
   {
     tool: {
@@ -16867,6 +18004,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['call this guest address', 'run the emulated function at addr'],
   },
   {
     tool: {
@@ -16912,6 +18050,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['call the jni export in emulation', 'run the registered jni method'],
   },
   {
     tool: {
@@ -16977,6 +18116,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['call a symbol in the emulated lib', 'run by symbol name'],
   },
   {
     tool: {
@@ -16995,6 +18135,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['what can the emulator do', 'nemu feature check'],
   },
   {
     tool: {
@@ -17033,6 +18174,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['create a jni handle', 'new java object handle'],
   },
   {
     tool: {
@@ -17072,6 +18214,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['start an emulation session', 'new arm64 emulator instance'],
   },
   {
     tool: {
@@ -17107,6 +18250,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['build a c++ vtable in guest', 'set up the virtual table'],
   },
   {
     tool: {
@@ -17151,6 +18295,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['dump guest data bytes', 'read emulator memory range'],
   },
   {
     tool: {
@@ -17175,6 +18320,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['close the emulation session', 'tear down the emulator'],
   },
   {
     tool: {
@@ -17242,6 +18388,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['disassemble emulator memory', 'list guest instructions'],
   },
   {
     tool: {
@@ -17272,6 +18419,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['why did dlsym fail', 'diagnose symbol resolution'],
   },
   {
     tool: {
@@ -17300,6 +18448,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['dump the current guest frame', 'stack frame contents'],
   },
   {
     tool: {
@@ -17324,6 +18473,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['dump the got entries', 'global offset table state'],
   },
   {
     tool: {
@@ -17348,6 +18498,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['pull libraries from the apk for emulation', 'extract so files'],
   },
   {
     tool: {
@@ -17389,6 +18540,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['start a gdb server on the emulator', 'debug the guest over gdb'],
   },
   {
     tool: {
@@ -17418,6 +18570,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['get the jni stub for this function', 'jni bridge stub'],
   },
   {
     tool: {
@@ -17442,6 +18595,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['list the imports of the emulated lib', 'what does the library need'],
   },
   {
     tool: {
@@ -17472,6 +18626,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['diagnose jni problems', 'why is the jni call failing'],
   },
   {
     tool: {
@@ -17505,6 +18660,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['list live jni handles', 'java handle table'],
   },
   {
     tool: {
@@ -17522,6 +18678,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['emulation sessions running', 'list nemu instances'],
   },
   {
     tool: {
@@ -17546,6 +18703,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['symbols of the emulated library', 'exported names'],
   },
   {
     tool: {
@@ -17578,6 +18736,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load a library from the apk', 'emulate the packaged so'],
   },
   {
     tool: {
@@ -17606,6 +18765,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load an so into the emulator', 'map the library into guest'],
   },
   {
     tool: {
@@ -17641,6 +18801,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load the library with dependencies', 'resolve the so dependency chain'],
   },
   {
     tool: {
@@ -17739,6 +18900,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['inspect guest memory at address', 'look at emulated memory'],
   },
   {
     tool: {
@@ -17771,6 +18933,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['guest memory map', 'regions mapped in the emulator'],
   },
   {
     tool: {
@@ -17808,6 +18971,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['shadow memory view', 'intercepted memory regions'],
   },
   {
     tool: {
@@ -17836,6 +19000,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['create a jni byte array', 'new java byte buffer'],
   },
   {
     tool: {
@@ -17883,6 +19048,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['apply a patch in the guest', 'patch emulated code bytes'],
   },
   {
     tool: {
@@ -17927,6 +19093,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['walk a pointer chain in guest memory', 'follow guest pointers'],
   },
   {
     tool: {
@@ -17951,6 +19118,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['set up tls for the guest thread', 'thread local storage setup'],
   },
   {
     tool: {
@@ -17979,6 +19147,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['read back the jni byte array', 'get java array contents'],
   },
   {
     tool: {
@@ -18024,6 +19193,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['read guest memory', 'emulator memory read'],
   },
   {
     tool: {
@@ -18060,6 +19230,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['restore the saved registers', 'load register state back'],
   },
   {
     tool: {
@@ -18088,6 +19259,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['save the register state', 'snapshot the cpu registers'],
   },
   {
     tool: {
@@ -18134,6 +19306,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['relay calls to the host', 'forward native calls to real library'],
   },
   {
     tool: {
@@ -18175,6 +19348,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['scan guest memory for a value', 'search emulated memory'],
   },
   {
     tool: {
@@ -18199,6 +19373,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['emulation session details', 'nemu session state'],
   },
   {
     tool: {
@@ -18227,6 +19402,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load a saved emulation session', 'resume the session file'],
   },
   {
     tool: {
@@ -18261,6 +19437,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['set the pointer auth key', 'pac key configuration'],
   },
   {
     tool: {
@@ -18290,6 +19467,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['set the cpu registers', 'write guest register state'],
   },
   {
     tool: {
@@ -18327,6 +19505,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['set a vtable slot entry', 'patch the virtual method pointer'],
   },
   {
     tool: {
@@ -18375,6 +19554,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['mock a java field value', 'set up the java field in guest'],
   },
   {
     tool: {
@@ -18438,6 +19618,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['mock a java object for jni', 'fake the java side'],
   },
   {
     tool: {
@@ -18499,6 +19680,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['mock several java objects', 'prepare the jni environment'],
   },
   {
     tool: {
@@ -18619,6 +19801,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['trace the emulated execution', 'record guest instructions'],
   },
   {
     tool: {
@@ -18673,6 +19856,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['compare two vm states', 'emulator state delta'],
   },
   {
     tool: {
@@ -18724,6 +19908,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['dump the vm state', 'save emulator state to file'],
   },
   {
     tool: {
@@ -18791,6 +19976,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['load a saved vm state', 'restore emulator state'],
   },
   {
     tool: {
@@ -18827,6 +20013,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['write into guest memory', 'emulator memory write'],
   },
   {
     tool: {
@@ -18873,6 +20060,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['write several guest regions', 'batch memory writes in emulator'],
   },
   {
     tool: {
@@ -18915,6 +20103,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-emulator',
+    sceneKeywords: ['xor a guest memory region', 'decode the region in place'],
   },
   {
     tool: {
@@ -18937,6 +20126,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['listen on a tcp port', 'accept raw tcp connections', 'listen on a tcp socket'],
   },
   {
     tool: {
@@ -18972,6 +20162,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['push bytes over tcp', 'raw tcp client send', 'send data over tcp'],
   },
   {
     tool: {
@@ -18994,6 +20185,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['listen on a udp port', 'accept udp datagrams', 'listen on a udp socket'],
   },
   {
     tool: {
@@ -19029,6 +20221,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['send udp datagram', 'raw udp packet out', 'send data over udp'],
   },
   {
     tool: {
@@ -19099,6 +20292,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['detect bot signals', 'anti bot scoring', 'bot detection'],
   },
   {
     tool: {
@@ -19116,6 +20310,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'stop capturing traffic',
+      'turn off request monitoring',
+      'stop recording requests',
+      'disable traffic capture',
+      'stop capturing traffic',
+      'halt packet capture session',
+    ],
   },
   {
     tool: {
@@ -19140,6 +20342,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'start capturing http traffic',
+      'begin request recording',
+      'start capturing traffic',
+      'record api calls',
+    ],
   },
   {
     tool: {
@@ -19168,6 +20376,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['save capture as har', 'export har file', 'export the traffic as a har file'],
   },
   {
     tool: {
@@ -19193,6 +20402,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'find tokens in traffic',
+      'pull api keys from captured requests',
+      'extract the credentials',
+    ],
   },
   {
     tool: {
@@ -19279,6 +20493,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'show captured requests',
+      'list recorded http calls',
+      'list the captured requests',
+    ],
   },
   {
     tool: {
@@ -19338,6 +20557,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'download response content',
+      'read returned payload',
+      'read the response body',
+      'see what the server returned for this request',
+      'fetch the body of a captured response',
+      'see what the server sent back for a request',
+    ],
   },
   {
     tool: {
@@ -19355,6 +20582,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'traffic summary numbers',
+      'capture overview counters',
+      'traffic counters overview',
+      'request count summary',
+      'traffic statistics',
+      'capture counters totals only',
+    ],
   },
   {
     tool: {
@@ -19372,6 +20607,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'is capture running',
+      'monitoring state',
+      'capture active state',
+      'is monitoring on',
+      'capture status',
+      'capture session state probe',
+    ],
   },
   {
     tool: {
@@ -19397,6 +20640,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['akamai fingerprint hash', 'h2 settings fingerprint', 'http2 fingerprint'],
   },
   {
     tool: {
@@ -19480,6 +20724,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['icmp echo check', 'ping a host', 'ping the host'],
   },
   {
     tool: {
@@ -19593,6 +20838,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['block or mock requests', 'fake responses', 'intercept and mock the requests'],
   },
   {
     tool: {
@@ -19682,6 +20928,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['latency percentiles', 'p95 delay distribution', 'latency distribution'],
   },
   {
     tool: {
@@ -19712,6 +20959,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'manage traffic capture',
+      'watch requests live',
+      'watch every outgoing request',
+      'log all the calls the page makes',
+      'see each request as it goes out',
+    ],
   },
   {
     tool: {
@@ -19891,6 +21145,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['resend captured request', 'replay with modifications', 'replay the request'],
   },
   {
     tool: {
@@ -19973,6 +21228,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['ping latency to host', 'round trip time', 'measure the latency'],
   },
   {
     tool: {
@@ -20083,6 +21339,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['ja3 ja4 hash', 'client hello fingerprint', 'tls fingerprint'],
   },
   {
     tool: {
@@ -20166,6 +21423,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['hop by hop path', 'trace route to host', 'traceroute hops'],
   },
   {
     tool: {
@@ -20183,6 +21441,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['go back one page', 'navigate to previous entry', 'go back in history'],
   },
   {
     tool: {
@@ -20217,6 +21476,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'stop these scripts from loading',
+      'block urls from loading',
+      'intercept the script',
+    ],
   },
   {
     tool: {
@@ -20274,6 +21538,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['click this element', 'press a dom node', 'click the element'],
   },
   {
     tool: {
@@ -20344,6 +21609,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['read and set cookies', 'manage browser cookies', 'manage the cookies'],
   },
   {
     tool: {
@@ -20362,6 +21628,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'start js coverage collection',
+      'record executed code',
+      'start collecting coverage',
+    ],
   },
   {
     tool: {
@@ -20380,6 +21651,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'collect js coverage result',
+      'stop coverage recording',
+      'stop collecting coverage',
+    ],
   },
   {
     tool: {
@@ -20403,6 +21679,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['pretend to be a phone', 'device emulation profile', 'emulate a device'],
   },
   {
     tool: {
@@ -20465,6 +21742,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'run javascript in the page',
+      'evaluate an expression in page context',
+      'run javascript in the page',
+    ],
   },
   {
     tool: {
@@ -20482,6 +21764,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['go forward again', 'next history entry', 'go forward in history'],
   },
   {
     tool: {
@@ -20515,6 +21798,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['accept or dismiss the popup', 'answer the js dialog', 'dismiss the dialog'],
   },
   {
     tool: {
@@ -20546,6 +21830,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['hover over this element', 'mouse over the node', 'hover over the element'],
   },
   {
     tool: {
@@ -20569,6 +21854,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'inject custom js into the page',
+      'add my own script',
+      'inject a script into the page',
+    ],
   },
   {
     tool: {
@@ -20586,6 +21876,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['list frames on the page', 'enumerate iframes', 'list the iframes'],
   },
   {
     tool: {
@@ -20618,6 +21909,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'inspect localstorage entries',
+      'read local key value store',
+      'read the localStorage',
+    ],
   },
   {
     tool: {
@@ -20659,6 +21955,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'open this url',
+      'go to a web address',
+      'open a url in the browser',
+      'send the browser to this address',
+      'take the page to another site',
+    ],
   },
   {
     tool: {
@@ -20682,6 +21985,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['press a keyboard key', 'send a key press', 'press a key'],
   },
   {
     tool: {
@@ -20699,6 +22003,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['refresh the page', 'reload current document', 'reload the page'],
   },
   {
     tool: {
@@ -20777,6 +22082,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['take a picture of the page', 'capture visual snapshot', 'screenshot the page'],
   },
   {
     tool: {
@@ -20815,6 +22121,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: [
+      'install a script before page load',
+      'persistent inject on navigate',
+      'preload a script',
+    ],
   },
   {
     tool: {
@@ -20844,6 +22155,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: [
+      'run a script right now in page',
+      'execute ad hoc page code',
+      'execute a script in the page',
+    ],
   },
   {
     tool: {
@@ -20872,6 +22188,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['scroll the page down', 'scroll to this position', 'scroll the page'],
   },
   {
     tool: {
@@ -20910,6 +22227,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'choose an option in the dropdown',
+      'pick a select value',
+      'pick an option from a dropdown',
+    ],
   },
   {
     tool: {
@@ -20942,6 +22264,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'inspect sessionstorage entries',
+      'per-tab storage values',
+      'read the sessionStorage',
+    ],
   },
   {
     tool: {
@@ -20969,6 +22296,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['resize the page viewport', 'change window size', 'set the viewport size'],
   },
   {
     tool: {
@@ -20987,6 +22315,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['storage usage overview', 'quota and usage numbers', 'storage usage overview'],
   },
   {
     tool: {
@@ -21028,6 +22357,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'type text into a field',
+      'enter keyboard input',
+      'type text into the field',
+      'fill the input box with this string',
+      'put text into the box',
+    ],
   },
   {
     tool: {
@@ -21066,6 +22402,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['attach files to the input', 'upload through the file picker', 'upload a file'],
   },
   {
     tool: {
@@ -21096,6 +22433,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'wait until this element appears',
+      'block on selector match',
+      'wait for the element',
+    ],
   },
   {
     tool: {
@@ -21184,6 +22526,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['mutate the payload bytes', 'fuzz the packet content', 'mutate the payload'],
   },
   {
     tool: {
@@ -21244,6 +22587,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['build packet from template', 'create payload template', 'payload template'],
   },
   {
     tool: {
@@ -21277,6 +22621,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['read a pcap capture file', 'open packet dump', 'read a pcap file'],
   },
   {
     tool: {
@@ -21348,6 +22693,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['write packets to pcap', 'save capture file', 'write a pcap file'],
   },
   {
     tool: {
@@ -21392,6 +22738,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['read a pcapng file', 'open next-gen capture', 'read a pcapng file'],
   },
   {
     tool: {
@@ -21485,6 +22832,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['write pcapng capture', 'save next-gen packet dump', 'write a pcapng file'],
   },
   {
     tool: {
@@ -21508,6 +22856,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'page performance numbers',
+      'runtime metrics snapshot',
+      'page performance metrics',
+    ],
   },
   {
     tool: {
@@ -21548,6 +22901,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: ['chrome tracing capture', 'record performance trace', 'performance trace'],
   },
   {
     tool: {
@@ -21565,6 +22919,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['what can this host do', 'environment feature probe', 'platform capabilities'],
   },
   {
     tool: {
@@ -21588,6 +22943,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'debug port of another process',
+      'is process being debugged',
+      'check the debug port of a process',
+    ],
   },
   {
     tool: {
@@ -21612,6 +22972,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['detect apc injection tricks', 'apc queue abuse scan', 'detect apc injection'],
   },
   {
     tool: {
@@ -21644,6 +23005,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'is the process hollowed',
+      'detect process hollowing',
+      'detect process hollowing',
+    ],
   },
   {
     tool: {
@@ -21682,6 +23048,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'list open handles of process',
+      'enumerate handle table',
+      'enumerate the open handles',
+    ],
   },
   {
     tool: {
@@ -21711,6 +23082,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['list threads of a process', 'enumerate thread ids', 'enumerate the threads'],
   },
   {
     tool: {
@@ -21735,6 +23107,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['find the pid of a program', 'look up process by name', 'find the process'],
   },
   {
     tool: {
@@ -21759,6 +23132,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['details of one process', 'process info by pid', 'process details'],
   },
   {
     tool: {
@@ -21798,6 +23172,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'scan for hollowed processes',
+      'system wide hollowing check',
+      'system wide hollowing scan',
+    ],
   },
   {
     tool: {
@@ -21821,6 +23200,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['kill this process', 'terminate the pid', 'kill the process'],
   },
   {
     tool: {
@@ -21858,6 +23238,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'start a program under debugging',
+      'launch with debug port',
+      'launch the process under the debugger',
+    ],
   },
   {
     tool: {
@@ -21876,6 +23261,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'show all running processes',
+      'enumerate the process table',
+      'list the running processes',
+    ],
   },
   {
     tool: {
@@ -21900,6 +23290,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['resume the suspended process', 'unfreeze process', 'resume the process'],
   },
   {
     tool: {
@@ -21924,6 +23315,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'runtime facts about the process',
+      'process internals readout',
+      'runtime information about the process',
+    ],
   },
   {
     tool: {
@@ -21948,6 +23344,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: ['freeze this process', 'suspend the pid', 'suspend the process'],
   },
   {
     tool: {
@@ -21971,6 +23368,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
+    sceneKeywords: [
+      'list the windows of a process',
+      'enumerate window titles',
+      'enumerate the windows',
+    ],
   },
   {
     tool: {
@@ -22006,6 +23408,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
+    sceneKeywords: [
+      'cpu usage sampling',
+      'javascript cpu profile',
+      'start cpu profiling',
+      'cpu profiler sampling',
+      'cpu flame graph',
+      'profiler sampling session control',
+    ],
   },
   {
     tool: {
@@ -22032,6 +23442,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: [
+      'guess the protocol automatically',
+      'identify protocol from bytes',
+      'automatically detect the protocol',
+    ],
   },
   {
     tool: {
@@ -22060,6 +23475,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: [
+      'define a protocol pattern',
+      'describe my custom protocol',
+      'define the protocol pattern',
+    ],
   },
   {
     tool: {
@@ -22088,6 +23508,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['dissect dns packet bytes', 'parse dns message', 'parse a dns packet'],
   },
   {
     tool: {
@@ -22113,6 +23534,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['dissect http bytes', 'parse raw http message', 'parse an http packet'],
   },
   {
     tool: {
@@ -22143,6 +23565,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: [
+      'export the protocol schema',
+      'save dissected format',
+      'export the protocol schema',
+    ],
   },
   {
     tool: {
@@ -22179,6 +23606,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: [
+      'fingerprint the protocol dialect',
+      'identify protocol variant',
+      'protocol fingerprint',
+    ],
   },
   {
     tool: {
@@ -22205,6 +23637,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: [
+      'infer field boundaries',
+      'guess packet field layout',
+      'infer the field layout',
+    ],
   },
   {
     tool: {
@@ -22252,6 +23689,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: [
+      'infer the protocol state machine',
+      'learn message sequence',
+      'infer the state machine',
+    ],
   },
   {
     tool: {
@@ -22275,6 +23717,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: [
+      'draw the state machine',
+      'visualize protocol transitions',
+      'visualise the state machine',
+    ],
   },
   {
     tool: {
@@ -22320,6 +23767,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
+    sceneKeywords: ['decode protobuf without schema', 'parse wire format', 'decode protobuf'],
   },
   {
     tool: {
@@ -22541,6 +23989,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['add rewrite rule to proxy', 'new traffic rule', 'add a proxy rule'],
   },
   {
     tool: {
@@ -22558,6 +24007,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['flush proxy history', 'empty traffic log', 'clear the proxy log'],
   },
   {
     tool: {
@@ -22575,6 +24025,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['wipe proxy rules', 'reset rule set', 'remove all the proxy rules'],
   },
   {
     tool: {
@@ -22592,6 +24043,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['export proxy certificate', 'get mitm root ca', 'export the ca certificate'],
   },
   {
     tool: {
@@ -22614,6 +24066,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['traffic seen through proxy', 'mitm captured requests', 'proxy traffic log'],
   },
   {
     tool: {
@@ -22632,6 +24085,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['show proxy rules', 'enumerate traffic rules', 'list the proxy rules'],
   },
   {
     tool: {
@@ -22656,6 +24110,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['delete proxy rule', 'drop traffic rule', 'remove a proxy rule'],
   },
   {
     tool: {
@@ -22678,6 +24133,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: [
+      'route phone through proxy',
+      'configure device wifi proxy',
+      'route the phone through the proxy',
+    ],
   },
   {
     tool: {
@@ -22712,6 +24172,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: [
+      'launch mitm proxy',
+      'spin up intercepting proxy',
+      'start the intercepting proxy',
+    ],
   },
   {
     tool: {
@@ -22729,6 +24194,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['proxy running check', 'mitm state', 'proxy status'],
   },
   {
     tool: {
@@ -22746,6 +24212,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
+    sceneKeywords: ['shut the proxy down', 'kill mitm session', 'shut the proxy down'],
   },
   {
     tool: {
@@ -22773,6 +24240,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['filter events with sql', 'query recorded events', 'sql query events'],
   },
   {
     tool: {
@@ -22860,6 +24328,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
+    sceneKeywords: ['craft a raw ip packet', 'build l3 packet bytes', 'craft an ip packet'],
   },
   {
     tool: {
@@ -22878,6 +24347,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['hot reload all plugins', 'refresh extensions', 'reload the plugin'],
   },
   {
     tool: {
@@ -22896,6 +24366,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['reset the token budget', 'give me a fresh budget', 'reset the token budget'],
   },
   {
     tool: {
@@ -22920,6 +24391,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: [
+      'go back to a saved page state',
+      'load snapshot again',
+      'restore a page snapshot',
+    ],
   },
   {
     tool: {
@@ -22983,6 +24459,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
+    sceneKeywords: [
+      'start a reversing session',
+      'begin analysis workspace',
+      'open a reverse engineering session',
+    ],
   },
   {
     tool: {
@@ -23041,6 +24522,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
+    sceneKeywords: ['drive rizin', 'rizin cutter bridge', 'talk to the rizin bridge'],
   },
   {
     tool: {
@@ -23086,6 +24568,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['execute a plugin recipe', 'run the workflow steps', 'run the workflow'],
   },
   {
     tool: {
@@ -23125,6 +24608,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
+    sceneKeywords: ['play back a macro', 'execute recorded macro', 'run the macro'],
   },
   {
     tool: {
@@ -23148,6 +24632,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: [
+      'capture current page state for later',
+      'store page snapshot',
+      'save a page snapshot',
+    ],
   },
   {
     tool: {
@@ -23181,6 +24670,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
+    sceneKeywords: [
+      'swap script content for good',
+      'persist script replacement',
+      'persistently replace the script',
+    ],
   },
   {
     tool: {
@@ -23248,6 +24742,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
+    sceneKeywords: [
+      'grep across the downloaded scripts',
+      'find pattern in collected code',
+      'search inside the scripts',
+    ],
   },
   {
     tool: {
@@ -23293,6 +24792,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: [
+      'jump to a moment in the recording',
+      'time travel in trace',
+      'locate by timestamp',
+      'time travel jump within recording',
+    ],
   },
   {
     tool: {
@@ -23325,6 +24830,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['deliver a push event to the worker', 'fire push payload', 'push an event'],
   },
   {
     tool: {
@@ -23363,6 +24869,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['dispatch a sync event', 'trigger background sync', 'sync an event'],
   },
   {
     tool: {
@@ -23392,6 +24899,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
+    sceneKeywords: ['wipe progress entries', 'reset session ledger', 'clear the progress'],
   },
   {
     tool: {
@@ -23421,6 +24929,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
+    sceneKeywords: ['what has been covered so far', 'progress checklist', 'overwrite the progress'],
   },
   {
     tool: {
@@ -23464,6 +24973,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
+    sceneKeywords: ['note down completed step', 'log milestone', 'record the progress'],
   },
   {
     tool: {
@@ -23488,6 +24998,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'canvas',
+    sceneKeywords: [
+      'match skia ops to objects',
+      'correlate scene items',
+      'link the skia objects together',
+    ],
   },
   {
     tool: {
@@ -23500,6 +25015,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'canvas',
+    sceneKeywords: ['is skia rendering here', 'detect skia backend', 'detect skia'],
   },
   {
     tool: {
@@ -23517,6 +25033,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'canvas',
+    sceneKeywords: ['pull skia display list', 'extract render ops', 'extract the skia scene'],
   },
   {
     tool: {
@@ -23547,6 +25064,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: [
+      'intelligently clean caches',
+      'cleanup with retention policy',
+      'smart cleanup of the snapshots',
+    ],
   },
   {
     tool: {
@@ -23576,6 +25098,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['take a state snapshot', 'save the current server state', 'create a snapshot'],
   },
   {
     tool: {
@@ -23600,6 +25123,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['snapshots available', 'list saved states', 'list the snapshots'],
   },
   {
     tool: {
@@ -23629,6 +25153,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
+    sceneKeywords: ['go back to a saved snapshot', 'restore server state', 'restore the snapshot'],
   },
   {
     tool: {
@@ -23656,6 +25181,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: [
+      'check map completeness',
+      'missing mappings audit',
+      'coverage check',
+      'mapping completeness gaps audit',
+    ],
   },
   {
     tool: {
@@ -23698,6 +25229,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: ['compare two maps', 'map version delta', 'compare the mappings'],
   },
   {
     tool: {
@@ -23721,6 +25253,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: [
+      'find sourceMappingURL comment',
+      'locate map files on a page',
+      'discover the sourcemap file',
+    ],
   },
   {
     tool: {
@@ -23748,6 +25285,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: [
+      'download and load a map',
+      'pull remote sourcemap',
+      'fetch and parse the sourcemap',
+    ],
   },
   {
     tool: {
@@ -23801,6 +25343,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: [
+      'map generated line to original',
+      'position mapping',
+      'map a position back to the source',
+    ],
   },
   {
     tool: {
@@ -23839,6 +25386,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: ['read vlq mappings', 'parse map index section', 'decode the vlq mappings'],
   },
   {
     tool: {
@@ -23879,6 +25427,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
+    sceneKeywords: [
+      'rebuild original source tree',
+      'restore file layout',
+      'rebuild the source tree',
+    ],
   },
   {
     tool: {
@@ -23916,6 +25469,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['save event stream', 'dump sse to file', 'export the captured sse traffic'],
   },
   {
     tool: {
@@ -23960,6 +25514,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['show sse messages', 'captured event stream data', 'list the sse events'],
   },
   {
     tool: {
@@ -23993,6 +25548,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: [
+      'watch server sent events',
+      'follow eventsource stream',
+      'monitor the sse stream',
+    ],
   },
   {
     tool: {
@@ -24048,6 +25608,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['begin capturing a recording', 'start tracing session', 'start the recording'],
   },
   {
     tool: {
@@ -24103,6 +25664,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
+    sceneKeywords: ['shared key value board', 'read coordination state', 'shared state board'],
   },
   {
     tool: {
@@ -24143,6 +25705,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
+    sceneKeywords: ['write to shared board', 'put state entries', 'write to the state board'],
   },
   {
     tool: {
@@ -24183,6 +25746,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
+    sceneKeywords: [
+      'subscribe to state changes',
+      'notify on board updates',
+      'watch the state board',
+    ],
   },
   {
     tool: {
@@ -24221,6 +25789,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'randomize stealth timings',
+      'configure fingerprint jitter',
+      'jitter configuration',
+    ],
   },
   {
     tool: {
@@ -24255,6 +25828,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'build a fake fingerprint',
+      'generate consistent identity',
+      'generate a browser fingerprint',
+    ],
   },
   {
     tool: {
@@ -24272,6 +25850,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'apply stealth hardening',
+      'mask automation signals',
+      'inject the stealth patches',
+    ],
   },
   {
     tool: {
@@ -24296,6 +25879,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['change the user agent', 'override the ua string', 'override the user agent'],
   },
   {
     tool: {
@@ -24313,6 +25897,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'check for automation leaks',
+      'verify stealth is applied',
+      'verify the stealth patches',
+    ],
   },
   {
     tool: {
@@ -24330,6 +25919,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['finish the recording', 'end the trace session', 'stop the recording'],
   },
   {
     tool: {
@@ -24358,6 +25948,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: [
+      'overview of the recording',
+      'what happened in the trace',
+      'summarise the trace',
+    ],
   },
   {
     tool: {
@@ -24411,6 +26006,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'collect syscall events',
+      'fetch captured syscalls',
+      'capture the system calls',
+    ],
   },
   {
     tool: {
@@ -24467,6 +26067,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'link syscalls to js callsites',
+      'correlate kernel calls with script',
+      'correlate with the javascript call sites',
+    ],
   },
   {
     tool: {
@@ -24491,6 +26096,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['invoke a syscall directly', 'raw syscall call', 'direct syscall'],
   },
   {
     tool: {
@@ -24539,6 +26145,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['attach an ebpf program', 'load bpf tracer', 'attach the ebpf probe'],
   },
   {
     tool: {
@@ -24581,6 +26188,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['read the ebpf trace', 'collect bpf events', 'read the ebpf trace'],
   },
   {
     tool: {
@@ -24623,6 +26231,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['filter syscall stream', 'narrow captured syscalls', 'filter the system calls'],
   },
   {
     tool: {
@@ -24640,6 +26249,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['syscall counter summary', 'how many syscalls captured', 'syscall statistics'],
   },
   {
     tool: {
@@ -24671,6 +26281,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'map syscalls to their origin',
+      'where did the syscall come from',
+      'syscall origin',
+    ],
   },
   {
     tool: {
@@ -24697,6 +26312,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'spot syscall patterns',
+      'detect suspicious syscall sequences',
+      'syscall pattern',
+    ],
   },
   {
     tool: {
@@ -24720,6 +26340,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'resolve syscall numbers',
+      'find the ssn table entries',
+      'decode the syscall numbers',
+    ],
   },
   {
     tool: {
@@ -24751,6 +26376,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'capture stack at syscall',
+      'stack trace per syscall',
+      'capture the syscall stack',
+    ],
   },
   {
     tool: {
@@ -24792,6 +26422,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'start tracing syscalls',
+      'begin syscall monitoring',
+      'start monitoring the system calls',
+    ],
   },
   {
     tool: {
@@ -24809,6 +26444,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'stop the syscall tracer',
+      'end syscall capture',
+      'stop monitoring the system calls',
+    ],
   },
   {
     tool: {
@@ -24908,6 +26548,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: [
+      'compare two syscall traces',
+      'trace session delta',
+      'compare the syscall traces',
+    ],
   },
   {
     tool: {
@@ -24950,6 +26595,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
+    sceneKeywords: ['save syscall trace', 'export captured syscalls', 'export the syscall trace'],
   },
   {
     tool: {
@@ -25025,6 +26671,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'coordinate work across tabs',
+      'multi tab orchestration',
+      'orchestrate across multiple tabs',
+      'multi tab orchestration coordination',
+    ],
   },
   {
     tool: {
@@ -25049,6 +26701,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
+    sceneKeywords: ['abort background job', 'stop a running task', 'cancel the task'],
   },
   {
     tool: {
@@ -25073,6 +26726,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
+    sceneKeywords: ['fetch task status', 'check background job', 'check the task status'],
   },
   {
     tool: {
@@ -25107,6 +26761,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
+    sceneKeywords: ['enumerate running jobs', 'show all tasks', 'list the tasks'],
   },
   {
     tool: {
@@ -25139,6 +26794,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
+    sceneKeywords: ['fetch task output', 'get job payload', 'get the task result'],
   },
   {
     tool: {
@@ -25166,6 +26822,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['close tcp socket', 'drop raw connection', 'close the tcp connection'],
   },
   {
     tool: {
@@ -25198,6 +26855,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['open raw tcp connection', 'dial a tcp socket', 'open a tcp connection'],
   },
   {
     tool: {
@@ -25237,6 +26895,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['read tcp until pattern', 'wait for bytes', 'read data from the tcp socket'],
   },
   {
     tool: {
@@ -25267,6 +26926,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['send bytes over tcp', 'write to socket', 'write data to the tcp socket'],
   },
   {
     tool: {
@@ -25285,6 +26945,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'defeat certificate pinning natively',
+      'ignore cert mismatch',
+      'bypass the certificate pinning',
+    ],
   },
   {
     tool: {
@@ -25298,6 +26963,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'unpin certs via frida script',
+      'frida ssl unpinning',
+      'bypass the pinning with frida',
+    ],
   },
   {
     tool: {
@@ -25322,6 +26992,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['list supported ciphers', 'negotiated cipher info', 'cipher suites'],
   },
   {
     tool: {
@@ -25350,6 +27021,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['shut tls socket', 'tear down tls session', 'close the tls connection'],
   },
   {
     tool: {
@@ -25384,6 +27056,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'decrypt with keylog secrets',
+      'decode tls application data',
+      'decrypt the tls payload',
+      'reveal the encrypted traffic with the keylog file',
+      'use the session secrets to decrypt captured traffic',
+    ],
   },
   {
     tool: {
@@ -25401,6 +27080,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'stop ssl key logging',
+      'turn off secret capture',
+      'disable the key log',
+      'halt secret logging session',
+    ],
   },
   {
     tool: {
@@ -25413,6 +27098,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['start ssl key logging', 'capture session secrets', 'enable the key log'],
   },
   {
     tool: {
@@ -25434,6 +27120,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['find secret for connection', 'match client random', 'look up the key'],
   },
   {
     tool: {
@@ -25451,6 +27138,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'read sslkeylog file',
+      'parse secret log lines',
+      'parse the key log',
+      'read secret log lines file',
+    ],
   },
   {
     tool: {
@@ -25464,6 +27157,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['hmac seal the keylog', 'tamper-proof secret file', 'seal the key log'],
   },
   {
     tool: {
@@ -25486,6 +27180,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['keylog overview stats', 'summarize sealed secrets', 'summarise the key log'],
   },
   {
     tool: {
@@ -25552,6 +27247,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'open raw tls socket',
+      'connect tls endpoint manually',
+      'open a tls connection',
+    ],
   },
   {
     tool: {
@@ -25570,6 +27270,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['decode x509 cert', 'read certificate chain', 'parse the certificate'],
   },
   {
     tool: {
@@ -25588,6 +27289,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['decode client hello', 'dissect handshake bytes', 'parse the handshake'],
   },
   {
     tool: {
@@ -25654,6 +27356,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'test tls handshake against host',
+      'check negotiated parameters',
+      'probe the tls endpoint',
+    ],
   },
   {
     tool: {
@@ -25693,6 +27400,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'wait for tls response bytes',
+      'read until marker',
+      'read data from the tls socket',
+    ],
   },
   {
     tool: {
@@ -25723,6 +27435,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'send bytes on tls',
+      'push data into tls session',
+      'write data to the tls socket',
+    ],
   },
   {
     tool: {
@@ -25784,6 +27501,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: [
+      'network events inside the recording',
+      'request flow in trace',
+      'trace the network flow',
+    ],
   },
   {
     tool: {
@@ -25844,6 +27566,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['profiling samples from trace', 'cpu samples in recording', 'sampling points'],
   },
   {
     tool: {
@@ -25905,6 +27628,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
+    sceneKeywords: ['current recording info', 'is a trace active', 'recording status'],
   },
   {
     tool: {
@@ -25969,6 +27693,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
+    sceneKeywords: [
+      'interactive code rewrite workspace',
+      'transform pipeline playground',
+      'transform workbench',
+    ],
   },
   {
     tool: {
@@ -26003,6 +27732,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
+    sceneKeywords: ['explain what this code does', 'summarize the logic', 'understand the code'],
   },
   {
     tool: {
@@ -26030,6 +27760,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['call a function in unidbg', 'invoke the native method emulated'],
   },
   {
     tool: {
@@ -26064,6 +27795,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['emulate the native library', 'run the so file in unidbg'],
   },
   {
     tool: {
@@ -26091,6 +27823,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['start an unidbg instance', 'load the library into the emulator'],
   },
   {
     tool: {
@@ -26114,6 +27847,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
+    sceneKeywords: ['trace the emulated execution', 'unidbg instruction trace'],
   },
   {
     tool: {
@@ -26194,6 +27928,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
+    sceneKeywords: ['amend the handoff notes', 'revise handoff content', 'update the handoff'],
   },
   {
     tool: {
@@ -26223,6 +27958,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'track memory allocations',
+      'sample allocation sites',
+      'track the memory allocations',
+    ],
   },
   {
     tool: {
@@ -26246,6 +27986,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
+    sceneKeywords: ['decompile v8 bytecode', 'read cached bytecode', 'decompile the bytecode'],
   },
   {
     tool: {
@@ -26277,6 +28018,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'pull the generated bytecode',
+      'extract cached bytecode',
+      'extract the bytecode',
+    ],
   },
   {
     tool: {
@@ -26313,6 +28059,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'why did this function deoptimize',
+      'deoptimization reasons',
+      'trace the deoptimisation',
+    ],
   },
   {
     tool: {
@@ -26351,6 +28102,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'what keeps this function alive',
+      'retained size of fn',
+      'retained size of the function',
+    ],
   },
   {
     tool: {
@@ -26382,6 +28138,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'heap before and after',
+      'compare two heap snapshots',
+      'diff the two heap snapshots',
+    ],
   },
   {
     tool: {
@@ -26414,6 +28175,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['which objects are leaking', 'growing retained set', 'find the memory leak'],
   },
   {
     tool: {
@@ -26449,6 +28211,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['who references this object', 'retention chain', 'retainer chain'],
   },
   {
     tool: {
@@ -26485,6 +28248,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['sample heap growth over time', 'allocation profile', 'sample the heap'],
   },
   {
     tool: {
@@ -26529,6 +28293,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'analyze the heap dump',
+      'break down heap contents',
+      'analyse the heap snapshot',
+    ],
   },
   {
     tool: {
@@ -26553,6 +28322,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['take a heap snapshot', 'dump the heap now', 'take a heap snapshot'],
   },
   {
     tool: {
@@ -26580,6 +28350,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'remove an old heap snapshot',
+      'free snapshot storage',
+      'delete a heap snapshot',
+    ],
   },
   {
     tool: {
@@ -26604,6 +28379,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['save heap snapshot to file', 'export the dump', 'export the heap snapshot'],
   },
   {
     tool: {
@@ -26632,6 +28408,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['snapshots taken so far', 'list heap dumps', 'list the heap snapshots'],
   },
   {
     tool: {
@@ -26649,6 +28426,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['heap size numbers', 'memory totals by space', 'heap statistics'],
   },
   {
     tool: {
@@ -26698,6 +28476,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['diff two js objects', 'object state delta', 'compare the two objects'],
   },
   {
     tool: {
@@ -26721,6 +28500,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'deep inspect this runtime object',
+      'look inside the object',
+      'inspect the object',
+    ],
   },
   {
     tool: {
@@ -26776,6 +28560,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['turbofan sea of nodes', 'jit compiler graph', 'turbofan graph'],
   },
   {
     tool: {
@@ -26814,6 +28599,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'inspect the optimizing compiler output',
+      'jit decisions',
+      'inspect the turbofan output',
+    ],
   },
   {
     tool: {
@@ -26849,6 +28639,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: ['collect v8 type feedback', 'which types each function sees', 'type profile'],
   },
   {
     tool: {
@@ -26866,6 +28657,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['which v8 version is running', 'engine version fingerprint', 'v8 version'],
   },
   {
     tool: {
@@ -26895,6 +28687,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: [
+      'inspect wasm inside v8',
+      'wasm module in the engine',
+      'wasm running inside v8',
+    ],
   },
   {
     tool: {
@@ -26919,6 +28716,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
+    sceneKeywords: ['check weak references', 'finalization state', 'inspect the weak references'],
   },
   {
     tool: {
@@ -26936,6 +28734,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['what wasm tooling exists', 'check wasm feature support', 'wasm capabilities'],
   },
   {
     tool: {
@@ -26963,6 +28762,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: [
+      'readable wasm pseudocode',
+      'decompile wasm module',
+      'decompile the wasm module',
+    ],
   },
   {
     tool: {
@@ -26992,6 +28796,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['spot wasm obfuscation', 'detect packed module', 'detect wasm obfuscation'],
   },
   {
     tool: {
@@ -27031,6 +28836,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: [
+      'compare two wasm modules',
+      'module version delta',
+      'diff the two wasm modules',
+    ],
   },
   {
     tool: {
@@ -27063,6 +28873,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: [
+      'wasm bytecode to text',
+      'list wasm instructions',
+      'disassemble the wasm module',
+    ],
   },
   {
     tool: {
@@ -27096,6 +28911,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['dump wasm module bytes', 'save module to disk', 'export the wasm module'],
   },
   {
     tool: {
@@ -27120,6 +28936,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: [
+      'look inside a wasm module',
+      'module overview',
+      'inspect the wasm module',
+      'overview of a webassembly module',
+      'what is inside this webassembly binary',
+    ],
   },
   {
     tool: {
@@ -27150,6 +28973,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['list wasm sections', 'enumerate module sections', 'list the wasm sections'],
   },
   {
     tool: {
@@ -27179,6 +29003,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: [
+      'patch wasm at binary level',
+      'hook module bytes',
+      'instrument the wasm binary',
+    ],
   },
   {
     tool: {
@@ -27208,6 +29037,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['hook a basic block', 'trace block entry', 'instrument the basic blocks'],
   },
   {
     tool: {
@@ -27248,6 +29078,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['trace wasm execution', 'record instruction trace', 'trace the wasm execution'],
   },
   {
     tool: {
@@ -27293,6 +29124,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: [
+      'look at wasm linear memory',
+      'inspect memory sections',
+      'inspect the wasm memory',
+    ],
   },
   {
     tool: {
@@ -27338,6 +29174,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['execute wasm without browser', 'run module offline', 'run the wasm offline'],
   },
   {
     tool: {
@@ -27372,6 +29209,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['shrink wasm module', 'optimize module size', 'optimise the wasm module'],
   },
   {
     tool: {
@@ -27406,6 +29244,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: [
+      'pull strings from wasm',
+      'extract module text',
+      'extract the strings from wasm',
+    ],
   },
   {
     tool: {
@@ -27434,6 +29277,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: ['translate wasm to c code', 'generate c from wasm', 'convert wasm to c'],
   },
   {
     tool: {
@@ -27461,6 +29305,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
+    sceneKeywords: [
+      'trace vmp-protected wasm',
+      'follow vm interpreter loop',
+      'trace the virtual machine code',
+    ],
   },
   {
     tool: {
@@ -27502,6 +29351,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
+    sceneKeywords: ['watch this expression', 'track a value over time', 'watch an expression'],
   },
   {
     tool: {
@@ -27596,6 +29446,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'unpack the webpack bundle',
+      'split bundle into modules',
+      'unpack the javascript bundle',
+      'break the bundle into its module graph',
+      'separate the bundled modules',
+    ],
   },
   {
     tool: {
@@ -27609,6 +29466,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: ['gpu adapter details', 'which gpu is exposed', 'gpu adapter information'],
   },
   {
     tool: {
@@ -27630,6 +29488,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: [
+      'record gpu command buffer',
+      'capture webgpu calls',
+      'capture the gpu commands',
+    ],
   },
   {
     tool: {
@@ -27663,6 +29526,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: [
+      'capture gpu validation errors',
+      'record webgpu errors',
+      'capture the gpu errors',
+    ],
   },
   {
     tool: {
@@ -27687,6 +29555,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: ['gpu frame duration', 'render timing per frame', 'frame timing'],
   },
   {
     tool: {
@@ -27706,6 +29575,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: ['gpu buffer layout details', 'memory bindings of buffers', 'gpu memory layout'],
   },
   {
     tool: {
@@ -27734,6 +29604,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: ['dump render pipeline state', 'pipeline layout details', 'pipeline state'],
   },
   {
     tool: {
@@ -27759,6 +29630,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: ['compile wgsl shader', 'translate shader source', 'compile the shader'],
   },
   {
     tool: {
@@ -27784,6 +29656,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: ['disassemble shader bytecode', 'spir-v to text', 'disassemble the shader'],
   },
   {
     tool: {
@@ -27812,6 +29685,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: ['capture shader source code', 'grab wgsl source', 'capture the shader source'],
   },
   {
     tool: {
@@ -27837,6 +29711,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
+    sceneKeywords: ['side channel timing on gpu', 'measure gpu op timing', 'gpu timing analysis'],
   },
   {
     tool: {
@@ -27900,6 +29775,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
+    sceneKeywords: ['outbound webhook endpoint', 'c2 callback url', 'webhook endpoint'],
   },
   {
     tool: {
@@ -27934,6 +29810,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
+    sceneKeywords: [
+      'list modules in the bundle',
+      'enumerate chunk contents',
+      'enumerate the loaded modules',
+    ],
   },
   {
     tool: {
@@ -27973,6 +29854,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: [
+      'save webrtc traffic',
+      'dump webrtc session',
+      'export the captured webrtc traffic',
+    ],
   },
   {
     tool: {
@@ -28019,6 +29905,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['show webrtc activity', 'captured peer events', 'webrtc events'],
   },
   {
     tool: {
@@ -28059,6 +29946,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: [
+      'watch webrtc traffic',
+      'follow peer connections',
+      'monitor the webrtc traffic',
+    ],
   },
   {
     tool: {
@@ -28095,6 +29987,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'close manual websocket',
+      'tear down ws socket',
+      'close the websocket connection',
+    ],
   },
   {
     tool: {
@@ -28182,6 +30079,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: ['open websocket by hand', 'manual ws handshake', 'open a websocket connection'],
   },
   {
     tool: {
@@ -28204,6 +30102,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'receive ws frame manually',
+      'wait for websocket message',
+      'receive a websocket frame',
+    ],
   },
   {
     tool: {
@@ -28247,6 +30150,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
+    sceneKeywords: [
+      'push ws frame manually',
+      'send raw websocket message',
+      'send a websocket frame',
+      'inject outbound ws payload manually',
+    ],
   },
   {
     tool: {
@@ -28304,6 +30213,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
+    sceneKeywords: [
+      'solve the checkbox widget',
+      'handle cf challenge',
+      'pass the challenge widget',
+    ],
   },
   {
     tool: {
@@ -28373,6 +30287,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['branch workflow on condition', 'if step in recipe', 'conditional step'],
   },
   {
     tool: {
@@ -28414,6 +30329,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['configure retry behavior', 'rerun on failure policy', 'retry strategy'],
   },
   {
     tool: {
@@ -28449,6 +30365,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['inspect a workflow execution', 'see run details', 'inspect the run'],
   },
   {
     tool: {
@@ -28477,6 +30394,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
+    sceneKeywords: ['recommend a recipe', 'which workflow fits this task', 'recommend a workflow'],
   },
   {
     tool: {
@@ -28516,6 +30434,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: [
+      'save websocket traffic',
+      'dump ws session to file',
+      'export the captured websocket traffic',
+    ],
   },
   {
     tool: {
@@ -28533,6 +30456,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['list open ws sockets', 'websocket sessions', 'list the websocket connections'],
   },
   {
     tool: {
@@ -28579,6 +30503,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['show ws messages', 'captured websocket frames', 'list the websocket frames'],
   },
   {
     tool: {
@@ -28619,6 +30544,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: [
+      'watch websocket traffic live',
+      'follow ws frames',
+      'monitor the websocket traffic',
+    ],
   },
   {
     tool: {
@@ -28652,5 +30582,6 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
+    sceneKeywords: ['push a ws message', 'inject websocket frame', 'send a websocket frame'],
   },
 ] as unknown as readonly GeneratedToolCatalogEntry[];

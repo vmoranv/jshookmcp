@@ -36,6 +36,27 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.encodingHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  binary_decode: [
+    'decode base64 blob',
+    'turn hex into bytes',
+    'decode binary data',
+    'blob to raw bytes conversion',
+  ],
+  binary_detect_format: ['identify file type', 'magic bytes sniff', 'identify the file format'],
+  binary_encode: ['encode bytes to base64', 'serialize buffer', 'encode binary data'],
+  binary_entropy_analysis: [
+    'measure randomness',
+    'shannon entropy of bytes',
+    'measure the entropy of the data',
+  ],
+  protobuf_decode_raw: ['decode protobuf without schema', 'parse wire format', 'decode protobuf'],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -44,6 +65,9 @@ const manifest = {
   profiles: ['workflow', 'full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

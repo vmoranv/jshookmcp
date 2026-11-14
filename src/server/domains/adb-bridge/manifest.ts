@@ -58,6 +58,127 @@ async function ensure(ctx: MCPServerContext): Promise<ADBBridgeHandlers> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  adb_apk_analyze: [
+    'analyze the apk on the phone',
+    'inspect the installed package',
+    'analyse an android app package on the phone',
+  ],
+  adb_apk_pull: [
+    'download the apk from device',
+    'pull installer off the phone',
+    'pull the apk file off the device',
+  ],
+  adb_app_cold_start_trace: [
+    'measure app cold start',
+    'launch timing trace',
+    'trace the app from a cold start',
+  ],
+  adb_device_list: [
+    'what phones are connected',
+    'list adb devices',
+    'list the connected android devices',
+  ],
+  adb_dumpsys: [
+    'dump android system services',
+    'read dumpsys output',
+    'dump the android system services',
+  ],
+  adb_file_pull: [
+    'copy a file off the phone',
+    'download from device',
+    'pull a file from the device',
+  ],
+  adb_file_push: ['copy a file onto the phone', 'upload to device', 'push a file onto the device'],
+  adb_getprop: [
+    'read android system properties',
+    'device build fingerprint',
+    'read the android system properties',
+  ],
+  adb_input_keyevent: [
+    'send a key press to the phone',
+    'inject keyevent',
+    'inject a key press on the device',
+  ],
+  adb_input_swipe: 'swipe gesture on the phone screen'.split(' '),
+  adb_input_tap: [
+    'tap the phone screen at a point',
+    'inject a touch',
+    'inject a tap on the device',
+  ],
+  adb_input_text: ['type text on the phone', 'inject text input', 'inject text into the device'],
+  adb_install: [
+    'install an apk on the device',
+    'sideload the package',
+    'install an apk on the device',
+  ],
+  adb_logcat_query: [
+    'read the android logcat',
+    'filter device logs',
+    'read the android logcat buffer',
+  ],
+  adb_package_summary: [
+    'package info on device',
+    'summarize installed app',
+    'summarise the package manifest',
+  ],
+  adb_port_forward: [
+    'forward a device port',
+    'adb tcp forwarding',
+    'set up a port forward to the device',
+  ],
+  adb_proc_maps: [
+    'read process memory maps on device',
+    'proc maps of android app',
+    'show the process memory maps',
+  ],
+  adb_pull_native_libs: [
+    'download the native libraries',
+    'pull so files from app',
+    'pull the native shared libraries',
+  ],
+  adb_root_check: [
+    'is the phone rooted',
+    'check su availability',
+    'check whether the device is rooted',
+  ],
+  adb_screenrecord: ['record the phone screen', 'capture device video', 'record the device screen'],
+  adb_screenshot: [
+    'capture the phone screen',
+    'take device screenshot',
+    'take a screenshot of the phone',
+  ],
+  adb_shell: [
+    'run a shell command on the phone',
+    'adb shell exec',
+    'run a shell command on the phone',
+  ],
+  adb_ui_dump: [
+    'dump the ui hierarchy',
+    'view the android view tree',
+    'dump the android ui hierarchy',
+  ],
+  adb_uninstall: [
+    'remove an app from the device',
+    'uninstall package',
+    'uninstall an app from the device',
+  ],
+  adb_webview_attach: [
+    'debug the app webview',
+    'attach to webview cdp',
+    'take over the app webview',
+  ],
+  adb_webview_list: [
+    'list webviews in the app',
+    'which webviews are debuggable',
+    'list the app webviews',
+  ],
+};
+
 const manifest: DomainManifest<'adbBridgeHandlers', ADBBridgeHandlers, 'adb-bridge'> = {
   kind: 'domain-manifest',
   version: 1,
@@ -65,6 +186,10 @@ const manifest: DomainManifest<'adbBridgeHandlers', ADBBridgeHandlers, 'adb-brid
   depKey: DEP_KEY,
   profiles: ['full'],
   registrations,
+
+  // Document-expansion keywords (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
+
   ensure,
   workflowRule: {
     patterns: [

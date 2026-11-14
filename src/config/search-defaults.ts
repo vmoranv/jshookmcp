@@ -166,8 +166,8 @@ const DEFAULT_CJK_QUERY_ALIAS_CONFIGS = [
   { pattern: '批量|并发', tokens: ['batch', 'parallel'] },
   { pattern: '令牌|凭证|鉴权|认证', tokens: ['token', 'auth', 'credential'] },
   { pattern: '提取|抽取|解析', tokens: ['extract', 'parse'] },
-  { pattern: '签名|加签|加密|hook', tokens: ['signature', 'crypto', 'hook', 'sign'] },
-  { pattern: '协议|消息|帧|handler', tokens: ['websocket', 'protocol', 'ws', 'handler'] },
+  { pattern: '签名|加签|加密', tokens: ['signature', 'crypto', 'hook', 'sign'] },
+  { pattern: '协议|消息|帧', tokens: ['websocket', 'protocol', 'ws', 'handler'] },
   { pattern: '打包|webpack|混淆|反混淆', tokens: ['bundle', 'webpack', 'deobfuscate', 'unpack'] },
   {
     pattern: '反爬|反检测|指纹|stealth',

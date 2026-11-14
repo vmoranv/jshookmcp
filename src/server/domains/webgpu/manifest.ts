@@ -44,6 +44,47 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.webgpuHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  webgpu_adapter_info: ['gpu adapter details', 'which gpu is exposed', 'gpu adapter information'],
+  webgpu_shader_compile: ['compile wgsl shader', 'translate shader source', 'compile the shader'],
+  webgpu_shader_disassemble: [
+    'disassemble shader bytecode',
+    'spir-v to text',
+    'disassemble the shader',
+  ],
+  webgpu_shader_source_capture: [
+    'capture shader source code',
+    'grab wgsl source',
+    'capture the shader source',
+  ],
+  webgpu_capture_commands: [
+    'record gpu command buffer',
+    'capture webgpu calls',
+    'capture the gpu commands',
+  ],
+  webgpu_pipeline_dump: ['dump render pipeline state', 'pipeline layout details', 'pipeline state'],
+  webgpu_frame_timing: ['gpu frame duration', 'render timing per frame', 'frame timing'],
+  webgpu_timing_analysis: [
+    'side channel timing on gpu',
+    'measure gpu op timing',
+    'gpu timing analysis',
+  ],
+  webgpu_memory_layout: [
+    'gpu buffer layout details',
+    'memory bindings of buffers',
+    'gpu memory layout',
+  ],
+  webgpu_error_capture: [
+    'capture gpu validation errors',
+    'record webgpu errors',
+    'capture the gpu errors',
+  ],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -101,6 +142,9 @@ const manifest = {
   },
 
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

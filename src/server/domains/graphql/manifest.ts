@@ -46,6 +46,41 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   profiles: ['workflow', 'full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (search sceneKeywords).
+  sceneKeywords: {
+    graphql_introspect: ['pull the graphql schema', 'introspection query', 'introspect the schema'],
+    graphql_enum_schema: [
+      'list graphql enums',
+      'enum values from schema',
+      'enumerate the schema types',
+    ],
+    graphql_extract_queries: [
+      'pull graphql from page code',
+      'find queries in scripts',
+      'extract the graphql queries',
+    ],
+    graphql_replay: [
+      'resend a graphql operation',
+      'replay query with changes',
+      'replay a graphql query',
+    ],
+    graphql_subscribe: [
+      'open graphql subscription',
+      'follow subscription stream',
+      'subscribe to graphql events',
+    ],
+    call_graph_analyze: [
+      'build call graph from code',
+      'function call relationships',
+      'analyse the call graph',
+    ],
+    script_replace_persist: [
+      'swap script content for good',
+      'persist script replacement',
+      'persistently replace the script',
+    ],
+  },
 };
 
 export default manifest;

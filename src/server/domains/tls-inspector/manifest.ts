@@ -78,6 +78,99 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return handlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  tls_open: ['open raw tls socket', 'connect tls endpoint manually', 'open a tls connection'],
+  tls_write: ['send bytes on tls', 'push data into tls session', 'write data to the tls socket'],
+  tls_read_until: [
+    'wait for tls response bytes',
+    'read until marker',
+    'read data from the tls socket',
+  ],
+  tls_close: ['shut tls socket', 'tear down tls session', 'close the tls connection'],
+  tls_parse_handshake: ['decode client hello', 'dissect handshake bytes', 'parse the handshake'],
+  tls_parse_certificate: ['decode x509 cert', 'read certificate chain', 'parse the certificate'],
+  tls_cipher_suites: ['list supported ciphers', 'negotiated cipher info', 'cipher suites'],
+  tls_decrypt_payload: [
+    'decrypt with keylog secrets',
+    'decode tls application data',
+    'decrypt the tls payload',
+    'reveal the encrypted traffic with the keylog file',
+    'use the session secrets to decrypt captured traffic',
+  ],
+  tls_keylog_enable: ['start ssl key logging', 'capture session secrets', 'enable the key log'],
+  tls_keylog_disable: [
+    'stop ssl key logging',
+    'turn off secret capture',
+    'disable the key log',
+    'halt secret logging session',
+  ],
+  tls_keylog_parse: [
+    'read sslkeylog file',
+    'parse secret log lines',
+    'parse the key log',
+    'read secret log lines file',
+  ],
+  tls_keylog_lookup_secret: [
+    'find secret for connection',
+    'match client random',
+    'look up the key',
+  ],
+  tls_keylog_seal: ['hmac seal the keylog', 'tamper-proof secret file', 'seal the key log'],
+  tls_keylog_summarize: [
+    'keylog overview stats',
+    'summarize sealed secrets',
+    'summarise the key log',
+  ],
+  tls_probe_endpoint: [
+    'test tls handshake against host',
+    'check negotiated parameters',
+    'probe the tls endpoint',
+  ],
+  tls_cert_pin_bypass: [
+    'defeat certificate pinning natively',
+    'ignore cert mismatch',
+    'bypass the certificate pinning',
+  ],
+  tls_cert_pin_bypass_frida: [
+    'unpin certs via frida script',
+    'frida ssl unpinning',
+    'bypass the pinning with frida',
+  ],
+  net_raw_tcp_listen: [
+    'listen on a tcp port',
+    'accept raw tcp connections',
+    'listen on a tcp socket',
+  ],
+  net_raw_tcp_send: ['push bytes over tcp', 'raw tcp client send', 'send data over tcp'],
+  net_raw_udp_listen: ['listen on a udp port', 'accept udp datagrams', 'listen on a udp socket'],
+  net_raw_udp_send: ['send udp datagram', 'raw udp packet out', 'send data over udp'],
+  tcp_open: ['open raw tcp connection', 'dial a tcp socket', 'open a tcp connection'],
+  tcp_write: ['send bytes over tcp', 'write to socket', 'write data to the tcp socket'],
+  tcp_read_until: ['read tcp until pattern', 'wait for bytes', 'read data from the tcp socket'],
+  tcp_close: ['close tcp socket', 'drop raw connection', 'close the tcp connection'],
+  websocket_open: ['open websocket by hand', 'manual ws handshake', 'open a websocket connection'],
+  websocket_send_frame: [
+    'push ws frame manually',
+    'send raw websocket message',
+    'send a websocket frame',
+    'inject outbound ws payload manually',
+  ],
+  websocket_read_frame: [
+    'receive ws frame manually',
+    'wait for websocket message',
+    'receive a websocket frame',
+  ],
+  websocket_close: [
+    'close manual websocket',
+    'tear down ws socket',
+    'close the websocket connection',
+  ],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -95,6 +188,10 @@ const manifest = {
   // comment mentioning the key can hijack it.
   profiles: ['workflow', 'full'],
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
+
   ensure,
   workflowRule: {
     patterns: [

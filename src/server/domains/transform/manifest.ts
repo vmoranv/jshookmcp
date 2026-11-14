@@ -34,6 +34,50 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctx.transformHandlers;
 }
 
+// ── Document-expansion keywords (search retrieval layer) ──
+// Query phrases bridging user vocabulary to this tool's vocabulary without
+// duplicating name/description tokens. Folded into generated-tool-catalog by
+// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  ast_transform_apply: ['apply code transformation', 'run ast rewrite', 'apply an ast transform'],
+  ast_transform_beautify: [
+    'pretty print javascript',
+    'format minified code',
+    'pretty print the source code',
+  ],
+  ast_transform_chain: [
+    'run multiple rewrites in sequence',
+    'compose transformations',
+    'compose several transforms together',
+    'pipeline several rewrites sequentially',
+  ],
+  ast_transform_preview: [
+    'diff before and after rewrite',
+    'preview transformation result',
+    'preview a transform without applying it',
+  ],
+  crypto_compare: [
+    'side by side crypto output',
+    'diff two cipher outputs',
+    'compare the encrypted outputs',
+  ],
+  crypto_extract_standalone: [
+    'pull crypto routine out of bundle',
+    'isolate encryption function',
+    'extract the crypto functions',
+  ],
+  crypto_test_harness: [
+    'verify crypto implementation',
+    'run cipher test vectors',
+    'run the crypto test harness',
+  ],
+  transform_workbench: [
+    'interactive code rewrite workspace',
+    'transform pipeline playground',
+    'transform workbench',
+  ],
+};
+
 const manifest = {
   kind: 'domain-manifest',
   version: 1,
@@ -42,6 +86,9 @@ const manifest = {
   profiles: ['full'],
   ensure,
   registrations,
+
+  // Document-expansion keywords for the retrieval layer (SCENE_KEYWORDS above).
+  sceneKeywords: SCENE_KEYWORDS,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

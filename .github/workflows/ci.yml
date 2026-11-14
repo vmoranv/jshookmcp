@@ -197,12 +197,15 @@ jobs:
 
       - name: Measure retrieval layer (before the scorecard gate)
         # retrieval-metrics.test.ts writes artifacts/benchmarks/retrieval-metrics.json
-        # (+ per-tool evidence). Running it standalone BEFORE the full suite
-        # removes the parallel-worker race: with VITEST_MAX_WORKERS=4 the gate
-        # (tools-benchmark.test.ts) could otherwise execute before this test
-        # wrote its file. The full test:coverage run below re-runs it
-        # idempotently; that rewrite is harmless because the file already exists.
-        run: pnpm exec vitest run --project server tests/server/benchmarks/retrieval-metrics.test.ts
+        # (+ per-tool evidence); registry-retrieval.test.ts writes the registry-corpus
+        # evidence (registry-retrieval-per-tool.json — the per-tool scorecard's
+        # preferred retrieval source, 736 tools with real descriptions + expansion).
+        # Running both standalone BEFORE the full suite removes the
+        # parallel-worker race: with VITEST_MAX_WORKERS=4 the gate
+        # (tools-benchmark.test.ts) could otherwise execute before these tests
+        # wrote their files. The full test:coverage run below re-runs them
+        # idempotently; that rewrite is harmless because the files already exist.
+        run: pnpm exec vitest run --project server tests/server/benchmarks/retrieval-metrics.test.ts tests/server/benchmarks/registry-retrieval.test.ts
 
       - name: Run Unit Tests with Coverage (runs the scorecard gate)
         # All three measurement files now exist, so the CI-strict
