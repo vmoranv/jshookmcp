@@ -16,6 +16,14 @@ import { SEARCH_SYNONYM_EXPANSION_LIMIT } from '@src/constants';
  * every other member.  Groups are curated for the MCP tool domain vocabulary.
  */
 const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
+  // Emulator term-of-art mapping: users say "the emulator", the
+  // native-emulator domain's tools are named nemu_* (ARM64 emulation
+  // backend). Kept as its own group and listed BEFORE the Android-bridge
+  // group so "emulator" merges nemu into its first expansion slots
+  // (SEARCH_SYNONYM_EXPANSION_LIMIT=2 would otherwise never reach it).
+  ['emulator', 'nemu'],
+  // Process suspension (freeze/pause a process)
+  ['freeze', 'suspend'],
   // Navigation
   ['navigate', 'go', 'open', 'visit', 'browse', 'load'],
   // Reload / refresh
@@ -74,8 +82,9 @@ const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
   ['block', 'filter', 'deny', 'reject', 'prevent'],
   // Allow / permit
   ['allow', 'permit', 'whitelist', 'accept', 'enable'],
-  // Remove / delete
-  ['remove', 'delete', 'clear', 'clean', 'purge', 'erase'],
+  // Remove / delete ("remove the aa script" = run its DISABLE section —
+  // the memory_auto_assemble_disable description states both wordings)
+  ['remove', 'disable', 'delete', 'clear', 'clean', 'purge', 'erase'],
   // List / show
   ['list', 'show', 'display', 'enumerate', 'get'],
   // Set / configure
