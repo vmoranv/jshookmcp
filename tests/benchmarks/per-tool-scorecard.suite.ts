@@ -99,28 +99,66 @@ interface ToolMetrics {
   evaluation: string;
 }
 
-interface CoverageMeta {
+export interface CoverageMeta {
   available: boolean;
   fnHit: Map<string, number>;
   fnTotal: Map<string, number>;
   instrumentedDomains: Set<string>;
+  /**
+   * Position index for the instrumented domain files, keyed by
+   * `<domain>/<rel path>` (forward slashes) then by fn decl start line.
+   *
+   * Needed because V8 does not name every handler: a class-property arrow
+   * (`handleX = (args) => …`) is recorded in fnMap as `(anonymous_N)` — not
+   * as `handleX` — so the name-keyed maps cannot see it. Its `decl.start.line`
+   * is still the property's own source line (measured: network
+   * handlers.impl.ts line 126 `handleConsoleBuffersDispatch` ↔ fnMap
+   * `(anonymous_20)` at line 126), which makes file+line a stable secondary
+   * key. Values aggregate hit/total of every fn declared on that line.
+   */
+  fnsByPos: Map<string, Map<number, { hit: number; total: number }>>;
 }
 
 function loadCoverageMeta(): CoverageMeta {
   const fnHit = new Map<string, number>();
   const fnTotal = new Map<string, number>();
   const instrumentedDomains = new Set<string>();
-  if (!existsSync(COVERAGE_FILE)) return { available: false, fnHit, fnTotal, instrumentedDomains };
+  const fnsByPos = new Map<string, Map<number, { hit: number; total: number }>>();
+  if (!existsSync(COVERAGE_FILE))
+    return { available: false, fnHit, fnTotal, instrumentedDomains, fnsByPos };
   const raw = JSON.parse(readFileSync(COVERAGE_FILE, 'utf8')) as Record<
     string,
-    { fnMap?: Record<string, { name?: string }>; f?: Record<string, number> }
+    {
+      fnMap?: Record<string, { name?: string; decl?: { start?: { line?: number } } }>;
+      f?: Record<string, number>;
+    }
   >;
+  const domainPathRe = /src[/\\]server[/\\]domains[/\\]([a-z0-9-]+)[/\\](.+)$/;
   for (const [fileKey, entry] of Object.entries(raw)) {
     const domainMatch = fileKey.match(/src[/\\]server[/\\]domains[/\\]([a-z0-9-]+)[/\\]/);
     const fnMap = entry.fnMap ?? {};
     const f = entry.f ?? {};
     if (domainMatch && Object.values(fnMap).some((fn) => (fn.name ?? '').startsWith('handle'))) {
       instrumentedDomains.add(domainMatch[1]!);
+    }
+    const pathMatch = fileKey.match(domainPathRe);
+    if (pathMatch) {
+      // Checkout-independent key: the coverage run's absolute prefix (its own
+      // clone path) is dropped; `<domain>/<rel>` matches this checkout's tree.
+      const relKey = `${pathMatch[1]}/${pathMatch[2]!.replace(/\\/g, '/')}`;
+      let byLine = fnsByPos.get(relKey);
+      if (!byLine) {
+        byLine = new Map();
+        fnsByPos.set(relKey, byLine);
+      }
+      for (const [fnId, fn] of Object.entries(fnMap)) {
+        const line = fn.decl?.start?.line;
+        if (line === undefined) continue;
+        const cur = byLine.get(line) ?? { hit: 0, total: 0 };
+        cur.total += 1;
+        if ((f[fnId] ?? 0) > 0) cur.hit += 1;
+        byLine.set(line, cur);
+      }
     }
     for (const [fnId, fn] of Object.entries(fnMap)) {
       const name = fn.name ?? '';
@@ -129,7 +167,7 @@ function loadCoverageMeta(): CoverageMeta {
       if ((f[fnId] ?? 0) > 0) fnHit.set(name, (fnHit.get(name) ?? 0) + 1);
     }
   }
-  return { available: true, fnHit, fnTotal, instrumentedDomains };
+  return { available: true, fnHit, fnTotal, instrumentedDomains, fnsByPos };
 }
 
 export interface ExecStats {
@@ -294,6 +332,71 @@ function loadMethodMap(): Map<string, string[]> {
   return methodMap;
 }
 
+/** A `handle*` function's definition site, in coverage-index coordinates. */
+export interface MethodSite {
+  fileRel: string; // `<domain>/<rel path>`, forward slashes — matches fnsByPos keys
+  line: number; // 1-based decl line in the source file
+}
+
+const DOMAIN_DIR = join(ROOT, 'src/server/domains');
+
+/**
+ * Matches a `handle*` DEFINITION line only — anchored at line start with the
+ * declaration modifiers accepted (`export async function handleX(`,
+ * `async handleX(args…)`, `handleX = (args) => …`), so call sites
+ * (`this.handleX(…)`, `return f(handleX)`) never match. Definition lines are
+ * exactly the positions the coverage fn-map records via `decl.start`.
+ */
+const HANDLE_DEF_LINE_RE =
+  /^[ \t]*(?:export\s+)?(?:default\s+)?(?:declare\s+)?(?:abstract\s+)?(?:public\s+|private\s+|protected\s+|readonly\s+|static\s+)*(?:async\s+)*(?:get\s+|set\s+)?(?:function\s+)?(handle[A-Za-z0-9_]+)\s*(?:=|\()/;
+
+const methodSiteCache = new Map<string, Map<string, MethodSite[]>>();
+
+/**
+ * Locate every `handle*` definition in a domain's source tree, lazily and
+ * cached per domain. This is the bridge between a manifest binding name and
+ * the position key the coverage fn-map uses for nameless arrow-property
+ * handlers. Excluded from the domain tree: nothing — `.d.ts` has no bodies and
+ * src/ carries no tests, so every .ts file is a candidate.
+ */
+function domainMethodSites(domain: string): Map<string, MethodSite[]> {
+  const cached = methodSiteCache.get(domain);
+  if (cached) return cached;
+  const sites = new Map<string, MethodSite[]>();
+  const dir = join(DOMAIN_DIR, domain);
+  if (existsSync(dir)) {
+    for (const dirent of readdirSync(dir, { recursive: true, withFileTypes: true })) {
+      if (!dirent.isFile() || !dirent.name.endsWith('.ts') || dirent.name.endsWith('.d.ts')) {
+        continue;
+      }
+      const parent = dirent.parentPath ?? '';
+      // parentPath is absolute on Node ≥22 (relative on 20.x) — normalize to
+      // a path relative to the domain dir, then to forward slashes. The key
+      // shape must equal loadCoverageMeta's fnsByPos keys:
+      // `<domain>/<rel path with forward slashes>`.
+      const relParent = (parent.startsWith(dir) ? parent.slice(dir.length) : parent).replace(
+        /\\/g,
+        '/',
+      );
+      const fileRel = [relParent.replace(/^\//, ''), dirent.name]
+        .filter((part) => part !== '')
+        .join('/');
+      const fileRelKey = `${domain}/${fileRel}`;
+      const text = readFileSync(join(dir, relParent, dirent.name), 'utf8');
+      const lines = text.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const m = lines[i]!.match(HANDLE_DEF_LINE_RE);
+        if (!m) continue;
+        const list = sites.get(m[1]!) ?? [];
+        list.push({ fileRel: fileRelKey, line: i + 1 });
+        sites.set(m[1]!, list);
+      }
+    }
+  }
+  methodSiteCache.set(domain, sites);
+  return sites;
+}
+
 function summarizeTool(
   tool: string,
   domain: string,
@@ -344,7 +447,37 @@ function summarizeTool(
   };
 }
 
-function summarizeHandlerFn(cov: CoverageMeta, domain: string, methods: string[]): string {
+/**
+ * Handler-fn coverage for one tool's bound methods, in resolution order:
+ *
+ *   1. exact fn-map name           — named methods (`handleX(…) { … }`), the
+ *                                    historical path, numbers unchanged;
+ *   2. decl-position (arrow fn)    — class-property arrows carry no fn-map
+ *                                    name (`(anonymous_N)`), but their decl
+ *                                    line is the property's source line, so
+ *                                    file+line resolves them;
+ *   3. delegate name (`XTool`→`X`) — facade bindings whose own file is NOT in
+ *                                    coverage (explicitly excluded as
+ *                                    env-gated) mapping to their same-named
+ *                                    minus-suffix delegate in an instrumented
+ *                                    file;
+ *   4. excluded-domain short-circuit — a domain with no `handle*` fn-map
+ *                                    entries at all stays "excluded", whatever
+ *                                    the fallbacks could theoretically find.
+ *
+ * Steps 2–3 only run after 1 found nothing, so every previously-reported
+ * percentage is untouched; only "unmapped" rows can gain values, from real
+ * measured functions.
+ *
+ * `resolveSites` is injectable for unit tests; production uses the source-tree
+ * scan (`domainMethodSites`).
+ */
+export function summarizeHandlerFn(
+  cov: CoverageMeta,
+  domain: string,
+  methods: string[],
+  resolveSites: (domain: string) => Map<string, MethodSite[]> = domainMethodSites,
+): string {
   if (!cov.available) return 'not measured';
   if (methods.length === 0) return 'no manifest binding';
   let hit = 0;
@@ -356,12 +489,53 @@ function summarizeHandlerFn(cov: CoverageMeta, domain: string, methods: string[]
   if (total > 0) return `${Math.round((hit / total) * 100)}%`;
   if (hit > 0) return '100%';
   if (!cov.instrumentedDomains.has(domain)) return 'excluded (env-gated file not instrumented)';
+  let fbHit = 0;
+  let fbTotal = 0;
+  let resolved = 0;
+  const uncoveredFiles: string[] = [];
+  const noSiteFound: string[] = [];
+  const allSites = resolveSites(domain);
+  for (const m of methods) {
+    let done = false;
+    for (const site of allSites.get(m) ?? []) {
+      const fn = cov.fnsByPos.get(site.fileRel)?.get(site.line);
+      if (fn) {
+        fbHit += fn.hit;
+        fbTotal += fn.total;
+        resolved += 1;
+        done = true;
+        break;
+      }
+    }
+    if (done) continue;
+    if (m.endsWith('Tool')) {
+      const stripped = m.slice(0, -'Tool'.length);
+      if ((cov.fnTotal.get(stripped) ?? 0) > 0 || (cov.fnHit.get(stripped) ?? 0) > 0) {
+        fbHit += cov.fnHit.get(stripped) ?? 0;
+        fbTotal += cov.fnTotal.get(stripped) ?? 0;
+        resolved += 1;
+        continue;
+      }
+    }
+    const sites = allSites.get(m) ?? [];
+    if (sites.length > 0) uncoveredFiles.push(`${sites[0]!.fileRel}:${sites[0]!.line}`);
+    else noSiteFound.push(m);
+  }
+  if (resolved > 0) {
+    if (fbTotal > 0) return `${Math.round((fbHit / fbTotal) * 100)}%`;
+    return '100%';
+  }
+  if (uncoveredFiles.length > 0) {
+    // The bound handler exists but its file is absent from the coverage run
+    // (explicitly coverage-excluded as env-gated — raw sockets, native FFI —
+    // or a barrel-only index.ts). A real mapping gap, NOT a proven-never-
+    // executed handler; rendering "0%" would contradict the correctness
+    // column for several of these tools. Name the file so the gap is auditable.
+    return `unmapped (handler fn defined in ${uncoveredFiles[0]!} — file absent from coverage fn-map)`;
+  }
   // The domain file IS instrumented but none of the tool's bound method names
-  // appear in its fn-map — a coverage→handler mapping gap (composite facades,
-  // arrow-property bindings, renamed delegations), NOT a proven-never-executed
-  // handler. Rendering it as "0%" would read as a test deficit, which the
-  // correctness column contradicts for several of these tools (they pass
-  // vectors). Report the mapping gap honestly instead.
+  // appear in its fn-map and no definition site resolved — report the mapping
+  // gap honestly instead of inventing a number.
   return 'unmapped (handler fns absent from coverage fn-map)';
 }
 

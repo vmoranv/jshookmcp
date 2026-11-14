@@ -1,6 +1,7 @@
 /**
  * Unit coverage for the per-tool scorecard's stats derivation
- * (`statsFromSuiteResults`). Locks the two accounting rules the 2026-11-13
+ * (`statsFromSuiteResults`) and its coverage→handler mapping
+ * (`summarizeHandlerFn`). Locks the accounting rules the 2026-11-13
  * scorecard audit found violated by the previous re-execution approach:
  *
  *   1. env-gated `skipped` cases are NOT measurements — they must not enter
@@ -10,9 +11,23 @@
  *      re-executing suites inside per-tool-scorecard dirtied module-level-state
  *      suites (session ledger singleton, tls tmpdir keylog fixtures) and
  *      reported false failures on the second pass, plus it doubled gate time.
+ *
+ * The `summarizeHandlerFn` block locks the handler-fn resolution order fixed
+ * in the 2026-11-14 mapping-gap repair:
+ *   exact fn-map name → decl-position (V8 records class-property arrows as
+ *   nameless `(anonymous_N)` at the property's source line) → `XTool`→`X`
+ *   delegate name → excluded-domain short-circuit, and only then "unmapped".
+ * The exact-name path is byte-identical to the pre-fix one, so previously
+ * reported percentages are invariant by construction; the fallbacks can only
+ * turn former "unmapped" rows into real measured values.
  */
 import { describe, expect, it } from 'vitest';
-import { statsFromSuiteResults } from '@tests/benchmarks/per-tool-scorecard.suite';
+import {
+  statsFromSuiteResults,
+  summarizeHandlerFn,
+  type CoverageMeta,
+  type MethodSite,
+} from '@tests/benchmarks/per-tool-scorecard.suite';
 import type { BenchCaseResult, BenchSuiteResult } from '@tests/benchmarks/harness';
 
 type CaseSpec = { tool: string; status: BenchCaseResult['status']; ms?: number };
@@ -93,5 +108,117 @@ describe('statsFromSuiteResults', () => {
       suiteResult('c', [{ tool: 't', status: 'pass', ms: 5 }]),
     ]);
     expect(stats.get('t')).toMatchObject({ passed: 2, total: 3, totalMs: 12, skipped: 0 });
+  });
+});
+
+describe('summarizeHandlerFn', () => {
+  function covFixture(over: Partial<CoverageMeta> = {}): CoverageMeta {
+    return {
+      available: true,
+      fnHit: new Map(),
+      fnTotal: new Map(),
+      instrumentedDomains: new Set(['net']),
+      fnsByPos: new Map(),
+      ...over,
+    };
+  }
+  const noSites = (): Map<string, MethodSite[]> => new Map();
+  const sites = (entries: Record<string, MethodSite[]>): Map<string, MethodSite[]> =>
+    new Map(Object.entries(entries));
+
+  it('resolves exact fn-map names first (historical path, unchanged)', () => {
+    const cov = covFixture({
+      fnHit: new Map([['handleFoo', 1]]),
+      fnTotal: new Map([['handleFoo', 2]]),
+    });
+    expect(summarizeHandlerFn(cov, 'net', ['handleFoo'], noSites)).toBe('50%');
+  });
+
+  it('hits without totals render 100% (unchanged)', () => {
+    const cov = covFixture({ fnHit: new Map([['handleFoo', 1]]) });
+    expect(summarizeHandlerFn(cov, 'net', ['handleFoo'], noSites)).toBe('100%');
+  });
+
+  it('returns not-measured / no-binding / excluded before any fallback runs', () => {
+    expect(summarizeHandlerFn(covFixture({ available: false }), 'net', ['x'], noSites)).toBe(
+      'not measured',
+    );
+    expect(summarizeHandlerFn(covFixture(), 'net', [], noSites)).toBe('no manifest binding');
+  });
+
+  it('excluded-domain short-circuit wins over position fallbacks', () => {
+    // Domain NOT instrumented, yet a covered position would match — the
+    // excluded branch must keep precedence (env-gated file semantics).
+    const cov = covFixture({
+      instrumentedDomains: new Set<string>(),
+      fnsByPos: new Map([['net/handlers.impl.ts', new Map([[9, { hit: 1, total: 1 }]])]]),
+    });
+    const resolver = sites({
+      x: [{ fileRel: 'net/handlers.impl.ts', line: 9 }],
+    });
+    expect(summarizeHandlerFn(cov, 'net', ['handleX'], () => resolver)).toBe(
+      'excluded (env-gated file not instrumented)',
+    );
+  });
+
+  it('resolves arrow-property handlers by decl position (fnMap records them nameless)', () => {
+    const cov = covFixture({
+      fnsByPos: new Map([['net/handlers.impl.ts', new Map([[126, { hit: 1, total: 1 }]])]]),
+    });
+    const resolver = sites({
+      handleBuffersDispatch: [{ fileRel: 'net/handlers.impl.ts', line: 126 }],
+    });
+    expect(summarizeHandlerFn(cov, 'net', ['handleBuffersDispatch'], () => resolver)).toBe('100%');
+  });
+
+  it('a position-resolved but never-executed fn reports 0% (real measurement)', () => {
+    const cov = covFixture({
+      fnsByPos: new Map([['net/handlers.impl.ts', new Map([[126, { hit: 0, total: 1 }]])]]),
+    });
+    const resolver = sites({
+      handleBuffersDispatch: [{ fileRel: 'net/handlers.impl.ts', line: 126 }],
+    });
+    expect(summarizeHandlerFn(cov, 'net', ['handleBuffersDispatch'], () => resolver)).toBe('0%');
+  });
+
+  it('uncovered definition site falls through to the XTool→X delegate name', () => {
+    const cov = covFixture({
+      fnHit: new Map([['handleFoo', 1]]),
+      fnTotal: new Map([['handleFoo', 1]]),
+    });
+    const resolver = sites({
+      // facade binding lives in a coverage-excluded file → position lookup misses
+      handleFooTool: [{ fileRel: 'net/handlers/handler-class.ts', line: 8 }],
+    });
+    expect(summarizeHandlerFn(cov, 'net', ['handleFooTool'], () => resolver)).toBe('100%');
+  });
+
+  it('aggregates a mixed multi-method tool over its fallback-resolved subset', () => {
+    // Neither method exists in the exact fn-map: one resolves by position,
+    // the other resolves nowhere — the percentage covers the resolved subset.
+    const cov = covFixture({
+      fnsByPos: new Map([['net/handlers.impl.ts', new Map([[3, { hit: 1, total: 2 }]])]]),
+    });
+    const resolver = sites({
+      handleFooTool: [{ fileRel: 'net/handlers.impl.ts', line: 3 }],
+    });
+    expect(summarizeHandlerFn(cov, 'net', ['handleFooTool', 'handleGhost'], () => resolver)).toBe(
+      '50%',
+    );
+  });
+
+  it('names the uncovered file when the bound fn exists but is coverage-excluded', () => {
+    const resolver = sites({
+      handleFooTool: [{ fileRel: 'net/handlers/handler-class.ts', line: 84 }],
+    });
+    expect(summarizeHandlerFn(covFixture(), 'net', ['handleFooTool'], () => resolver)).toBe(
+      'unmapped (handler fn defined in net/handlers/handler-class.ts:84 — file absent from coverage fn-map)',
+    );
+  });
+
+  it('keeps the generic unmapped wording when no definition site exists at all', () => {
+    expect(summarizeHandlerFn(covFixture(), 'net', ['handleGhost'], noSites)).toBe(
+      'unmapped (handler fns absent from coverage fn-map)',
+    );
   });
 });
