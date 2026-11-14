@@ -2,6 +2,7 @@ import type { Tool } from '@modelcontextprotocol/server';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { ToolProfile } from '@server/ToolCatalog';
 import type { SearchConfig } from '@internal-types/config';
+import { readEnvNullableString } from '@src/config/environment';
 import {
   SEARCH_BM25_B,
   SEARCH_BM25_K1,
@@ -554,7 +555,8 @@ export class ToolSearchEngine {
       // Stem modes shift the matchedContent distribution upward (folded
       // variants match more tokens), so the threshold is env-tunable for the
       // stem scan; the default keeps the measured <=2 behaviour.
-      const driftThreshold = Number.parseInt(process.env['SEARCH_STEM_DRIFT_THRESHOLD'] ?? '2', 10);
+      const thresholdRaw = readEnvNullableString('SEARCH_STEM_DRIFT_THRESHOLD');
+      const driftThreshold = thresholdRaw !== null ? Number.parseInt(thresholdRaw, 10) : Number.NaN;
       if (matchedContent <= (Number.isFinite(driftThreshold) ? driftThreshold : 2)) {
         multiplier *= Math.max(0.1, matchedContent / queryTokenSet.size);
       }

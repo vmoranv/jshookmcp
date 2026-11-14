@@ -1,3 +1,5 @@
+import { readEnvNullableString } from '../../config/environment';
+
 /**
  * Query normalization and preprocessing for tool search.
  * Handles stop-word removal, parameter token extraction, and short description extraction.
@@ -244,7 +246,7 @@ const DEFAULT_STEM_MODE: StemMode = 'verb';
 
 /** Read lazily so a single process (the scan harness, tests) can switch variants. */
 function currentStemMode(): StemMode {
-  const raw = (process.env['SEARCH_STEM_MODE'] ?? DEFAULT_STEM_MODE).trim().toLowerCase();
+  const raw = readEnvNullableString('SEARCH_STEM_MODE', { trim: true }) ?? DEFAULT_STEM_MODE;
   return (VALID_STEM_MODES.has(raw) ? raw : DEFAULT_STEM_MODE) as StemMode;
 }
 
