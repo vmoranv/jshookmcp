@@ -21454,7 +21454,7 @@
     },
     "/browser/browser_attach_cdp_target": {
       "post": {
-        "description": "Attach to a CDP target by targetId.",
+        "description": "Attach to a CDP target by targetId (a page, an out-of-process iframe, or a worker) to drive that target's context — e.g. attach to the target of a specific iframe on the page before running expressions inside the frame context.",
         "operationId": "browser_attach_cdp_target",
         "requestBody": {
           "content": {
@@ -21478,7 +21478,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Attach to a CDP target by targetId.",
+        "summary": "Attach to a CDP target by targetId (a page, an out-of-process iframe, or a worker) to drive that target's context — e.g.",
         "tags": ["browser"],
         "x-domain": "browser"
       }
@@ -22167,7 +22167,7 @@
     },
     "/browser/browser_select_tab": {
       "post": {
-        "description": "Switch active tab by index, URL pattern, or title pattern.",
+        "description": "Switch active tab by index, URL pattern, or title pattern — pick one of the open browser tabs, and switch between tabs as you orchestrate a flow across multiple tabs.",
         "operationId": "browser_select_tab",
         "requestBody": {
           "content": {
@@ -22191,7 +22191,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Switch active tab by index, URL pattern, or title pattern.",
+        "summary": "Switch active tab by index, URL pattern, or title pattern — pick one of the open browser tabs, and switch between tab...",
         "tags": ["browser"],
         "x-domain": "browser"
       }
@@ -22756,7 +22756,7 @@
     },
     "/browser/get_script_source": {
       "post": {
-        "description": "Retrieve source code of a script by ID or URL pattern.",
+        "description": "Retrieve source code of a script by ID or URL pattern — works for any script loaded on the page; the original source text is returned even when the script was executed from cached V8 bytecode (use v8_bytecode_decompile to decompile bytecode when no source exists).",
         "operationId": "get_script_source",
         "requestBody": {
           "content": {
@@ -22780,7 +22780,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Retrieve source code of a script by ID or URL pattern.",
+        "summary": "Retrieve source code of a script by ID or URL pattern — works for any script loaded on the page; the original source ...",
         "tags": ["browser"],
         "x-domain": "browser"
       }
@@ -23593,7 +23593,7 @@
     },
     "/browser/page_set_viewport": {
       "post": {
-        "description": "Set the browser viewport dimensions.",
+        "description": "Set the browser viewport dimensions — the visible page area that screenshots capture. Also part of mobile emulation: set a phone-sized viewport to make the browser behave like a phone screen.",
         "operationId": "page_set_viewport",
         "requestBody": {
           "content": {
@@ -23617,14 +23617,14 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Set the browser viewport dimensions.",
+        "summary": "Set the browser viewport dimensions — the visible page area that screenshots capture.",
         "tags": ["browser"],
         "x-domain": "browser"
       }
     },
     "/browser/page_storage_info": {
       "post": {
-        "description": "Query navigator.storage.estimate() for {usage, quota} and navigator.storage.persisted() to inspect the origin storage budget and persistence status (offline/PWA reverse engineering).",
+        "description": "Query navigator.storage.estimate() for {usage, quota} and navigator.storage.persisted() to inspect the origin storage budget and persistence status (offline/PWA reverse engineering). The usage figure covers the site data stored for the origin (IndexedDB, Caches, web storage), so it also answers how much storage this origin is using.",
         "operationId": "page_storage_info",
         "requestBody": {
           "content": {
@@ -23872,7 +23872,7 @@
     },
     "/browser/stealth_inject": {
       "post": {
-        "description": "Inject anti-detection scripts to reduce bot fingerprint exposure.",
+        "description": "Inject anti-detection scripts to reduce bot fingerprint exposure: patches navigator.webdriver, plugins, canvas/WebGL, battery, media devices and timing, and applies the active fingerprint profile (user agent included) when one exists — making the automation harder to detect. Afterwards check with stealth_verify whether the automation is still detectable.",
         "operationId": "stealth_inject",
         "requestBody": {
           "content": {
@@ -23896,7 +23896,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Inject anti-detection scripts to reduce bot fingerprint exposure.",
+        "summary": "Inject anti-detection scripts to reduce bot fingerprint exposure: patches navigator.webdriver, plugins, canvas/WebGL,...",
         "tags": ["browser"],
         "x-domain": "browser"
       }
@@ -24945,7 +24945,7 @@
     },
     "/core/analysis_security_scan": {
       "post": {
-        "description": "Static security scan of JavaScript: detect hardcoded secrets (API keys, tokens), dangerous functions (eval, Function constructor), XSS sinks (innerHTML, document.write), SQL injection patterns, and weak crypto (Math.random). Returns structured risks with severity and recommendations.",
+        "description": "Static security scan of JavaScript: detect hardcoded secrets (API keys, tokens), dangerous functions (eval, Function constructor), XSS sinks (innerHTML, document.write), SQL injection patterns, and weak crypto / encryption misuse (Math.random). Returns structured risks with severity and recommendations — the weaknesses an attacker could exploit.",
         "operationId": "analysis_security_scan",
         "requestBody": {
           "content": {
@@ -25476,7 +25476,7 @@
     },
     "/core/understand_code": {
       "post": {
-        "description": "Run semantic code analysis for structure, behavior, and risks.",
+        "description": "Run semantic code analysis for structure, behavior, and risks: outline the function/class structure of the script, analyze how values flow through the code (data flow), and surface security risks.",
         "operationId": "understand_code",
         "requestBody": {
           "content": {
@@ -25500,7 +25500,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Run semantic code analysis for structure, behavior, and risks.",
+        "summary": "Run semantic code analysis for structure, behavior, and risks: outline the function/class structure of the script, an...",
         "tags": ["core"],
         "x-domain": "core",
         "x-profiles": ["search", "workflow", "full"]
@@ -36265,7 +36265,7 @@
     },
     "/process/process_get": {
       "post": {
-        "description": "Get detailed information about a specific process by PID, including command line, parent PID, and debug port status.",
+        "description": "Get detailed information about a specific process by PID: name, executable path, command line, parent PID, main window title and handle, runtime memory/CPU usage, and debug port status. Returns process details only — for the loaded DLL/module list use enumerate_modules, for thread enumeration use process_enum_threads, and for the full list of windows the process owns use process_windows.",
         "operationId": "process_get",
         "requestBody": {
           "content": {
@@ -36289,7 +36289,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Get detailed information about a specific process by PID, including command line, parent PID, and debug port status.",
+        "summary": "Get detailed information about a specific process by PID: name, executable path, command line, parent PID, main windo...",
         "tags": ["process"],
         "x-domain": "process"
       }
@@ -37040,7 +37040,7 @@
     },
     "/protocol-analysis/proto_infer_fields": {
       "post": {
-        "description": "Infer likely protocol fields from repeated hex payload samples.",
+        "description": "Infer likely protocol message fields from repeated hex payload samples — recover the field layout and wire format (offsets, sizes, types) of a custom or unknown protocol so you can draft a dissect pattern for the captured bytes.",
         "operationId": "proto_infer_fields",
         "requestBody": {
           "content": {
@@ -37064,7 +37064,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Infer likely protocol fields from repeated hex payload samples.",
+        "summary": "Infer likely protocol message fields from repeated hex payload samples — recover the field layout and wire format (of...",
         "tags": ["protocol-analysis"],
         "x-domain": "protocol-analysis"
       }
@@ -42251,7 +42251,7 @@
     },
     "/workflow/workflow_suggest": {
       "post": {
-        "description": "Suggest the next extension workflow to run from the chainsWith / prerequisites chain metadata declared by loaded workflows. Pass the workflow ids already executed in this session; the server stays stateless. Candidates chained from an executed workflow rank first (the reason names the chain), workflows with all prerequisites satisfied rank before those with missing ones, already-executed workflows are never suggested, and executed ids that match no loaded workflow are returned in unmatched. Workflows without chain metadata are never suggested, so an empty catalog of metadata yields empty suggestions.",
+        "description": "Suggest the next extension workflow to run from the chainsWith / prerequisites chain metadata declared by loaded workflows — typical entry points are starting a new reverse-engineering session for a target, or following up after a first probe of the target's endpoints. Pass the workflow ids already executed in this session; the server stays stateless. Candidates chained from an executed workflow rank first (the reason names the chain), workflows with all prerequisites satisfied rank before those with missing ones, already-executed workflows are never suggested, and executed ids that match no loaded workflow are returned in unmatched. Workflows without chain metadata are never suggested, so an empty catalog of metadata yields empty suggestions.",
         "operationId": "workflow_suggest",
         "requestBody": {
           "content": {
