@@ -142,7 +142,12 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   binary_strings_extract: ['dump strings from the binary', 'extract readable text'],
   dex_scan_file: ['scan the dex for classes', 'inspect dex contents'],
   export_hook_script: ['export my hooks as a script', 'save the hook script'],
-  frida_attach: ['hook onto a running process with frida', 'attach the frida session'],
+  frida_attach: [
+    'hook onto a running process with frida',
+    'attach the frida session',
+    'hook the live process',
+    'trace the calls of a running program',
+  ],
   frida_attach_interceptor: ['intercept calls via frida', 'frida interceptor attach'],
   frida_detach: ['release the frida session', 'unhook the process'],
   frida_dex_dump: ['dump dex from memory', 'grab the unpacked dex at runtime'],

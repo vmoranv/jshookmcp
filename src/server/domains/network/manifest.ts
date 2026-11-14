@@ -151,6 +151,8 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'manage traffic capture',
     'watch requests live',
     'watch every outgoing request',
+    'log all the calls the page makes',
+    'see each request as it goes out',
   ],
   network_get_requests: [
     'show captured requests',
@@ -161,6 +163,9 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'download response content',
     'read returned payload',
     'read the response body',
+    'see what the server returned for this request',
+    'fetch the body of a captured response',
+    'see what the server sent back for a request',
   ],
   network_get_stats: [
     'traffic summary numbers',

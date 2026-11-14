@@ -98,6 +98,8 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'decrypt with keylog secrets',
     'decode tls application data',
     'decrypt the tls payload',
+    'reveal the encrypted traffic with the keylog file',
+    'use the session secrets to decrypt captured traffic',
   ],
   tls_keylog_enable: ['start ssl key logging', 'capture session secrets', 'enable the key log'],
   tls_keylog_disable: [

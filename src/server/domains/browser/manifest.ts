@@ -161,6 +161,8 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'take over my chrome',
     'connect to the running browser',
     'take over the browser session',
+    'attach to an existing chrome instance',
+    'hook up to the already open browser',
   ],
   browser_close: [
     'shut the browser down',
@@ -372,10 +374,22 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   ],
   page_back: ['go back one page', 'navigate to previous entry', 'go back in history'],
   page_forward: ['go forward again', 'next history entry', 'go forward in history'],
-  page_navigate: ['open this url', 'go to a web address', 'open a url in the browser'],
+  page_navigate: [
+    'open this url',
+    'go to a web address',
+    'open a url in the browser',
+    'send the browser to this address',
+    'take the page to another site',
+  ],
   page_reload: ['refresh the page', 'reload current document', 'reload the page'],
   page_click: ['click this element', 'press a dom node', 'click the element'],
-  page_type: ['type text into a field', 'enter keyboard input', 'type text into the field'],
+  page_type: [
+    'type text into a field',
+    'enter keyboard input',
+    'type text into the field',
+    'fill the input box with this string',
+    'put text into the box',
+  ],
   page_select: [
     'choose an option in the dropdown',
     'pick a select value',

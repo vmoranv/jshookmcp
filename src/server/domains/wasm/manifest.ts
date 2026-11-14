@@ -48,7 +48,13 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  wasm_inspect: ['look inside a wasm module', 'module overview', 'inspect the wasm module'],
+  wasm_inspect: [
+    'look inside a wasm module',
+    'module overview',
+    'inspect the wasm module',
+    'overview of a webassembly module',
+    'what is inside this webassembly binary',
+  ],
   wasm_inspect_sections: [
     'list wasm sections',
     'enumerate module sections',

@@ -102,7 +102,13 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'common blackbox library functions',
   ],
   blackbox_list: ['which files are blackboxed', 'show ignore list', 'list the blackbox functions'],
-  breakpoint: ['set a breakpoint here', 'stop on this line', 'set a breakpoint'],
+  breakpoint: [
+    'set a breakpoint here',
+    'stop on this line',
+    'set a breakpoint',
+    'pause execution when it reaches this line',
+    'halt the program at this spot',
+  ],
   debugger_capture_hit: [
     'capture the breakpoint hit',
     'record pause context',
@@ -140,6 +146,8 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'step one instruction',
     'step into or over',
     'step through the execution one step at a time',
+    'advance to the next instruction',
+    'single step the debugger',
   ],
   debugger_wait_for_paused: [
     'block until a pause happens',

@@ -3129,7 +3129,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['set a breakpoint here', 'stop on this line', 'set a breakpoint'],
+    sceneKeywords: [
+      'set a breakpoint here',
+      'stop on this line',
+      'set a breakpoint',
+      'pause execution when it reaches this line',
+      'halt the program at this spot',
+    ],
   },
   {
     tool: {
@@ -3211,6 +3217,8 @@ export const GENERATED_TOOL_CATALOG = [
       'take over my chrome',
       'connect to the running browser',
       'take over the browser session',
+      'attach to an existing chrome instance',
+      'hook up to the already open browser',
     ],
   },
   {
@@ -7502,6 +7510,8 @@ export const GENERATED_TOOL_CATALOG = [
       'step one instruction',
       'step into or over',
       'step through the execution one step at a time',
+      'advance to the next instruction',
+      'single step the debugger',
     ],
   },
   {
@@ -7649,6 +7659,8 @@ export const GENERATED_TOOL_CATALOG = [
       'un obfuscate this script',
       'make the code readable again',
       'deobfuscate the code',
+      'restore scrambled code to readable source',
+      'unscramble a minified script',
     ],
   },
   {
@@ -9961,7 +9973,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'binary-instrument',
-    sceneKeywords: ['hook onto a running process with frida', 'attach the frida session'],
+    sceneKeywords: [
+      'hook onto a running process with frida',
+      'attach the frida session',
+      'hook the live process',
+      'trace the calls of a running program',
+    ],
   },
   {
     tool: {
@@ -20540,7 +20557,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['download response content', 'read returned payload', 'read the response body'],
+    sceneKeywords: [
+      'download response content',
+      'read returned payload',
+      'read the response body',
+      'see what the server returned for this request',
+      'fetch the body of a captured response',
+      'see what the server sent back for a request',
+    ],
   },
   {
     tool: {
@@ -20939,6 +20963,8 @@ export const GENERATED_TOOL_CATALOG = [
       'manage traffic capture',
       'watch requests live',
       'watch every outgoing request',
+      'log all the calls the page makes',
+      'see each request as it goes out',
     ],
   },
   {
@@ -21929,7 +21955,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['open this url', 'go to a web address', 'open a url in the browser'],
+    sceneKeywords: [
+      'open this url',
+      'go to a web address',
+      'open a url in the browser',
+      'send the browser to this address',
+      'take the page to another site',
+    ],
   },
   {
     tool: {
@@ -22325,7 +22357,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['type text into a field', 'enter keyboard input', 'type text into the field'],
+    sceneKeywords: [
+      'type text into a field',
+      'enter keyboard input',
+      'type text into the field',
+      'fill the input box with this string',
+      'put text into the box',
+    ],
   },
   {
     tool: {
@@ -27022,6 +27060,8 @@ export const GENERATED_TOOL_CATALOG = [
       'decrypt with keylog secrets',
       'decode tls application data',
       'decrypt the tls payload',
+      'reveal the encrypted traffic with the keylog file',
+      'use the session secrets to decrypt captured traffic',
     ],
   },
   {
@@ -28896,7 +28936,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['look inside a wasm module', 'module overview', 'inspect the wasm module'],
+    sceneKeywords: [
+      'look inside a wasm module',
+      'module overview',
+      'inspect the wasm module',
+      'overview of a webassembly module',
+      'what is inside this webassembly binary',
+    ],
   },
   {
     tool: {
@@ -29404,6 +29450,8 @@ export const GENERATED_TOOL_CATALOG = [
       'unpack the webpack bundle',
       'split bundle into modules',
       'unpack the javascript bundle',
+      'break the bundle into its module graph',
+      'separate the bundled modules',
     ],
   },
   {

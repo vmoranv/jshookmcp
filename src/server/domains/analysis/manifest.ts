@@ -311,6 +311,8 @@ const manifest = {
       'un obfuscate this script',
       'make the code readable again',
       'deobfuscate the code',
+      'restore scrambled code to readable source',
+      'unscramble a minified script',
     ],
     understand_code: ['explain what this code does', 'summarize the logic', 'understand the code'],
     detect_crypto: ['spot encryption usage', 'where does it use crypto', 'detect the encryption'],
@@ -324,6 +326,8 @@ const manifest = {
       'unpack the webpack bundle',
       'split bundle into modules',
       'unpack the javascript bundle',
+      'break the bundle into its module graph',
+      'separate the bundled modules',
     ],
     clear_collected_data: [
       'drop the collected scripts',
