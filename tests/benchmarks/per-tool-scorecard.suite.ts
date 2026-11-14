@@ -103,6 +103,21 @@ export interface CoverageMeta {
   available: boolean;
   fnHit: Map<string, number>;
   fnTotal: Map<string, number>;
+  /**
+   * Scoped exact-name records, keyed by fn name, covering ONLY the trees a
+   * bound handler can physically live in (`src/server/domains/**`, any domain
+   * dir, plus `src/modules/**`). One record per coverage fnMap entry.
+   *
+   * Why scoped: the historical name maps were global across the whole coverage
+   * run, so a method name defined twice — e.g. a facade delegator plus its
+   * impl, or a same-named method in an unrelated src/native class — summed
+   * BOTH definitions into one tool's denominator (measured 2026-11-14:
+   * memory_bookmark / binary_entropy_profile / nemu_read_memory /
+   * nemu_write_memory each reported 50% while their real handlers were fully
+   * executed — 1 hit / 1 foreign miss). Names with no in-tree definition keep
+   * the legacy global lookup, so out-of-tree-only bindings are unchanged.
+   */
+  fnDefsInTree: Map<string, Array<{ hit: boolean; delegator: boolean }>>;
   instrumentedDomains: Set<string>;
   /**
    * Position index for the instrumented domain files, keyed by
@@ -122,10 +137,11 @@ export interface CoverageMeta {
 function loadCoverageMeta(): CoverageMeta {
   const fnHit = new Map<string, number>();
   const fnTotal = new Map<string, number>();
+  const fnDefsInTree = new Map<string, Array<{ hit: boolean; delegator: boolean }>>();
   const instrumentedDomains = new Set<string>();
   const fnsByPos = new Map<string, Map<number, { hit: number; total: number }>>();
   if (!existsSync(COVERAGE_FILE))
-    return { available: false, fnHit, fnTotal, instrumentedDomains, fnsByPos };
+    return { available: false, fnHit, fnTotal, fnDefsInTree, instrumentedDomains, fnsByPos };
   const raw = JSON.parse(readFileSync(COVERAGE_FILE, 'utf8')) as Record<
     string,
     {
@@ -142,10 +158,11 @@ function loadCoverageMeta(): CoverageMeta {
       instrumentedDomains.add(domainMatch[1]!);
     }
     const pathMatch = fileKey.match(domainPathRe);
+    let relKey: string | undefined;
     if (pathMatch) {
       // Checkout-independent key: the coverage run's absolute prefix (its own
       // clone path) is dropped; `<domain>/<rel>` matches this checkout's tree.
-      const relKey = `${pathMatch[1]}/${pathMatch[2]!.replace(/\\/g, '/')}`;
+      relKey = `${pathMatch[1]}/${pathMatch[2]!.replace(/\\/g, '/')}`;
       let byLine = fnsByPos.get(relKey);
       if (!byLine) {
         byLine = new Map();
@@ -160,6 +177,27 @@ function loadCoverageMeta(): CoverageMeta {
         byLine.set(line, cur);
       }
     }
+    // .match() yields null (not undefined) on no-match — compare against null.
+    const inTree = pathMatch !== null || /src[/\\]modules[/\\]/.test(fileKey);
+    if (inTree) {
+      const domainDir = domainMatch?.[1];
+      for (const [fnId, fn] of Object.entries(fnMap)) {
+        const name = fn.name ?? '';
+        if (!name.startsWith('handle')) continue;
+        const decl = fn.decl?.start?.line;
+        let delegator = false;
+        if (domainDir !== undefined && relKey !== undefined && decl !== undefined) {
+          delegator =
+            domainMethodSites(domainDir)
+              .get(name)
+              ?.some((s) => s.fileRel === relKey && s.line === decl && s.delegator === true) ===
+            true;
+        }
+        const list = fnDefsInTree.get(name) ?? [];
+        list.push({ hit: (f[fnId] ?? 0) > 0, delegator });
+        fnDefsInTree.set(name, list);
+      }
+    }
     for (const [fnId, fn] of Object.entries(fnMap)) {
       const name = fn.name ?? '';
       if (!name) continue;
@@ -167,7 +205,7 @@ function loadCoverageMeta(): CoverageMeta {
       if ((f[fnId] ?? 0) > 0) fnHit.set(name, (fnHit.get(name) ?? 0) + 1);
     }
   }
-  return { available: true, fnHit, fnTotal, instrumentedDomains, fnsByPos };
+  return { available: true, fnHit, fnTotal, fnDefsInTree, instrumentedDomains, fnsByPos };
 }
 
 export interface ExecStats {
@@ -336,6 +374,15 @@ function loadMethodMap(): Map<string, string[]> {
 export interface MethodSite {
   fileRel: string; // `<domain>/<rel path>`, forward slashes — matches fnsByPos keys
   line: number; // 1-based decl line in the source file
+  /**
+   * True when the definition is a pure delegation shim — its body only does
+   * `return this.<member>.<sameName>(…)`. Facade classes (e.g. memory
+   * handlers.impl.ts `handleBookmarkDispatch`, binary-instrument
+   * handlers.impl.core.ts) carry one shim per sub-handler tool; the shim is
+   * wiring, not the tool's behavior, so the scoped exact-name resolution
+   * counts the non-shim definition (the real handler) for that name.
+   */
+  delegator?: boolean;
 }
 
 const DOMAIN_DIR = join(ROOT, 'src/server/domains');
@@ -387,9 +434,16 @@ function domainMethodSites(domain: string): Map<string, MethodSite[]> {
       for (let i = 0; i < lines.length; i++) {
         const m = lines[i]!.match(HANDLE_DEF_LINE_RE);
         if (!m) continue;
-        const list = sites.get(m[1]!) ?? [];
-        list.push({ fileRel: fileRelKey, line: i + 1 });
-        sites.set(m[1]!, list);
+        // Delegation-shim probe: within the decl line plus the next two, a body
+        // of the shape `return this.<member>.<sameName>(…)` marks a facade
+        // delegator. An implementation can never call this.<x>.<ownName>( —
+        // that would recurse infinitely — so the probe has no false positives.
+        const bodyWindow = lines.slice(i, i + 3).join(' ');
+        const name = m[1]!;
+        const delegator = new RegExp(`this\\.\\w+\\.${name}\\s*\\(`).test(bodyWindow);
+        const list = sites.get(name) ?? [];
+        list.push({ fileRel: fileRelKey, line: i + 1, delegator });
+        sites.set(name, list);
       }
     }
   }
@@ -450,8 +504,16 @@ function summarizeTool(
 /**
  * Handler-fn coverage for one tool's bound methods, in resolution order:
  *
- *   1. exact fn-map name           — named methods (`handleX(…) { … }`), the
- *                                    historical path, numbers unchanged;
+ *   1. exact fn-map name, scoped — when the name has definitions in the trees
+ *      a bound handler can live in (`src/server/domains/**`, `src/modules/**`),
+ *      only those definitions form the denominator, and delegation shims
+ *      (`return this.<x>.<sameName>(…)`) yield to real implementations. This
+ *      keeps a same-named method in an unrelated file (measured: nemu_read_
+ *      memory's `handleReadMemory` vs an unexecuted GdbRspServer twin) and a
+ *      facade shim (memory `handleBookmarkDispatch`, binary-instrument
+ *      `handleBinaryEntropyProfile`) out of the tool's denominator; when every
+ *      in-tree definition is a shim, all of them are counted;
+ *      names with NO in-tree definition keep the historical global lookup;
  *   2. decl-position (arrow fn)    — class-property arrows carry no fn-map
  *                                    name (`(anonymous_N)`), but their decl
  *                                    line is the property's source line, so
@@ -465,9 +527,11 @@ function summarizeTool(
  *                                    entries at all stays "excluded", whatever
  *                                    the fallbacks could theoretically find.
  *
- * Steps 2–3 only run after 1 found nothing, so every previously-reported
- * percentage is untouched; only "unmapped" rows can gain values, from real
- * measured functions.
+ * Step 1's scoped path changes only names whose denominator previously mixed
+ * foreign same-named definitions (verified 2026-11-14: exactly the four 50%
+ * rows move to 100%, the other 732 tools are byte-identical); steps 2–4 only
+ * run after 1 found nothing, so every previously-reported percentage from
+ * those paths is untouched.
  *
  * `resolveSites` is injectable for unit tests; production uses the source-tree
  * scan (`domainMethodSites`).
@@ -483,8 +547,18 @@ export function summarizeHandlerFn(
   let hit = 0;
   let total = 0;
   for (const m of methods) {
-    hit += cov.fnHit.get(m) ?? 0;
-    total += cov.fnTotal.get(m) ?? 0;
+    const inTree = cov.fnDefsInTree.get(m);
+    if (inTree !== undefined && inTree.length > 0) {
+      const implementations = inTree.filter((d) => !d.delegator);
+      const chosen = implementations.length > 0 ? implementations : inTree;
+      for (const d of chosen) {
+        total += 1;
+        if (d.hit) hit += 1;
+      }
+    } else {
+      hit += cov.fnHit.get(m) ?? 0;
+      total += cov.fnTotal.get(m) ?? 0;
+    }
   }
   if (total > 0) return `${Math.round((hit / total) * 100)}%`;
   if (hit > 0) return '100%';

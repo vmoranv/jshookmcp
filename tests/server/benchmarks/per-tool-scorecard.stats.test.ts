@@ -14,12 +14,17 @@
  *
  * The `summarizeHandlerFn` block locks the handler-fn resolution order fixed
  * in the 2026-11-14 mapping-gap repair:
- *   exact fn-map name → decl-position (V8 records class-property arrows as
- *   nameless `(anonymous_N)` at the property's source line) → `XTool`→`X`
+ *   scoped exact fn-map name (definitions in `src/server/domains/**` or
+ *   `src/modules/**` only; delegation shims yield to real implementations) →
+ *   legacy global exact name (only for names with no in-tree definition) →
+ *   decl-position (V8 records class-property arrows as nameless
+ *   `(anonymous_N)` at the property's source line) → `XTool`→`X`
  *   delegate name → excluded-domain short-circuit, and only then "unmapped".
- * The exact-name path is byte-identical to the pre-fix one, so previously
- * reported percentages are invariant by construction; the fallbacks can only
- * turn former "unmapped" rows into real measured values.
+ * The legacy fallback paths are byte-identical to the pre-fix ones; the
+ * scoped path changes only names whose global denominator previously mixed
+ * foreign same-named definitions (measured diff: exactly the four 50% rows —
+ * memory_bookmark, binary_entropy_profile, nemu_read_memory,
+ * nemu_write_memory — move to 100%, all other 732 tools unchanged).
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -117,6 +122,7 @@ describe('summarizeHandlerFn', () => {
       available: true,
       fnHit: new Map(),
       fnTotal: new Map(),
+      fnDefsInTree: new Map(),
       instrumentedDomains: new Set(['net']),
       fnsByPos: new Map(),
       ...over,
@@ -126,10 +132,63 @@ describe('summarizeHandlerFn', () => {
   const sites = (entries: Record<string, MethodSite[]>): Map<string, MethodSite[]> =>
     new Map(Object.entries(entries));
 
-  it('resolves exact fn-map names first (historical path, unchanged)', () => {
+  it('resolves exact fn-map names first (historical path, unchanged for names with no in-tree def)', () => {
     const cov = covFixture({
       fnHit: new Map([['handleFoo', 1]]),
       fnTotal: new Map([['handleFoo', 2]]),
+    });
+    expect(summarizeHandlerFn(cov, 'net', ['handleFoo'], noSites)).toBe('50%');
+  });
+
+  it('scoped in-tree def excludes a foreign same-named def from the denominator', () => {
+    // Measured shape (nemu_read_memory): the bound handler in the domain tree
+    // was executed, while an unrelated src/native same-named method was not.
+    // The global maps still say 1/2; the scoped denominator must see 1/1.
+    const cov = covFixture({
+      fnHit: new Map([['handleRead', 1]]),
+      fnTotal: new Map([['handleRead', 2]]),
+      fnDefsInTree: new Map([['handleRead', [{ hit: true, delegator: false }]]]),
+    });
+    expect(summarizeHandlerFn(cov, 'native-emulator', ['handleRead'], noSites)).toBe('100%');
+  });
+
+  it('delegation shims yield to the real in-tree implementation', () => {
+    // Measured shape (memory_bookmark / binary_entropy_profile): facade shim
+    // never executed (no router-level test), impl executed directly by unit
+    // tests. Counting the shim reported 50%; the shim is wiring, so only the
+    // implementation forms the denominator.
+    const cov = covFixture({
+      fnDefsInTree: new Map([
+        [
+          'handleDispatch',
+          [
+            { hit: false, delegator: true },
+            { hit: true, delegator: false },
+          ],
+        ],
+      ]),
+    });
+    expect(summarizeHandlerFn(cov, 'memory', ['handleDispatch'], noSites)).toBe('100%');
+  });
+
+  it('a scoped in-tree def that was never executed reports 0% (real measurement)', () => {
+    const cov = covFixture({
+      fnDefsInTree: new Map([['handleFoo', [{ hit: false, delegator: false }]]]),
+    });
+    expect(summarizeHandlerFn(cov, 'net', ['handleFoo'], noSites)).toBe('0%');
+  });
+
+  it('when every in-tree def is a shim, all of them are counted (no empty denominator)', () => {
+    const cov = covFixture({
+      fnDefsInTree: new Map([
+        [
+          'handleFoo',
+          [
+            { hit: false, delegator: true },
+            { hit: true, delegator: true },
+          ],
+        ],
+      ]),
     });
     expect(summarizeHandlerFn(cov, 'net', ['handleFoo'], noSites)).toBe('50%');
   });
