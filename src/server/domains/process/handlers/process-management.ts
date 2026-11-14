@@ -171,7 +171,14 @@ export class ProcessManagementHandlers implements MemoryOperationHost {
   async handleProcessGet(args: Record<string, unknown>) {
     try {
       const pid = validatePid(args.pid);
-      const process = await this.processManager.getProcessByPid(pid);
+      // The two PID-keyed lookups are independent — run them concurrently
+      // instead of two serial PowerShell/CIM spawns (~2x faster found-path).
+      // The early catch observer keeps the not-found short-circuit below from
+      // orphaning a rejection if getProcessCommandLine ever starts throwing.
+      const processPromise = this.processManager.getProcessByPid(pid);
+      const cmdLinePromise = this.processManager.getProcessCommandLine(pid);
+      cmdLinePromise.catch(() => {});
+      const process = await processPromise;
 
       if (!process) {
         return {
@@ -191,7 +198,7 @@ export class ProcessManagementHandlers implements MemoryOperationHost {
         };
       }
 
-      const cmdLine = await this.processManager.getProcessCommandLine(pid);
+      const cmdLine = await cmdLinePromise;
       const debugPort = await this.processManager.checkDebugPort(pid, {
         commandLine: cmdLine.commandLine,
       });

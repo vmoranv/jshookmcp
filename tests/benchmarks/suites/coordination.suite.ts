@@ -379,5 +379,35 @@ export const coordinationSuite: BenchSuite = {
         return text.includes('bench-missing') ? true : `not-found answer should echo the id`;
       },
     },
+    {
+      name: 'restore_page_snapshot/missing-id-honest-error',
+      tool: 'restore_page_snapshot',
+      origin: 'homemade',
+      reference: 'argument contract: restoring needs snapshotId and names it when absent',
+      run: () => coordination.handleRestorePageSnapshotTool({}),
+      validate: (v) => {
+        const b = body(v);
+        const text = JSON.stringify(b);
+        return b['success'] === false && /snapshotId/i.test(text)
+          ? true
+          : `expected a snapshotId error: ${text.slice(0, 180)}`;
+      },
+    },
+    {
+      name: 'restore_page_snapshot/unknown-id-not-found',
+      tool: 'restore_page_snapshot',
+      origin: 'homemade',
+      reference:
+        'lookup contract: an unknown snapshot id reports "not found" with the id echoed, never a fabricated restore',
+      run: () => coordination.handleRestorePageSnapshotTool({ snapshotId: 'bench-missing' }),
+      validate: (v) => {
+        const b = body(v);
+        if (b['success'] === true)
+          return `must not restore an unknown snapshot: ${JSON.stringify(b).slice(0, 180)}`;
+        const text = JSON.stringify(b);
+        if (!/not found/i.test(text)) return `expected a not-found answer: ${text.slice(0, 180)}`;
+        return text.includes('bench-missing') ? true : 'not-found answer should echo the id';
+      },
+    },
   ],
 };

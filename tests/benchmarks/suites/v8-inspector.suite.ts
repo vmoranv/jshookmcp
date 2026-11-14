@@ -479,6 +479,15 @@ export const v8InspectorSuite: BenchSuite = {
         expectNamedRefusal(v, /PageController not available/i, ['samples', 'profile']),
     },
     {
+      name: 'v8_weakrefs_inspect/refuses-without-page',
+      tool: 'v8_weakrefs_inspect',
+      origin: 'homemade',
+      reference:
+        'admission contract: WeakRef inspection needs a live page; the refusal must name the missing PageController and not fabricate a weakRef list',
+      run: () => handlers.handle('v8_weakrefs_inspect', {}),
+      validate: (v) => expectNamedRefusal(v, /PageController not available/i, ['weakRefs']),
+    },
+    {
       name: 'v8_heap_snapshot_capture/refuses-without-page',
       tool: 'v8_heap_snapshot_capture',
       origin: 'homemade',
