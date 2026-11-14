@@ -24,7 +24,48 @@ const coverageExclude = [
   'src/**/*.d.ts',
   'src/**/types.ts',
   'src/types/**',
-  'src/*/**/index.ts',
+  // Barrel index.ts files, enumerated per src top-level segment. This used to
+  // be the single glob `src/*/**/index.ts`, but that glob ALSO matched
+  // src/server/domains/coordination/index.ts — a 1206-line implementation file
+  // misclassified as a barrel (see the domains entry below). The union of the
+  // patterns below equals the old match set MINUS coordination/index.ts; every
+  // other index.ts the old glob matched was checked file-by-file and is a
+  // genuine re-export barrel (0 executable lines, so excluding them is a no-op
+  // either way — see the NOTE blocks further down).
+  //
+  // Why not one glob + a `!`-negated re-include line? Because negation does not
+  // work in this stack: picomatch's array matcher ignores `!`-prefixed entries
+  // (verified: pm([...,'!exact/file.ts']) still returns true for that file),
+  // picomatch's `ignore` option forbids negations, and tinyglobby's `ignore`
+  // behaves the same — with the negation entry present, coverage collection
+  // collapsed to 0 files (measured 2026-11-14, vitest 5.1.0 / picomatch 4.0.4 /
+  // tinyglobby 0.2.17). Hence positive-pattern enumeration.
+  'src/constants/**/index.ts',
+  'src/modules/**/index.ts',
+  'src/native/**/index.ts',
+  'src/utils/**/index.ts',
+  // src/server, excluding domains/ (enumerated separately below): these 21
+  // subdirectories hold only re-export barrels.
+  'src/server/{activation,evidence,extensions,http,instrumentation,macros,mcp2,observability,persistence,plugins,registry,reverse-session,runtime,sandbox,search,security,skills,tasks,transport,webhook,workflows}/**/index.ts',
+  // All 36 other domain directories (37 total, coordination omitted):
+  // coordination/index.ts is NOT a barrel — 1206 lines of which only 3 are
+  // re-exports (`./definitions`,
+  // `./state-board/definitions`, `./state-board`); the rest is the live
+  // CoordinationHandlers class (task-handoff CRUD, session insights, page
+  // snapshot capture/restore) with fail-soft try/catch guards around its CDP/
+  // page surface, so it unit-tests fine with a mocked pageController. It is
+  // tested IN PLACE via the index path (tests/server/domains/coordination/
+  // handlers.test.ts, page-snapshot.test.ts, dependency-graph.test.ts and
+  // bounds.test.ts all import '@server/domains/coordination/index'; the only
+  // src-side importer is manifest.ts's `import type`). Excluding it under the
+  // old barrel glob hid measured, covered code — the same failure mode the
+  // handlers/** audit above documents.
+  'src/server/domains/{adb-bridge,analysis,binary-instrument,browser,canvas,cross-domain,dart-inspector,debugger,encoding,exploit-dev,extension-registry,graphql,instrumentation,maintenance,memory,mojo-ipc,native-bridge,native-emulator,network,platform,process,protocol-analysis,proxy,session,shared,sourcemap,streaming,syscall-hook,tasks,tls-inspector,trace,transform,v8-inspector,wasm,webgpu,workflow}/**/index.ts',
+  // The one coordination-subtree exception to the exception: a 2-line pure
+  // re-export barrel (state-board/definitions + state-board handlers class).
+  // Listed explicitly so the new union above stays EXACTLY the old glob's
+  // match set minus coordination/index.ts — no other measurement drift.
+  'src/server/domains/coordination/state-board/**/index.ts',
   'src/**/manifest.ts',
   'src/**/*.types.ts',
   // NOT excluded, and here is the measurement that says so.
@@ -66,13 +107,24 @@ const coverageExclude = [
   'src/server/domains/*/definitions.ts',
   // Requires real browser CDP connection — untestable in unit tests
   'src/modules/collector/playwright-cdp-fallback.ts',
-  // v0.3.1 domains: handlers require real hardware / native FFI / CDP sessions
+  // v0.3.1 domains: handlers require real hardware / native FFI / CDP sessions.
+  // EXCEPTION, audited 2026-11-14: `syscall-hook/handlers.impl.ts` sat in this
+  // block since a52372f59 ("integration-only handler files"), but the rationale
+  // does not hold for it. It is the LIVE implementation for all 15 domain tools
+  // (handlers.ts is a 1-line re-export of SyscallHookHandlers; manifest.ts
+  // dynamically imports handlers.ts). The 7 monitor-side tools —
+  // start/stop_monitor, capture_events, correlate_js, filter, get_stats,
+  // ebpf_trace — run against an injectable SyscallMonitor/SyscallToJSMapper
+  // (all-optional constructor deps), and their tests already exercise them with
+  // mocks / simulated mode: handlers.coverage.test.ts (~101 handler-call sites),
+  // handlers.test.ts, ebpf-trace.test.ts. Its import graph
+  // (SyscallMonitor, SyscallToJSMapper) uses node builtins only — no koffi at
+  // import time. Re-included and re-measured; see the coverage campaign notes.
   'src/server/domains/adb-bridge/handlers.impl.ts',
   'src/server/domains/tls-inspector/handlers/handler-class.ts',
   'src/server/domains/tls-inspector/handlers/raw-socket-handlers.ts',
   'src/server/domains/mojo-ipc/handlers.impl.ts',
   'src/server/domains/protocol-analysis/handlers/handler-class.ts',
-  'src/server/domains/syscall-hook/handlers.impl.ts',
   // NOTE: a "Pure re-export backward-compat shim files (1-10 lines, zero logic)"
   // block listing 9 graphql + 5 process files used to sit here. All 14 were
   // 100% `export ... from` with ZERO executable lines, so excluding them was a
