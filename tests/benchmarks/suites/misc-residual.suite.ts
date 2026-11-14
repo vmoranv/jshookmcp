@@ -342,8 +342,13 @@ export const miscResidualSuite: BenchSuite = {
         const registration = analysisManifest.registrations.find(
           (r) => r.tool.name === 'llm_suggest_names',
         );
-        if (!registration) return { content: [], error: 'registration missing' };
-        const call = registration.bind({} as never);
+        if (!registration)
+          return Promise.resolve({ success: false, error: 'registration missing' });
+        // bind's returned arg type (ToolArgs) is narrower than the plain
+        // record the harness passes; the closure only reads generic fields.
+        const call = registration.bind({} as never) as (
+          a: Record<string, unknown>,
+        ) => Promise<unknown>;
         return call({});
       },
       validate: (v) => {
