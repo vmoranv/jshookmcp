@@ -2,6 +2,7 @@ import type { Tool } from '@modelcontextprotocol/server';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { ToolProfile } from '@server/ToolCatalog';
 import type { SearchConfig } from '@internal-types/config';
+import { readEnvNullableString } from '@src/config/environment';
 import {
   SEARCH_BM25_B,
   SEARCH_BM25_K1,
@@ -311,8 +312,11 @@ export class ToolSearchEngine {
       // The scene tokens belong to the document's vocabulary: the term-drift
       // penalty counts how many query words the candidate covers, and a tool
       // whose expansion phrases match the query must not look like it
-      // covers nothing.
-      tokenSet: new Set([...allTokens, ...sceneTokens]),
+      // covers nothing. Tokens are stem-normalised when SEARCH_STEM_MODE
+      // enables the tokenSet wiring; off-mode indexes them verbatim.
+      tokenSet: new Set(
+        [...allTokens, ...sceneTokens].map((t) => QueryNormalizer.stemTokenSetToken(t)),
+      ),
       scenePhrases: toolScenePhrases,
     };
     this.docs.push(doc);
@@ -432,13 +436,6 @@ export class ToolSearchEngine {
   }
 
   /**
-   * Get current search strategy flags.
-   */
-  public getStrategyFlags(): Readonly<Required<SearchStrategyFlags>> {
-    return this.strategyFlags;
-  }
-
-  /**
    * When the query is verbose, keep only the tokens with the highest IDF.
    * Rare tokens carry more signal; out-of-vocabulary tokens are noise.
    */
@@ -543,8 +540,11 @@ export class ToolSearchEngine {
       doc.name !== queryNormalised
     ) {
       let matchedContent = 0;
+      // The tokenSet is stem-normalised at index time when the tokenSet
+      // wiring is enabled; folding the query tokens with the same function
+      // keeps both sides of the comparison symmetric.
       for (const qt of queryTokenSet) {
-        if (doc.tokenSet.has(qt)) matchedContent++;
+        if (doc.tokenSet.has(QueryNormalizer.stemTokenSetToken(qt))) matchedContent++;
       }
       // Threshold <=2 (not <=1): a candidate covering 2 of N>=4 query tokens
       // is usually on-topic too — the common failure is a name-token match on
@@ -552,7 +552,12 @@ export class ToolSearchEngine {
       // true match covers the full query at scene weight. Measured
       // (30-case holdout, 2026-11-14): <=1 -> 65.8 MRR, <=2 -> 79.9 with 10
       // cases improved and none regressed; <=3 -> 78.6 (worse, one regressed).
-      if (matchedContent <= 2) {
+      // Stem modes shift the matchedContent distribution upward (folded
+      // variants match more tokens), so the threshold is env-tunable for the
+      // stem scan; the default keeps the measured <=2 behaviour.
+      const thresholdRaw = readEnvNullableString('SEARCH_STEM_DRIFT_THRESHOLD');
+      const driftThreshold = thresholdRaw !== null ? Number.parseInt(thresholdRaw, 10) : Number.NaN;
+      if (matchedContent <= (Number.isFinite(driftThreshold) ? driftThreshold : 2)) {
         multiplier *= Math.max(0.1, matchedContent / queryTokenSet.size);
       }
     }

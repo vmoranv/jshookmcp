@@ -1,3 +1,5 @@
+import { QueryNormalizer } from './QueryNormalizer';
+
 export interface ReRankResult {
   toolName: string;
   originalRank: number;
@@ -67,7 +69,8 @@ function tokenize(s: string): string[] {
     .replace(/[_-]/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .split(/[^a-z0-9]+/)
-    .filter((t) => t.length > 0);
+    .filter((t) => t.length > 0)
+    .map((t) => QueryNormalizer.stemRerankToken(t));
 }
 
 function longestCommonSubsequenceRatio(a: string, b: string): number {

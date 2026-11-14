@@ -141,6 +141,8 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   ],
   network_get_status: [
     'is capture running',
+    'is traffic capture running',
+    'check whether network capture is active',
     'monitoring state',
     'capture active state',
     'is monitoring on',

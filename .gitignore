@@ -158,3 +158,6 @@ docs/agents
 # CI checkouts then had only 5 of the 6 skills and the skills-extension
 # test failed on Linux while passing on case-insensitive Windows.
 /telemetry/
+
+# bench:e2e per-round vitest JSON reporter byproducts
+/tests/e2e/e2e-results-round*.json
