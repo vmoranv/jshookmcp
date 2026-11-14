@@ -14,6 +14,18 @@ updates:
       - dependency-name: "mockttp"
         update-types:
           - "version-update:semver-minor"
+      # Security-update dead ends: the advisories require versions the upstreams
+      # have not published yet (basic-ftp needs >=6.2.4, npm latest is 6.2.1;
+      # node-forge needs >=1.4.3, npm latest is 1.4.2). Until they ship, every
+      # Dependabot run retries the update and fails with
+      # security_update_not_possible — noise on the "Dependabot Updates"
+      # workflow. Remove these entries once the fixed versions exist on npm.
+      - dependency-name: "basic-ftp"
+        update-types:
+          - "version-update:semver-patch"
+      - dependency-name: "node-forge"
+        update-types:
+          - "version-update:semver-patch"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
