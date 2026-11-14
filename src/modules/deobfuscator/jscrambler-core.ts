@@ -89,6 +89,46 @@ function comparable(value: string | number | boolean | null): string | number {
   return value;
 }
 
+/** JS binary-operator semantics over folded literals, via the OPS tables below. */
+function evalBinary(
+  operator: t.BinaryExpression['operator'],
+  left: string | number | boolean | null,
+  right: string | number | boolean | null,
+): string | number | boolean | undefined {
+  // `+` is the only overloaded operator (string concat when either side is a
+  // string), so it stays explicit; the rest come from lookup tables.
+  if (operator === '+') {
+    return typeof left === 'string' || typeof right === 'string'
+      ? String(left) + String(right)
+      : (left as number) + (right as number);
+  }
+
+  // Own-property guards: a bare lookup resolves inherited keys ('constructor',
+  // 'toString', ...) to Object.prototype members and would call those.
+  const numeric = Object.hasOwn(NUMERIC_BINARY_OPS, operator)
+    ? NUMERIC_BINARY_OPS[operator]
+    : undefined;
+  if (numeric) {
+    return typeof left === 'number' && typeof right === 'number' ? numeric(left, right) : undefined;
+  }
+
+  const comparison = Object.hasOwn(COMPARISON_BINARY_OPS, operator)
+    ? COMPARISON_BINARY_OPS[operator]
+    : undefined;
+  if (comparison) {
+    return comparison(comparable(left), comparable(right));
+  }
+
+  const equality = Object.hasOwn(EQUALITY_BINARY_OPS, operator)
+    ? EQUALITY_BINARY_OPS[operator]
+    : undefined;
+  if (equality) {
+    return equality(left, right);
+  }
+
+  return undefined;
+}
+
 /**
  * Resolved argument values of a call.
  *
@@ -320,48 +360,6 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
     });
 
     return decryptFunctions;
-  }
-
-  /** JS relational semantics for <, >, <=, >=: null → 0, booleans → 0/1. */
-  function evalBinary(
-    operator: t.BinaryExpression['operator'],
-    left: string | number | boolean | null,
-    right: string | number | boolean | null,
-  ): string | number | boolean | undefined {
-    // `+` is the only overloaded operator (string concat when either side is a
-    // string), so it stays explicit; the rest come from lookup tables.
-    if (operator === '+') {
-      return typeof left === 'string' || typeof right === 'string'
-        ? String(left) + String(right)
-        : (left as number) + (right as number);
-    }
-
-    // Own-property guards: a bare lookup resolves inherited keys ('constructor',
-    // 'toString', ...) to Object.prototype members and would call those.
-    const numeric = Object.hasOwn(NUMERIC_BINARY_OPS, operator)
-      ? NUMERIC_BINARY_OPS[operator]
-      : undefined;
-    if (numeric) {
-      return typeof left === 'number' && typeof right === 'number'
-        ? numeric(left, right)
-        : undefined;
-    }
-
-    const comparison = Object.hasOwn(COMPARISON_BINARY_OPS, operator)
-      ? COMPARISON_BINARY_OPS[operator]
-      : undefined;
-    if (comparison) {
-      return comparison(comparable(left), comparable(right));
-    }
-
-    const equality = Object.hasOwn(EQUALITY_BINARY_OPS, operator)
-      ? EQUALITY_BINARY_OPS[operator]
-      : undefined;
-    if (equality) {
-      return equality(left, right);
-    }
-
-    return undefined;
   }
 
   function evalArray(

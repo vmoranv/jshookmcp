@@ -314,6 +314,13 @@ function stripGrease(values: string[] | undefined): string[] {
   return (values ?? []).filter((v) => !isGrease(v));
 }
 
+/** JA3 list field: GREASE-stripped hex values dash-joined as decimal. */
+function hexListToDecList(values: string[] | undefined): string {
+  return stripGrease(values)
+    .map((v) => String(parseInt(v, 16)))
+    .join('-');
+}
+
 /**
  * Compute the JA3 fingerprint (Salesforce format) from a parsed ClientHello.
  *
@@ -332,15 +339,11 @@ export function computeJa3(parsed: ParsedClientHello): { ja3: string; ja3_raw: s
   // values in this exact order: TLSVersion,Ciphers,Extensions,EllipticCurves,
   // EllipticCurvePointFormats. Emitting hex (or swapping the last two fields) makes
   // the pre-hash string unmatchable against published JA3 datasets (ja3er, Censys).
-  const toDecList = (values: string[] | undefined): string =>
-    stripGrease(values)
-      .map((v) => String(parseInt(v, 16)))
-      .join('-');
   const version = String(parseInt(parsed.legacyVersion ?? '0303', 16));
-  const ciphers = toDecList(parsed.ciphers);
-  const extensions = toDecList(parsed.extensions.map((e) => e.type));
-  const ec = toDecList(parsed.ellipticCurves);
-  const ecpf = toDecList(parsed.ecPointFormats);
+  const ciphers = hexListToDecList(parsed.ciphers);
+  const extensions = hexListToDecList(parsed.extensions.map((e) => e.type));
+  const ec = hexListToDecList(parsed.ellipticCurves);
+  const ecpf = hexListToDecList(parsed.ecPointFormats);
   const raw = `${version},${ciphers},${extensions},${ec},${ecpf}`;
   // CodeQL flags this as js/weak-cryptographic-algorithm (MD5 keyed by "sensitive" sessionId
   // data). Intentional and required by the JA3 specification (Salesforce format): JA3 is DEFINED

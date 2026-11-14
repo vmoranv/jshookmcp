@@ -18,6 +18,48 @@ type BabelNode = {
   [key: string]: unknown;
 };
 
+/** Dot-path property filter over a Babel node's own enumerable properties. */
+function nodeMatchesFilter(node: BabelNode, nodeFilter: Record<string, string>): boolean {
+  for (const [path, value] of Object.entries(nodeFilter)) {
+    const parts = path.split('.');
+    let current: unknown = node;
+    for (const part of parts) {
+      if (current === null || current === undefined || typeof current !== 'object') return false;
+      current = (current as Record<string, unknown>)[part];
+    }
+    if (String(current) !== String(value)) return false;
+  }
+  return true;
+}
+
+/** Extract primitive/nested-type summary properties of a Babel node. */
+function extractBabelProperties(node: BabelNode): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+  for (const key of Object.keys(node)) {
+    if (key === 'type' || key === 'start' || key === 'end' || key === 'loc' || key === 'range')
+      continue;
+    const val = node[key];
+    if (
+      val === null ||
+      val === undefined ||
+      typeof val === 'string' ||
+      typeof val === 'number' ||
+      typeof val === 'boolean'
+    ) {
+      props[key] = val;
+    } else if (Array.isArray(val) && val.length <= 5) {
+      props[key] = val.map((v) =>
+        typeof v === 'object' && v !== null && 'type' in (v as object)
+          ? { type: (v as BabelNode).type }
+          : v,
+      );
+    } else if (typeof val === 'object' && val !== null && 'type' in (val as object)) {
+      props[key] = { type: (val as BabelNode).type };
+    }
+  }
+  return props;
+}
+
 export async function handleAnalysisAstMatch(args: ToolArgs): Promise<ToolResponse> {
   const code = argString(args, 'code');
   if (!code) {
@@ -60,58 +102,16 @@ export async function handleAnalysisAstMatch(args: ToolArgs): Promise<ToolRespon
 
     const targetNodeType = nodeType;
 
-    function matchesFilter(node: BabelNode): boolean {
-      if (!filter) return true;
-      for (const [path, value] of Object.entries(filter)) {
-        const parts = path.split('.');
-        let current: unknown = node;
-        for (const part of parts) {
-          if (current === null || current === undefined || typeof current !== 'object')
-            return false;
-          current = (current as Record<string, unknown>)[part];
-        }
-        if (String(current) !== String(value)) return false;
-      }
-      return true;
-    }
-
-    function extractProperties(node: BabelNode): Record<string, unknown> {
-      const props: Record<string, unknown> = {};
-      for (const key of Object.keys(node)) {
-        if (key === 'type' || key === 'start' || key === 'end' || key === 'loc' || key === 'range')
-          continue;
-        const val = node[key];
-        if (
-          val === null ||
-          val === undefined ||
-          typeof val === 'string' ||
-          typeof val === 'number' ||
-          typeof val === 'boolean'
-        ) {
-          props[key] = val;
-        } else if (Array.isArray(val) && val.length <= 5) {
-          props[key] = val.map((v) =>
-            typeof v === 'object' && v !== null && 'type' in (v as object)
-              ? { type: (v as BabelNode).type }
-              : v,
-          );
-        } else if (typeof val === 'object' && val !== null && 'type' in (val as object)) {
-          props[key] = { type: (val as BabelNode).type };
-        }
-      }
-      return props;
-    }
-
     traverseAst(ast, {
       enter(path: NodePath) {
         const node = path.node as BabelNode;
-        if (node.type === targetNodeType && matchesFilter(node)) {
+        if (node.type === targetNodeType && (!filter || nodeMatchesFilter(node, filter))) {
           matches.push({
             type: node.type,
             start: node.start ?? -1,
             end: node.end ?? -1,
             code: code.slice(node.start ?? 0, node.end ?? 0),
-            properties: extractProperties(node),
+            properties: extractBabelProperties(node),
           });
           if (matches.length >= maxResults) {
             path.stop();

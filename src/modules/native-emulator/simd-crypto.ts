@@ -856,11 +856,13 @@ export function bcax(vn: Uint8Array, vm: Uint8Array, va: Uint8Array): Uint8Array
 export function rax1(vn: Uint8Array, vm: Uint8Array): Uint8Array<ArrayBuffer> {
   const [n0, n1] = lanes64(vn);
   const [m0, m1] = lanes64(vm);
-  const f = (x: bigint, y: bigint): bigint => {
-    const t = BigInt64(x ^ BigInt64(~y));
-    return BigInt64((t << 1n) | (t >> 63n));
-  };
-  return packLanes64(f(n0, m0), f(n1, m1));
+  return packLanes64(rax1Lane(n0, m0), rax1Lane(n1, m1));
+}
+
+/** RAX1 fused step for one 64-bit lane pair: rol1(x ^ ~y). */
+function rax1Lane(x: bigint, y: bigint): bigint {
+  const t = BigInt64(x ^ BigInt64(~y));
+  return BigInt64((t << 1n) | (t >> 63n));
 }
 
 /** XAR Vd.2D, Vn.2D, Vm.2D — per-lane rotate-right-imm6 of Vn XOR Vm. */
