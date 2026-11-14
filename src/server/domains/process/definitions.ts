@@ -22,7 +22,10 @@ export const processToolDefinitions: Tool[] = [
   tool('process_get', (t) =>
     t
       .desc(
-        'Get detailed information about a specific process by PID, including command line, parent PID, and debug port status.',
+        'Get detailed information about a specific process by PID: name, executable path, command line, ' +
+          'parent PID, main window title and handle, runtime memory/CPU usage, and debug port status. ' +
+          'Returns process details only — for the loaded DLL/module list use enumerate_modules, for thread ' +
+          'enumeration use process_enum_threads, and for the full list of windows the process owns use process_windows.',
       )
       .number('pid', 'Process ID to retrieve details for')
       .required('pid'),
