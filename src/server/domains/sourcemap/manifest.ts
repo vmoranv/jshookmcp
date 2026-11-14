@@ -41,19 +41,31 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   sourcemap_coverage: [
     'check map completeness',
     'missing mappings audit',
-    '覆盖检查',
+    'coverage check',
     'mapping completeness gaps audit',
   ],
-  sourcemap_diff: ['compare two maps', 'map version delta', '对比映射'],
+  sourcemap_diff: ['compare two maps', 'map version delta', 'compare the mappings'],
   sourcemap_discover: [
     'find sourceMappingURL comment',
     'locate map files on a page',
-    '发现 sourcemap',
+    'discover the sourcemap file',
   ],
-  sourcemap_fetch_and_parse: ['download and load a map', 'pull remote sourcemap', '拉取解析 map'],
-  sourcemap_lookup: ['map generated line to original', 'position mapping', '位置映射'],
-  sourcemap_parse_v4: ['read vlq mappings', 'parse map index section', '解析 vlq'],
-  sourcemap_reconstruct_tree: ['rebuild original source tree', 'restore file layout', '重建源码树'],
+  sourcemap_fetch_and_parse: [
+    'download and load a map',
+    'pull remote sourcemap',
+    'fetch and parse the sourcemap',
+  ],
+  sourcemap_lookup: [
+    'map generated line to original',
+    'position mapping',
+    'map a position back to the source',
+  ],
+  sourcemap_parse_v4: ['read vlq mappings', 'parse map index section', 'decode the vlq mappings'],
+  sourcemap_reconstruct_tree: [
+    'rebuild original source tree',
+    'restore file layout',
+    'rebuild the source tree',
+  ],
 };
 
 const manifest = {

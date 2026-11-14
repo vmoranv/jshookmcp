@@ -142,35 +142,43 @@ const manifest = {
     cross_domain_capabilities: [
       'what can this server do across domains',
       'list cross domain skills',
-      '跨域能力',
+      'show the cross domain capabilities',
       'server wide skill inventory',
     ],
     cross_domain_correlate_all: [
       'correlate every evidence source',
       'build full correlation graph',
-      '全量关联',
+      'link everything together',
     ],
     cross_domain_evidence_export: [
       'export the evidence graph',
       'save correlation data',
-      '导出证据',
+      'export the evidence',
     ],
     cross_domain_evidence_query: [
       'search the evidence graph',
       'query correlated findings',
-      '查询证据',
+      'query the evidence',
     ],
-    cross_domain_evidence_stats: ['evidence graph summary', 'how many nodes and edges', '证据统计'],
-    cross_domain_health: ['which domains are ready', 'cross domain availability', '跨域健康'],
+    cross_domain_evidence_stats: [
+      'evidence graph summary',
+      'how many nodes and edges',
+      'summarise the evidence graph',
+    ],
+    cross_domain_health: [
+      'which domains are ready',
+      'cross domain availability',
+      'cross domain health check',
+    ],
     cross_domain_suggest_workflow: [
       'recommend a multi tool recipe',
       'suggest next actions',
-      '建议工作流',
+      'suggest a workflow',
     ],
     cross_domain_synonym: [
       'find related term across domains',
       'synonym bridge lookup',
-      '跨域同义词',
+      'cross domain synonyms',
     ],
   },
 } satisfies DomainManifest<typeof DEP_KEY, Handlers, typeof DOMAIN>;

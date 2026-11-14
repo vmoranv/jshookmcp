@@ -45,16 +45,28 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
 
   // Document-expansion keywords for the retrieval layer (search sceneKeywords).
   sceneKeywords: {
-    binary_ninja_bridge: ['talk to binary ninja', 'bn decompiler bridge', 'binja 桥'],
-    ghidra_bridge: ['drive ghidra headless', 'ghidra decompiler bridge', 'ghidra 桥'],
-    ida_bridge: ['drive ida pro', 'ida decompiler bridge', 'ida 桥'],
+    binary_ninja_bridge: [
+      'talk to binary ninja',
+      'bn decompiler bridge',
+      'talk to the binary ninja bridge',
+    ],
+    ghidra_bridge: [
+      'drive ghidra headless',
+      'ghidra decompiler bridge',
+      'talk to the ghidra bridge',
+    ],
+    ida_bridge: ['drive ida pro', 'ida decompiler bridge', 'talk to the ida bridge'],
     native_bridge_status: [
       'which reverse tools are reachable',
       'bridge availability check',
-      '桥状态',
+      'bridge health status',
     ],
-    native_symbol_sync: ['sync symbols between tools', 'import export symbol tables', '符号同步'],
-    rizin_bridge: ['drive rizin', 'rizin cutter bridge', 'rizin 桥'],
+    native_symbol_sync: [
+      'sync symbols between tools',
+      'import export symbol tables',
+      'sync the symbols',
+    ],
+    rizin_bridge: ['drive rizin', 'rizin cutter bridge', 'talk to the rizin bridge'],
   },
   workflowRule: {
     patterns: [

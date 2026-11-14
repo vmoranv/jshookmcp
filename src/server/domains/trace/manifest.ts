@@ -66,25 +66,41 @@ const manifest = {
 
   // Document-expansion keywords for the retrieval layer (search sceneKeywords).
   sceneKeywords: {
-    diff_heap_snapshots: ['compare two heap dumps', 'heap snapshot delta', '堆快照对比'],
-    export_trace: ['save recording to file', 'dump trace data', '导出 trace'],
-    query_trace_sql: ['filter events with sql', 'query recorded events', 'sql 查询事件'],
+    diff_heap_snapshots: [
+      'compare two heap dumps',
+      'heap snapshot delta',
+      'diff the two heap snapshots',
+    ],
+    export_trace: ['save recording to file', 'dump trace data', 'export the trace'],
+    query_trace_sql: ['filter events with sql', 'query recorded events', 'sql query events'],
     seek_to_timestamp: [
       'jump to a moment in the recording',
       'time travel in trace',
-      '时间定位',
+      'locate by timestamp',
       'time travel jump within recording',
     ],
-    start_trace_recording: ['begin capturing a recording', 'start tracing session', '开始录制'],
-    stop_trace_recording: ['finish the recording', 'end the trace session', '停止录制'],
-    summarize_trace: ['overview of the recording', 'what happened in the trace', 'trace 摘要'],
+    start_trace_recording: [
+      'begin capturing a recording',
+      'start tracing session',
+      'start the recording',
+    ],
+    stop_trace_recording: ['finish the recording', 'end the trace session', 'stop the recording'],
+    summarize_trace: [
+      'overview of the recording',
+      'what happened in the trace',
+      'summarise the trace',
+    ],
     trace_get_network_flow: [
       'network events inside the recording',
       'request flow in trace',
-      'trace 网络流',
+      'trace the network flow',
     ],
-    trace_get_samples: ['profiling samples from trace', 'cpu samples in recording', '采样点'],
-    trace_recording: ['current recording info', 'is a trace active', '录制状态'],
+    trace_get_samples: [
+      'profiling samples from trace',
+      'cpu samples in recording',
+      'sampling points',
+    ],
+    trace_recording: ['current recording info', 'is a trace active', 'recording status'],
   },
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

@@ -70,33 +70,65 @@ async function ensure(ctx: MCPServerContext): Promise<SyscallHookHandlers> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  syscall_capture_events: ['collect syscall events', 'fetch captured syscalls', '采集系统调用'],
+  syscall_capture_events: [
+    'collect syscall events',
+    'fetch captured syscalls',
+    'capture the system calls',
+  ],
   syscall_correlate_js: [
     'link syscalls to js callsites',
     'correlate kernel calls with script',
-    '关联 js 调用点',
+    'correlate with the javascript call sites',
   ],
-  syscall_direct_invoke: ['invoke a syscall directly', 'raw syscall call', '直接系统调用'],
-  syscall_ebpf_attach: ['attach an ebpf program', 'load bpf tracer', '挂载 ebpf'],
-  syscall_ebpf_trace: ['read the ebpf trace', 'collect bpf events', '读 ebpf 追踪'],
-  syscall_filter: ['filter syscall stream', 'narrow captured syscalls', '过滤系统调用'],
-  syscall_get_stats: ['syscall counter summary', 'how many syscalls captured', '系统调用统计'],
+  syscall_direct_invoke: ['invoke a syscall directly', 'raw syscall call', 'direct syscall'],
+  syscall_ebpf_attach: ['attach an ebpf program', 'load bpf tracer', 'attach the ebpf probe'],
+  syscall_ebpf_trace: ['read the ebpf trace', 'collect bpf events', 'read the ebpf trace'],
+  syscall_filter: ['filter syscall stream', 'narrow captured syscalls', 'filter the system calls'],
+  syscall_get_stats: [
+    'syscall counter summary',
+    'how many syscalls captured',
+    'syscall statistics',
+  ],
   syscall_origin_map: [
     'map syscalls to their origin',
     'where did the syscall come from',
-    '系统调用来源',
+    'syscall origin',
   ],
   syscall_pattern_detect: [
     'spot syscall patterns',
     'detect suspicious syscall sequences',
-    '系统调用模式',
+    'syscall pattern',
   ],
-  syscall_resolve_ssn: ['resolve syscall numbers', 'find the ssn table entries', '解析 ssn'],
-  syscall_stack_capture: ['capture stack at syscall', 'stack trace per syscall', '系统调用栈捕获'],
-  syscall_start_monitor: ['start tracing syscalls', 'begin syscall monitoring', '开始监控系统调用'],
-  syscall_stop_monitor: ['stop the syscall tracer', 'end syscall capture', '停止系统调用监控'],
-  syscall_trace_compare: ['compare two syscall traces', 'trace session delta', '对比系统调用轨迹'],
-  syscall_trace_export: ['save syscall trace', 'export captured syscalls', '导出系统调用轨迹'],
+  syscall_resolve_ssn: [
+    'resolve syscall numbers',
+    'find the ssn table entries',
+    'decode the syscall numbers',
+  ],
+  syscall_stack_capture: [
+    'capture stack at syscall',
+    'stack trace per syscall',
+    'capture the syscall stack',
+  ],
+  syscall_start_monitor: [
+    'start tracing syscalls',
+    'begin syscall monitoring',
+    'start monitoring the system calls',
+  ],
+  syscall_stop_monitor: [
+    'stop the syscall tracer',
+    'end syscall capture',
+    'stop monitoring the system calls',
+  ],
+  syscall_trace_compare: [
+    'compare two syscall traces',
+    'trace session delta',
+    'compare the syscall traces',
+  ],
+  syscall_trace_export: [
+    'save syscall trace',
+    'export captured syscalls',
+    'export the syscall trace',
+  ],
 };
 
 const manifest = {

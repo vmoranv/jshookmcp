@@ -39,30 +39,42 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  ast_transform_apply: ['apply code transformation', 'run ast rewrite', '应用 ast 变换'],
-  ast_transform_beautify: ['pretty print javascript', 'format minified code', '美化代码'],
+  ast_transform_apply: ['apply code transformation', 'run ast rewrite', 'apply an ast transform'],
+  ast_transform_beautify: [
+    'pretty print javascript',
+    'format minified code',
+    'pretty print the source code',
+  ],
   ast_transform_chain: [
     'run multiple rewrites in sequence',
     'compose transformations',
-    '组合变换',
+    'compose several transforms together',
     'pipeline several rewrites sequentially',
   ],
   ast_transform_preview: [
     'diff before and after rewrite',
     'preview transformation result',
-    '预览变换',
+    'preview a transform without applying it',
   ],
-  crypto_compare: ['side by side crypto output', 'diff two cipher outputs', '对比加密结果'],
+  crypto_compare: [
+    'side by side crypto output',
+    'diff two cipher outputs',
+    'compare the encrypted outputs',
+  ],
   crypto_extract_standalone: [
     'pull crypto routine out of bundle',
     'isolate encryption function',
-    '提取加密函数',
+    'extract the crypto functions',
   ],
-  crypto_test_harness: ['verify crypto implementation', 'run cipher test vectors', '加密测试'],
+  crypto_test_harness: [
+    'verify crypto implementation',
+    'run cipher test vectors',
+    'run the crypto test harness',
+  ],
   transform_workbench: [
     'interactive code rewrite workspace',
     'transform pipeline playground',
-    '变换工作台',
+    'transform workbench',
   ],
 };
 

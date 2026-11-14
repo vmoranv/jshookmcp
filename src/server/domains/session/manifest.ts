@@ -43,9 +43,13 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  session_progress_clear: ['wipe progress entries', 'reset session ledger', '清空进度'],
-  session_progress_coverage: ['what has been covered so far', 'progress checklist', '进度覆盖'],
-  session_progress_record: ['note down completed step', 'log milestone', '记录进度'],
+  session_progress_clear: ['wipe progress entries', 'reset session ledger', 'clear the progress'],
+  session_progress_coverage: [
+    'what has been covered so far',
+    'progress checklist',
+    'overwrite the progress',
+  ],
+  session_progress_record: ['note down completed step', 'log milestone', 'record the progress'],
 };
 
 const manifest = {

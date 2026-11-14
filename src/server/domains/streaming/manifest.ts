@@ -66,31 +66,55 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  ws_monitor: ['watch websocket traffic live', 'follow ws frames', '监控 websocket'],
-  ws_get_connections: ['list open ws sockets', 'websocket sessions', 'ws 连接列表'],
-  ws_get_frames: ['show ws messages', 'captured websocket frames', 'ws 帧列表'],
-  ws_send_frame: ['push a ws message', 'inject websocket frame', '发送 ws 帧'],
-  ws_export_capture: ['save websocket traffic', 'dump ws session to file', '导出 ws 抓包'],
-  sse_monitor_enable: ['watch server sent events', 'follow eventsource stream', '监控 sse'],
-  sse_get_events: ['show sse messages', 'captured event stream data', 'sse 事件列表'],
-  sse_export_capture: ['save event stream', 'dump sse to file', '导出 sse 抓包'],
-  webrtc_monitor: ['watch webrtc traffic', 'follow peer connections', '监控 webrtc'],
-  webrtc_get_events: ['show webrtc activity', 'captured peer events', 'webrtc 事件'],
-  webrtc_export_capture: ['save webrtc traffic', 'dump webrtc session', '导出 webrtc 抓包'],
+  ws_monitor: ['watch websocket traffic live', 'follow ws frames', 'monitor the websocket traffic'],
+  ws_get_connections: [
+    'list open ws sockets',
+    'websocket sessions',
+    'list the websocket connections',
+  ],
+  ws_get_frames: ['show ws messages', 'captured websocket frames', 'list the websocket frames'],
+  ws_send_frame: ['push a ws message', 'inject websocket frame', 'send a websocket frame'],
+  ws_export_capture: [
+    'save websocket traffic',
+    'dump ws session to file',
+    'export the captured websocket traffic',
+  ],
+  sse_monitor_enable: [
+    'watch server sent events',
+    'follow eventsource stream',
+    'monitor the sse stream',
+  ],
+  sse_get_events: ['show sse messages', 'captured event stream data', 'list the sse events'],
+  sse_export_capture: ['save event stream', 'dump sse to file', 'export the captured sse traffic'],
+  webrtc_monitor: ['watch webrtc traffic', 'follow peer connections', 'monitor the webrtc traffic'],
+  webrtc_get_events: ['show webrtc activity', 'captured peer events', 'webrtc events'],
+  webrtc_export_capture: [
+    'save webrtc traffic',
+    'dump webrtc session',
+    'export the captured webrtc traffic',
+  ],
   fetch_stream_monitor: [
     'watch streaming fetch bodies',
     'follow chunked responses',
-    '监控流式响应',
+    'monitor the streaming responses',
   ],
   fetch_stream_get_events: [
     'show stream chunks received',
     'captured fetch stream data',
-    '流式事件',
+    'stream the captured events',
   ],
-  fetch_stream_export_capture: ['save streaming responses', 'dump fetch streams', '导出流式抓包'],
-  grpc_monitor: ['watch grpc traffic live', 'follow grpc calls', '监控 grpc'],
-  grpc_get_calls: ['list captured grpc calls', 'grpc method invocations', 'grpc 调用列表'],
-  grpc_export_capture: ['save grpc traffic', 'dump grpc session', '导出 grpc 抓包'],
+  fetch_stream_export_capture: [
+    'save streaming responses',
+    'dump fetch streams',
+    'export the captured stream traffic',
+  ],
+  grpc_monitor: ['watch grpc traffic live', 'follow grpc calls', 'monitor the grpc traffic'],
+  grpc_get_calls: ['list captured grpc calls', 'grpc method invocations', 'list the grpc calls'],
+  grpc_export_capture: [
+    'save grpc traffic',
+    'dump grpc session',
+    'export the captured grpc traffic',
+  ],
 };
 
 const manifest = {

@@ -39,7 +39,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'analyze the apk on the phone',
       'inspect the installed package',
-      '分析手机 apk',
+      'analyse an android app package on the phone',
     ],
   },
   {
@@ -86,7 +86,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['download the apk from device', 'pull installer off the phone', '拉取 apk'],
+    sceneKeywords: [
+      'download the apk from device',
+      'pull installer off the phone',
+      'pull the apk file off the device',
+    ],
   },
   {
     tool: {
@@ -136,7 +140,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['measure app cold start', 'launch timing trace', '冷启动追踪'],
+    sceneKeywords: [
+      'measure app cold start',
+      'launch timing trace',
+      'trace the app from a cold start',
+    ],
   },
   {
     tool: {
@@ -154,7 +162,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['what phones are connected', 'list adb devices', '列出设备'],
+    sceneKeywords: [
+      'what phones are connected',
+      'list adb devices',
+      'list the connected android devices',
+    ],
   },
   {
     tool: {
@@ -192,7 +204,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['dump android system services', 'read dumpsys output', '系统服务转储'],
+    sceneKeywords: [
+      'dump android system services',
+      'read dumpsys output',
+      'dump the android system services',
+    ],
   },
   {
     tool: {
@@ -224,7 +240,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['copy a file off the phone', 'download from device', '拉取文件'],
+    sceneKeywords: [
+      'copy a file off the phone',
+      'download from device',
+      'pull a file from the device',
+    ],
   },
   {
     tool: {
@@ -256,7 +276,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['copy a file onto the phone', 'upload to device', '推送文件'],
+    sceneKeywords: [
+      'copy a file onto the phone',
+      'upload to device',
+      'push a file onto the device',
+    ],
   },
   {
     tool: {
@@ -286,7 +310,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['read android system properties', 'device build fingerprint', '系统属性'],
+    sceneKeywords: [
+      'read android system properties',
+      'device build fingerprint',
+      'read the android system properties',
+    ],
   },
   {
     tool: {
@@ -314,7 +342,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['send a key press to the phone', 'inject keyevent', '注入按键'],
+    sceneKeywords: [
+      'send a key press to the phone',
+      'inject keyevent',
+      'inject a key press on the device',
+    ],
   },
   {
     tool: {
@@ -390,7 +422,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['tap the phone screen at a point', 'inject a touch', '注入点击'],
+    sceneKeywords: [
+      'tap the phone screen at a point',
+      'inject a touch',
+      'inject a tap on the device',
+    ],
   },
   {
     tool: {
@@ -418,7 +454,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['type text on the phone', 'inject text input', '注入文本'],
+    sceneKeywords: ['type text on the phone', 'inject text input', 'inject text into the device'],
   },
   {
     tool: {
@@ -482,7 +518,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['install an apk on the device', 'sideload the package', '安装 apk'],
+    sceneKeywords: [
+      'install an apk on the device',
+      'sideload the package',
+      'install an apk on the device',
+    ],
   },
   {
     tool: {
@@ -546,7 +586,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['read the android logcat', 'filter device logs', '查 logcat'],
+    sceneKeywords: [
+      'read the android logcat',
+      'filter device logs',
+      'read the android logcat buffer',
+    ],
   },
   {
     tool: {
@@ -575,7 +619,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['package info on device', 'summarize installed app', '包摘要'],
+    sceneKeywords: [
+      'package info on device',
+      'summarize installed app',
+      'summarise the package manifest',
+    ],
   },
   {
     tool: {
@@ -617,7 +665,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['forward a device port', 'adb tcp forwarding', '端口转发'],
+    sceneKeywords: [
+      'forward a device port',
+      'adb tcp forwarding',
+      'set up a port forward to the device',
+    ],
   },
   {
     tool: {
@@ -659,7 +711,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['read process memory maps on device', 'proc maps of android app', '进程 maps'],
+    sceneKeywords: [
+      'read process memory maps on device',
+      'proc maps of android app',
+      'show the process memory maps',
+    ],
   },
   {
     tool: {
@@ -698,7 +754,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['download the native libraries', 'pull so files from app', '拉取 so 库'],
+    sceneKeywords: [
+      'download the native libraries',
+      'pull so files from app',
+      'pull the native shared libraries',
+    ],
   },
   {
     tool: {
@@ -722,7 +782,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['is the phone rooted', 'check su availability', '检查 root'],
+    sceneKeywords: [
+      'is the phone rooted',
+      'check su availability',
+      'check whether the device is rooted',
+    ],
   },
   {
     tool: {
@@ -767,7 +831,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['record the phone screen', 'capture device video', '录屏'],
+    sceneKeywords: ['record the phone screen', 'capture device video', 'record the device screen'],
   },
   {
     tool: {
@@ -795,7 +859,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['capture the phone screen', 'take device screenshot', '手机截图'],
+    sceneKeywords: [
+      'capture the phone screen',
+      'take device screenshot',
+      'take a screenshot of the phone',
+    ],
   },
   {
     tool: {
@@ -837,7 +905,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['run a shell command on the phone', 'adb shell exec', '手机执行命令'],
+    sceneKeywords: [
+      'run a shell command on the phone',
+      'adb shell exec',
+      'run a shell command on the phone',
+    ],
   },
   {
     tool: {
@@ -875,7 +947,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['dump the ui hierarchy', 'view the android view tree', 'ui 树'],
+    sceneKeywords: [
+      'dump the ui hierarchy',
+      'view the android view tree',
+      'dump the android ui hierarchy',
+    ],
   },
   {
     tool: {
@@ -908,7 +984,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['remove an app from the device', 'uninstall package', '卸载应用'],
+    sceneKeywords: [
+      'remove an app from the device',
+      'uninstall package',
+      'uninstall an app from the device',
+    ],
   },
   {
     tool: {
@@ -941,7 +1021,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['debug the app webview', 'attach to webview cdp', '接管 webview'],
+    sceneKeywords: ['debug the app webview', 'attach to webview cdp', 'take over the app webview'],
   },
   {
     tool: {
@@ -970,7 +1050,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'adb-bridge',
-    sceneKeywords: ['list webviews in the app', 'which webviews are debuggable', '列出 webview'],
+    sceneKeywords: [
+      'list webviews in the app',
+      'which webviews are debuggable',
+      'list the app webviews',
+    ],
   },
   {
     tool: {
@@ -1031,7 +1115,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['let ai place the hooks', 'smart hook placement', 'ai 挂钩'],
+    sceneKeywords: ['let ai place the hooks', 'smart hook placement', 'apply an ai generated hook'],
   },
   {
     tool: {
@@ -1089,7 +1173,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
-    sceneKeywords: ['ask ai for attack ideas', 'what could be exploited here', 'ai 漏洞建议'],
+    sceneKeywords: [
+      'ask ai for attack ideas',
+      'what could be exploited here',
+      'ask ai for exploit suggestions',
+    ],
   },
   {
     tool: {
@@ -1129,7 +1217,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['match this ast pattern', 'find code matching the shape', 'ast 匹配'],
+    sceneKeywords: [
+      'match this ast pattern',
+      'find code matching the shape',
+      'match against the ast',
+    ],
   },
   {
     tool: {
@@ -1155,7 +1247,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
-    sceneKeywords: ['trace how data flows', 'follow the value through code', '数据流分析'],
+    sceneKeywords: [
+      'trace how data flows',
+      'follow the value through code',
+      'run dataflow analysis',
+    ],
   },
   {
     tool: {
@@ -1191,7 +1287,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['decode the string array', 'rotate and decode literals', '解码字符串数组'],
+    sceneKeywords: [
+      'decode the string array',
+      'rotate and decode literals',
+      'decode a string array',
+    ],
   },
   {
     tool: {
@@ -1220,7 +1320,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['deflatten the control flow', 'undo control flow flattening', '去平坦化'],
+    sceneKeywords: [
+      'deflatten the control flow',
+      'undo control flow flattening',
+      'undo control flow flattening',
+    ],
   },
   {
     tool: {
@@ -1246,7 +1350,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['workflow', 'full'],
-    sceneKeywords: ['scan the code for weaknesses', 'security review of the script', '安全扫描'],
+    sceneKeywords: [
+      'scan the code for weaknesses',
+      'security review of the script',
+      'scan for security issues',
+    ],
   },
   {
     tool: {
@@ -1367,7 +1475,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'debugger',
     profiles: ['full'],
-    sceneKeywords: ['get past anti debugging', 'defeat the debugger detection', '绕过反调试'],
+    sceneKeywords: [
+      'get past anti debugging',
+      'defeat the debugger detection',
+      'bypass the anti debug checks',
+    ],
   },
   {
     tool: {
@@ -1386,7 +1498,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'debugger',
     profiles: ['full'],
-    sceneKeywords: ['what anti debug is active', 'spot protection tricks', '检测反调试'],
+    sceneKeywords: [
+      'what anti debug is active',
+      'spot protection tricks',
+      'detect the anti debug tricks',
+    ],
   },
   {
     tool: {
@@ -1524,7 +1640,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['probe many endpoints at once', 'batch request health check', '批量探测接口'],
+    sceneKeywords: [
+      'probe many endpoints at once',
+      'batch request health check',
+      'probe many api endpoints at once',
+    ],
   },
   {
     tool: {
@@ -1996,7 +2116,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['add finding to session log', 'record a discovery', '补充会话发现'],
+    sceneKeywords: [
+      'add finding to session log',
+      'record a discovery',
+      'discover more about the session',
+    ],
   },
   {
     tool: {
@@ -2059,7 +2183,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['craft an arp packet', 'build arp frame bytes', '构造 arp 包'],
+    sceneKeywords: ['craft an arp packet', 'build arp frame bytes', 'craft an arp packet'],
   },
   {
     tool: {
@@ -2108,7 +2232,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'deobfuscate electron archive code',
       'decode asar scripts',
-      'asar 反混淆',
+      'deobfuscate an asar archive bundle',
       'decode obfuscated archive scripts',
     ],
   },
@@ -2146,7 +2270,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'unpack electron app archive',
       'pull files out of asar',
-      '解包 asar',
+      'unpack an asar archive',
       'unpack electron archive contents',
     ],
   },
@@ -2177,7 +2301,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['rebuild the app archive', 'pack files back into asar', '重打包 asar'],
+    sceneKeywords: [
+      'rebuild the app archive',
+      'pack files back into asar',
+      'repack an asar archive bundle',
+    ],
   },
   {
     tool: {
@@ -2217,7 +2345,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['search inside the app archive', 'find code in asar', 'asar 内检索'],
+    sceneKeywords: [
+      'search inside the app archive',
+      'find code in asar',
+      'search inside an asar archive',
+    ],
   },
   {
     tool: {
@@ -2263,7 +2395,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
-    sceneKeywords: ['apply code transformation', 'run ast rewrite', '应用 ast 变换'],
+    sceneKeywords: ['apply code transformation', 'run ast rewrite', 'apply an ast transform'],
   },
   {
     tool: {
@@ -2297,7 +2429,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
-    sceneKeywords: ['pretty print javascript', 'format minified code', '美化代码'],
+    sceneKeywords: [
+      'pretty print javascript',
+      'format minified code',
+      'pretty print the source code',
+    ],
   },
   {
     tool: {
@@ -2343,7 +2479,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'run multiple rewrites in sequence',
       'compose transformations',
-      '组合变换',
+      'compose several transforms together',
       'pipeline several rewrites sequentially',
     ],
   },
@@ -2390,7 +2526,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
-    sceneKeywords: ['diff before and after rewrite', 'preview transformation result', '预览变换'],
+    sceneKeywords: [
+      'diff before and after rewrite',
+      'preview transformation result',
+      'preview a transform without applying it',
+    ],
   },
   {
     tool: {
@@ -2444,7 +2584,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'decode base64 blob',
       'turn hex into bytes',
-      '解码二进制',
+      'decode binary data',
       'blob to raw bytes conversion',
     ],
   },
@@ -2484,7 +2624,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
-    sceneKeywords: ['identify file type', 'magic bytes sniff', '识别文件格式'],
+    sceneKeywords: ['identify file type', 'magic bytes sniff', 'identify the file format'],
   },
   {
     tool: {
@@ -2532,7 +2672,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
-    sceneKeywords: ['encode bytes to base64', 'serialize buffer', '编码二进制'],
+    sceneKeywords: ['encode bytes to base64', 'serialize buffer', 'encode binary data'],
   },
   {
     tool: {
@@ -2572,7 +2712,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
-    sceneKeywords: ['measure randomness', 'shannon entropy of bytes', '熵分析'],
+    sceneKeywords: [
+      'measure randomness',
+      'shannon entropy of bytes',
+      'measure the entropy of the data',
+    ],
   },
   {
     tool: {
@@ -2780,7 +2924,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
-    sceneKeywords: ['talk to binary ninja', 'bn decompiler bridge', 'binja 桥'],
+    sceneKeywords: [
+      'talk to binary ninja',
+      'bn decompiler bridge',
+      'talk to the binary ninja bridge',
+    ],
   },
   {
     tool: {
@@ -2844,7 +2992,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['skip this library while stepping', 'mark code as library code', '加入黑盒'],
+    sceneKeywords: [
+      'skip this library while stepping',
+      'mark code as library code',
+      'add a blackbox function',
+    ],
   },
   {
     tool: {
@@ -2863,7 +3015,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['ignore common libraries when stepping', 'blackbox vendor code', '黑盒常见库'],
+    sceneKeywords: [
+      'ignore common libraries when stepping',
+      'blackbox vendor code',
+      'common blackbox library functions',
+    ],
   },
   {
     tool: {
@@ -2881,7 +3037,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['which files are blackboxed', 'show ignore list', '列出黑盒'],
+    sceneKeywords: [
+      'which files are blackboxed',
+      'show ignore list',
+      'list the blackbox functions',
+    ],
   },
   {
     tool: {
@@ -2969,7 +3129,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['set a breakpoint here', 'stop on this line', '下断点'],
+    sceneKeywords: ['set a breakpoint here', 'stop on this line', 'set a breakpoint'],
   },
   {
     tool: {
@@ -2995,7 +3155,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
-    sceneKeywords: ['browse the plugin marketplace', 'list registry entries', '浏览插件仓库'],
+    sceneKeywords: [
+      'browse the plugin marketplace',
+      'list registry entries',
+      'browse the plugin repository',
+    ],
   },
   {
     tool: {
@@ -3043,7 +3207,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['take over my chrome', 'connect to the running browser', '接管浏览器'],
+    sceneKeywords: [
+      'take over my chrome',
+      'connect to the running browser',
+      'take over the browser session',
+    ],
   },
   {
     tool: {
@@ -3067,7 +3235,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['take over a cdp target', 'attach to iframe context', '接管 cdp 目标'],
+    sceneKeywords: [
+      'take over a cdp target',
+      'attach to iframe context',
+      'attach to the cdp target',
+    ],
   },
   {
     tool: {
@@ -3086,7 +3258,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['cdp performance counters', 'raw performance numbers', 'cdp 性能指标'],
+    sceneKeywords: [
+      'cdp performance counters',
+      'raw performance numbers',
+      'collect cdp performance metrics',
+    ],
   },
   {
     tool: {
@@ -3107,7 +3283,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'shut the browser down',
       'kill the chrome session',
-      '关闭浏览器',
+      'close the browser',
       'shut down chrome instance session',
     ],
   },
@@ -3127,7 +3303,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['record my actions as code', 'start codegen capture', '开始录制代码'],
+    sceneKeywords: ['record my actions as code', 'start codegen capture', 'start recording code'],
   },
   {
     tool: {
@@ -3145,7 +3321,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['finish action recording', 'stop codegen and emit script', '结束录制代码'],
+    sceneKeywords: [
+      'finish action recording',
+      'stop codegen and emit script',
+      'stop recording code',
+    ],
   },
   {
     tool: {
@@ -3172,7 +3352,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['start sampling the cpu', 'begin js cpu profiling', '开始 cpu 采样'],
+    sceneKeywords: ['start sampling the cpu', 'begin js cpu profiling', 'start cpu profiling'],
   },
   {
     tool: {
@@ -3202,7 +3382,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['finish cpu sampling', 'collect cpu profile result', '停止 cpu 采样'],
+    sceneKeywords: ['finish cpu sampling', 'collect cpu profile result', 'stop cpu profiling'],
   },
   {
     tool: {
@@ -3220,7 +3400,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['release the cdp target', 'stop driving that context', '分离 cdp 目标'],
+    sceneKeywords: [
+      'release the cdp target',
+      'stop driving that context',
+      'detach from the cdp target',
+    ],
   },
   {
     tool: {
@@ -3286,7 +3470,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'run js inside that target',
       'evaluate in iframe context',
-      '目标内求值',
+      'evaluate inside the target',
       'run expression inside isolated context',
     ],
   },
@@ -3323,7 +3507,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['enumerate font fingerprints', 'which fonts are detectable', '字体指纹'],
+    sceneKeywords: [
+      'enumerate font fingerprints',
+      'which fonts are detectable',
+      'fingerprint the installed fonts',
+    ],
   },
   {
     tool: {
@@ -3348,7 +3536,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['page counters snapshot', 'runtime metrics readout', '页面指标'],
+    sceneKeywords: ['page counters snapshot', 'runtime metrics readout', 'read the page metrics'],
   },
   {
     tool: {
@@ -3424,7 +3612,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['offline cookie parsing', 'read cookies from html', '离线 cookie'],
+    sceneKeywords: [
+      'offline cookie parsing',
+      'read cookies from html',
+      'read cookies without a browser',
+    ],
   },
   {
     tool: {
@@ -3461,7 +3653,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'run scripts on the offline dom',
       'execute jsdom code',
-      '离线执行脚本',
+      'run a script without a browser',
       'offline script execution sandbox',
     ],
   },
@@ -3520,7 +3712,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['parse html without a browser', 'offline dom from markup', '离线解析 html'],
+    sceneKeywords: [
+      'parse html without a browser',
+      'offline dom from markup',
+      'parse html without a browser',
+    ],
   },
   {
     tool: {
@@ -3575,7 +3771,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['query the offline dom', 'css selectors without browser', '离线 dom 查询'],
+    sceneKeywords: [
+      'query the offline dom',
+      'css selectors without browser',
+      'query the dom without a browser',
+    ],
   },
   {
     tool: {
@@ -3608,7 +3808,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['serialize the offline dom back', 'output html from jsdom', '离线 dom 序列化'],
+    sceneKeywords: [
+      'serialize the offline dom back',
+      'output html from jsdom',
+      'serialise the dom without a browser',
+    ],
   },
   {
     tool: {
@@ -3793,7 +3997,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['open a new browser here', 'spin up chrome for me', '启动浏览器'],
+    sceneKeywords: ['open a new browser here', 'spin up chrome for me', 'launch the browser'],
   },
   {
     tool: {
@@ -3868,7 +4072,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['what contexts exist', 'enumerate cdp targets', '列出 cdp 目标'],
+    sceneKeywords: ['what contexts exist', 'enumerate cdp targets', 'list the cdp targets'],
   },
   {
     tool: {
@@ -3910,7 +4114,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['which tabs are open', 'enumerate open tabs', '列出标签页'],
+    sceneKeywords: ['which tabs are open', 'enumerate open tabs', 'list the open tabs'],
   },
   {
     tool: {
@@ -3949,7 +4153,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['page web workers list', 'enumerate worker threads', '列出 worker'],
+    sceneKeywords: ['page web workers list', 'enumerate worker threads', 'list the web workers'],
   },
   {
     tool: {
@@ -3993,7 +4197,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['seed webauthn passkeys', 'fake passkey credentials', 'passkey 种子'],
+    sceneKeywords: [
+      'seed webauthn passkeys',
+      'fake passkey credentials',
+      'generate a passkey seed',
+    ],
   },
   {
     tool: {
@@ -4032,7 +4240,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['observe page performance entries', 'long tasks and paints', '性能观察'],
+    sceneKeywords: [
+      'observe page performance entries',
+      'long tasks and paints',
+      'watch the performance timeline',
+    ],
   },
   {
     tool: {
@@ -4068,7 +4280,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['how long each resource took', 'resource load timings', '资源耗时'],
+    sceneKeywords: [
+      'how long each resource took',
+      'resource load timings',
+      'measure how long resources take',
+    ],
   },
   {
     tool: {
@@ -4099,7 +4315,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['switch to that tab', 'focus another tab', '切换标签页'],
+    sceneKeywords: ['switch to that tab', 'focus another tab', 'switch to another tab'],
   },
   {
     tool: {
@@ -4117,7 +4333,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['browser alive check', 'is a page open', '浏览器状态'],
+    sceneKeywords: ['browser alive check', 'is a page open', 'show the browser state'],
   },
   {
     tool: {
@@ -4149,7 +4365,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['begin a chrome trace', 'record tracing categories', '开始 trace'],
+    sceneKeywords: [
+      'begin a chrome trace',
+      'record tracing categories',
+      'start a performance trace',
+    ],
   },
   {
     tool: {
@@ -4173,7 +4393,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['finish the chrome trace', 'collect trace result', '停止 trace'],
+    sceneKeywords: [
+      'finish the chrome trace',
+      'collect trace result',
+      'stop the performance trace',
+    ],
   },
   {
     tool: {
@@ -4211,7 +4435,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'scripts running in workers',
       'worker code list',
-      'worker 脚本',
+      'read the worker script',
       'worker thread code listing',
     ],
   },
@@ -4241,7 +4465,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
-    sceneKeywords: ['build call graph from code', 'function call relationships', '调用图分析'],
+    sceneKeywords: [
+      'build call graph from code',
+      'function call relationships',
+      'analyse the call graph',
+    ],
   },
   {
     tool: {
@@ -4269,7 +4497,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['fake gps in camoufox', 'set spoofed location', '伪造定位'],
+    sceneKeywords: ['fake gps in camoufox', 'set spoofed location', 'spoof the geolocation'],
   },
   {
     tool: {
@@ -4424,7 +4652,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['start the stealth firefox', 'launch camoufox browser', '启动 camoufox'],
+    sceneKeywords: [
+      'start the stealth firefox',
+      'launch camoufox browser',
+      'launch the camoufox browser',
+    ],
   },
   {
     tool: {
@@ -4466,7 +4698,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
-    sceneKeywords: ['list webgl shaders', 'dump shader programs', '导出着色器'],
+    sceneKeywords: ['list webgl shaders', 'dump shader programs', 'export the shader sources'],
   },
   {
     tool: {
@@ -4485,7 +4717,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
-    sceneKeywords: ['which game engine renders here', 'detect canvas engine', 'canvas 引擎指纹'],
+    sceneKeywords: [
+      'which game engine renders here',
+      'detect canvas engine',
+      'fingerprint the canvas engine',
+    ],
   },
   {
     tool: {
@@ -4548,7 +4784,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
-    sceneKeywords: ['hook the draw calls', 'intercept canvas rendering', '挂钩绘制'],
+    sceneKeywords: [
+      'hook the draw calls',
+      'intercept canvas rendering',
+      'hook the canvas draw calls',
+    ],
   },
   {
     tool: {
@@ -4573,7 +4813,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
-    sceneKeywords: ['check scene memory consistency', 'verify invariants in memory', '内存不变量'],
+    sceneKeywords: [
+      'check scene memory consistency',
+      'verify invariants in memory',
+      'check the memory invariants',
+    ],
   },
   {
     tool: {
@@ -4612,7 +4856,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
-    sceneKeywords: ['what is under this pixel', 'pick sprite at coordinates', '拾取对象'],
+    sceneKeywords: [
+      'what is under this pixel',
+      'pick sprite at coordinates',
+      'pick the object under the cursor',
+    ],
   },
   {
     tool: {
@@ -4657,7 +4905,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
-    sceneKeywords: ['dump the rendered scene', 'export scene graph', '导出场景'],
+    sceneKeywords: ['dump the rendered scene', 'export scene graph', 'export the canvas scene'],
   },
   {
     tool: {
@@ -4740,7 +4988,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
-    sceneKeywords: ['find objects in the scene', 'search rendered elements', '场景搜索'],
+    sceneKeywords: [
+      'find objects in the scene',
+      'search rendered elements',
+      'search the canvas scene',
+    ],
   },
   {
     tool: {
@@ -4784,7 +5036,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'canvas',
     profiles: ['full'],
-    sceneKeywords: ['trace click to canvas code', 'map click to handler', '追踪点击处理'],
+    sceneKeywords: [
+      'trace click to canvas code',
+      'map click to handler',
+      'trace the click handler',
+    ],
   },
   {
     tool: {
@@ -4815,7 +5071,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['configure captcha handling', 'set captcha switches', '验证码配置'],
+    sceneKeywords: [
+      'configure captcha handling',
+      'set captcha switches',
+      'configure the captcha solver',
+    ],
   },
   {
     tool: {
@@ -4833,7 +5093,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['is there a captcha here', 'check for challenge widgets', '检测验证码'],
+    sceneKeywords: [
+      'is there a captcha here',
+      'check for challenge widgets',
+      'detect a captcha challenge',
+    ],
   },
   {
     tool: {
@@ -4851,7 +5115,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['which solvers are available', 'captcha solving support', '求解能力'],
+    sceneKeywords: [
+      'which solvers are available',
+      'captcha solving support',
+      'show the captcha solving capability',
+    ],
   },
   {
     tool: {
@@ -4920,7 +5188,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['solve the captcha by vision', 'ocr the challenge image', '视觉过验证码'],
+    sceneKeywords: [
+      'solve the captcha by vision',
+      'ocr the challenge image',
+      'solve the captcha visually',
+    ],
   },
   {
     tool: {
@@ -4944,7 +5216,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['wait until the captcha resolves', 'poll challenge status', '等待验证码'],
+    sceneKeywords: [
+      'wait until the captcha resolves',
+      'poll challenge status',
+      'wait for the captcha to appear',
+    ],
   },
   {
     tool: {
@@ -4972,7 +5248,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'is a debugger attached to pid',
       'check the debug port of process',
-      '查调试端口',
+      'check the debug port of the process',
     ],
   },
   {
@@ -5027,7 +5303,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['fix the packet checksum', 'recompute checksums', '计算校验和'],
+    sceneKeywords: ['fix the packet checksum', 'recompute checksums', 'compute the checksum'],
   },
   {
     tool: {
@@ -5096,7 +5372,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['delete old artifacts', 'clean the output directory', '清理产物'],
+    sceneKeywords: ['delete old artifacts', 'clean the output directory', 'clean up the artifacts'],
   },
   {
     tool: {
@@ -5114,7 +5390,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['flush every cache', 'wipe cached data', '清空缓存'],
+    sceneKeywords: ['flush every cache', 'wipe cached data', 'clear the cache'],
   },
   {
     tool: {
@@ -5132,7 +5408,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['drop the collected scripts', 'empty the code cache', '清空采集'],
+    sceneKeywords: [
+      'drop the collected scripts',
+      'empty the code cache',
+      'clear the collected data',
+    ],
   },
   {
     tool: {
@@ -5208,7 +5488,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['grab the page javascript', 'pull down all scripts', '采集代码'],
+    sceneKeywords: ['grab the page javascript', 'pull down all scripts', 'capture the source code'],
   },
   {
     tool: {
@@ -5251,7 +5531,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['finalize handoff to next agent', 'close out the handoff', '完成交接'],
+    sceneKeywords: [
+      'finalize handoff to next agent',
+      'close out the handoff',
+      'complete the handoff',
+    ],
   },
   {
     tool: {
@@ -5279,7 +5563,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'ring buffer contents',
       'captured console data store',
-      '缓冲区数据',
+      'read the buffer contents',
       'intercepted payload ring store',
     ],
   },
@@ -5317,7 +5601,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['run code in the console context', 'evaluate on the console', '控制台执行'],
+    sceneKeywords: [
+      'run code in the console context',
+      'evaluate on the console',
+      'run code in the console',
+    ],
   },
   {
     tool: {
@@ -5352,7 +5640,7 @@ export const GENERATED_TOOL_CATALOG = [
       'js exceptions thrown',
       'thrown page errors',
       'uncaught error events',
-      '页面报错',
+      'read the page errors',
       'runtime exception feed retrieval',
     ],
   },
@@ -5386,7 +5674,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['show console output', 'collected console messages', '控制台日志'],
+    sceneKeywords: ['show console output', 'collected console messages', 'read the console logs'],
   },
   {
     tool: {
@@ -5423,7 +5711,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'add console hook script',
       'patch console methods',
-      '注入控制台钩子',
+      'inject a console hook',
       'wrap native logging functions',
     ],
   },
@@ -5449,7 +5737,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['log all fetch calls', 'hook window.fetch', '拦截 fetch 请求'],
+    sceneKeywords: ['log all fetch calls', 'hook window.fetch', 'intercept fetch requests'],
   },
   {
     tool: {
@@ -5473,7 +5761,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['log ajax requests', 'hook XMLHttpRequest', '拦截 xhr'],
+    sceneKeywords: ['log ajax requests', 'hook XMLHttpRequest', 'intercept xhr calls'],
   },
   {
     tool: {
@@ -5498,7 +5786,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['watch console output live', 'follow console messages', '监控控制台'],
+    sceneKeywords: [
+      'watch console output live',
+      'follow console messages',
+      'watch the console output',
+    ],
   },
   {
     tool: {
@@ -5524,7 +5816,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['bring back saved browser state', 'reload coordination snapshot', '恢复快照'],
+    sceneKeywords: [
+      'bring back saved browser state',
+      'reload coordination snapshot',
+      'restore the snapshot',
+    ],
   },
   {
     tool: {
@@ -5590,7 +5886,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['prepare handoff for another agent', 'start a task transfer', '创建交接'],
+    sceneKeywords: [
+      'prepare handoff for another agent',
+      'start a task transfer',
+      'create a handoff',
+    ],
   },
   {
     tool: {
@@ -5611,7 +5911,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'what can this server do across domains',
       'list cross domain skills',
-      '跨域能力',
+      'show the cross domain capabilities',
       'server wide skill inventory',
     ],
   },
@@ -5781,7 +6081,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
-    sceneKeywords: ['correlate every evidence source', 'build full correlation graph', '全量关联'],
+    sceneKeywords: [
+      'correlate every evidence source',
+      'build full correlation graph',
+      'link everything together',
+    ],
   },
   {
     tool: {
@@ -5799,7 +6103,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
-    sceneKeywords: ['export the evidence graph', 'save correlation data', '导出证据'],
+    sceneKeywords: ['export the evidence graph', 'save correlation data', 'export the evidence'],
   },
   {
     tool: {
@@ -5859,7 +6163,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
-    sceneKeywords: ['search the evidence graph', 'query correlated findings', '查询证据'],
+    sceneKeywords: ['search the evidence graph', 'query correlated findings', 'query the evidence'],
   },
   {
     tool: {
@@ -5877,7 +6181,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
-    sceneKeywords: ['evidence graph summary', 'how many nodes and edges', '证据统计'],
+    sceneKeywords: [
+      'evidence graph summary',
+      'how many nodes and edges',
+      'summarise the evidence graph',
+    ],
   },
   {
     tool: {
@@ -5895,7 +6203,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
-    sceneKeywords: ['which domains are ready', 'cross domain availability', '跨域健康'],
+    sceneKeywords: [
+      'which domains are ready',
+      'cross domain availability',
+      'cross domain health check',
+    ],
   },
   {
     tool: {
@@ -5924,7 +6236,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
-    sceneKeywords: ['recommend a multi tool recipe', 'suggest next actions', '建议工作流'],
+    sceneKeywords: ['recommend a multi tool recipe', 'suggest next actions', 'suggest a workflow'],
   },
   {
     tool: {
@@ -5956,7 +6268,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'cross-domain',
-    sceneKeywords: ['find related term across domains', 'synonym bridge lookup', '跨域同义词'],
+    sceneKeywords: [
+      'find related term across domains',
+      'synonym bridge lookup',
+      'cross domain synonyms',
+    ],
   },
   {
     tool: {
@@ -5995,7 +6311,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
-    sceneKeywords: ['side by side crypto output', 'diff two cipher outputs', '对比加密结果'],
+    sceneKeywords: [
+      'side by side crypto output',
+      'diff two cipher outputs',
+      'compare the encrypted outputs',
+    ],
   },
   {
     tool: {
@@ -6028,7 +6348,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'pull crypto routine out of bundle',
       'isolate encryption function',
-      '提取加密函数',
+      'extract the crypto functions',
     ],
   },
   {
@@ -6065,7 +6385,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'transform',
-    sceneKeywords: ['verify crypto implementation', 'run cipher test vectors', '加密测试'],
+    sceneKeywords: [
+      'verify crypto implementation',
+      'run cipher test vectors',
+      'run the crypto test harness',
+    ],
   },
   {
     tool: {
@@ -6883,7 +7207,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['capture the breakpoint hit', 'record pause context', '捕获断点命中'],
+    sceneKeywords: [
+      'capture the breakpoint hit',
+      'record pause context',
+      'capture a breakpoint hit',
+    ],
   },
   {
     tool: {
@@ -6923,7 +7251,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'show the wasm or bytecode disassembly',
       'list low level instructions',
-      '反汇编',
+      'disassemble the code',
     ],
   },
   {
@@ -6960,7 +7288,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['run an expression while paused', 'evaluate in the paused frame', '断点内求值'],
+    sceneKeywords: [
+      'run an expression while paused',
+      'evaluate in the paused frame',
+      'evaluate inside the breakpoint',
+    ],
   },
   {
     tool: {
@@ -6978,7 +7310,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['why are we paused', 'current pause reason', '暂停状态'],
+    sceneKeywords: ['why are we paused', 'current pause reason', 'show the paused state'],
   },
   {
     tool: {
@@ -7003,7 +7335,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['attach or detach the debugger', 'manage debugger session', '调试器生命周期'],
+    sceneKeywords: [
+      'attach or detach the debugger',
+      'manage debugger session',
+      'debugger session lifecycle',
+    ],
   },
   {
     tool: {
@@ -7021,7 +7357,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['pause execution now', 'break into the debugger', '暂停执行'],
+    sceneKeywords: ['pause execution now', 'break into the debugger', 'pause the execution'],
   },
   {
     tool: {
@@ -7039,7 +7375,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['continue execution', 'let the page keep running', '恢复执行'],
+    sceneKeywords: ['continue execution', 'let the page keep running', 'resume the execution'],
   },
   {
     tool: {
@@ -7089,7 +7425,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['run until this spot', 'continue up to a location', '运行到指定位置'],
+    sceneKeywords: [
+      'run until this spot',
+      'continue up to a location',
+      'run to a specific location',
+    ],
   },
   {
     tool: {
@@ -7128,7 +7468,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['start a debugging session', 'open debugger for this target', '开调试会话'],
+    sceneKeywords: [
+      'start a debugging session',
+      'open debugger for this target',
+      'open a debug session',
+    ],
   },
   {
     tool: {
@@ -7154,7 +7498,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['step one instruction', 'step into or over', '单步执行'],
+    sceneKeywords: [
+      'step one instruction',
+      'step into or over',
+      'step through the execution one step at a time',
+    ],
   },
   {
     tool: {
@@ -7180,7 +7528,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['block until a pause happens', 'wait for breakpoint hit', '等待暂停'],
+    sceneKeywords: [
+      'block until a pause happens',
+      'wait for breakpoint hit',
+      'wait for the debugger to pause',
+    ],
   },
   {
     tool: {
@@ -7293,7 +7645,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['un obfuscate this script', 'make the code readable again', '反混淆'],
+    sceneKeywords: [
+      'un obfuscate this script',
+      'make the code readable again',
+      'deobfuscate the code',
+    ],
   },
   {
     tool: {
@@ -7318,7 +7674,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
-    sceneKeywords: ['spot encryption usage', 'where does it use crypto', '检测加密'],
+    sceneKeywords: ['spot encryption usage', 'where does it use crypto', 'detect the encryption'],
   },
   {
     tool: {
@@ -7348,7 +7704,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
-    sceneKeywords: ['is this code obfuscated', 'which obfuscator was used', '检测混淆'],
+    sceneKeywords: [
+      'is this code obfuscated',
+      'which obfuscator was used',
+      'detect the obfuscation',
+    ],
   },
   {
     tool: {
@@ -7419,7 +7779,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['compare two heap dumps', 'heap snapshot delta', '堆快照对比'],
+    sceneKeywords: ['compare two heap dumps', 'heap snapshot delta', 'diff the two heap snapshots'],
   },
   {
     tool: {
@@ -7462,7 +7822,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['resolve many domains at once', 'batch dns lookup', '批量解析域名'],
+    sceneKeywords: [
+      'resolve many domains at once',
+      'batch dns lookup',
+      'resolve many domain names at once',
+    ],
   },
   {
     tool: {
@@ -7497,7 +7861,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['follow alias records', 'cname chain trace', 'cname 链'],
+    sceneKeywords: ['follow alias records', 'cname chain trace', 'follow the cname chain'],
   },
   {
     tool: {
@@ -7530,7 +7894,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['structured dns record query', 'query record types', 'dns 记录探测'],
+    sceneKeywords: ['structured dns record query', 'query record types', 'probe the dns records'],
   },
   {
     tool: {
@@ -7564,7 +7928,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['lookup domain ip', 'resolve hostname address', '域名解析'],
+    sceneKeywords: ['lookup domain ip', 'resolve hostname address', 'resolve the domain name'],
   },
   {
     tool: {
@@ -7592,7 +7956,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['ip to hostname', 'reverse dns lookup', '反查域名'],
+    sceneKeywords: ['ip to hostname', 'reverse dns lookup', 'reverse lookup the domain'],
   },
   {
     tool: {
@@ -7615,7 +7979,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['diagnose my setup', 'what is broken in this environment', '环境诊断'],
+    sceneKeywords: [
+      'diagnose my setup',
+      'what is broken in this environment',
+      'diagnose the environment',
+    ],
   },
   {
     tool: {
@@ -7652,7 +8020,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['hook into the electron app', 'attach debugging to electron', '接管 electron'],
+    sceneKeywords: [
+      'hook into the electron app',
+      'attach debugging to electron',
+      'take over the electron app',
+    ],
   },
   {
     tool: {
@@ -7676,7 +8048,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['read electron fuse state', 'which fuses are flipped', '检查 fuse'],
+    sceneKeywords: [
+      'read electron fuse state',
+      'which fuses are flipped',
+      'check the electron fuse settings',
+    ],
   },
   {
     tool: {
@@ -7699,7 +8075,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['electron debugging reachable', 'debug port open on electron', '调试状态'],
+    sceneKeywords: [
+      'electron debugging reachable',
+      'debug port open on electron',
+      'show the debug status',
+    ],
   },
   {
     tool: {
@@ -7723,7 +8103,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['inspect an electron app', 'analyze the packaged app', '检视应用'],
+    sceneKeywords: [
+      'inspect an electron app',
+      'analyze the packaged app',
+      'inspect the electron app',
+    ],
   },
   {
     tool: {
@@ -7764,7 +8148,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['listen to electron ipc messages', 'sniff internal channels', '嗅探 ipc'],
+    sceneKeywords: [
+      'listen to electron ipc messages',
+      'sniff internal channels',
+      'sniff the electron ipc channel',
+    ],
   },
   {
     tool: {
@@ -7830,7 +8218,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'start electron with debugging',
       'launch app with remote debugging',
-      '带调试启动',
+      'launch with the debugger attached',
     ],
   },
   {
@@ -7873,7 +8261,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['flip electron fuses', 'change fuse configuration', '改 fuse'],
+    sceneKeywords: ['flip electron fuses', 'change fuse configuration', 'flip the electron fuse'],
   },
   {
     tool: {
@@ -7911,7 +8299,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['scan electron user data dir', 'inspect profile storage', '扫描用户数据'],
+    sceneKeywords: [
+      'scan electron user data dir',
+      'inspect profile storage',
+      'scan the user data directory',
+    ],
   },
   {
     tool: {
@@ -7940,7 +8332,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['check app integrity', 'verify files are unmodified', '完整性校验'],
+    sceneKeywords: ['check app integrity', 'verify files are unmodified', 'verify the integrity'],
   },
   {
     tool: {
@@ -7965,7 +8357,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['check code signature', 'verify app signing', '签名校验'],
+    sceneKeywords: ['check code signature', 'verify app signing', 'verify the signature'],
   },
   {
     tool: {
@@ -7989,7 +8381,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['list loaded dlls of a process', 'enumerate module list', '枚举模块'],
+    sceneKeywords: [
+      'list loaded dlls of a process',
+      'enumerate module list',
+      'enumerate the loaded modules',
+    ],
   },
   {
     tool: {
@@ -8027,7 +8423,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['craft an ethernet frame', 'build l2 frame bytes', '构造以太网帧'],
+    sceneKeywords: ['craft an ethernet frame', 'build l2 frame bytes', 'craft an ethernet frame'],
   },
   {
     tool: {
@@ -8057,7 +8453,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['build the evidence chain', 'link findings together', '证据链'],
+    sceneKeywords: [
+      'build the evidence chain',
+      'link findings together',
+      'build the evidence chain',
+    ],
   },
   {
     tool: {
@@ -8082,7 +8482,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['save evidence bundle', 'export findings to file', '导出证据'],
+    sceneKeywords: ['save evidence bundle', 'export findings to file', 'export the evidence'],
   },
   {
     tool: {
@@ -8112,7 +8512,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['search recorded evidence', 'query findings store', '查询证据'],
+    sceneKeywords: ['search recorded evidence', 'query findings store', 'query the evidence'],
   },
   {
     tool: {
@@ -8168,7 +8568,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['full'],
-    sceneKeywords: ['run code in the sandbox', 'safe script execution', '沙箱执行'],
+    sceneKeywords: ['run code in the sandbox', 'safe script execution', 'run inside the sandbox'],
   },
   {
     tool: {
@@ -9029,7 +9429,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['save recording to file', 'dump trace data', '导出 trace'],
+    sceneKeywords: ['save recording to file', 'dump trace data', 'export the trace'],
   },
   {
     tool: {
@@ -9065,7 +9465,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'run code inside plugin context',
       'execute in extension scope',
-      '插件上下文执行',
+      'run in the plugin context',
     ],
   },
   {
@@ -9090,7 +9490,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
-    sceneKeywords: ['plugin details', 'what does this extension do', '插件详情'],
+    sceneKeywords: ['plugin details', 'what does this extension do', 'show the plugin details'],
   },
   {
     tool: {
@@ -9166,7 +9566,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
-    sceneKeywords: ['install a plugin', 'add extension to registry', '安装插件'],
+    sceneKeywords: ['install a plugin', 'add extension to registry', 'install a plugin'],
   },
   {
     tool: {
@@ -9184,7 +9584,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
-    sceneKeywords: ['installed plugins list', 'what extensions are loaded', '已装插件'],
+    sceneKeywords: [
+      'installed plugins list',
+      'what extensions are loaded',
+      'list the installed plugins',
+    ],
   },
   {
     tool: {
@@ -9208,7 +9612,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
-    sceneKeywords: ['reload a plugin', 'refresh extension code', '重载插件'],
+    sceneKeywords: ['reload a plugin', 'refresh extension code', 'reload the plugin'],
   },
   {
     tool: {
@@ -9232,7 +9636,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
-    sceneKeywords: ['remove a plugin', 'uninstall extension', '卸载插件'],
+    sceneKeywords: ['remove a plugin', 'uninstall extension', 'uninstall a plugin'],
   },
   {
     tool: {
@@ -9279,7 +9683,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['show function nesting', 'outline the code structure', '函数树'],
+    sceneKeywords: [
+      'show function nesting',
+      'outline the code structure',
+      'show the function tree',
+    ],
   },
   {
     tool: {
@@ -9318,7 +9726,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['save streaming responses', 'dump fetch streams', '导出流式抓包'],
+    sceneKeywords: [
+      'save streaming responses',
+      'dump fetch streams',
+      'export the captured stream traffic',
+    ],
   },
   {
     tool: {
@@ -9364,7 +9776,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['show stream chunks received', 'captured fetch stream data', '流式事件'],
+    sceneKeywords: [
+      'show stream chunks received',
+      'captured fetch stream data',
+      'stream the captured events',
+    ],
   },
   {
     tool: {
@@ -9405,7 +9821,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['watch streaming fetch bodies', 'follow chunked responses', '监控流式响应'],
+    sceneKeywords: [
+      'watch streaming fetch bodies',
+      'follow chunked responses',
+      'monitor the streaming responses',
+    ],
   },
   {
     tool: {
@@ -9499,7 +9919,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['pull react or vue state', 'extract framework internals', '提取框架状态'],
+    sceneKeywords: [
+      'pull react or vue state',
+      'extract framework internals',
+      'extract the framework state',
+    ],
   },
   {
     tool: {
@@ -10143,7 +10567,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['list scripts on the page', 'enumerate loaded js files', '列出脚本'],
+    sceneKeywords: ['list scripts on the page', 'enumerate loaded js files', 'list the scripts'],
   },
   {
     tool: {
@@ -10180,7 +10604,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
-    sceneKeywords: ['cache hit numbers', 'how full are the caches', '缓存统计'],
+    sceneKeywords: ['cache hit numbers', 'how full are the caches', 'cache statistics'],
   },
   {
     tool: {
@@ -10199,7 +10623,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['show the current call frames', 'what is on the stack', '调用栈'],
+    sceneKeywords: ['show the current call frames', 'what is on the stack', 'read the call stack'],
   },
   {
     tool: {
@@ -10217,7 +10641,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['collection summary', 'how much code was grabbed', '采集统计'],
+    sceneKeywords: ['collection summary', 'how much code was grabbed', 'collection statistics'],
   },
   {
     tool: {
@@ -10254,7 +10678,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['fetch the stored detail chunks', 'read offloaded response data', '取分片数据'],
+    sceneKeywords: [
+      'fetch the stored detail chunks',
+      'read offloaded response data',
+      'get the chunked data',
+    ],
   },
   {
     tool: {
@@ -10278,7 +10706,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['inspect this object fields', 'show object shape', '对象属性'],
+    sceneKeywords: [
+      'inspect this object fields',
+      'show object shape',
+      'read the object properties',
+    ],
   },
   {
     tool: {
@@ -10310,7 +10742,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['read the offloaded raw bytes', 'large response store read', '取落盘数据'],
+    sceneKeywords: [
+      'read the offloaded raw bytes',
+      'large response store read',
+      'get the stored data',
+    ],
   },
   {
     tool: {
@@ -10350,7 +10786,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['list variables in this scope', 'what is in scope now', '作用域变量'],
+    sceneKeywords: [
+      'list variables in this scope',
+      'what is in scope now',
+      'read the scope variables',
+    ],
   },
   {
     tool: {
@@ -10399,7 +10839,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['fetch a script its code', 'download script text', '取脚本源码'],
+    sceneKeywords: ['fetch a script its code', 'download script text', 'get the script source'],
   },
   {
     tool: {
@@ -10446,7 +10886,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['read handoff context', 'what did the previous agent leave', '获取交接上下文'],
+    sceneKeywords: [
+      'read handoff context',
+      'what did the previous agent leave',
+      'get the handoff context',
+    ],
   },
   {
     tool: {
@@ -10465,7 +10909,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
-    sceneKeywords: ['token budget usage', 'how many tokens left', 'token 预算'],
+    sceneKeywords: ['token budget usage', 'how many tokens left', 'token budget'],
   },
   {
     tool: {
@@ -10562,7 +11006,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
-    sceneKeywords: ['drive ghidra headless', 'ghidra decompiler bridge', 'ghidra 桥'],
+    sceneKeywords: [
+      'drive ghidra headless',
+      'ghidra decompiler bridge',
+      'talk to the ghidra bridge',
+    ],
   },
   {
     tool: {
@@ -10651,7 +11099,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
-    sceneKeywords: ['list graphql enums', 'enum values from schema', '枚举 schema'],
+    sceneKeywords: ['list graphql enums', 'enum values from schema', 'enumerate the schema types'],
   },
   {
     tool: {
@@ -10675,7 +11123,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
-    sceneKeywords: ['pull graphql from page code', 'find queries in scripts', '提取 graphql'],
+    sceneKeywords: [
+      'pull graphql from page code',
+      'find queries in scripts',
+      'extract the graphql queries',
+    ],
   },
   {
     tool: {
@@ -10717,7 +11169,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
-    sceneKeywords: ['pull the graphql schema', 'introspection query', '内省 schema'],
+    sceneKeywords: ['pull the graphql schema', 'introspection query', 'introspect the schema'],
   },
   {
     tool: {
@@ -10807,7 +11259,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
-    sceneKeywords: ['resend a graphql operation', 'replay query with changes', '重放 graphql'],
+    sceneKeywords: [
+      'resend a graphql operation',
+      'replay query with changes',
+      'replay a graphql query',
+    ],
   },
   {
     tool: {
@@ -10871,7 +11327,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
-    sceneKeywords: ['open graphql subscription', 'follow subscription stream', '订阅 graphql'],
+    sceneKeywords: [
+      'open graphql subscription',
+      'follow subscription stream',
+      'subscribe to graphql events',
+    ],
   },
   {
     tool: {
@@ -10905,7 +11365,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['save grpc traffic', 'dump grpc session', '导出 grpc 抓包'],
+    sceneKeywords: ['save grpc traffic', 'dump grpc session', 'export the captured grpc traffic'],
   },
   {
     tool: {
@@ -10945,7 +11405,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['assemble grpc frame', 'craft grpc message bytes', '构造 grpc 帧'],
+    sceneKeywords: ['assemble grpc frame', 'craft grpc message bytes', 'build a grpc frame'],
   },
   {
     tool: {
@@ -10975,7 +11435,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['decode grpc frame', 'split length prefixed messages', '解析 grpc 帧'],
+    sceneKeywords: ['decode grpc frame', 'split length prefixed messages', 'parse a grpc frame'],
   },
   {
     tool: {
@@ -11017,7 +11477,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['list captured grpc calls', 'grpc method invocations', 'grpc 调用列表'],
+    sceneKeywords: ['list captured grpc calls', 'grpc method invocations', 'list the grpc calls'],
   },
   {
     tool: {
@@ -11054,7 +11514,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['watch grpc traffic live', 'follow grpc calls', '监控 grpc'],
+    sceneKeywords: ['watch grpc traffic live', 'follow grpc calls', 'monitor the grpc traffic'],
   },
   {
     tool: {
@@ -11157,7 +11617,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['ready-made hook templates', 'pick a hook preset', '挂钩预设'],
+    sceneKeywords: ['ready-made hook templates', 'pick a hook preset', 'hook presets'],
   },
   {
     tool: {
@@ -11246,7 +11706,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['send raw tcp http', 'manual socket request', '裸发 http'],
+    sceneKeywords: ['send raw tcp http', 'manual socket request', 'send a raw http request'],
   },
   {
     tool: {
@@ -11313,7 +11773,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['craft raw http message', 'construct request text', '构造 http 报文'],
+    sceneKeywords: ['craft raw http message', 'construct request text', 'build a raw http message'],
   },
   {
     tool: {
@@ -11414,7 +11874,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['craft h2 frame bytes', 'construct http2 frame', '构造 http2 帧'],
+    sceneKeywords: ['craft h2 frame bytes', 'construct http2 frame', 'build an http2 frame'],
   },
   {
     tool: {
@@ -11440,7 +11900,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['decode h2 frame', 'dissect http2 frame bytes', '解析 http2 帧'],
+    sceneKeywords: ['decode h2 frame', 'dissect http2 frame bytes', 'parse an http2 frame'],
   },
   {
     tool: {
@@ -11543,7 +12003,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['test h2 support', 'check http2 endpoint', '测试 http2 支持'],
+    sceneKeywords: ['test h2 support', 'check http2 endpoint', 'test whether http2 is supported'],
   },
   {
     tool: {
@@ -11616,7 +12076,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['move the mouse like a person', 'humanlike mouse path', '拟人鼠标'],
+    sceneKeywords: [
+      'move the mouse like a person',
+      'humanlike mouse path',
+      'human like mouse movement',
+    ],
   },
   {
     tool: {
@@ -11670,7 +12134,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['scroll like a human would', 'natural scroll behavior', '拟人滚动'],
+    sceneKeywords: ['scroll like a human would', 'natural scroll behavior', 'human like scrolling'],
   },
   {
     tool: {
@@ -11726,7 +12190,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['type with human rhythm', 'keystroke cadence typing', '拟人输入'],
+    sceneKeywords: ['type with human rhythm', 'keystroke cadence typing', 'human like typing'],
   },
   {
     tool: {
@@ -11767,7 +12231,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['craft an icmp ping packet', 'build icmp echo bytes', '构造 icmp 包'],
+    sceneKeywords: ['craft an icmp ping packet', 'build icmp echo bytes', 'craft an icmp packet'],
   },
   {
     tool: {
@@ -11829,7 +12293,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
-    sceneKeywords: ['drive ida pro', 'ida decompiler bridge', 'ida 桥'],
+    sceneKeywords: ['drive ida pro', 'ida decompiler bridge', 'talk to the ida bridge'],
   },
   {
     tool: {
@@ -11931,7 +12395,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['dump the indexeddb store', 'export offline database', '导出 indexeddb'],
+    sceneKeywords: [
+      'dump the indexeddb store',
+      'export offline database',
+      'export the indexeddb contents',
+    ],
   },
   {
     tool: {
@@ -11975,7 +12443,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['load my dll into the target', 'dll injection into process', 'dll 注入'],
+    sceneKeywords: [
+      'load my dll into the target',
+      'dll injection into process',
+      'inject a dll into the process',
+    ],
   },
   {
     tool: {
@@ -12021,7 +12493,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['run shellcode in the target', 'code injection into process', '注入 shellcode'],
+    sceneKeywords: [
+      'run shellcode in the target',
+      'code injection into process',
+      'inject shellcode into the process',
+    ],
   },
   {
     tool: {
@@ -12049,7 +12525,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['install a plugin from the registry', 'add this extension', '安装插件'],
+    sceneKeywords: ['install a plugin from the registry', 'add this extension', 'install a plugin'],
   },
   {
     tool: {
@@ -12106,7 +12582,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['collected instrumentation artifact', 'session artifact store', '插桩产物'],
+    sceneKeywords: [
+      'collected instrumentation artifact',
+      'session artifact store',
+      'instrumentation artifacts',
+    ],
   },
   {
     tool: {
@@ -12170,7 +12650,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['instrumentation template hooks', 'preset instrumentation set', '插桩预设'],
+    sceneKeywords: [
+      'instrumentation template hooks',
+      'preset instrumentation set',
+      'instrumentation presets',
+    ],
   },
   {
     tool: {
@@ -12271,7 +12755,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['replay captured traffic in session', 're-run recorded requests', '会话内重放'],
+    sceneKeywords: [
+      'replay captured traffic in session',
+      're-run recorded requests',
+      'replay inside the session',
+    ],
   },
   {
     tool: {
@@ -12325,7 +12813,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['single instrumentation operation', 'one instrumentation action', '插桩操作'],
+    sceneKeywords: [
+      'single instrumentation operation',
+      'one instrumentation action',
+      'perform an instrumentation operation',
+    ],
   },
   {
     tool: {
@@ -12359,7 +12851,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['open instrumentation session', 'start instrumented run', '插桩会话'],
+    sceneKeywords: [
+      'open instrumentation session',
+      'start instrumented run',
+      'instrumentation session',
+    ],
   },
   {
     tool: {
@@ -12388,7 +12884,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['compare two instrumented runs', 'session behavior delta', '会话对比'],
+    sceneKeywords: [
+      'compare two instrumented runs',
+      'session behavior delta',
+      'compare the sessions',
+    ],
   },
   {
     tool: {
@@ -12416,7 +12916,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['export instrumentation session', 'save session data', '导出会话'],
+    sceneKeywords: ['export instrumentation session', 'save session data', 'export the session'],
   },
   {
     tool: {
@@ -12449,7 +12949,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['merge instrumented sessions', 'combine session data', '合并会话'],
+    sceneKeywords: ['merge instrumented sessions', 'combine session data', 'merge the sessions'],
   },
   {
     tool: {
@@ -12623,7 +13123,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['analyze the custom vm', 'understand the interpreter loop', '分析 vm'],
+    sceneKeywords: [
+      'analyze the custom vm',
+      'understand the interpreter loop',
+      'analyse the virtual machine',
+    ],
   },
   {
     tool: {
@@ -12739,7 +13243,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['find code inside bundles', 'search bundled javascript', 'bundle 内检索'],
+    sceneKeywords: [
+      'find code inside bundles',
+      'search bundled javascript',
+      'search inside the javascript bundle',
+    ],
   },
   {
     tool: {
@@ -12786,7 +13294,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['restore jsvmp bytecode', 'unpack the vm protected code', 'jsvmp 还原'],
+    sceneKeywords: [
+      'restore jsvmp bytecode',
+      'unpack the vm protected code',
+      'devirtualise the jsvmp code',
+    ],
   },
   {
     tool: {
@@ -12830,7 +13342,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['run the full deobfuscation pipeline', 'multi pass cleanup', '反混淆管线'],
+    sceneKeywords: [
+      'run the full deobfuscation pipeline',
+      'multi pass cleanup',
+      'deobfuscation pipeline for a bundle',
+    ],
   },
   {
     tool: {
@@ -12864,7 +13380,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['search strings in the heap', 'find values inside js memory', '堆内搜索'],
+    sceneKeywords: [
+      'search strings in the heap',
+      'find values inside js memory',
+      'search the heap for an object',
+    ],
   },
   {
     tool: {
@@ -12900,7 +13420,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['solve the string array constraints', 'decode encoded literals', '解约束'],
+    sceneKeywords: [
+      'solve the string array constraints',
+      'decode encoded literals',
+      'solve the constraints',
+    ],
   },
   {
     tool: {
@@ -12951,7 +13475,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['symbolically run this function', 'explore paths symbolically', '符号执行'],
+    sceneKeywords: [
+      'symbolically run this function',
+      'explore paths symbolically',
+      'symbolic execution',
+    ],
   },
   {
     tool: {
@@ -13014,7 +13542,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['symbolic execution on jsvmp', 'explore vm paths', 'jsvmp 符号执行'],
+    sceneKeywords: [
+      'symbolic execution on jsvmp',
+      'explore vm paths',
+      'symbolic execution on jsvmp code',
+    ],
   },
   {
     tool: {
@@ -13033,7 +13565,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['what workflows exist', 'enumerate plugin recipes', '列出工作流'],
+    sceneKeywords: ['what workflows exist', 'enumerate plugin recipes', 'list the workflows'],
   },
   {
     tool: {
@@ -13058,7 +13590,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
-    sceneKeywords: ['show installed plugins', 'what extensions exist', '列出插件'],
+    sceneKeywords: ['show installed plugins', 'what extensions exist', 'list the plugins'],
   },
   {
     tool: {
@@ -13077,7 +13609,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
-    sceneKeywords: ['show saved macros', 'enumerate macro library', '列出宏'],
+    sceneKeywords: ['show saved macros', 'enumerate macro library', 'list the macros'],
   },
   {
     tool: {
@@ -13096,7 +13628,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['show saved page states', 'enumerate snapshots', '列出页面快照'],
+    sceneKeywords: ['show saved page states', 'enumerate snapshots', 'list the page snapshots'],
   },
   {
     tool: {
@@ -13123,7 +13655,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['ask ai for better names', 'rename obfuscated identifiers', 'ai 命名'],
+    sceneKeywords: [
+      'ask ai for better names',
+      'rename obfuscated identifiers',
+      'suggest identifiers with ai',
+    ],
   },
   {
     tool: {
@@ -13157,7 +13693,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'maintenance',
     profiles: ['workflow', 'full'],
-    sceneKeywords: ['detect the gpu on this host', 'graphics adapter probe', 'gpu 探测'],
+    sceneKeywords: ['detect the gpu on this host', 'graphics adapter probe', 'detect the gpu'],
   },
   {
     tool: {
@@ -13205,7 +13741,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['list and remove my hooks', 'control attached hooks', '管理钩子'],
+    sceneKeywords: ['list and remove my hooks', 'control attached hooks', 'manage the hooks'],
   },
   {
     tool: {
@@ -13223,7 +13759,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['manually trim the token budget', 'free token budget now', '手动清理 token'],
+    sceneKeywords: [
+      'manually trim the token budget',
+      'free token budget now',
+      'manually reclaim the tokens',
+    ],
   },
   {
     tool: {
@@ -13471,7 +14011,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['export the write audit trail', 'dump audit log', '导出审计'],
+    sceneKeywords: ['export the write audit trail', 'dump audit log', 'export the audit trail'],
   },
   {
     tool: {
@@ -13625,7 +14165,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['write many values at once', 'batch memory writes', '批量写内存'],
+    sceneKeywords: [
+      'write many values at once',
+      'batch memory writes',
+      'write many memory values at once',
+    ],
   },
   {
     tool: {
@@ -13877,7 +14421,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['page protection of this address', 'memory guard bits', '查内存保护'],
+    sceneKeywords: [
+      'page protection of this address',
+      'memory guard bits',
+      'check the memory protection of an address',
+    ],
   },
   {
     tool: {
@@ -13975,7 +14523,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['dump a memory range', 'save region bytes', '转储内存区域'],
+    sceneKeywords: ['dump a memory range', 'save region bytes', 'dump a memory region'],
   },
   {
     tool: {
@@ -14317,7 +14865,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'memory',
-    sceneKeywords: ['freeze this value in place', 'lock the value constant'],
+    sceneKeywords: [
+      'freeze this value in place',
+      'lock the value constant',
+      'keep this value pinned so it never changes',
+      'pin a value at an address',
+      'lock the value so it never changes',
+      'freeze the value in memory',
+    ],
   },
   {
     tool: {
@@ -14785,7 +15340,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['list address ranges of process', 'enumerate memory regions', '列出内存区域'],
+    sceneKeywords: [
+      'list address ranges of process',
+      'enumerate memory regions',
+      'list the memory regions',
+    ],
   },
   {
     tool: {
@@ -15601,7 +16160,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['read bytes from process memory', 'read memory at address', '读内存'],
+    sceneKeywords: [
+      'read bytes from process memory',
+      'read memory at address',
+      'read process memory',
+    ],
   },
   {
     tool: {
@@ -15940,7 +16503,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['search memory for a value', 'scan process for pattern', '扫描内存'],
+    sceneKeywords: [
+      'search memory for a value',
+      'scan process for pattern',
+      'hunt for a number in memory',
+      'locate a value inside the target',
+      'find a value inside the target',
+      'search the process memory for a pattern',
+    ],
   },
   {
     tool: {
@@ -15982,7 +16552,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['narrow the previous scan', 'filter scan results', '过滤扫描'],
+    sceneKeywords: [
+      'narrow the previous scan',
+      'filter scan results',
+      'filter the memory scan results',
+    ],
   },
   {
     tool: {
@@ -16565,7 +17139,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['write bytes into process memory', 'patch memory value', '写内存'],
+    sceneKeywords: [
+      'write bytes into process memory',
+      'patch memory value',
+      'overwrite the value at an address',
+      'set a new value at that address',
+      'overwrite the value at that address',
+      'write into the process memory',
+    ],
   },
   {
     tool: {
@@ -16672,7 +17253,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['analyze a wechat mini app', 'inspect mini program package', '小程序分析'],
+    sceneKeywords: [
+      'analyze a wechat mini app',
+      'inspect mini program package',
+      'analyse the miniprogram package',
+    ],
   },
   {
     tool: {
@@ -16696,7 +17281,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['scan mini program contents', 'list package internals', '小程序扫描'],
+    sceneKeywords: [
+      'scan mini program contents',
+      'list package internals',
+      'scan the miniprogram package',
+    ],
   },
   {
     tool: {
@@ -16727,7 +17316,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'unpack a mini app package',
       'extract wxapkg files',
-      '解包小程序',
+      'unpack the miniprogram package',
       'extract wxapkg package files',
     ],
   },
@@ -16769,7 +17358,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
-    sceneKeywords: ['decode a mojo message', 'parse chrome ipc payload', '解码 mojo 消息'],
+    sceneKeywords: ['decode a mojo message', 'parse chrome ipc payload', 'decode a mojo message'],
   },
   {
     tool: {
@@ -16857,7 +17446,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
-    sceneKeywords: ['build a mojo message', 'encode chrome ipc payload', '编码 mojo 消息'],
+    sceneKeywords: ['build a mojo message', 'encode chrome ipc payload', 'encode a mojo message'],
   },
   {
     tool: {
@@ -16875,7 +17464,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
-    sceneKeywords: ['mojo tooling availability', 'what mojo features exist', 'mojo 能力'],
+    sceneKeywords: ['mojo tooling availability', 'what mojo features exist', 'mojo capabilities'],
   },
   {
     tool: {
@@ -16893,7 +17482,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
-    sceneKeywords: ['list mojo interfaces', 'enumerate ipc interfaces', '列出 mojo 接口'],
+    sceneKeywords: ['list mojo interfaces', 'enumerate ipc interfaces', 'list the mojo interfaces'],
   },
   {
     tool: {
@@ -16944,7 +17533,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
-    sceneKeywords: ['captured mojo messages', 'fetch recorded ipc messages', '取 mojo 消息'],
+    sceneKeywords: [
+      'captured mojo messages',
+      'fetch recorded ipc messages',
+      'get the mojo messages',
+    ],
   },
   {
     tool: {
@@ -16996,7 +17589,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
-    sceneKeywords: ['mojo traffic summary', 'ipc message overview', 'mojo 消息摘要'],
+    sceneKeywords: ['mojo traffic summary', 'ipc message overview', 'summarise the mojo messages'],
   },
   {
     tool: {
@@ -17025,7 +17618,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
-    sceneKeywords: ['watch chrome internal ipc', 'follow mojo messages live', '监控 mojo'],
+    sceneKeywords: [
+      'watch chrome internal ipc',
+      'follow mojo messages live',
+      'monitor the mojo traffic',
+    ],
   },
   {
     tool: {
@@ -17065,7 +17662,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'mojo-ipc',
-    sceneKeywords: ['is mojo capture working', 'verify live ipc stream', '验证 mojo 活性'],
+    sceneKeywords: [
+      'is mojo capture working',
+      'verify live ipc stream',
+      'verify the mojo pipe is live',
+    ],
   },
   {
     tool: {
@@ -17110,7 +17711,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
-    sceneKeywords: ['which reverse tools are reachable', 'bridge availability check', '桥状态'],
+    sceneKeywords: [
+      'which reverse tools are reachable',
+      'bridge availability check',
+      'bridge health status',
+    ],
   },
   {
     tool: {
@@ -17155,7 +17760,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
-    sceneKeywords: ['sync symbols between tools', 'import export symbol tables', '符号同步'],
+    sceneKeywords: [
+      'sync symbols between tools',
+      'import export symbol tables',
+      'sync the symbols',
+    ],
   },
   {
     tool: {
@@ -19500,7 +20109,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['listen on a tcp port', 'accept raw tcp connections', '监听 tcp'],
+    sceneKeywords: ['listen on a tcp port', 'accept raw tcp connections', 'listen on a tcp socket'],
   },
   {
     tool: {
@@ -19536,7 +20145,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['push bytes over tcp', 'raw tcp client send', 'tcp 发送'],
+    sceneKeywords: ['push bytes over tcp', 'raw tcp client send', 'send data over tcp'],
   },
   {
     tool: {
@@ -19559,7 +20168,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['listen on a udp port', 'accept udp datagrams', '监听 udp'],
+    sceneKeywords: ['listen on a udp port', 'accept udp datagrams', 'listen on a udp socket'],
   },
   {
     tool: {
@@ -19595,7 +20204,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['send udp datagram', 'raw udp packet out', 'udp 发送'],
+    sceneKeywords: ['send udp datagram', 'raw udp packet out', 'send data over udp'],
   },
   {
     tool: {
@@ -19666,7 +20275,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['detect bot signals', 'anti bot scoring', '机器人检测'],
+    sceneKeywords: ['detect bot signals', 'anti bot scoring', 'bot detection'],
   },
   {
     tool: {
@@ -19689,7 +20298,7 @@ export const GENERATED_TOOL_CATALOG = [
       'turn off request monitoring',
       'stop recording requests',
       'disable traffic capture',
-      '停止抓包',
+      'stop capturing traffic',
       'halt packet capture session',
     ],
   },
@@ -19719,7 +20328,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'start capturing http traffic',
       'begin request recording',
-      '开启抓包',
+      'start capturing traffic',
       'record api calls',
     ],
   },
@@ -19750,7 +20359,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['save capture as har', 'export har file', '导出 har'],
+    sceneKeywords: ['save capture as har', 'export har file', 'export the traffic as a har file'],
   },
   {
     tool: {
@@ -19776,7 +20385,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['find tokens in traffic', 'pull api keys from captured requests', '提取凭据'],
+    sceneKeywords: [
+      'find tokens in traffic',
+      'pull api keys from captured requests',
+      'extract the credentials',
+    ],
   },
   {
     tool: {
@@ -19863,7 +20476,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['show captured requests', 'list recorded http calls', '查看抓到的请求'],
+    sceneKeywords: [
+      'show captured requests',
+      'list recorded http calls',
+      'list the captured requests',
+    ],
   },
   {
     tool: {
@@ -19923,7 +20540,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['download response content', 'read returned payload', '查看响应内容'],
+    sceneKeywords: ['download response content', 'read returned payload', 'read the response body'],
   },
   {
     tool: {
@@ -19946,7 +20563,7 @@ export const GENERATED_TOOL_CATALOG = [
       'capture overview counters',
       'traffic counters overview',
       'request count summary',
-      '流量统计',
+      'traffic statistics',
       'capture counters totals only',
     ],
   },
@@ -19971,7 +20588,7 @@ export const GENERATED_TOOL_CATALOG = [
       'monitoring state',
       'capture active state',
       'is monitoring on',
-      '抓包状态',
+      'capture status',
       'capture session state probe',
     ],
   },
@@ -19999,7 +20616,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['akamai fingerprint hash', 'h2 settings fingerprint', 'http2 指纹'],
+    sceneKeywords: ['akamai fingerprint hash', 'h2 settings fingerprint', 'http2 fingerprint'],
   },
   {
     tool: {
@@ -20083,7 +20700,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['icmp echo check', 'ping a host', 'ping 探测'],
+    sceneKeywords: ['icmp echo check', 'ping a host', 'ping the host'],
   },
   {
     tool: {
@@ -20197,7 +20814,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['block or mock requests', 'fake responses', '拦截模拟请求'],
+    sceneKeywords: ['block or mock requests', 'fake responses', 'intercept and mock the requests'],
   },
   {
     tool: {
@@ -20287,7 +20904,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['latency percentiles', 'p95 delay distribution', '延迟分布'],
+    sceneKeywords: ['latency percentiles', 'p95 delay distribution', 'latency distribution'],
   },
   {
     tool: {
@@ -20318,7 +20935,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['manage traffic capture', 'watch requests live', '监控网络请求'],
+    sceneKeywords: [
+      'manage traffic capture',
+      'watch requests live',
+      'watch every outgoing request',
+    ],
   },
   {
     tool: {
@@ -20498,7 +21119,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['resend captured request', 'replay with modifications', '重放请求'],
+    sceneKeywords: ['resend captured request', 'replay with modifications', 'replay the request'],
   },
   {
     tool: {
@@ -20581,7 +21202,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['ping latency to host', 'round trip time', '测延迟'],
+    sceneKeywords: ['ping latency to host', 'round trip time', 'measure the latency'],
   },
   {
     tool: {
@@ -20692,7 +21313,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['ja3 ja4 hash', 'client hello fingerprint', 'tls 指纹'],
+    sceneKeywords: ['ja3 ja4 hash', 'client hello fingerprint', 'tls fingerprint'],
   },
   {
     tool: {
@@ -20776,7 +21397,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['hop by hop path', 'trace route to host', '路由跳数'],
+    sceneKeywords: ['hop by hop path', 'trace route to host', 'traceroute hops'],
   },
   {
     tool: {
@@ -20794,7 +21415,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['go back one page', 'navigate to previous entry', '后退'],
+    sceneKeywords: ['go back one page', 'navigate to previous entry', 'go back in history'],
   },
   {
     tool: {
@@ -20829,7 +21450,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['stop these scripts from loading', 'block urls from loading', '拦截脚本'],
+    sceneKeywords: [
+      'stop these scripts from loading',
+      'block urls from loading',
+      'intercept the script',
+    ],
   },
   {
     tool: {
@@ -20887,7 +21512,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['click this element', 'press a dom node', '点击元素'],
+    sceneKeywords: ['click this element', 'press a dom node', 'click the element'],
   },
   {
     tool: {
@@ -20958,7 +21583,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['read and set cookies', 'manage browser cookies', '管理 cookie'],
+    sceneKeywords: ['read and set cookies', 'manage browser cookies', 'manage the cookies'],
   },
   {
     tool: {
@@ -20977,7 +21602,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['start js coverage collection', 'record executed code', '开始覆盖率'],
+    sceneKeywords: [
+      'start js coverage collection',
+      'record executed code',
+      'start collecting coverage',
+    ],
   },
   {
     tool: {
@@ -20996,7 +21625,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['collect js coverage result', 'stop coverage recording', '停止覆盖率'],
+    sceneKeywords: [
+      'collect js coverage result',
+      'stop coverage recording',
+      'stop collecting coverage',
+    ],
   },
   {
     tool: {
@@ -21020,7 +21653,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['pretend to be a phone', 'device emulation profile', '设备模拟'],
+    sceneKeywords: ['pretend to be a phone', 'device emulation profile', 'emulate a device'],
   },
   {
     tool: {
@@ -21086,7 +21719,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'run javascript in the page',
       'evaluate an expression in page context',
-      '页面执行 js',
+      'run javascript in the page',
     ],
   },
   {
@@ -21105,7 +21738,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['go forward again', 'next history entry', '前进'],
+    sceneKeywords: ['go forward again', 'next history entry', 'go forward in history'],
   },
   {
     tool: {
@@ -21139,7 +21772,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['accept or dismiss the popup', 'answer the js dialog', '处理弹窗'],
+    sceneKeywords: ['accept or dismiss the popup', 'answer the js dialog', 'dismiss the dialog'],
   },
   {
     tool: {
@@ -21171,7 +21804,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['hover over this element', 'mouse over the node', '悬停元素'],
+    sceneKeywords: ['hover over this element', 'mouse over the node', 'hover over the element'],
   },
   {
     tool: {
@@ -21195,7 +21828,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['inject custom js into the page', 'add my own script', '注入脚本'],
+    sceneKeywords: [
+      'inject custom js into the page',
+      'add my own script',
+      'inject a script into the page',
+    ],
   },
   {
     tool: {
@@ -21213,7 +21850,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['list frames on the page', 'enumerate iframes', '列出 iframe'],
+    sceneKeywords: ['list frames on the page', 'enumerate iframes', 'list the iframes'],
   },
   {
     tool: {
@@ -21249,7 +21886,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'inspect localstorage entries',
       'read local key value store',
-      '查看 localStorage',
+      'read the localStorage',
     ],
   },
   {
@@ -21292,7 +21929,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['open this url', 'go to a web address', '打开网址'],
+    sceneKeywords: ['open this url', 'go to a web address', 'open a url in the browser'],
   },
   {
     tool: {
@@ -21316,7 +21953,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['press a keyboard key', 'send a key press', '按键'],
+    sceneKeywords: ['press a keyboard key', 'send a key press', 'press a key'],
   },
   {
     tool: {
@@ -21334,7 +21971,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['refresh the page', 'reload current document', '刷新页面'],
+    sceneKeywords: ['refresh the page', 'reload current document', 'reload the page'],
   },
   {
     tool: {
@@ -21413,7 +22050,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['take a picture of the page', 'capture visual snapshot', '页面截图'],
+    sceneKeywords: ['take a picture of the page', 'capture visual snapshot', 'screenshot the page'],
   },
   {
     tool: {
@@ -21455,7 +22092,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'install a script before page load',
       'persistent inject on navigate',
-      '预载脚本',
+      'preload a script',
     ],
   },
   {
@@ -21486,7 +22123,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['run a script right now in page', 'execute ad hoc page code', '执行页面脚本'],
+    sceneKeywords: [
+      'run a script right now in page',
+      'execute ad hoc page code',
+      'execute a script in the page',
+    ],
   },
   {
     tool: {
@@ -21515,7 +22156,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['scroll the page down', 'scroll to this position', '滚动页面'],
+    sceneKeywords: ['scroll the page down', 'scroll to this position', 'scroll the page'],
   },
   {
     tool: {
@@ -21554,7 +22195,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['choose an option in the dropdown', 'pick a select value', '选择下拉项'],
+    sceneKeywords: [
+      'choose an option in the dropdown',
+      'pick a select value',
+      'pick an option from a dropdown',
+    ],
   },
   {
     tool: {
@@ -21590,7 +22235,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'inspect sessionstorage entries',
       'per-tab storage values',
-      '查看 sessionStorage',
+      'read the sessionStorage',
     ],
   },
   {
@@ -21619,7 +22264,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['resize the page viewport', 'change window size', '设置视口'],
+    sceneKeywords: ['resize the page viewport', 'change window size', 'set the viewport size'],
   },
   {
     tool: {
@@ -21638,7 +22283,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['storage usage overview', 'quota and usage numbers', '存储概况'],
+    sceneKeywords: ['storage usage overview', 'quota and usage numbers', 'storage usage overview'],
   },
   {
     tool: {
@@ -21680,7 +22325,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['type text into a field', 'enter keyboard input', '输入文本'],
+    sceneKeywords: ['type text into a field', 'enter keyboard input', 'type text into the field'],
   },
   {
     tool: {
@@ -21719,7 +22364,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['attach files to the input', 'upload through the file picker', '上传文件'],
+    sceneKeywords: ['attach files to the input', 'upload through the file picker', 'upload a file'],
   },
   {
     tool: {
@@ -21750,7 +22395,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['wait until this element appears', 'block on selector match', '等待元素'],
+    sceneKeywords: [
+      'wait until this element appears',
+      'block on selector match',
+      'wait for the element',
+    ],
   },
   {
     tool: {
@@ -21839,7 +22488,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['mutate the payload bytes', 'fuzz the packet content', '变异载荷'],
+    sceneKeywords: ['mutate the payload bytes', 'fuzz the packet content', 'mutate the payload'],
   },
   {
     tool: {
@@ -21900,7 +22549,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['build packet from template', 'create payload template', '载荷模板'],
+    sceneKeywords: ['build packet from template', 'create payload template', 'payload template'],
   },
   {
     tool: {
@@ -21934,7 +22583,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['read a pcap capture file', 'open packet dump', '读 pcap'],
+    sceneKeywords: ['read a pcap capture file', 'open packet dump', 'read a pcap file'],
   },
   {
     tool: {
@@ -22006,7 +22655,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['write packets to pcap', 'save capture file', '写 pcap'],
+    sceneKeywords: ['write packets to pcap', 'save capture file', 'write a pcap file'],
   },
   {
     tool: {
@@ -22051,7 +22700,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['read a pcapng file', 'open next-gen capture', '读 pcapng'],
+    sceneKeywords: ['read a pcapng file', 'open next-gen capture', 'read a pcapng file'],
   },
   {
     tool: {
@@ -22145,7 +22794,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['write pcapng capture', 'save next-gen packet dump', '写 pcapng'],
+    sceneKeywords: ['write pcapng capture', 'save next-gen packet dump', 'write a pcapng file'],
   },
   {
     tool: {
@@ -22169,7 +22818,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['page performance numbers', 'runtime metrics snapshot', '页面性能指标'],
+    sceneKeywords: [
+      'page performance numbers',
+      'runtime metrics snapshot',
+      'page performance metrics',
+    ],
   },
   {
     tool: {
@@ -22210,7 +22863,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'network',
-    sceneKeywords: ['chrome tracing capture', 'record performance trace', '性能追踪'],
+    sceneKeywords: ['chrome tracing capture', 'record performance trace', 'performance trace'],
   },
   {
     tool: {
@@ -22228,7 +22881,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['what can this host do', 'environment feature probe', '平台能力'],
+    sceneKeywords: ['what can this host do', 'environment feature probe', 'platform capabilities'],
   },
   {
     tool: {
@@ -22252,7 +22905,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['debug port of another process', 'is process being debugged', '查进程调试口'],
+    sceneKeywords: [
+      'debug port of another process',
+      'is process being debugged',
+      'check the debug port of a process',
+    ],
   },
   {
     tool: {
@@ -22277,7 +22934,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['detect apc injection tricks', 'apc queue abuse scan', '检测 apc 注入'],
+    sceneKeywords: ['detect apc injection tricks', 'apc queue abuse scan', 'detect apc injection'],
   },
   {
     tool: {
@@ -22310,7 +22967,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['is the process hollowed', 'detect process hollowing', '检测掏空'],
+    sceneKeywords: [
+      'is the process hollowed',
+      'detect process hollowing',
+      'detect process hollowing',
+    ],
   },
   {
     tool: {
@@ -22349,7 +23010,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['list open handles of process', 'enumerate handle table', '枚举句柄'],
+    sceneKeywords: [
+      'list open handles of process',
+      'enumerate handle table',
+      'enumerate the open handles',
+    ],
   },
   {
     tool: {
@@ -22379,7 +23044,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['list threads of a process', 'enumerate thread ids', '枚举线程'],
+    sceneKeywords: ['list threads of a process', 'enumerate thread ids', 'enumerate the threads'],
   },
   {
     tool: {
@@ -22404,7 +23069,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['find the pid of a program', 'look up process by name', '找进程'],
+    sceneKeywords: ['find the pid of a program', 'look up process by name', 'find the process'],
   },
   {
     tool: {
@@ -22429,7 +23094,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['details of one process', 'process info by pid', '进程详情'],
+    sceneKeywords: ['details of one process', 'process info by pid', 'process details'],
   },
   {
     tool: {
@@ -22469,7 +23134,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['scan for hollowed processes', 'system wide hollowing check', '全量掏空扫描'],
+    sceneKeywords: [
+      'scan for hollowed processes',
+      'system wide hollowing check',
+      'system wide hollowing scan',
+    ],
   },
   {
     tool: {
@@ -22493,7 +23162,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['kill this process', 'terminate the pid', '杀进程'],
+    sceneKeywords: ['kill this process', 'terminate the pid', 'kill the process'],
   },
   {
     tool: {
@@ -22531,7 +23200,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['start a program under debugging', 'launch with debug port', '带调试启动进程'],
+    sceneKeywords: [
+      'start a program under debugging',
+      'launch with debug port',
+      'launch the process under the debugger',
+    ],
   },
   {
     tool: {
@@ -22550,7 +23223,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['show all running processes', 'enumerate the process table', '列出进程'],
+    sceneKeywords: [
+      'show all running processes',
+      'enumerate the process table',
+      'list the running processes',
+    ],
   },
   {
     tool: {
@@ -22575,7 +23252,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['resume the suspended process', 'unfreeze process', '恢复进程'],
+    sceneKeywords: ['resume the suspended process', 'unfreeze process', 'resume the process'],
   },
   {
     tool: {
@@ -22600,7 +23277,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['runtime facts about the process', 'process internals readout', '运行时信息'],
+    sceneKeywords: [
+      'runtime facts about the process',
+      'process internals readout',
+      'runtime information about the process',
+    ],
   },
   {
     tool: {
@@ -22625,7 +23306,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['freeze this process', 'suspend the pid', '挂起进程'],
+    sceneKeywords: ['freeze this process', 'suspend the pid', 'suspend the process'],
   },
   {
     tool: {
@@ -22649,7 +23330,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'process',
-    sceneKeywords: ['list the windows of a process', 'enumerate window titles', '枚举窗口'],
+    sceneKeywords: [
+      'list the windows of a process',
+      'enumerate window titles',
+      'enumerate the windows',
+    ],
   },
   {
     tool: {
@@ -22690,7 +23375,7 @@ export const GENERATED_TOOL_CATALOG = [
       'javascript cpu profile',
       'start cpu profiling',
       'cpu profiler sampling',
-      'cpu 火焰图',
+      'cpu flame graph',
       'profiler sampling session control',
     ],
   },
@@ -22722,7 +23407,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'guess the protocol automatically',
       'identify protocol from bytes',
-      '自动识别协议',
+      'automatically detect the protocol',
     ],
   },
   {
@@ -22752,7 +23437,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['define a protocol pattern', 'describe my custom protocol', '定义协议模式'],
+    sceneKeywords: [
+      'define a protocol pattern',
+      'describe my custom protocol',
+      'define the protocol pattern',
+    ],
   },
   {
     tool: {
@@ -22781,7 +23470,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['dissect dns packet bytes', 'parse dns message', '解析 dns 包'],
+    sceneKeywords: ['dissect dns packet bytes', 'parse dns message', 'parse a dns packet'],
   },
   {
     tool: {
@@ -22807,7 +23496,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['dissect http bytes', 'parse raw http message', '解析 http 包'],
+    sceneKeywords: ['dissect http bytes', 'parse raw http message', 'parse an http packet'],
   },
   {
     tool: {
@@ -22838,7 +23527,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['export the protocol schema', 'save dissected format', '导出协议 schema'],
+    sceneKeywords: [
+      'export the protocol schema',
+      'save dissected format',
+      'export the protocol schema',
+    ],
   },
   {
     tool: {
@@ -22875,7 +23568,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['fingerprint the protocol dialect', 'identify protocol variant', '协议指纹'],
+    sceneKeywords: [
+      'fingerprint the protocol dialect',
+      'identify protocol variant',
+      'protocol fingerprint',
+    ],
   },
   {
     tool: {
@@ -22902,7 +23599,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['infer field boundaries', 'guess packet field layout', '推断字段'],
+    sceneKeywords: [
+      'infer field boundaries',
+      'guess packet field layout',
+      'infer the field layout',
+    ],
   },
   {
     tool: {
@@ -22950,7 +23651,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['infer the protocol state machine', 'learn message sequence', '推断状态机'],
+    sceneKeywords: [
+      'infer the protocol state machine',
+      'learn message sequence',
+      'infer the state machine',
+    ],
   },
   {
     tool: {
@@ -22974,7 +23679,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['draw the state machine', 'visualize protocol transitions', '可视化状态机'],
+    sceneKeywords: [
+      'draw the state machine',
+      'visualize protocol transitions',
+      'visualise the state machine',
+    ],
   },
   {
     tool: {
@@ -23020,7 +23729,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'encoding',
-    sceneKeywords: ['decode protobuf without schema', 'parse wire format', '解析 protobuf'],
+    sceneKeywords: ['decode protobuf without schema', 'parse wire format', 'decode protobuf'],
   },
   {
     tool: {
@@ -23242,7 +23951,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['add rewrite rule to proxy', 'new traffic rule', '加代理规则'],
+    sceneKeywords: ['add rewrite rule to proxy', 'new traffic rule', 'add a proxy rule'],
   },
   {
     tool: {
@@ -23260,7 +23969,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['flush proxy history', 'empty traffic log', '清代理日志'],
+    sceneKeywords: ['flush proxy history', 'empty traffic log', 'clear the proxy log'],
   },
   {
     tool: {
@@ -23278,7 +23987,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['wipe proxy rules', 'reset rule set', '清空代理规则'],
+    sceneKeywords: ['wipe proxy rules', 'reset rule set', 'remove all the proxy rules'],
   },
   {
     tool: {
@@ -23296,7 +24005,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['export proxy certificate', 'get mitm root ca', '导出 ca 证书'],
+    sceneKeywords: ['export proxy certificate', 'get mitm root ca', 'export the ca certificate'],
   },
   {
     tool: {
@@ -23319,7 +24028,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['traffic seen through proxy', 'mitm captured requests', '代理流量'],
+    sceneKeywords: ['traffic seen through proxy', 'mitm captured requests', 'proxy traffic log'],
   },
   {
     tool: {
@@ -23338,7 +24047,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['show proxy rules', 'enumerate traffic rules', '列出代理规则'],
+    sceneKeywords: ['show proxy rules', 'enumerate traffic rules', 'list the proxy rules'],
   },
   {
     tool: {
@@ -23363,7 +24072,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['delete proxy rule', 'drop traffic rule', '删代理规则'],
+    sceneKeywords: ['delete proxy rule', 'drop traffic rule', 'remove a proxy rule'],
   },
   {
     tool: {
@@ -23386,7 +24095,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['route phone through proxy', 'configure device wifi proxy', '手机挂代理'],
+    sceneKeywords: [
+      'route phone through proxy',
+      'configure device wifi proxy',
+      'route the phone through the proxy',
+    ],
   },
   {
     tool: {
@@ -23421,7 +24134,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['launch mitm proxy', 'spin up intercepting proxy', '启动抓包代理'],
+    sceneKeywords: [
+      'launch mitm proxy',
+      'spin up intercepting proxy',
+      'start the intercepting proxy',
+    ],
   },
   {
     tool: {
@@ -23439,7 +24156,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['proxy running check', 'mitm state', '代理状态'],
+    sceneKeywords: ['proxy running check', 'mitm state', 'proxy status'],
   },
   {
     tool: {
@@ -23457,7 +24174,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'proxy',
-    sceneKeywords: ['shut the proxy down', 'kill mitm session', '关闭代理'],
+    sceneKeywords: ['shut the proxy down', 'kill mitm session', 'shut the proxy down'],
   },
   {
     tool: {
@@ -23485,7 +24202,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['filter events with sql', 'query recorded events', 'sql 查询事件'],
+    sceneKeywords: ['filter events with sql', 'query recorded events', 'sql query events'],
   },
   {
     tool: {
@@ -23573,7 +24290,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'protocol-analysis',
-    sceneKeywords: ['craft a raw ip packet', 'build l3 packet bytes', '构造 ip 包'],
+    sceneKeywords: ['craft a raw ip packet', 'build l3 packet bytes', 'craft an ip packet'],
   },
   {
     tool: {
@@ -23592,7 +24309,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['hot reload all plugins', 'refresh extensions', '重载插件'],
+    sceneKeywords: ['hot reload all plugins', 'refresh extensions', 'reload the plugin'],
   },
   {
     tool: {
@@ -23611,7 +24328,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['reset the token budget', 'give me a fresh budget', '重置 token 预算'],
+    sceneKeywords: ['reset the token budget', 'give me a fresh budget', 'reset the token budget'],
   },
   {
     tool: {
@@ -23636,7 +24353,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['go back to a saved page state', 'load snapshot again', '恢复页面快照'],
+    sceneKeywords: [
+      'go back to a saved page state',
+      'load snapshot again',
+      'restore a page snapshot',
+    ],
   },
   {
     tool: {
@@ -23700,7 +24421,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
-    sceneKeywords: ['start a reversing session', 'begin analysis workspace', '开逆向会话'],
+    sceneKeywords: [
+      'start a reversing session',
+      'begin analysis workspace',
+      'open a reverse engineering session',
+    ],
   },
   {
     tool: {
@@ -23759,7 +24484,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'native-bridge',
-    sceneKeywords: ['drive rizin', 'rizin cutter bridge', 'rizin 桥'],
+    sceneKeywords: ['drive rizin', 'rizin cutter bridge', 'talk to the rizin bridge'],
   },
   {
     tool: {
@@ -23805,7 +24530,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['execute a plugin recipe', 'run the workflow steps', '运行工作流'],
+    sceneKeywords: ['execute a plugin recipe', 'run the workflow steps', 'run the workflow'],
   },
   {
     tool: {
@@ -23845,7 +24570,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'workflow',
     profiles: ['full'],
-    sceneKeywords: ['play back a macro', 'execute recorded macro', '运行宏'],
+    sceneKeywords: ['play back a macro', 'execute recorded macro', 'run the macro'],
   },
   {
     tool: {
@@ -23869,7 +24594,11 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['capture current page state for later', 'store page snapshot', '保存页面快照'],
+    sceneKeywords: [
+      'capture current page state for later',
+      'store page snapshot',
+      'save a page snapshot',
+    ],
   },
   {
     tool: {
@@ -23903,7 +24632,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'graphql',
-    sceneKeywords: ['swap script content for good', 'persist script replacement', '持久替换脚本'],
+    sceneKeywords: [
+      'swap script content for good',
+      'persist script replacement',
+      'persistently replace the script',
+    ],
   },
   {
     tool: {
@@ -23974,7 +24707,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'grep across the downloaded scripts',
       'find pattern in collected code',
-      '脚本内搜索',
+      'search inside the scripts',
     ],
   },
   {
@@ -24024,7 +24757,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'jump to a moment in the recording',
       'time travel in trace',
-      '时间定位',
+      'locate by timestamp',
       'time travel jump within recording',
     ],
   },
@@ -24059,7 +24792,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['deliver a push event to the worker', 'fire push payload', '推送事件'],
+    sceneKeywords: ['deliver a push event to the worker', 'fire push payload', 'push an event'],
   },
   {
     tool: {
@@ -24098,7 +24831,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['dispatch a sync event', 'trigger background sync', '同步事件'],
+    sceneKeywords: ['dispatch a sync event', 'trigger background sync', 'sync an event'],
   },
   {
     tool: {
@@ -24128,7 +24861,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
-    sceneKeywords: ['wipe progress entries', 'reset session ledger', '清空进度'],
+    sceneKeywords: ['wipe progress entries', 'reset session ledger', 'clear the progress'],
   },
   {
     tool: {
@@ -24158,7 +24891,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
-    sceneKeywords: ['what has been covered so far', 'progress checklist', '进度覆盖'],
+    sceneKeywords: ['what has been covered so far', 'progress checklist', 'overwrite the progress'],
   },
   {
     tool: {
@@ -24202,7 +24935,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'session',
-    sceneKeywords: ['note down completed step', 'log milestone', '记录进度'],
+    sceneKeywords: ['note down completed step', 'log milestone', 'record the progress'],
   },
   {
     tool: {
@@ -24227,7 +24960,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'canvas',
-    sceneKeywords: ['match skia ops to objects', 'correlate scene items', '关联 skia 对象'],
+    sceneKeywords: [
+      'match skia ops to objects',
+      'correlate scene items',
+      'link the skia objects together',
+    ],
   },
   {
     tool: {
@@ -24240,7 +24977,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'canvas',
-    sceneKeywords: ['is skia rendering here', 'detect skia backend', '检测 skia'],
+    sceneKeywords: ['is skia rendering here', 'detect skia backend', 'detect skia'],
   },
   {
     tool: {
@@ -24258,7 +24995,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'canvas',
-    sceneKeywords: ['pull skia display list', 'extract render ops', '提取 skia 场景'],
+    sceneKeywords: ['pull skia display list', 'extract render ops', 'extract the skia scene'],
   },
   {
     tool: {
@@ -24289,7 +25026,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['intelligently clean caches', 'cleanup with retention policy', '智能清理'],
+    sceneKeywords: [
+      'intelligently clean caches',
+      'cleanup with retention policy',
+      'smart cleanup of the snapshots',
+    ],
   },
   {
     tool: {
@@ -24319,7 +25060,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['take a state snapshot', 'save the current server state', '创建快照'],
+    sceneKeywords: ['take a state snapshot', 'save the current server state', 'create a snapshot'],
   },
   {
     tool: {
@@ -24344,7 +25085,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['snapshots available', 'list saved states', '列出快照'],
+    sceneKeywords: ['snapshots available', 'list saved states', 'list the snapshots'],
   },
   {
     tool: {
@@ -24374,7 +25115,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'maintenance',
-    sceneKeywords: ['go back to a saved snapshot', 'restore server state', '恢复快照'],
+    sceneKeywords: ['go back to a saved snapshot', 'restore server state', 'restore the snapshot'],
   },
   {
     tool: {
@@ -24405,7 +25146,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'check map completeness',
       'missing mappings audit',
-      '覆盖检查',
+      'coverage check',
       'mapping completeness gaps audit',
     ],
   },
@@ -24450,7 +25191,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
-    sceneKeywords: ['compare two maps', 'map version delta', '对比映射'],
+    sceneKeywords: ['compare two maps', 'map version delta', 'compare the mappings'],
   },
   {
     tool: {
@@ -24477,7 +25218,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'find sourceMappingURL comment',
       'locate map files on a page',
-      '发现 sourcemap',
+      'discover the sourcemap file',
     ],
   },
   {
@@ -24506,7 +25247,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
-    sceneKeywords: ['download and load a map', 'pull remote sourcemap', '拉取解析 map'],
+    sceneKeywords: [
+      'download and load a map',
+      'pull remote sourcemap',
+      'fetch and parse the sourcemap',
+    ],
   },
   {
     tool: {
@@ -24560,7 +25305,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
-    sceneKeywords: ['map generated line to original', 'position mapping', '位置映射'],
+    sceneKeywords: [
+      'map generated line to original',
+      'position mapping',
+      'map a position back to the source',
+    ],
   },
   {
     tool: {
@@ -24599,7 +25348,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
-    sceneKeywords: ['read vlq mappings', 'parse map index section', '解析 vlq'],
+    sceneKeywords: ['read vlq mappings', 'parse map index section', 'decode the vlq mappings'],
   },
   {
     tool: {
@@ -24640,7 +25389,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'sourcemap',
-    sceneKeywords: ['rebuild original source tree', 'restore file layout', '重建源码树'],
+    sceneKeywords: [
+      'rebuild original source tree',
+      'restore file layout',
+      'rebuild the source tree',
+    ],
   },
   {
     tool: {
@@ -24678,7 +25431,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['save event stream', 'dump sse to file', '导出 sse 抓包'],
+    sceneKeywords: ['save event stream', 'dump sse to file', 'export the captured sse traffic'],
   },
   {
     tool: {
@@ -24723,7 +25476,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['show sse messages', 'captured event stream data', 'sse 事件列表'],
+    sceneKeywords: ['show sse messages', 'captured event stream data', 'list the sse events'],
   },
   {
     tool: {
@@ -24757,7 +25510,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['watch server sent events', 'follow eventsource stream', '监控 sse'],
+    sceneKeywords: [
+      'watch server sent events',
+      'follow eventsource stream',
+      'monitor the sse stream',
+    ],
   },
   {
     tool: {
@@ -24813,7 +25570,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['begin capturing a recording', 'start tracing session', '开始录制'],
+    sceneKeywords: ['begin capturing a recording', 'start tracing session', 'start the recording'],
   },
   {
     tool: {
@@ -24869,7 +25626,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
-    sceneKeywords: ['shared key value board', 'read coordination state', '共享状态板'],
+    sceneKeywords: ['shared key value board', 'read coordination state', 'shared state board'],
   },
   {
     tool: {
@@ -24910,7 +25667,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
-    sceneKeywords: ['write to shared board', 'put state entries', '写状态板'],
+    sceneKeywords: ['write to shared board', 'put state entries', 'write to the state board'],
   },
   {
     tool: {
@@ -24951,7 +25708,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'coordination',
-    sceneKeywords: ['subscribe to state changes', 'notify on board updates', '监听状态板'],
+    sceneKeywords: [
+      'subscribe to state changes',
+      'notify on board updates',
+      'watch the state board',
+    ],
   },
   {
     tool: {
@@ -24990,7 +25751,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['randomize stealth timings', 'configure fingerprint jitter', '抖动配置'],
+    sceneKeywords: [
+      'randomize stealth timings',
+      'configure fingerprint jitter',
+      'jitter configuration',
+    ],
   },
   {
     tool: {
@@ -25025,7 +25790,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['build a fake fingerprint', 'generate consistent identity', '生成指纹'],
+    sceneKeywords: [
+      'build a fake fingerprint',
+      'generate consistent identity',
+      'generate a browser fingerprint',
+    ],
   },
   {
     tool: {
@@ -25043,7 +25812,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['apply stealth hardening', 'mask automation signals', '注入隐身'],
+    sceneKeywords: [
+      'apply stealth hardening',
+      'mask automation signals',
+      'inject the stealth patches',
+    ],
   },
   {
     tool: {
@@ -25068,7 +25841,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['change the user agent', 'override the ua string', '改 ua'],
+    sceneKeywords: ['change the user agent', 'override the ua string', 'override the user agent'],
   },
   {
     tool: {
@@ -25086,7 +25859,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['check for automation leaks', 'verify stealth is applied', '验证隐身'],
+    sceneKeywords: [
+      'check for automation leaks',
+      'verify stealth is applied',
+      'verify the stealth patches',
+    ],
   },
   {
     tool: {
@@ -25104,7 +25881,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['finish the recording', 'end the trace session', '停止录制'],
+    sceneKeywords: ['finish the recording', 'end the trace session', 'stop the recording'],
   },
   {
     tool: {
@@ -25133,7 +25910,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['overview of the recording', 'what happened in the trace', 'trace 摘要'],
+    sceneKeywords: [
+      'overview of the recording',
+      'what happened in the trace',
+      'summarise the trace',
+    ],
   },
   {
     tool: {
@@ -25187,7 +25968,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['collect syscall events', 'fetch captured syscalls', '采集系统调用'],
+    sceneKeywords: [
+      'collect syscall events',
+      'fetch captured syscalls',
+      'capture the system calls',
+    ],
   },
   {
     tool: {
@@ -25247,7 +26032,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'link syscalls to js callsites',
       'correlate kernel calls with script',
-      '关联 js 调用点',
+      'correlate with the javascript call sites',
     ],
   },
   {
@@ -25273,7 +26058,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['invoke a syscall directly', 'raw syscall call', '直接系统调用'],
+    sceneKeywords: ['invoke a syscall directly', 'raw syscall call', 'direct syscall'],
   },
   {
     tool: {
@@ -25322,7 +26107,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['attach an ebpf program', 'load bpf tracer', '挂载 ebpf'],
+    sceneKeywords: ['attach an ebpf program', 'load bpf tracer', 'attach the ebpf probe'],
   },
   {
     tool: {
@@ -25365,7 +26150,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['read the ebpf trace', 'collect bpf events', '读 ebpf 追踪'],
+    sceneKeywords: ['read the ebpf trace', 'collect bpf events', 'read the ebpf trace'],
   },
   {
     tool: {
@@ -25408,7 +26193,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['filter syscall stream', 'narrow captured syscalls', '过滤系统调用'],
+    sceneKeywords: ['filter syscall stream', 'narrow captured syscalls', 'filter the system calls'],
   },
   {
     tool: {
@@ -25426,7 +26211,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['syscall counter summary', 'how many syscalls captured', '系统调用统计'],
+    sceneKeywords: ['syscall counter summary', 'how many syscalls captured', 'syscall statistics'],
   },
   {
     tool: {
@@ -25461,7 +26246,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'map syscalls to their origin',
       'where did the syscall come from',
-      '系统调用来源',
+      'syscall origin',
     ],
   },
   {
@@ -25489,7 +26274,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['spot syscall patterns', 'detect suspicious syscall sequences', '系统调用模式'],
+    sceneKeywords: [
+      'spot syscall patterns',
+      'detect suspicious syscall sequences',
+      'syscall pattern',
+    ],
   },
   {
     tool: {
@@ -25513,7 +26302,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['resolve syscall numbers', 'find the ssn table entries', '解析 ssn'],
+    sceneKeywords: [
+      'resolve syscall numbers',
+      'find the ssn table entries',
+      'decode the syscall numbers',
+    ],
   },
   {
     tool: {
@@ -25545,7 +26338,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['capture stack at syscall', 'stack trace per syscall', '系统调用栈捕获'],
+    sceneKeywords: [
+      'capture stack at syscall',
+      'stack trace per syscall',
+      'capture the syscall stack',
+    ],
   },
   {
     tool: {
@@ -25587,7 +26384,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['start tracing syscalls', 'begin syscall monitoring', '开始监控系统调用'],
+    sceneKeywords: [
+      'start tracing syscalls',
+      'begin syscall monitoring',
+      'start monitoring the system calls',
+    ],
   },
   {
     tool: {
@@ -25605,7 +26406,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['stop the syscall tracer', 'end syscall capture', '停止系统调用监控'],
+    sceneKeywords: [
+      'stop the syscall tracer',
+      'end syscall capture',
+      'stop monitoring the system calls',
+    ],
   },
   {
     tool: {
@@ -25705,7 +26510,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['compare two syscall traces', 'trace session delta', '对比系统调用轨迹'],
+    sceneKeywords: [
+      'compare two syscall traces',
+      'trace session delta',
+      'compare the syscall traces',
+    ],
   },
   {
     tool: {
@@ -25748,7 +26557,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'syscall-hook',
-    sceneKeywords: ['save syscall trace', 'export captured syscalls', '导出系统调用轨迹'],
+    sceneKeywords: ['save syscall trace', 'export captured syscalls', 'export the syscall trace'],
   },
   {
     tool: {
@@ -25827,7 +26636,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'coordinate work across tabs',
       'multi tab orchestration',
-      '多标签编排',
+      'orchestrate across multiple tabs',
       'multi tab orchestration coordination',
     ],
   },
@@ -25854,7 +26663,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
-    sceneKeywords: ['abort background job', 'stop a running task', '取消任务'],
+    sceneKeywords: ['abort background job', 'stop a running task', 'cancel the task'],
   },
   {
     tool: {
@@ -25879,7 +26688,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
-    sceneKeywords: ['fetch task status', 'check background job', '查任务状态'],
+    sceneKeywords: ['fetch task status', 'check background job', 'check the task status'],
   },
   {
     tool: {
@@ -25914,7 +26723,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
-    sceneKeywords: ['enumerate running jobs', 'show all tasks', '列出任务'],
+    sceneKeywords: ['enumerate running jobs', 'show all tasks', 'list the tasks'],
   },
   {
     tool: {
@@ -25947,7 +26756,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tasks',
-    sceneKeywords: ['fetch task output', 'get job payload', '取任务结果'],
+    sceneKeywords: ['fetch task output', 'get job payload', 'get the task result'],
   },
   {
     tool: {
@@ -25975,7 +26784,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['close tcp socket', 'drop raw connection', '关闭 tcp'],
+    sceneKeywords: ['close tcp socket', 'drop raw connection', 'close the tcp connection'],
   },
   {
     tool: {
@@ -26008,7 +26817,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['open raw tcp connection', 'dial a tcp socket', '建 tcp 连接'],
+    sceneKeywords: ['open raw tcp connection', 'dial a tcp socket', 'open a tcp connection'],
   },
   {
     tool: {
@@ -26048,7 +26857,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['read tcp until pattern', 'wait for bytes', 'tcp 读数据'],
+    sceneKeywords: ['read tcp until pattern', 'wait for bytes', 'read data from the tcp socket'],
   },
   {
     tool: {
@@ -26079,7 +26888,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['send bytes over tcp', 'write to socket', 'tcp 写数据'],
+    sceneKeywords: ['send bytes over tcp', 'write to socket', 'write data to the tcp socket'],
   },
   {
     tool: {
@@ -26098,7 +26907,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['defeat certificate pinning natively', 'ignore cert mismatch', '绕过证书绑定'],
+    sceneKeywords: [
+      'defeat certificate pinning natively',
+      'ignore cert mismatch',
+      'bypass the certificate pinning',
+    ],
   },
   {
     tool: {
@@ -26112,7 +26925,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['unpin certs via frida script', 'frida ssl unpinning', 'frida 绕过绑定'],
+    sceneKeywords: [
+      'unpin certs via frida script',
+      'frida ssl unpinning',
+      'bypass the pinning with frida',
+    ],
   },
   {
     tool: {
@@ -26137,7 +26954,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['list supported ciphers', 'negotiated cipher info', '密码套件'],
+    sceneKeywords: ['list supported ciphers', 'negotiated cipher info', 'cipher suites'],
   },
   {
     tool: {
@@ -26166,7 +26983,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['shut tls socket', 'tear down tls session', '关闭 tls'],
+    sceneKeywords: ['shut tls socket', 'tear down tls session', 'close the tls connection'],
   },
   {
     tool: {
@@ -26201,7 +27018,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['decrypt with keylog secrets', 'decode tls application data', '解密 tls 载荷'],
+    sceneKeywords: [
+      'decrypt with keylog secrets',
+      'decode tls application data',
+      'decrypt the tls payload',
+    ],
   },
   {
     tool: {
@@ -26222,7 +27043,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'stop ssl key logging',
       'turn off secret capture',
-      '关闭密钥日志',
+      'disable the key log',
       'halt secret logging session',
     ],
   },
@@ -26237,7 +27058,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['start ssl key logging', 'capture session secrets', '开启密钥日志'],
+    sceneKeywords: ['start ssl key logging', 'capture session secrets', 'enable the key log'],
   },
   {
     tool: {
@@ -26259,7 +27080,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['find secret for connection', 'match client random', '查密钥'],
+    sceneKeywords: ['find secret for connection', 'match client random', 'look up the key'],
   },
   {
     tool: {
@@ -26280,7 +27101,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'read sslkeylog file',
       'parse secret log lines',
-      '解析密钥日志',
+      'parse the key log',
       'read secret log lines file',
     ],
   },
@@ -26296,7 +27117,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['hmac seal the keylog', 'tamper-proof secret file', '封存密钥日志'],
+    sceneKeywords: ['hmac seal the keylog', 'tamper-proof secret file', 'seal the key log'],
   },
   {
     tool: {
@@ -26319,7 +27140,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['keylog overview stats', 'summarize sealed secrets', '密钥日志摘要'],
+    sceneKeywords: ['keylog overview stats', 'summarize sealed secrets', 'summarise the key log'],
   },
   {
     tool: {
@@ -26386,7 +27207,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['open raw tls socket', 'connect tls endpoint manually', '建 tls 连接'],
+    sceneKeywords: [
+      'open raw tls socket',
+      'connect tls endpoint manually',
+      'open a tls connection',
+    ],
   },
   {
     tool: {
@@ -26405,7 +27230,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['decode x509 cert', 'read certificate chain', '解析证书'],
+    sceneKeywords: ['decode x509 cert', 'read certificate chain', 'parse the certificate'],
   },
   {
     tool: {
@@ -26424,7 +27249,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['decode client hello', 'dissect handshake bytes', '解析握手'],
+    sceneKeywords: ['decode client hello', 'dissect handshake bytes', 'parse the handshake'],
   },
   {
     tool: {
@@ -26494,7 +27319,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'test tls handshake against host',
       'check negotiated parameters',
-      '探测 tls 端点',
+      'probe the tls endpoint',
     ],
   },
   {
@@ -26535,7 +27360,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['wait for tls response bytes', 'read until marker', 'tls 读数据'],
+    sceneKeywords: [
+      'wait for tls response bytes',
+      'read until marker',
+      'read data from the tls socket',
+    ],
   },
   {
     tool: {
@@ -26566,7 +27395,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['send bytes on tls', 'push data into tls session', 'tls 写数据'],
+    sceneKeywords: [
+      'send bytes on tls',
+      'push data into tls session',
+      'write data to the tls socket',
+    ],
   },
   {
     tool: {
@@ -26628,7 +27461,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['network events inside the recording', 'request flow in trace', 'trace 网络流'],
+    sceneKeywords: [
+      'network events inside the recording',
+      'request flow in trace',
+      'trace the network flow',
+    ],
   },
   {
     tool: {
@@ -26689,7 +27526,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['profiling samples from trace', 'cpu samples in recording', '采样点'],
+    sceneKeywords: ['profiling samples from trace', 'cpu samples in recording', 'sampling points'],
   },
   {
     tool: {
@@ -26751,7 +27588,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'trace',
-    sceneKeywords: ['current recording info', 'is a trace active', '录制状态'],
+    sceneKeywords: ['current recording info', 'is a trace active', 'recording status'],
   },
   {
     tool: {
@@ -26819,7 +27656,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'interactive code rewrite workspace',
       'transform pipeline playground',
-      '变换工作台',
+      'transform workbench',
     ],
   },
   {
@@ -26855,7 +27692,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
-    sceneKeywords: ['explain what this code does', 'summarize the logic', '理解代码'],
+    sceneKeywords: ['explain what this code does', 'summarize the logic', 'understand the code'],
   },
   {
     tool: {
@@ -27051,7 +27888,7 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'coordination',
     profiles: ['full'],
-    sceneKeywords: ['amend the handoff notes', 'revise handoff content', '更新交接'],
+    sceneKeywords: ['amend the handoff notes', 'revise handoff content', 'update the handoff'],
   },
   {
     tool: {
@@ -27081,7 +27918,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['track memory allocations', 'sample allocation sites', '内存分配追踪'],
+    sceneKeywords: [
+      'track memory allocations',
+      'sample allocation sites',
+      'track the memory allocations',
+    ],
   },
   {
     tool: {
@@ -27105,7 +27946,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'platform',
-    sceneKeywords: ['decompile v8 bytecode', 'read cached bytecode', '反编译字节码'],
+    sceneKeywords: ['decompile v8 bytecode', 'read cached bytecode', 'decompile the bytecode'],
   },
   {
     tool: {
@@ -27137,7 +27978,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['pull the generated bytecode', 'extract cached bytecode', '提取字节码'],
+    sceneKeywords: [
+      'pull the generated bytecode',
+      'extract cached bytecode',
+      'extract the bytecode',
+    ],
   },
   {
     tool: {
@@ -27174,7 +28019,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['why did this function deoptimize', 'deoptimization reasons', '反优化追踪'],
+    sceneKeywords: [
+      'why did this function deoptimize',
+      'deoptimization reasons',
+      'trace the deoptimisation',
+    ],
   },
   {
     tool: {
@@ -27213,7 +28062,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['what keeps this function alive', 'retained size of fn', '函数保留大小'],
+    sceneKeywords: [
+      'what keeps this function alive',
+      'retained size of fn',
+      'retained size of the function',
+    ],
   },
   {
     tool: {
@@ -27245,7 +28098,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['heap before and after', 'compare two heap snapshots', '堆快照对比'],
+    sceneKeywords: [
+      'heap before and after',
+      'compare two heap snapshots',
+      'diff the two heap snapshots',
+    ],
   },
   {
     tool: {
@@ -27278,7 +28135,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['which objects are leaking', 'growing retained set', '找内存泄漏'],
+    sceneKeywords: ['which objects are leaking', 'growing retained set', 'find the memory leak'],
   },
   {
     tool: {
@@ -27314,7 +28171,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['who references this object', 'retention chain', '引用链'],
+    sceneKeywords: ['who references this object', 'retention chain', 'retainer chain'],
   },
   {
     tool: {
@@ -27351,7 +28208,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['sample heap growth over time', 'allocation profile', '堆采样'],
+    sceneKeywords: ['sample heap growth over time', 'allocation profile', 'sample the heap'],
   },
   {
     tool: {
@@ -27396,7 +28253,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['analyze the heap dump', 'break down heap contents', '堆快照分析'],
+    sceneKeywords: [
+      'analyze the heap dump',
+      'break down heap contents',
+      'analyse the heap snapshot',
+    ],
   },
   {
     tool: {
@@ -27421,7 +28282,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['take a heap snapshot', 'dump the heap now', '拍堆快照'],
+    sceneKeywords: ['take a heap snapshot', 'dump the heap now', 'take a heap snapshot'],
   },
   {
     tool: {
@@ -27449,7 +28310,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['remove an old heap snapshot', 'free snapshot storage', '删除堆快照'],
+    sceneKeywords: [
+      'remove an old heap snapshot',
+      'free snapshot storage',
+      'delete a heap snapshot',
+    ],
   },
   {
     tool: {
@@ -27474,7 +28339,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['save heap snapshot to file', 'export the dump', '导出堆快照'],
+    sceneKeywords: ['save heap snapshot to file', 'export the dump', 'export the heap snapshot'],
   },
   {
     tool: {
@@ -27503,7 +28368,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['snapshots taken so far', 'list heap dumps', '列出堆快照'],
+    sceneKeywords: ['snapshots taken so far', 'list heap dumps', 'list the heap snapshots'],
   },
   {
     tool: {
@@ -27521,7 +28386,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['heap size numbers', 'memory totals by space', '堆统计'],
+    sceneKeywords: ['heap size numbers', 'memory totals by space', 'heap statistics'],
   },
   {
     tool: {
@@ -27571,7 +28436,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['diff two js objects', 'object state delta', '对象对比'],
+    sceneKeywords: ['diff two js objects', 'object state delta', 'compare the two objects'],
   },
   {
     tool: {
@@ -27595,7 +28460,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['deep inspect this runtime object', 'look inside the object', '检视对象'],
+    sceneKeywords: [
+      'deep inspect this runtime object',
+      'look inside the object',
+      'inspect the object',
+    ],
   },
   {
     tool: {
@@ -27651,7 +28520,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['turbofan sea of nodes', 'jit compiler graph', 'turbofan 图'],
+    sceneKeywords: ['turbofan sea of nodes', 'jit compiler graph', 'turbofan graph'],
   },
   {
     tool: {
@@ -27690,7 +28559,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['inspect the optimizing compiler output', 'jit decisions', '检视 turbofan'],
+    sceneKeywords: [
+      'inspect the optimizing compiler output',
+      'jit decisions',
+      'inspect the turbofan output',
+    ],
   },
   {
     tool: {
@@ -27726,7 +28599,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['collect v8 type feedback', 'which types each function sees', '类型画像'],
+    sceneKeywords: ['collect v8 type feedback', 'which types each function sees', 'type profile'],
   },
   {
     tool: {
@@ -27744,7 +28617,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['which v8 version is running', 'engine version fingerprint', 'v8 版本'],
+    sceneKeywords: ['which v8 version is running', 'engine version fingerprint', 'v8 version'],
   },
   {
     tool: {
@@ -27774,7 +28647,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['inspect wasm inside v8', 'wasm module in the engine', 'v8 内 wasm'],
+    sceneKeywords: [
+      'inspect wasm inside v8',
+      'wasm module in the engine',
+      'wasm running inside v8',
+    ],
   },
   {
     tool: {
@@ -27799,7 +28676,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'v8-inspector',
-    sceneKeywords: ['check weak references', 'finalization state', '弱引用检视'],
+    sceneKeywords: ['check weak references', 'finalization state', 'inspect the weak references'],
   },
   {
     tool: {
@@ -27817,7 +28694,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['what wasm tooling exists', 'check wasm feature support', 'wasm 能力'],
+    sceneKeywords: ['what wasm tooling exists', 'check wasm feature support', 'wasm capabilities'],
   },
   {
     tool: {
@@ -27845,7 +28722,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['readable wasm pseudocode', 'decompile wasm module', '反编译 wasm'],
+    sceneKeywords: [
+      'readable wasm pseudocode',
+      'decompile wasm module',
+      'decompile the wasm module',
+    ],
   },
   {
     tool: {
@@ -27875,7 +28756,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['spot wasm obfuscation', 'detect packed module', '检测 wasm 混淆'],
+    sceneKeywords: ['spot wasm obfuscation', 'detect packed module', 'detect wasm obfuscation'],
   },
   {
     tool: {
@@ -27915,7 +28796,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['compare two wasm modules', 'module version delta', '对比 wasm'],
+    sceneKeywords: [
+      'compare two wasm modules',
+      'module version delta',
+      'diff the two wasm modules',
+    ],
   },
   {
     tool: {
@@ -27948,7 +28833,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['wasm bytecode to text', 'list wasm instructions', '反汇编 wasm'],
+    sceneKeywords: [
+      'wasm bytecode to text',
+      'list wasm instructions',
+      'disassemble the wasm module',
+    ],
   },
   {
     tool: {
@@ -27982,7 +28871,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['dump wasm module bytes', 'save module to disk', '导出 wasm'],
+    sceneKeywords: ['dump wasm module bytes', 'save module to disk', 'export the wasm module'],
   },
   {
     tool: {
@@ -28007,7 +28896,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['look inside a wasm module', 'module overview', '检视 wasm 模块'],
+    sceneKeywords: ['look inside a wasm module', 'module overview', 'inspect the wasm module'],
   },
   {
     tool: {
@@ -28038,7 +28927,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['list wasm sections', 'enumerate module sections', '列出 wasm 节区'],
+    sceneKeywords: ['list wasm sections', 'enumerate module sections', 'list the wasm sections'],
   },
   {
     tool: {
@@ -28068,7 +28957,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['patch wasm at binary level', 'hook module bytes', '二进制插桩 wasm'],
+    sceneKeywords: [
+      'patch wasm at binary level',
+      'hook module bytes',
+      'instrument the wasm binary',
+    ],
   },
   {
     tool: {
@@ -28098,7 +28991,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['hook a basic block', 'trace block entry', '基本块插桩'],
+    sceneKeywords: ['hook a basic block', 'trace block entry', 'instrument the basic blocks'],
   },
   {
     tool: {
@@ -28139,7 +29032,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['trace wasm execution', 'record instruction trace', 'wasm 执行追踪'],
+    sceneKeywords: ['trace wasm execution', 'record instruction trace', 'trace the wasm execution'],
   },
   {
     tool: {
@@ -28185,7 +29078,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['look at wasm linear memory', 'inspect memory sections', '检视 wasm 内存'],
+    sceneKeywords: [
+      'look at wasm linear memory',
+      'inspect memory sections',
+      'inspect the wasm memory',
+    ],
   },
   {
     tool: {
@@ -28231,7 +29128,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['execute wasm without browser', 'run module offline', '离线执行 wasm'],
+    sceneKeywords: ['execute wasm without browser', 'run module offline', 'run the wasm offline'],
   },
   {
     tool: {
@@ -28266,7 +29163,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['shrink wasm module', 'optimize module size', '优化 wasm'],
+    sceneKeywords: ['shrink wasm module', 'optimize module size', 'optimise the wasm module'],
   },
   {
     tool: {
@@ -28301,7 +29198,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['pull strings from wasm', 'extract module text', '提取 wasm 字符串'],
+    sceneKeywords: [
+      'pull strings from wasm',
+      'extract module text',
+      'extract the strings from wasm',
+    ],
   },
   {
     tool: {
@@ -28330,7 +29231,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['translate wasm to c code', 'generate c from wasm', 'wasm 转 c'],
+    sceneKeywords: ['translate wasm to c code', 'generate c from wasm', 'convert wasm to c'],
   },
   {
     tool: {
@@ -28358,7 +29259,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'wasm',
-    sceneKeywords: ['trace vmp-protected wasm', 'follow vm interpreter loop', 'vmp 追踪'],
+    sceneKeywords: [
+      'trace vmp-protected wasm',
+      'follow vm interpreter loop',
+      'trace the virtual machine code',
+    ],
   },
   {
     tool: {
@@ -28400,7 +29305,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['watch this expression', 'track a value over time', '监视表达式'],
+    sceneKeywords: ['watch this expression', 'track a value over time', 'watch an expression'],
   },
   {
     tool: {
@@ -28495,7 +29400,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['unpack the webpack bundle', 'split bundle into modules', '解包 bundle'],
+    sceneKeywords: [
+      'unpack the webpack bundle',
+      'split bundle into modules',
+      'unpack the javascript bundle',
+    ],
   },
   {
     tool: {
@@ -28509,7 +29418,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['gpu adapter details', 'which gpu is exposed', 'gpu 适配器信息'],
+    sceneKeywords: ['gpu adapter details', 'which gpu is exposed', 'gpu adapter information'],
   },
   {
     tool: {
@@ -28531,7 +29440,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['record gpu command buffer', 'capture webgpu calls', '捕获 gpu 命令'],
+    sceneKeywords: [
+      'record gpu command buffer',
+      'capture webgpu calls',
+      'capture the gpu commands',
+    ],
   },
   {
     tool: {
@@ -28565,7 +29478,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['capture gpu validation errors', 'record webgpu errors', '捕获 gpu 错误'],
+    sceneKeywords: [
+      'capture gpu validation errors',
+      'record webgpu errors',
+      'capture the gpu errors',
+    ],
   },
   {
     tool: {
@@ -28590,7 +29507,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['gpu frame duration', 'render timing per frame', '帧耗时'],
+    sceneKeywords: ['gpu frame duration', 'render timing per frame', 'frame timing'],
   },
   {
     tool: {
@@ -28610,7 +29527,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['gpu buffer layout details', 'memory bindings of buffers', 'gpu 内存布局'],
+    sceneKeywords: ['gpu buffer layout details', 'memory bindings of buffers', 'gpu memory layout'],
   },
   {
     tool: {
@@ -28639,7 +29556,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['dump render pipeline state', 'pipeline layout details', '管线状态'],
+    sceneKeywords: ['dump render pipeline state', 'pipeline layout details', 'pipeline state'],
   },
   {
     tool: {
@@ -28665,7 +29582,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['compile wgsl shader', 'translate shader source', '编译着色器'],
+    sceneKeywords: ['compile wgsl shader', 'translate shader source', 'compile the shader'],
   },
   {
     tool: {
@@ -28691,7 +29608,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['disassemble shader bytecode', 'spir-v to text', '反汇编着色器'],
+    sceneKeywords: ['disassemble shader bytecode', 'spir-v to text', 'disassemble the shader'],
   },
   {
     tool: {
@@ -28720,7 +29637,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['capture shader source code', 'grab wgsl source', '捕获着色器源码'],
+    sceneKeywords: ['capture shader source code', 'grab wgsl source', 'capture the shader source'],
   },
   {
     tool: {
@@ -28746,7 +29663,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'webgpu',
-    sceneKeywords: ['side channel timing on gpu', 'measure gpu op timing', 'gpu 时序分析'],
+    sceneKeywords: ['side channel timing on gpu', 'measure gpu op timing', 'gpu timing analysis'],
   },
   {
     tool: {
@@ -28810,7 +29727,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'extension-registry',
-    sceneKeywords: ['outbound webhook endpoint', 'c2 callback url', 'webhook 端点'],
+    sceneKeywords: ['outbound webhook endpoint', 'c2 callback url', 'webhook endpoint'],
   },
   {
     tool: {
@@ -28845,7 +29762,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['list modules in the bundle', 'enumerate chunk contents', '枚举模块'],
+    sceneKeywords: [
+      'list modules in the bundle',
+      'enumerate chunk contents',
+      'enumerate the loaded modules',
+    ],
   },
   {
     tool: {
@@ -28885,7 +29806,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['save webrtc traffic', 'dump webrtc session', '导出 webrtc 抓包'],
+    sceneKeywords: [
+      'save webrtc traffic',
+      'dump webrtc session',
+      'export the captured webrtc traffic',
+    ],
   },
   {
     tool: {
@@ -28932,7 +29857,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['show webrtc activity', 'captured peer events', 'webrtc 事件'],
+    sceneKeywords: ['show webrtc activity', 'captured peer events', 'webrtc events'],
   },
   {
     tool: {
@@ -28973,7 +29898,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['watch webrtc traffic', 'follow peer connections', '监控 webrtc'],
+    sceneKeywords: [
+      'watch webrtc traffic',
+      'follow peer connections',
+      'monitor the webrtc traffic',
+    ],
   },
   {
     tool: {
@@ -29010,7 +29939,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['close manual websocket', 'tear down ws socket', '关闭 ws'],
+    sceneKeywords: [
+      'close manual websocket',
+      'tear down ws socket',
+      'close the websocket connection',
+    ],
   },
   {
     tool: {
@@ -29098,7 +30031,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['open websocket by hand', 'manual ws handshake', '建 ws 连接'],
+    sceneKeywords: ['open websocket by hand', 'manual ws handshake', 'open a websocket connection'],
   },
   {
     tool: {
@@ -29121,7 +30054,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'tls-inspector',
-    sceneKeywords: ['receive ws frame manually', 'wait for websocket message', '接收 ws 帧'],
+    sceneKeywords: [
+      'receive ws frame manually',
+      'wait for websocket message',
+      'receive a websocket frame',
+    ],
   },
   {
     tool: {
@@ -29168,7 +30105,7 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'push ws frame manually',
       'send raw websocket message',
-      '发送 ws 帧',
+      'send a websocket frame',
       'inject outbound ws payload manually',
     ],
   },
@@ -29228,7 +30165,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['solve the checkbox widget', 'handle cf challenge', '过挑战组件'],
+    sceneKeywords: [
+      'solve the checkbox widget',
+      'handle cf challenge',
+      'pass the challenge widget',
+    ],
   },
   {
     tool: {
@@ -29298,7 +30239,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['branch workflow on condition', 'if step in recipe', '条件步骤'],
+    sceneKeywords: ['branch workflow on condition', 'if step in recipe', 'conditional step'],
   },
   {
     tool: {
@@ -29340,7 +30281,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['configure retry behavior', 'rerun on failure policy', '重试策略'],
+    sceneKeywords: ['configure retry behavior', 'rerun on failure policy', 'retry strategy'],
   },
   {
     tool: {
@@ -29376,7 +30317,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['inspect a workflow execution', 'see run details', '检查运行'],
+    sceneKeywords: ['inspect a workflow execution', 'see run details', 'inspect the run'],
   },
   {
     tool: {
@@ -29405,7 +30346,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'workflow',
-    sceneKeywords: ['recommend a recipe', 'which workflow fits this task', '推荐工作流'],
+    sceneKeywords: ['recommend a recipe', 'which workflow fits this task', 'recommend a workflow'],
   },
   {
     tool: {
@@ -29445,7 +30386,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['save websocket traffic', 'dump ws session to file', '导出 ws 抓包'],
+    sceneKeywords: [
+      'save websocket traffic',
+      'dump ws session to file',
+      'export the captured websocket traffic',
+    ],
   },
   {
     tool: {
@@ -29463,7 +30408,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['list open ws sockets', 'websocket sessions', 'ws 连接列表'],
+    sceneKeywords: ['list open ws sockets', 'websocket sessions', 'list the websocket connections'],
   },
   {
     tool: {
@@ -29510,7 +30455,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['show ws messages', 'captured websocket frames', 'ws 帧列表'],
+    sceneKeywords: ['show ws messages', 'captured websocket frames', 'list the websocket frames'],
   },
   {
     tool: {
@@ -29551,7 +30496,11 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['watch websocket traffic live', 'follow ws frames', '监控 websocket'],
+    sceneKeywords: [
+      'watch websocket traffic live',
+      'follow ws frames',
+      'monitor the websocket traffic',
+    ],
   },
   {
     tool: {
@@ -29585,6 +30534,6 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'streaming',
-    sceneKeywords: ['push a ws message', 'inject websocket frame', '发送 ws 帧'],
+    sceneKeywords: ['push a ws message', 'inject websocket frame', 'send a websocket frame'],
   },
 ] as unknown as readonly GeneratedToolCatalogEntry[];

@@ -48,14 +48,18 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   extension_execute_in_context: [
     'run code inside plugin context',
     'execute in extension scope',
-    '插件上下文执行',
+    'run in the plugin context',
   ],
-  extension_info: ['plugin details', 'what does this extension do', '插件详情'],
-  extension_install: ['install a plugin', 'add extension to registry', '安装插件'],
-  extension_list_installed: ['installed plugins list', 'what extensions are loaded', '已装插件'],
-  extension_reload: ['reload a plugin', 'refresh extension code', '重载插件'],
-  extension_uninstall: ['remove a plugin', 'uninstall extension', '卸载插件'],
-  webhook: ['outbound webhook endpoint', 'c2 callback url', 'webhook 端点'],
+  extension_info: ['plugin details', 'what does this extension do', 'show the plugin details'],
+  extension_install: ['install a plugin', 'add extension to registry', 'install a plugin'],
+  extension_list_installed: [
+    'installed plugins list',
+    'what extensions are loaded',
+    'list the installed plugins',
+  ],
+  extension_reload: ['reload a plugin', 'refresh extension code', 'reload the plugin'],
+  extension_uninstall: ['remove a plugin', 'uninstall extension', 'uninstall a plugin'],
+  webhook: ['outbound webhook endpoint', 'c2 callback url', 'webhook endpoint'],
 };
 
 const manifest = {

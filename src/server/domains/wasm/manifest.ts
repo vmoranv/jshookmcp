@@ -48,23 +48,63 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  wasm_inspect: ['look inside a wasm module', 'module overview', '检视 wasm 模块'],
-  wasm_inspect_sections: ['list wasm sections', 'enumerate module sections', '列出 wasm 节区'],
-  wasm_disassemble: ['wasm bytecode to text', 'list wasm instructions', '反汇编 wasm'],
-  wasm_decompile: ['readable wasm pseudocode', 'decompile wasm module', '反编译 wasm'],
-  wasm_to_c: ['translate wasm to c code', 'generate c from wasm', 'wasm 转 c'],
-  wasm_dump: ['dump wasm module bytes', 'save module to disk', '导出 wasm'],
-  wasm_diff: ['compare two wasm modules', 'module version delta', '对比 wasm'],
-  wasm_detect_obfuscation: ['spot wasm obfuscation', 'detect packed module', '检测 wasm 混淆'],
-  wasm_string_extract: ['pull strings from wasm', 'extract module text', '提取 wasm 字符串'],
-  wasm_capabilities: ['what wasm tooling exists', 'check wasm feature support', 'wasm 能力'],
-  wasm_offline_run: ['execute wasm without browser', 'run module offline', '离线执行 wasm'],
-  wasm_optimize: ['shrink wasm module', 'optimize module size', '优化 wasm'],
-  wasm_instrument_binary: ['patch wasm at binary level', 'hook module bytes', '二进制插桩 wasm'],
-  wasm_instrument_block: ['hook a basic block', 'trace block entry', '基本块插桩'],
-  wasm_instrument_trace: ['trace wasm execution', 'record instruction trace', 'wasm 执行追踪'],
-  wasm_memory_inspect: ['look at wasm linear memory', 'inspect memory sections', '检视 wasm 内存'],
-  wasm_vmp_trace: ['trace vmp-protected wasm', 'follow vm interpreter loop', 'vmp 追踪'],
+  wasm_inspect: ['look inside a wasm module', 'module overview', 'inspect the wasm module'],
+  wasm_inspect_sections: [
+    'list wasm sections',
+    'enumerate module sections',
+    'list the wasm sections',
+  ],
+  wasm_disassemble: [
+    'wasm bytecode to text',
+    'list wasm instructions',
+    'disassemble the wasm module',
+  ],
+  wasm_decompile: [
+    'readable wasm pseudocode',
+    'decompile wasm module',
+    'decompile the wasm module',
+  ],
+  wasm_to_c: ['translate wasm to c code', 'generate c from wasm', 'convert wasm to c'],
+  wasm_dump: ['dump wasm module bytes', 'save module to disk', 'export the wasm module'],
+  wasm_diff: ['compare two wasm modules', 'module version delta', 'diff the two wasm modules'],
+  wasm_detect_obfuscation: [
+    'spot wasm obfuscation',
+    'detect packed module',
+    'detect wasm obfuscation',
+  ],
+  wasm_string_extract: [
+    'pull strings from wasm',
+    'extract module text',
+    'extract the strings from wasm',
+  ],
+  wasm_capabilities: [
+    'what wasm tooling exists',
+    'check wasm feature support',
+    'wasm capabilities',
+  ],
+  wasm_offline_run: ['execute wasm without browser', 'run module offline', 'run the wasm offline'],
+  wasm_optimize: ['shrink wasm module', 'optimize module size', 'optimise the wasm module'],
+  wasm_instrument_binary: [
+    'patch wasm at binary level',
+    'hook module bytes',
+    'instrument the wasm binary',
+  ],
+  wasm_instrument_block: ['hook a basic block', 'trace block entry', 'instrument the basic blocks'],
+  wasm_instrument_trace: [
+    'trace wasm execution',
+    'record instruction trace',
+    'trace the wasm execution',
+  ],
+  wasm_memory_inspect: [
+    'look at wasm linear memory',
+    'inspect memory sections',
+    'inspect the wasm memory',
+  ],
+  wasm_vmp_trace: [
+    'trace vmp-protected wasm',
+    'follow vm interpreter loop',
+    'trace the virtual machine code',
+  ],
 };
 
 const manifest = {

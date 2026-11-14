@@ -101,30 +101,58 @@ const manifest = {
 
   // Document-expansion keywords for the retrieval layer (search sceneKeywords).
   sceneKeywords: {
-    append_session_insight: ['add finding to session log', 'record a discovery', '补充会话发现'],
-    complete_task_handoff: ['finalize handoff to next agent', 'close out the handoff', '完成交接'],
+    append_session_insight: [
+      'add finding to session log',
+      'record a discovery',
+      'discover more about the session',
+    ],
+    complete_task_handoff: [
+      'finalize handoff to next agent',
+      'close out the handoff',
+      'complete the handoff',
+    ],
     coordination_restore_snapshot: [
       'bring back saved browser state',
       'reload coordination snapshot',
-      '恢复快照',
+      'restore the snapshot',
     ],
-    create_task_handoff: ['prepare handoff for another agent', 'start a task transfer', '创建交接'],
+    create_task_handoff: [
+      'prepare handoff for another agent',
+      'start a task transfer',
+      'create a handoff',
+    ],
     get_task_context: [
       'read handoff context',
       'what did the previous agent leave',
-      '获取交接上下文',
+      'get the handoff context',
     ],
-    list_page_snapshots: ['show saved page states', 'enumerate snapshots', '列出页面快照'],
-    restore_page_snapshot: ['go back to a saved page state', 'load snapshot again', '恢复页面快照'],
+    list_page_snapshots: [
+      'show saved page states',
+      'enumerate snapshots',
+      'list the page snapshots',
+    ],
+    restore_page_snapshot: [
+      'go back to a saved page state',
+      'load snapshot again',
+      'restore a page snapshot',
+    ],
     save_page_snapshot: [
       'capture current page state for later',
       'store page snapshot',
-      '保存页面快照',
+      'save a page snapshot',
     ],
-    state_board: ['shared key value board', 'read coordination state', '共享状态板'],
-    state_board_io: ['write to shared board', 'put state entries', '写状态板'],
-    state_board_watch: ['subscribe to state changes', 'notify on board updates', '监听状态板'],
-    update_task_handoff: ['amend the handoff notes', 'revise handoff content', '更新交接'],
+    state_board: ['shared key value board', 'read coordination state', 'shared state board'],
+    state_board_io: ['write to shared board', 'put state entries', 'write to the state board'],
+    state_board_watch: [
+      'subscribe to state changes',
+      'notify on board updates',
+      'watch the state board',
+    ],
+    update_task_handoff: [
+      'amend the handoff notes',
+      'revise handoff content',
+      'update the handoff',
+    ],
   },
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

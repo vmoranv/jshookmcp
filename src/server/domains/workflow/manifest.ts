@@ -92,23 +92,47 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  api_probe_batch: ['probe many endpoints at once', 'batch request health check', '批量探测接口'],
-  js_bundle_search: ['find code inside bundles', 'search bundled javascript', 'bundle 内检索'],
-  list_extension_workflows: ['what workflows exist', 'enumerate plugin recipes', '列出工作流'],
-  list_macros: ['show saved macros', 'enumerate macro library', '列出宏'],
+  api_probe_batch: [
+    'probe many endpoints at once',
+    'batch request health check',
+    'probe many api endpoints at once',
+  ],
+  js_bundle_search: [
+    'find code inside bundles',
+    'search bundled javascript',
+    'search inside the javascript bundle',
+  ],
+  list_extension_workflows: [
+    'what workflows exist',
+    'enumerate plugin recipes',
+    'list the workflows',
+  ],
+  list_macros: ['show saved macros', 'enumerate macro library', 'list the macros'],
   page_script_register: [
     'install a script before page load',
     'persistent inject on navigate',
-    '预载脚本',
+    'preload a script',
   ],
-  page_script_run: ['run a script right now in page', 'execute ad hoc page code', '执行页面脚本'],
-  reverse_session: ['start a reversing session', 'begin analysis workspace', '开逆向会话'],
-  run_extension_workflow: ['execute a plugin recipe', 'run the workflow steps', '运行工作流'],
-  run_macro: ['play back a macro', 'execute recorded macro', '运行宏'],
-  workflow_conditional_step: ['branch workflow on condition', 'if step in recipe', '条件步骤'],
-  workflow_retry_policy: ['configure retry behavior', 'rerun on failure policy', '重试策略'],
-  workflow_run_inspect: ['inspect a workflow execution', 'see run details', '检查运行'],
-  workflow_suggest: ['recommend a recipe', 'which workflow fits this task', '推荐工作流'],
+  page_script_run: [
+    'run a script right now in page',
+    'execute ad hoc page code',
+    'execute a script in the page',
+  ],
+  reverse_session: [
+    'start a reversing session',
+    'begin analysis workspace',
+    'open a reverse engineering session',
+  ],
+  run_extension_workflow: ['execute a plugin recipe', 'run the workflow steps', 'run the workflow'],
+  run_macro: ['play back a macro', 'execute recorded macro', 'run the macro'],
+  workflow_conditional_step: [
+    'branch workflow on condition',
+    'if step in recipe',
+    'conditional step',
+  ],
+  workflow_retry_policy: ['configure retry behavior', 'rerun on failure policy', 'retry strategy'],
+  workflow_run_inspect: ['inspect a workflow execution', 'see run details', 'inspect the run'],
+  workflow_suggest: ['recommend a recipe', 'which workflow fits this task', 'recommend a workflow'],
 };
 
 const manifest = {

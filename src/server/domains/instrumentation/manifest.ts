@@ -196,46 +196,54 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // duplicating name/description tokens. Folded into generated-tool-catalog by
 // scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
-  ai_hook: ['let ai place the hooks', 'smart hook placement', 'ai 挂钩'],
-  evidence_chain: ['build the evidence chain', 'link findings together', '证据链'],
-  evidence_export: ['save evidence bundle', 'export findings to file', '导出证据'],
-  evidence_query: ['search recorded evidence', 'query findings store', '查询证据'],
-  hook_preset: ['ready-made hook templates', 'pick a hook preset', '挂钩预设'],
+  ai_hook: ['let ai place the hooks', 'smart hook placement', 'apply an ai generated hook'],
+  evidence_chain: [
+    'build the evidence chain',
+    'link findings together',
+    'build the evidence chain',
+  ],
+  evidence_export: ['save evidence bundle', 'export findings to file', 'export the evidence'],
+  evidence_query: ['search recorded evidence', 'query findings store', 'query the evidence'],
+  hook_preset: ['ready-made hook templates', 'pick a hook preset', 'hook presets'],
   instrumentation_artifact: [
     'collected instrumentation artifact',
     'session artifact store',
-    '插桩产物',
+    'instrumentation artifacts',
   ],
   instrumentation_hook_preset: [
     'instrumentation template hooks',
     'preset instrumentation set',
-    '插桩预设',
+    'instrumentation presets',
   ],
   instrumentation_network_replay: [
     'replay captured traffic in session',
     're-run recorded requests',
-    '会话内重放',
+    'replay inside the session',
   ],
   instrumentation_operation: [
     'single instrumentation operation',
     'one instrumentation action',
-    '插桩操作',
+    'perform an instrumentation operation',
   ],
-  instrumentation_session: ['open instrumentation session', 'start instrumented run', '插桩会话'],
+  instrumentation_session: [
+    'open instrumentation session',
+    'start instrumented run',
+    'instrumentation session',
+  ],
   instrumentation_session_diff: [
     'compare two instrumented runs',
     'session behavior delta',
-    '会话对比',
+    'compare the sessions',
   ],
   instrumentation_session_export: [
     'export instrumentation session',
     'save session data',
-    '导出会话',
+    'export the session',
   ],
   instrumentation_session_merge: [
     'merge instrumented sessions',
     'combine session data',
-    '合并会话',
+    'merge the sessions',
   ],
 };
 

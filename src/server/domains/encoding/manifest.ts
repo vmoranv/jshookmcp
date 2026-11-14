@@ -44,13 +44,17 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   binary_decode: [
     'decode base64 blob',
     'turn hex into bytes',
-    '解码二进制',
+    'decode binary data',
     'blob to raw bytes conversion',
   ],
-  binary_detect_format: ['identify file type', 'magic bytes sniff', '识别文件格式'],
-  binary_encode: ['encode bytes to base64', 'serialize buffer', '编码二进制'],
-  binary_entropy_analysis: ['measure randomness', 'shannon entropy of bytes', '熵分析'],
-  protobuf_decode_raw: ['decode protobuf without schema', 'parse wire format', '解析 protobuf'],
+  binary_detect_format: ['identify file type', 'magic bytes sniff', 'identify the file format'],
+  binary_encode: ['encode bytes to base64', 'serialize buffer', 'encode binary data'],
+  binary_entropy_analysis: [
+    'measure randomness',
+    'shannon entropy of bytes',
+    'measure the entropy of the data',
+  ],
+  protobuf_decode_raw: ['decode protobuf without schema', 'parse wire format', 'decode protobuf'],
 };
 
 const manifest = {
