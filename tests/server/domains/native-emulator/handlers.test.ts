@@ -984,3 +984,89 @@ describe('NativeEmulatorHandlers — native-call step budget clamping', () => {
     expect(res.clamped).toBeUndefined();
   });
 });
+
+describe('NativeEmulatorHandlers — nemu_read_memory / nemu_write_memory arg validation', () => {
+  let handlers: NativeEmulatorHandlers;
+
+  afterEach(() => handlers.dispose());
+
+  async function freshSession(): Promise<string> {
+    handlers = new NativeEmulatorHandlers(
+      new SessionManager({ emulatorOptions: { syscalls: false } }),
+    );
+    const created = payload(await handlers.handleCreateSession({ installSyscalls: false }));
+    return created.sessionId as string;
+  }
+
+  async function allocBytes(sessionId: string, bytes: number[]): Promise<number> {
+    const allocated = payload(
+      await handlers.handleAllocMemory({
+        sessionId,
+        size: bytes.length,
+        fillBytes: Buffer.from(bytes).toString('base64'),
+      }),
+    );
+    expect(allocated.success).not.toBe(false);
+    return allocated.address as number;
+  }
+
+  it('rejects reads without an address', async () => {
+    const sessionId = await freshSession();
+    const res = payload(await handlers.handleReadMemory({ sessionId, length: 4 }));
+    expect(res.success).toBe(false);
+    expect(res.error).toContain('Missing or invalid "address" or "length"');
+  });
+
+  it('rejects reads without a length', async () => {
+    const sessionId = await freshSession();
+    const res = payload(await handlers.handleReadMemory({ sessionId, address: 0x1000 }));
+    expect(res.success).toBe(false);
+    expect(res.error).toContain('Missing or invalid "address" or "length"');
+  });
+
+  it('rejects reads with a zero or negative length', async () => {
+    const sessionId = await freshSession();
+    for (const length of [0, -8]) {
+      const res = payload(await handlers.handleReadMemory({ sessionId, address: 0x1000, length }));
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('Missing or invalid "address" or "length"');
+    }
+  });
+
+  it('clamps previewBytes above the read length to the full data', async () => {
+    const sessionId = await freshSession();
+    const address = await allocBytes(sessionId, [0xde, 0xad, 0xbe]);
+    const res = payload(
+      await handlers.handleReadMemory({ sessionId, address, length: 3, previewBytes: 100 }),
+    );
+    expect(res.previewBase64).toBe(Buffer.from([0xde, 0xad, 0xbe]).toString('base64'));
+  });
+
+  it('clamps a negative previewBytes to an empty preview', async () => {
+    const sessionId = await freshSession();
+    const address = await allocBytes(sessionId, [0xef, 0xfe]);
+    const res = payload(
+      await handlers.handleReadMemory({ sessionId, address, length: 2, previewBytes: -4 }),
+    );
+    expect(res.previewBase64).toBe('');
+  });
+
+  it('rejects writes without an address', async () => {
+    const sessionId = await freshSession();
+    const res = payload(
+      await handlers.handleWriteMemory({
+        sessionId,
+        dataBase64: Buffer.from([1]).toString('base64'),
+      }),
+    );
+    expect(res.success).toBe(false);
+    expect(res.error).toContain('Missing required number argument: "address"');
+  });
+
+  it('rejects writes without dataBase64', async () => {
+    const sessionId = await freshSession();
+    const res = payload(await handlers.handleWriteMemory({ sessionId, address: 0x1000 }));
+    expect(res.success).toBe(false);
+    expect(res.error).toContain('Missing required string argument: "dataBase64"');
+  });
+});
