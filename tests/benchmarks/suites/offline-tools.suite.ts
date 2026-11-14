@@ -211,6 +211,92 @@ export const offlineToolsSuite: BenchSuite = {
       },
     },
     {
+      name: 'browser_jsdom/serialize-round-trip',
+      tool: 'browser_jsdom_serialize',
+      origin: 'external-vector',
+      reference:
+        'WHATWG HTML serialization: dom.serialize() round-trips the parsed document without losing nodes or attributes',
+      run: async () => {
+        const parsed = body(await browserHandlers.handleJsdomParse({ html: JSDOM_HTML }));
+        const sessionId = String(parsed.sessionId ?? '');
+        if (!sessionId) return { error: 'no sessionId returned' };
+        return browserHandlers.handleJsdomSerialize({ sessionId });
+      },
+      validate: (v) => {
+        const b = body(v);
+        if (b.success === false) return `serialize failed: ${b.error}`;
+        const html = String(b.html ?? '');
+        const bytes = Number(b.bytes ?? 0);
+        if (!html.includes('li class="item"'))
+          return `serialized HTML lost the list items: ${html.slice(0, 120)}`;
+        if (!html.includes('/next')) return 'serialized HTML lost the anchor href';
+        return bytes > 0 ? true : `byte count not reported: ${JSON.stringify(b).slice(0, 120)}`;
+      },
+    },
+    {
+      name: 'browser_jsdom/cookies-set-get-clear',
+      tool: 'browser_jsdom_cookies',
+      origin: 'homemade',
+      reference:
+        'RFC 6265 cookie jar semantics through the JSDOM session cookieJar (set → get → clear → get)',
+      run: async () => {
+        const parsed = body(
+          await browserHandlers.handleJsdomParse({
+            html: JSDOM_HTML,
+            url: 'https://example.test/',
+          }),
+        );
+        const sessionId = String(parsed.sessionId ?? '');
+        if (!sessionId) return { error: 'no sessionId returned' };
+        const set = body(
+          await browserHandlers.handleJsdomCookies({
+            sessionId,
+            action: 'set',
+            cookie: { name: 'bench', value: 'v1' },
+          }),
+        );
+        const got = body(await browserHandlers.handleJsdomCookies({ sessionId, action: 'get' }));
+        const cleared = body(
+          await browserHandlers.handleJsdomCookies({ sessionId, action: 'clear' }),
+        );
+        const after = body(await browserHandlers.handleJsdomCookies({ sessionId, action: 'get' }));
+        return { set, got, cleared, after };
+      },
+      validate: (v) => {
+        const { error, set, got, after } = v as {
+          error?: string;
+          set: Record<string, unknown>;
+          got: Record<string, unknown>;
+          after: Record<string, unknown>;
+        };
+        if (error) return error;
+        if (set.success === false) return `set failed: ${JSON.stringify(set).slice(0, 120)}`;
+        const cookies = Array.isArray(got.cookies) ? got.cookies : [];
+        const found = cookies.some((c) => (c as { key?: string }).key === 'bench');
+        if (!found)
+          return `cookie 'bench' not visible after set: ${JSON.stringify(got).slice(0, 180)}`;
+        const afterCookies = Array.isArray(after.cookies) ? after.cookies : [];
+        return afterCookies.length === 0
+          ? true
+          : `clear left ${afterCookies.length} cookie(s) behind`;
+      },
+    },
+    {
+      name: 'browser_passkey_seed/missing-required-fields',
+      tool: 'browser_passkey_seed',
+      origin: 'homemade',
+      reference:
+        'argument contract: seeding a WebAuthn credential requires relyingPartyId, credentialId, userHandle and privateKey',
+      run: () => browserHandlers.handleBrowserPasskeySeed({}),
+      validate: (v) => {
+        const b = body(v);
+        const text = JSON.stringify(b);
+        return b.success === false && /relyingPartyId|credentialId|userHandle|privateKey/.test(text)
+          ? true
+          : `expected a required-fields error: ${text.slice(0, 180)}`;
+      },
+    },
+    {
       name: 'exploit_generate_egghunter/linux-access-stub',
       tool: 'exploit_generate_egghunter',
       origin: 'external-vector',
