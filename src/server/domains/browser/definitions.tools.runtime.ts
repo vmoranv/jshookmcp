@@ -184,7 +184,11 @@ export const browserRuntimeTools: Tool[] = [
   ),
   tool('browser_attach_cdp_target', (t) =>
     t
-      .desc('Attach to a CDP target by targetId.')
+      .desc(
+        'Attach to a CDP target by targetId (a page, an out-of-process iframe, or a worker) to drive that ' +
+          "target's context — e.g. attach to the target of a specific iframe on the page before running " +
+          'expressions inside the frame context.',
+      )
       .string('targetId', 'Target ID')
       .required('targetId'),
   ),

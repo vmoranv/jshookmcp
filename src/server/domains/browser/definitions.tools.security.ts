@@ -19,7 +19,14 @@ export const browserSecurityStateTools: Tool[] = [
       .idempotent(),
   ),
   tool('stealth_inject', (t) =>
-    t.desc('Inject anti-detection scripts to reduce bot fingerprint exposure.').idempotent(),
+    t
+      .desc(
+        'Inject anti-detection scripts to reduce bot fingerprint exposure: patches navigator.webdriver, plugins, ' +
+          'canvas/WebGL, battery, media devices and timing, and applies the active fingerprint profile (user agent ' +
+          'included) when one exists — making the automation harder to detect. Afterwards check with ' +
+          'stealth_verify whether the automation is still detectable.',
+      )
+      .idempotent(),
   ),
   tool('stealth_set_user_agent', (t) =>
     t
@@ -75,7 +82,10 @@ export const browserSecurityStateTools: Tool[] = [
   ),
   tool('browser_select_tab', (t) =>
     t
-      .desc('Switch active tab by index, URL pattern, or title pattern.')
+      .desc(
+        'Switch active tab by index, URL pattern, or title pattern — pick one of the open browser tabs, ' +
+          'and switch between tabs as you orchestrate a flow across multiple tabs.',
+      )
       .number('index', 'Tab index')
       .string('urlPattern', 'URL substring match')
       .string('titlePattern', 'Title substring match')

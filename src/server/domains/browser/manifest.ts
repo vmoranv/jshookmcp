@@ -382,7 +382,14 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'take the page to another site',
   ],
   page_reload: ['refresh the page', 'reload current document', 'reload the page'],
-  page_click: ['click this element', 'press a dom node', 'click the element'],
+  page_click: [
+    'click this element',
+    'press a dom node',
+    'click the element',
+    'click a dropdown option to choose it',
+    'click the file upload input to open the file picker',
+    'click a button in an in-page popup or modal',
+  ],
   page_type: [
     'type text into a field',
     'enter keyboard input',
@@ -410,7 +417,9 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   page_evaluate: [
     'run javascript in the page',
     'evaluate an expression in page context',
-    'run javascript in the page',
+    'read React state from the page via an evaluated expression',
+    'evaluate javascript to inspect the live objects on the page',
+    'evaluate an expression to see what a value is on the page',
   ],
   page_screenshot: ['take a picture of the page', 'capture visual snapshot', 'screenshot the page'],
   page_cookies: ['read and set cookies', 'manage browser cookies', 'manage the cookies'],
