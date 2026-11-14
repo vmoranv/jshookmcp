@@ -53,6 +53,43 @@ describe('search/SynonymExpander', () => {
       expect(result).toContain('beautify');
       expect(result).toContain('unminify');
     });
+
+    it('maps freeze to suspend (process suspension)', () => {
+      const result = expander.expand('freeze');
+      expect(result).toContain('suspend');
+    });
+
+    it('maps suspend to freeze (bidirectional)', () => {
+      const result = expander.expand('suspend');
+      expect(result).toContain('freeze');
+    });
+
+    it('maps emulator to nemu (native-emulator term-of-art)', () => {
+      const result = expander.expand('emulator');
+      expect(result).toContain('nemu');
+    });
+
+    it('maps nemu back to emulator (bidirectional)', () => {
+      const result = expander.expand('nemu');
+      expect(result).toContain('emulator');
+    });
+
+    it('keeps nemu within the first expansion slots of emulator', () => {
+      // expand() returns the full merged synonym set in insertion order; the
+      // engine only consumes the first SEARCH_SYNONYM_EXPANSION_LIMIT (2)
+      // entries, so nemu must sit in the first two slots for the
+      // "the emulator" → nemu_* mapping to fire at all.
+      const result = expander.expand('emulator');
+      expect(result.indexOf('nemu')).toBeGreaterThanOrEqual(0);
+      expect(result.indexOf('nemu')).toBeLessThan(2);
+    });
+
+    it('maps remove to disable (aa-script removal grounding)', () => {
+      const result = expander.expand('remove');
+      expect(result).toContain('disable');
+      // existing family members stay reachable
+      expect(result).toContain('delete');
+    });
   });
 
   describe('expandQuery()', () => {
