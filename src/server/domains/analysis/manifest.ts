@@ -337,6 +337,7 @@ const manifest = {
     get_collection_stats: [
       'collection summary',
       'how much code was grabbed',
+      'how much code has been collected',
       'collection statistics',
     ],
     webpack_enumerate: [

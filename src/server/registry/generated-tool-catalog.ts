@@ -10658,7 +10658,12 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'core',
-    sceneKeywords: ['collection summary', 'how much code was grabbed', 'collection statistics'],
+    sceneKeywords: [
+      'collection summary',
+      'how much code was grabbed',
+      'how much code has been collected',
+      'collection statistics',
+    ],
   },
   {
     tool: {
@@ -20609,6 +20614,8 @@ export const GENERATED_TOOL_CATALOG = [
     domain: 'network',
     sceneKeywords: [
       'is capture running',
+      'is traffic capture running',
+      'check whether network capture is active',
       'monitoring state',
       'capture active state',
       'is monitoring on',
