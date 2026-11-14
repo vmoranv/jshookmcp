@@ -328,7 +328,8 @@ export const processToolDefinitions: Tool[] = [
   tool('process_suspend', (t) =>
     t
       .desc(
-        'Suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). ' +
+        'Freeze this process for now: suspend a process for forensic snapshotting. ' +
+          'Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). ' +
           'Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. ' +
           'Requires admin/root on most platforms.',
       )

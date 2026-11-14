@@ -3,14 +3,16 @@
  *
  * Two kinds of case live here, and only the first kind carries weight:
  *
- *  - LIVE (7): the first and only vector case for their tool, so they raise that
+ *  - LIVE (8): the first and only vector case for their tool, so they raise that
  *    tool's correctness row off "no vector case". All run without a browser,
  *    device, or bridge: mojo_verify_live emits a script, exploit-dev's
  *    heap-spray / pwntools builders are offline, cross-domain health + synonym
- *    resolution are pure, sourcemap_diff reads two inline `data:` maps, and
- *    process_runtime_info is /proc or an honest refusal.
+ *    resolution are pure, sourcemap_diff reads two inline `data:` maps,
+ *    process_runtime_info is /proc or an honest refusal, and llm_suggest_names
+ *    invokes the manifest's bindWithProgress closure with an empty deps bag to
+ *    prove the honest no-runtime refusal.
  *
- *  - PLACEHOLDER (9): tools that need a live browser, an Android device, or a
+ *  - PLACEHOLDER (8): tools that need a live browser, an Android device, or a
  *    bound analysis context. They are skipped with an explicit reason and are
  *    NOT the tool's vector case: marking one as such would print
  *    "0/1 vectors", indistinguishable from a single vector that genuinely
@@ -25,6 +27,7 @@
  */
 import { ProcessToolHandlers } from '@server/domains/process/handlers.impl';
 import { ExploitDevHandlers } from '@server/domains/exploit-dev/handlers';
+import analysisManifest from '@server/domains/analysis/manifest';
 import { MojoIPCHandlers } from '@server/domains/mojo-ipc/handlers.impl';
 import {
   CrossDomainHandlers,
@@ -307,16 +310,6 @@ export const miscResidualSuite: BenchSuite = {
           skip: () => true,
           skipReason: 'requires a connected Android device/emulator',
         },
-        {
-          name: 'llm_suggest_names/honest-no-context',
-          tool: 'llm_suggest_names',
-          origin: 'homemade',
-          reference:
-            'with no analysis context bound, the tool must say so rather than invent names',
-          skip: () => true,
-          skipReason:
-            'requires a bind() deps bag without __runtimeCore (isolated harness only; MCPServer always injects it)',
-        },
       ] satisfies PlaceholderSpec[]
     ).map(placeholder),
     {
@@ -333,6 +326,37 @@ export const miscResidualSuite: BenchSuite = {
         return b.success === false
           ? true
           : 'on non-Linux platforms the tool must report success=false';
+      },
+    },
+    {
+      name: 'llm_suggest_names/honest-no-runtime',
+      tool: 'llm_suggest_names',
+      origin: 'homemade',
+      reference:
+        'without an injected runtime core, the manifest bindWithProgress closure must refuse honestly rather than invent names',
+      run: () => {
+        // The tool is bound inline (bindWithProgress), not via a handler
+        // method — invoke the manifest's own binding closure with an empty
+        // deps bag. getRuntimeCore({}) yields null, so the closure must take
+        // its honest "Server context not initialized" branch.
+        const registration = analysisManifest.registrations.find(
+          (r) => r.tool.name === 'llm_suggest_names',
+        );
+        if (!registration)
+          return Promise.resolve({ success: false, error: 'registration missing' });
+        // bind's returned arg type (ToolArgs) is narrower than the plain
+        // record the harness passes; the closure only reads generic fields.
+        const call = registration.bind({} as never) as (
+          a: Record<string, unknown>,
+        ) => Promise<unknown>;
+        return call({});
+      },
+      validate: (v) => {
+        const b = body(v);
+        const text = JSON.stringify(b);
+        return b.success === false && /Server context not initialized/.test(text)
+          ? true
+          : `expected an honest no-runtime refusal: ${text.slice(0, 180)}`;
       },
     },
   ],

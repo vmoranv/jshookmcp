@@ -29360,7 +29360,7 @@
     },
     "/memory/memory_auto_assemble_disable": {
       "post": {
-        "description": "Execute the DISABLE section of a previously-run Auto Assembler script. Pass the disableScript returned by memory_auto_assemble. Executes DISABLE commands, running DEALLOC last (CE convention). Win32 only — requires native process access.",
+        "description": "Remove the aa script: execute the DISABLE section of a previously-run Auto Assembler script. Pass the disableScript returned by memory_auto_assemble. Executes DISABLE commands, running DEALLOC last (CE convention). Win32 only — requires native process access.",
         "operationId": "memory_auto_assemble_disable",
         "requestBody": {
           "content": {
@@ -29384,7 +29384,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Execute the DISABLE section of a previously-run Auto Assembler script.",
+        "summary": "Remove the aa script: execute the DISABLE section of a previously-run Auto Assembler script.",
         "tags": ["memory"],
         "x-domain": "memory"
       }
@@ -29639,7 +29639,7 @@
     },
     "/memory/memory_find_accesses": {
       "post": {
-        "description": "Find what writes to or accesses a memory address (Cheat Engine MWT workflow). Sets a hardware breakpoint on the target address, auto-rearms after each hit, captures the faulting instruction address + context + timestamp, and optionally disassembles the instruction. Returns aggregated hits with per-hit instruction details.",
+        "description": "Find what reads or writes this address (Cheat Engine MWT workflow). Sets a hardware breakpoint on the target address, auto-rearms after each hit, captures the faulting instruction address + context + timestamp, and optionally disassembles the instruction. Returns aggregated hits with per-hit instruction details.",
         "operationId": "memory_find_accesses",
         "requestBody": {
           "content": {
@@ -29663,7 +29663,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Find what writes to or accesses a memory address (Cheat Engine MWT workflow).",
+        "summary": "Find what reads or writes this address (Cheat Engine MWT workflow).",
         "tags": ["memory"],
         "x-domain": "memory"
       }
@@ -31220,7 +31220,7 @@
     },
     "/memory/memory_trace_code": {
       "post": {
-        "description": "Ultimap-style instruction-level code tracing. Sets INT3 (0xCC) software breakpoints at function entry points and logs every execution. Aggregates hit counts per address to produce a hot-code-path heat map. Win32-only — requires the Win32 debug API (DebugActiveProcess). Provide either \"addresses\" (list of specific hex addresses) or \"startAddress\" + \"size\" (range to scan for 0x55 push-rbp prologues). Max trace time: 30s, max hits: 10000.",
+        "description": "Trace which code executes here: Ultimap-style instruction-level code tracing. Sets INT3 (0xCC) software breakpoints at function entry points and logs every execution. Aggregates hit counts per address to produce a hot-code-path heat map. Win32-only — requires the Win32 debug API (DebugActiveProcess). Provide either \"addresses\" (list of specific hex addresses) or \"startAddress\" + \"size\" (range to scan for 0x55 push-rbp prologues). Max trace time: 30s, max hits: 10000.",
         "operationId": "memory_trace_code",
         "requestBody": {
           "content": {
@@ -31244,7 +31244,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Ultimap-style instruction-level code tracing.",
+        "summary": "Trace which code executes here: Ultimap-style instruction-level code tracing.",
         "tags": ["memory"],
         "x-domain": "memory"
       }
@@ -32390,7 +32390,7 @@
     },
     "/native-emulator/nemu_capabilities": {
       "post": {
-        "description": "Report native-emulator backend availability, supported features, and explicit ISA/SIMD gaps. Unsupported opcodes fail loudly instead of being reported as emulated.",
+        "description": "What can the emulator do: report native-emulator backend availability, supported features, and explicit ISA/SIMD gaps. Unsupported opcodes fail loudly instead of being reported as emulated.",
         "operationId": "nemu_capabilities",
         "requestBody": {
           "content": {
@@ -32414,7 +32414,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Report native-emulator backend availability, supported features, and explicit ISA/SIMD gaps.",
+        "summary": "What can the emulator do: report native-emulator backend availability, supported features, and explicit ISA/SIMD gaps.",
         "tags": ["native-emulator"],
         "x-domain": "native-emulator"
       }
@@ -32576,7 +32576,7 @@
     },
     "/native-emulator/nemu_disassemble": {
       "post": {
-        "description": "Disassemble instructions. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.",
+        "description": "Disassemble emulator memory. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.",
         "operationId": "nemu_disassemble",
         "requestBody": {
           "content": {
@@ -32600,7 +32600,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Disassemble instructions.",
+        "summary": "Disassemble emulator memory.",
         "tags": ["native-emulator"],
         "x-domain": "native-emulator"
       }
@@ -32979,7 +32979,7 @@
     },
     "/native-emulator/nemu_load_library": {
       "post": {
-        "description": "Load an AArch64 ELF shared object (.so) from a filesystem path into a session, mapping its segments and resolving exported symbols. Prerequisite for list_symbols / call_symbol / call_jni_export.",
+        "description": "Load an .so into the emulator: load an AArch64 ELF shared object from a filesystem path into a session, mapping its segments and resolving exported symbols. Prerequisite for list_symbols / call_symbol / call_jni_export.",
         "operationId": "nemu_load_library",
         "requestBody": {
           "content": {
@@ -33003,7 +33003,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Load an AArch64 ELF shared object (.so) from a filesystem path into a session, mapping its segments and resolving exp...",
+        "summary": "Load an .so into the emulator: load an AArch64 ELF shared object from a filesystem path into a session, mapping its s...",
         "tags": ["native-emulator"],
         "x-domain": "native-emulator"
       }
@@ -35087,7 +35087,7 @@
     },
     "/platform/asar_deobfuscate": {
       "post": {
-        "description": "Scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and classify each file. Flagged files are optionally extracted to a directory for downstream deobfuscation.",
+        "description": "Deobfuscate the scripts inside this electron archive: scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and classify each file. Flagged files are optionally extracted to a directory for downstream deobfuscation.",
         "operationId": "asar_deobfuscate",
         "requestBody": {
           "content": {
@@ -35111,14 +35111,14 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-...",
+        "summary": "Deobfuscate the scripts inside this electron archive: scan every .js file inside an ASAR archive for obfuscation indi...",
         "tags": ["platform"],
         "x-domain": "platform"
       }
     },
     "/platform/asar_extract": {
       "post": {
-        "description": "Extract and list files from an Electron ASAR package.",
+        "description": "Unpack the electron app archive into a folder: extract and list files from an Electron ASAR package.",
         "operationId": "asar_extract",
         "requestBody": {
           "content": {
@@ -35142,7 +35142,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Extract and list files from an Electron ASAR package.",
+        "summary": "Unpack the electron app archive into a folder: extract and list files from an Electron ASAR package.",
         "tags": ["platform"],
         "x-domain": "platform"
       }
@@ -36482,7 +36482,7 @@
     },
     "/process/process_suspend": {
       "post": {
-        "description": "Suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. Requires admin/root on most platforms.",
+        "description": "Freeze this process for now: suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. Requires admin/root on most platforms.",
         "operationId": "process_suspend",
         "requestBody": {
           "content": {
@@ -36506,7 +36506,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Suspend a process for forensic snapshotting.",
+        "summary": "Freeze this process for now: suspend a process for forensic snapshotting.",
         "tags": ["process"],
         "x-domain": "process"
       }

@@ -353,7 +353,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_find_accesses', (t) =>
     t
       .desc(
-        `Find what writes to or accesses a memory address (Cheat Engine MWT workflow). ` +
+        `Find what reads or writes this address (Cheat Engine MWT workflow). ` +
           `Sets a hardware breakpoint on the target address, auto-rearms after each hit, ` +
           `captures the faulting instruction address + context + timestamp, and optionally ` +
           `disassembles the instruction. Returns aggregated hits with per-hit instruction details.`,
@@ -1177,7 +1177,8 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_trace_code', (t) =>
     t
       .desc(
-        'Ultimap-style instruction-level code tracing. Sets INT3 (0xCC) software breakpoints ' +
+        'Trace which code executes here: Ultimap-style instruction-level code tracing. ' +
+          'Sets INT3 (0xCC) software breakpoints ' +
           'at function entry points and logs every execution. Aggregates hit counts per address ' +
           'to produce a hot-code-path heat map. ' +
           'Win32-only — requires the Win32 debug API (DebugActiveProcess). ' +
@@ -1363,7 +1364,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_auto_assemble_disable', (t) =>
     t
       .desc(
-        'Execute the DISABLE section of a previously-run Auto Assembler script. ' +
+        'Remove the aa script: execute the DISABLE section of a previously-run Auto Assembler script. ' +
           'Pass the disableScript returned by memory_auto_assemble. ' +
           'Executes DISABLE commands, running DEALLOC last (CE convention). ' +
           'Win32 only — requires native process access.',

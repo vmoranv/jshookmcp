@@ -2189,7 +2189,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'asar_deobfuscate',
       description:
-        'Scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and classify each file. Flagged files are optionally extracted to a directory for downstream deobfuscation.',
+        'Deobfuscate the scripts inside this electron archive: scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and classify each file. Flagged files are optionally extracted to a directory for downstream deobfuscation.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -2239,7 +2239,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'asar_extract',
-      description: 'Extract and list files from an Electron ASAR package.',
+      description:
+        'Unpack the electron app archive into a folder: extract and list files from an Electron ASAR package.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -14068,7 +14069,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'memory_auto_assemble_disable',
       description:
-        'Execute the DISABLE section of a previously-run Auto Assembler script. Pass the disableScript returned by memory_auto_assemble. Executes DISABLE commands, running DEALLOC last (CE convention). Win32 only — requires native process access.',
+        'Remove the aa script: execute the DISABLE section of a previously-run Auto Assembler script. Pass the disableScript returned by memory_auto_assemble. Executes DISABLE commands, running DEALLOC last (CE convention). Win32 only — requires native process access.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -14586,7 +14587,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'memory_find_accesses',
       description:
-        'Find what writes to or accesses a memory address (Cheat Engine MWT workflow). Sets a hardware breakpoint on the target address, auto-rearms after each hit, captures the faulting instruction address + context + timestamp, and optionally disassembles the instruction. Returns aggregated hits with per-hit instruction details.',
+        'Find what reads or writes this address (Cheat Engine MWT workflow). Sets a hardware breakpoint on the target address, auto-rearms after each hit, captures the faulting instruction address + context + timestamp, and optionally disassembles the instruction. Returns aggregated hits with per-hit instruction details.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -16849,7 +16850,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'memory_trace_code',
       description:
-        'Ultimap-style instruction-level code tracing. Sets INT3 (0xCC) software breakpoints at function entry points and logs every execution. Aggregates hit counts per address to produce a hot-code-path heat map. Win32-only — requires the Win32 debug API (DebugActiveProcess). Provide either "addresses" (list of specific hex addresses) or "startAddress" + "size" (range to scan for 0x55 push-rbp prologues). Max trace time: 30s, max hits: 10000.',
+        'Trace which code executes here: Ultimap-style instruction-level code tracing. Sets INT3 (0xCC) software breakpoints at function entry points and logs every execution. Aggregates hit counts per address to produce a hot-code-path heat map. Win32-only — requires the Win32 debug API (DebugActiveProcess). Provide either "addresses" (list of specific hex addresses) or "startAddress" + "size" (range to scan for 0x55 push-rbp prologues). Max trace time: 30s, max hits: 10000.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -18127,7 +18128,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'nemu_capabilities',
       description:
-        'Report native-emulator backend availability, supported features, and explicit ISA/SIMD gaps. Unsupported opcodes fail loudly instead of being reported as emulated.',
+        'What can the emulator do: report native-emulator backend availability, supported features, and explicit ISA/SIMD gaps. Unsupported opcodes fail loudly instead of being reported as emulated.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -18331,7 +18332,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'nemu_disassemble',
       description:
-        'Disassemble instructions. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.',
+        'Disassemble emulator memory. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -18747,7 +18748,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'nemu_load_library',
       description:
-        'Load an AArch64 ELF shared object (.so) from a filesystem path into a session, mapping its segments and resolving exported symbols. Prerequisite for list_symbols / call_symbol / call_jni_export.',
+        'Load an .so into the emulator: load an AArch64 ELF shared object from a filesystem path into a session, mapping its segments and resolving exported symbols. Prerequisite for list_symbols / call_symbol / call_jni_export.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -23332,7 +23333,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'process_suspend',
       description:
-        'Suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. Requires admin/root on most platforms.',
+        'Freeze this process for now: suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. Requires admin/root on most platforms.',
       inputSchema: {
         type: 'object',
         properties: {
