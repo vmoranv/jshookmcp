@@ -356,7 +356,13 @@ function summarizeHandlerFn(cov: CoverageMeta, domain: string, methods: string[]
   if (total > 0) return `${Math.round((hit / total) * 100)}%`;
   if (hit > 0) return '100%';
   if (!cov.instrumentedDomains.has(domain)) return 'excluded (env-gated file not instrumented)';
-  return '0% (fns not found in coverage)';
+  // The domain file IS instrumented but none of the tool's bound method names
+  // appear in its fn-map — a coverage→handler mapping gap (composite facades,
+  // arrow-property bindings, renamed delegations), NOT a proven-never-executed
+  // handler. Rendering it as "0%" would read as a test deficit, which the
+  // correctness column contradicts for several of these tools (they pass
+  // vectors). Report the mapping gap honestly instead.
+  return 'unmapped (handler fns absent from coverage fn-map)';
 }
 
 function perToolMetrics(): ToolMetrics[] {
