@@ -47,6 +47,7 @@ import {
   getGlobalInstrumentation,
   MetricNames,
   SpanNames,
+  type SpanLike,
 } from '@server/observability/InstrumentationContract';
 import { redactQueryText } from '@server/observability/queryTextPolicy';
 import { logger } from '@utils/logger';
@@ -861,6 +862,59 @@ export class ToolSearchEngine {
     }
 
     // Shorthand and abbreviation token set for selective expansion on long queries
+    const explicitToolMention = this.findExplicitToolMention(query);
+    const intentToolBonuses = this.intentBoost.resolveIntentToolBonuses(query);
+    return this.runFullSearchPipeline({
+      cacheKey,
+      query,
+      contentTokens,
+      queryTokens,
+      topK,
+      activeToolNames,
+      visibleDomains,
+      profile,
+      explicitToolMention,
+      intentToolBonuses,
+      searchStartTime,
+      telemetrySpan,
+    });
+  }
+
+  /**
+   * Full scoring pipeline: selective synonym expansion -> BM25 + RRF fusion ->
+   * lexical adjustments -> graph expansion -> projection -> calibration floor
+   * -> quality tracking. Extracted from {@link search} so the orchestrator
+   * stays under the complexity gate; pure code motion, no behavior change.
+   */
+  private async runFullSearchPipeline(args: {
+    cacheKey: string;
+    query: string;
+    contentTokens: string[];
+    queryTokens: string[];
+    topK: number;
+    activeToolNames?: ReadonlySet<string>;
+    visibleDomains?: ReadonlySet<string>;
+    profile?: ToolProfile;
+    explicitToolMention: string | null;
+    intentToolBonuses: Map<string, number>;
+    searchStartTime: number;
+    telemetrySpan: SpanLike;
+  }): Promise<ToolSearchResult[]> {
+    const {
+      cacheKey,
+      query,
+      contentTokens,
+      topK,
+      activeToolNames,
+      visibleDomains,
+      profile,
+      explicitToolMention,
+      intentToolBonuses,
+      searchStartTime,
+      telemetrySpan,
+    } = args;
+    const queryTokens = args.queryTokens;
+
     const RE_SHORTHAND_TOKENS = new Set([
       'bp',
       'dbg',
@@ -901,8 +955,7 @@ export class ToolSearchEngine {
       }
     }
 
-    const explicitToolMention = this.findExplicitToolMention(query);
-    const intentToolBonuses = this.intentBoost.resolveIntentToolBonuses(query);
+    const instrumentation = getGlobalInstrumentation();
     const scores = new Float64Array(this.docCount);
 
     this.scoreLexicalQueryTokens(queryTokens, scores);
