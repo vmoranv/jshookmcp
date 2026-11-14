@@ -18,7 +18,7 @@ export const nativeEmulatorTools: Tool[] = [
   tool('nemu_capabilities', (t) =>
     t
       .desc(
-        'Report native-emulator backend availability, supported features, and explicit ISA/SIMD gaps. Unsupported opcodes fail loudly instead of being reported as emulated.',
+        'What can the emulator do: report native-emulator backend availability, supported features, and explicit ISA/SIMD gaps. Unsupported opcodes fail loudly instead of being reported as emulated.',
       )
       .query(),
   ),
@@ -64,7 +64,7 @@ export const nativeEmulatorTools: Tool[] = [
   tool('nemu_load_library', (t) =>
     t
       .desc(
-        'Load an AArch64 ELF shared object (.so) from a filesystem path into a session, mapping its segments and resolving exported symbols. Prerequisite for list_symbols / call_symbol / call_jni_export.',
+        'Load an .so into the emulator: load an AArch64 ELF shared object from a filesystem path into a session, mapping its segments and resolving exported symbols. Prerequisite for list_symbols / call_symbol / call_jni_export.',
       )
       .string('sessionId', 'Session id returned by nemu_create_session')
       .string('soPath', 'Filesystem path to the .so library')
@@ -462,7 +462,7 @@ export const nativeEmulatorTools: Tool[] = [
   tool('nemu_disassemble', (t) =>
     t
       .desc(
-        'Disassemble instructions. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.',
+        'Disassemble emulator memory. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.',
       )
       .enum(
         'architecture',
