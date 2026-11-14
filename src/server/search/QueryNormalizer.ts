@@ -198,6 +198,105 @@ const ENGLISH_STOP_WORDS = new Set<string>([
 ]);
 
 /**
+ * Stem experiment mode for the retrieval scene-rank campaign
+ * (.ccg/tasks/retrieval-scene-rank-fix). Read lazily so tests and the scan
+ * harness (scripts/search-tune/stem-scan.ts) can switch variants in-process:
+ *   off            — no stemming anywhere (pre-campaign baseline)
+ *   verb           — verb-inflection fold in rerank + tokenSet/drift
+ *                    (PRODUCTION DEFAULT — see DEFAULT_STEM_MODE)
+ *   plural         — verb fold + plural fold, all wiring (measured harmful)
+ *   rerank-verb    — verb fold in the rerank tokenizer only
+ *   rerank-plural  — verb+plural fold in the rerank tokenizer only
+ *   tokenset-verb  — verb fold in engine tokenSet/drift only
+ *   tokenset-plural — verb+plural fold in engine tokenSet/drift only
+ */
+export type StemMode =
+  | 'off'
+  | 'verb'
+  | 'plural'
+  | 'rerank-verb'
+  | 'rerank-plural'
+  | 'tokenset-verb'
+  | 'tokenset-plural';
+
+const VALID_STEM_MODES: ReadonlySet<string> = new Set([
+  'off',
+  'verb',
+  'plural',
+  'rerank-verb',
+  'rerank-plural',
+  'tokenset-verb',
+  'tokenset-plural',
+]);
+
+/**
+ * Production default 'verb': verb-inflection folding in both wiring paths,
+ * NO plural folding. Chosen by the dual-corpus scan
+ * (scripts/search-tune/stem-scan.ts, 2026-11-14): it repairs 4 permanently
+ * un-retrievable tools (captcha_config 0→33%, debugger_run_to_location
+ * 0→16%, process_get/process_suspend 0→3/7% in lexical mode) for a -0.31pp
+ * aggregate MRR@10 cost on the 736-tool corpus (9 drifted cases better vs 4
+ * worse). Plural folding was measured harmful through the term-drift path
+ * (-1.37pp aggregate, 21 worse) and is available only behind the env
+ * override for future re-scans.
+ */
+const DEFAULT_STEM_MODE: StemMode = 'verb';
+
+/** Read lazily so a single process (the scan harness, tests) can switch variants. */
+function currentStemMode(): StemMode {
+  const raw = (process.env['SEARCH_STEM_MODE'] ?? DEFAULT_STEM_MODE).trim().toLowerCase();
+  return (VALID_STEM_MODES.has(raw) ? raw : DEFAULT_STEM_MODE) as StemMode;
+}
+
+function modeIn(...areas: Array<'rerank' | 'tokenset'>): boolean {
+  const mode = currentStemMode();
+  if (mode === 'off') return false;
+  if (mode === 'verb' || mode === 'plural') return true;
+  if (mode.startsWith('rerank')) return areas.includes('rerank');
+  return areas.includes('tokenset');
+}
+
+function modePlural(): boolean {
+  const mode = currentStemMode();
+  return mode === 'plural' || mode.endsWith('-plural');
+}
+
+const stripTrailingE = (t: string): string =>
+  t.length >= 5 && t.endsWith('e') ? t.slice(0, -1) : t;
+const collapseDoubled = (t: string): string =>
+  t.length >= 3 && !/[aeiou]$/.test(t) && t[t.length - 1] === t[t.length - 2] ? t.slice(0, -1) : t;
+
+/**
+ * Verb-inflection-only stem: "running" → "run", "collected" → "collect",
+ * "captured" → "captur" (equals the e-folded "capture"). Guards protect
+ * short tokens and lookalike endings (process / status / address / this).
+ */
+function stemInflectionOnly(token: string): string {
+  if (token.length >= 6 && token.endsWith('ing')) {
+    return collapseDoubled(stripTrailingE(token.slice(0, -3)));
+  }
+  if (token.length >= 5 && token.endsWith('ed')) {
+    return collapseDoubled(stripTrailingE(token.slice(0, -2)));
+  }
+  return stripTrailingE(token);
+}
+
+function stemFold(token: string, withPlural: boolean): string {
+  const stemmed = stemInflectionOnly(token);
+  if (
+    withPlural &&
+    stemmed.length >= 4 &&
+    stemmed.endsWith('s') &&
+    !stemmed.endsWith('ss') &&
+    !stemmed.endsWith('us') &&
+    !stemmed.endsWith('is')
+  ) {
+    return stemmed.slice(0, -1);
+  }
+  return stemmed;
+}
+
+/**
  * QueryNormalizer provides utilities for normalizing and preprocessing search queries
  * and tool metadata for indexing.
  */
@@ -290,6 +389,26 @@ export const QueryNormalizer = {
    */
   isStopWord(token: string): boolean {
     return ENGLISH_STOP_WORDS.has(token.toLowerCase());
+  },
+
+  /**
+   * Rerank-side stem, gated by SEARCH_STEM_MODE ('rerank-verb' /
+   * 'rerank-plural' / 'verb' / 'plural' all include this wiring). Off-mode
+   * returns the token untouched.
+   */
+  stemRerankToken(token: string): string {
+    if (!modeIn('rerank')) return token;
+    return stemFold(token, modePlural());
+  },
+
+  /**
+   * Engine tokenSet / term-drift stem ('tokenset-verb' / 'tokenset-plural' /
+   * 'verb' / 'plural'). The drift comparison uses this same function on the
+   * query side so both sides of the match fold identically.
+   */
+  stemTokenSetToken(token: string): string {
+    if (!modeIn('tokenset')) return token;
+    return stemFold(token, modePlural());
   },
 
   /**
