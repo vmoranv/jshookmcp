@@ -1330,7 +1330,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'analysis_security_scan',
       description:
-        'Static security scan of JavaScript: detect hardcoded secrets (API keys, tokens), dangerous functions (eval, Function constructor), XSS sinks (innerHTML, document.write), SQL injection patterns, and weak crypto (Math.random). Returns structured risks with severity and recommendations.',
+        'Static security scan of JavaScript: detect hardcoded secrets (API keys, tokens), dangerous functions (eval, Function constructor), XSS sinks (innerHTML, document.write), SQL injection patterns, and weak crypto / encryption misuse (Math.random). Returns structured risks with severity and recommendations — the weaknesses an attacker could exploit.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -3225,7 +3225,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'browser_attach_cdp_target',
-      description: 'Attach to a CDP target by targetId.',
+      description:
+        "Attach to a CDP target by targetId (a page, an out-of-process iframe, or a worker) to drive that target's context — e.g. attach to the target of a specific iframe on the page before running expressions inside the frame context.",
       inputSchema: {
         type: 'object',
         properties: {
@@ -4298,7 +4299,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'browser_select_tab',
-      description: 'Switch active tab by index, URL pattern, or title pattern.',
+      description:
+        'Switch active tab by index, URL pattern, or title pattern — pick one of the open browser tabs, and switch between tabs as you orchestrate a flow across multiple tabs.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -7301,6 +7303,9 @@ export const GENERATED_TOOL_CATALOG = [
       'run an expression while paused',
       'evaluate in the paused frame',
       'evaluate inside the breakpoint',
+      'evaluate in the paused call frame to inspect the local scope',
+      're-evaluate an expression while stepping to see how its value changes',
+      'the paused frame exposes the local variables — evaluate against them',
     ],
   },
   {
@@ -7366,7 +7371,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'debugger',
-    sceneKeywords: ['pause execution now', 'break into the debugger', 'pause the execution'],
+    sceneKeywords: [
+      'pause execution now',
+      'break into the debugger',
+      'pause the execution',
+      'the debugger is paused when a breakpoint is hit',
+      'paused — use debugger_resume to let the page continue running',
+    ],
   },
   {
     tool: {
@@ -10818,7 +10829,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'get_script_source',
-      description: 'Retrieve source code of a script by ID or URL pattern.',
+      description:
+        'Retrieve source code of a script by ID or URL pattern — works for any script loaded on the page; the original source text is returned even when the script was executed from cached V8 bytecode (use v8_bytecode_decompile to decompile bytecode when no source exists).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -11640,7 +11652,13 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'instrumentation',
-    sceneKeywords: ['ready-made hook templates', 'pick a hook preset', 'hook presets'],
+    sceneKeywords: [
+      'ready-made hook templates',
+      'pick a hook preset',
+      'hook presets',
+      'presets that pick common hook points for you',
+      'let the presets decide where to place the hooks',
+    ],
   },
   {
     tool: {
@@ -21546,7 +21564,14 @@ export const GENERATED_TOOL_CATALOG = [
       },
     },
     domain: 'browser',
-    sceneKeywords: ['click this element', 'press a dom node', 'click the element'],
+    sceneKeywords: [
+      'click this element',
+      'press a dom node',
+      'click the element',
+      'click a dropdown option to choose it',
+      'click the file upload input to open the file picker',
+      'click a button in an in-page popup or modal',
+    ],
   },
   {
     tool: {
@@ -21753,7 +21778,9 @@ export const GENERATED_TOOL_CATALOG = [
     sceneKeywords: [
       'run javascript in the page',
       'evaluate an expression in page context',
-      'run javascript in the page',
+      'read React state from the page via an evaluated expression',
+      'evaluate javascript to inspect the live objects on the page',
+      'evaluate an expression to see what a value is on the page',
     ],
   },
   {
@@ -22281,7 +22308,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'page_set_viewport',
-      description: 'Set the browser viewport dimensions.',
+      description:
+        'Set the browser viewport dimensions — the visible page area that screenshots capture. Also part of mobile emulation: set a phone-sized viewport to make the browser behave like a phone screen.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -22310,7 +22338,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'page_storage_info',
       description:
-        'Query navigator.storage.estimate() for {usage, quota} and navigator.storage.persisted() to inspect the origin storage budget and persistence status (offline/PWA reverse engineering).',
+        'Query navigator.storage.estimate() for {usage, quota} and navigator.storage.persisted() to inspect the origin storage budget and persistence status (offline/PWA reverse engineering). The usage figure covers the site data stored for the origin (IndexedDB, Caches, web storage), so it also answers how much storage this origin is using.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -23121,7 +23149,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'process_get',
       description:
-        'Get detailed information about a specific process by PID, including command line, parent PID, and debug port status.',
+        'Get detailed information about a specific process by PID: name, executable path, command line, parent PID, main window title and handle, runtime memory/CPU usage, and debug port status. Returns process details only — for the loaded DLL/module list use enumerate_modules, for thread enumeration use process_enum_threads, and for the full list of windows the process owns use process_windows.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -23623,7 +23651,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'proto_infer_fields',
-      description: 'Infer likely protocol fields from repeated hex payload samples.',
+      description:
+        'Infer likely protocol message fields from repeated hex payload samples — recover the field layout and wire format (offsets, sizes, types) of a custom or unknown protocol so you can draft a dissect pattern for the captured bytes.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -25845,7 +25874,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'stealth_inject',
-      description: 'Inject anti-detection scripts to reduce bot fingerprint exposure.',
+      description:
+        'Inject anti-detection scripts to reduce bot fingerprint exposure: patches navigator.webdriver, plugins, canvas/WebGL, battery, media devices and timing, and applies the active fingerprint profile (user agent included) when one exists — making the automation harder to detect. Afterwards check with stealth_verify whether the automation is still detectable.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -27710,7 +27740,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'understand_code',
-      description: 'Run semantic code analysis for structure, behavior, and risks.',
+      description:
+        'Run semantic code analysis for structure, behavior, and risks: outline the function/class structure of the script, analyze how values flow through the code (data flow), and surface security risks.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -27740,7 +27771,13 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'core',
     profiles: ['search', 'workflow', 'full'],
-    sceneKeywords: ['explain what this code does', 'summarize the logic', 'understand the code'],
+    sceneKeywords: [
+      'explain what this code does',
+      'summarize the logic',
+      'understand the code',
+      'trace how a value flows through the code with data flow analysis',
+      'outline the function structure of a script',
+    ],
   },
   {
     tool: {
@@ -30379,7 +30416,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'workflow_suggest',
       description:
-        'Suggest the next extension workflow to run from the chainsWith / prerequisites chain metadata declared by loaded workflows. Pass the workflow ids already executed in this session; the server stays stateless. Candidates chained from an executed workflow rank first (the reason names the chain), workflows with all prerequisites satisfied rank before those with missing ones, already-executed workflows are never suggested, and executed ids that match no loaded workflow are returned in unmatched. Workflows without chain metadata are never suggested, so an empty catalog of metadata yields empty suggestions.',
+        "Suggest the next extension workflow to run from the chainsWith / prerequisites chain metadata declared by loaded workflows — typical entry points are starting a new reverse-engineering session for a target, or following up after a first probe of the target's endpoints. Pass the workflow ids already executed in this session; the server stays stateless. Candidates chained from an executed workflow rank first (the reason names the chain), workflows with all prerequisites satisfied rank before those with missing ones, already-executed workflows are never suggested, and executed ids that match no loaded workflow are returned in unmatched. Workflows without chain metadata are never suggested, so an empty catalog of metadata yields empty suggestions.",
       inputSchema: {
         type: 'object',
         properties: {

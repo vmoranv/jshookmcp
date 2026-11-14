@@ -390,7 +390,11 @@ export const protocolAnalysisTools: Tool[] = [
   ),
   tool('proto_infer_fields', (t) =>
     t
-      .desc('Infer likely protocol fields from repeated hex payload samples.')
+      .desc(
+        'Infer likely protocol message fields from repeated hex payload samples — recover the field ' +
+          'layout and wire format (offsets, sizes, types) of a custom or unknown protocol so you can ' +
+          'draft a dissect pattern for the captured bytes.',
+      )
       .array('hexPayloads', { type: 'string' }, 'Hex payload samples')
       .required('hexPayloads')
       .query(),

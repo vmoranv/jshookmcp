@@ -132,7 +132,10 @@ export const coreTools: Tool[] = [
   ),
   tool('understand_code', (t) =>
     t
-      .desc('Run semantic code analysis for structure, behavior, and risks.')
+      .desc(
+        'Run semantic code analysis for structure, behavior, and risks: outline the function/class structure ' +
+          'of the script, analyze how values flow through the code (data flow), and surface security risks.',
+      )
       .string('code', 'Source code to analyze')
       .prop('context', { type: 'object', description: 'Additional contextual data' })
       .enum('focus', ['structure', 'business', 'security', 'all'], 'Analysis focus', {
@@ -377,7 +380,8 @@ export const coreTools: Tool[] = [
       .desc(
         'Static security scan of JavaScript: detect hardcoded secrets (API keys, tokens), ' +
           'dangerous functions (eval, Function constructor), XSS sinks (innerHTML, document.write), ' +
-          'SQL injection patterns, and weak crypto (Math.random). Returns structured risks with severity and recommendations.',
+          'SQL injection patterns, and weak crypto / encryption misuse (Math.random). ' +
+          'Returns structured risks with severity and recommendations — the weaknesses an attacker could exploit.',
       )
       .string('code', 'JavaScript source code to scan')
       .required('code'),

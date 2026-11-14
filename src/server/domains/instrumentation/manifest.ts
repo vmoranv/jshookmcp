@@ -204,7 +204,13 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   ],
   evidence_export: ['save evidence bundle', 'export findings to file', 'export the evidence'],
   evidence_query: ['search recorded evidence', 'query findings store', 'query the evidence'],
-  hook_preset: ['ready-made hook templates', 'pick a hook preset', 'hook presets'],
+  hook_preset: [
+    'ready-made hook templates',
+    'pick a hook preset',
+    'hook presets',
+    'presets that pick common hook points for you',
+    'let the presets decide where to place the hooks',
+  ],
   instrumentation_artifact: [
     'collected instrumentation artifact',
     'session artifact store',

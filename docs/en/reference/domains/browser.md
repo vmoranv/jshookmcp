@@ -30,8 +30,8 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `browser_attach` | Attach to an already-running browser over the Chrome DevTools Protocol (CDP) — via remote debugging URL, WebSocket endpoint, or auto-detected local Chrome debug port. Use instead of browser_launch when the target browser was started outside this server (e.g. a user profile with logged-in sessions or an anti-fingerprint build). |
 | `browser_list_tabs` | List open browser tabs with URLs and titles. |
 | `browser_list_cdp_targets` | List CDP targets with optional type/URL/title filters. |
-| `browser_select_tab` | Switch active tab by index, URL pattern, or title pattern. |
-| `browser_attach_cdp_target` | Attach to a CDP target by targetId. |
+| `browser_select_tab` | Switch active tab by index, URL pattern, or title pattern — pick one of the open browser tabs, and switch between tabs as you orchestrate a flow across multiple tabs. |
+| `browser_attach_cdp_target` | Attach to a CDP target by targetId (a page, an out-of-process iframe, or a worker) to drive that target's context — e.g. attach to the target of a specific iframe on the page before running expressions inside the frame context. |
 | `browser_detach_cdp_target` | Detach the current CDP target session. |
 | `browser_evaluate_cdp_target` | Evaluate JS in the attached CDP target. |
 | `browser_list_workers` | Enumerate Service Worker / Shared Worker / dedicated Web Worker targets via Target.getTargets. Use browser_worker_scripts(targetId=...) afterwards to dump a worker's loaded scripts — essential for inspecting PWA / SW-backed auth code. |
@@ -55,7 +55,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `page_evaluate` | Execute JavaScript in page context. |
 | `page_screenshot` | Capture a page or element screenshot. |
 | `get_all_scripts` | List all scripts loaded by the page with optional source. |
-| `get_script_source` | Retrieve source code of a script by ID or URL pattern. |
+| `get_script_source` | Retrieve source code of a script by ID or URL pattern — works for any script loaded on the page; the original source text is returned even when the script was executed from cached V8 bytecode (use v8_bytecode_decompile to decompile bytecode when no source exists). |
 | `console_monitor` | Toggle console log capture (log, warn, error, info, debug). |
 | `console_get_logs` | Retrieve captured console logs with type and time filters. |
 | `console_execute` | Evaluate a JS expression in the browser console context. |
@@ -64,11 +64,11 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `page_coverage_stop` | Stop coverage collection and return per-script JS+CSS coverage results. Includes total bytes, used bytes, and coverage percentage per URL. |
 | `page_block_script` | Manage script blocking rules by URL pattern. Blocked scripts are prevented from loading/executing. Actions: add/block (add a rule), remove/unblock (remove a rule), list (show all rules), clear (remove all). |
 | `page_cookies` | Manage page cookies; clear requires matching expectedCount. |
-| `page_set_viewport` | Set the browser viewport dimensions. |
+| `page_set_viewport` | Set the browser viewport dimensions — the visible page area that screenshots capture. Also part of mobile emulation: set a phone-sized viewport to make the browser behave like a phone screen. |
 | `page_emulate_device` | Emulate a mobile device profile. |
 | `page_local_storage` | Read, write, delete, or clear localStorage entries for the current origin. |
 | `page_session_storage` | Read, write, delete, or clear sessionStorage entries for the current origin. |
-| `page_storage_info` | Query navigator.storage.estimate() for {usage, quota} and navigator.storage.persisted() to inspect the origin storage budget and persistence status (offline/PWA reverse engineering). |
+| `page_storage_info` | Query navigator.storage.estimate() for {usage, quota} and navigator.storage.persisted() to inspect the origin storage budget and persistence status (offline/PWA reverse engineering). The usage figure covers the site data stored for the origin (IndexedDB, Caches, web storage), so it also answers how much storage this origin is using. |
 | `browser_passkey_seed` | Seed a WebAuthn/Passkey credential into the browser for test automation. |
 | `page_press_key` | Simulate a key press by name. |
 | `page_handle_dialog` | Control how JavaScript dialogs (alert/confirm/prompt/beforeunload) are answered. By default installs a persistent handler that auto-dismisses all dialogs. Set dismissAll=false for one-shot handling of the next dialog. |
@@ -77,7 +77,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `captcha_detect` | Detect CAPTCHAs on the current page. |
 | `captcha_wait` | Block until the user manually solves the CAPTCHA. |
 | `captcha_config` | Configure CAPTCHA detection sensitivity and solver backend. |
-| `stealth_inject` | Inject anti-detection scripts to reduce bot fingerprint exposure. |
+| `stealth_inject` | Inject anti-detection scripts to reduce bot fingerprint exposure: patches navigator.webdriver, plugins, canvas/WebGL, battery, media devices and timing, and applies the active fingerprint profile (user agent included) when one exists — making the automation harder to detect. Afterwards check with stealth_verify whether the automation is still detectable. |
 | `stealth_set_user_agent` | Set User-Agent and fingerprint. |
 | `stealth_configure_jitter` | Configure CDP timing jitter. |
 | `stealth_generate_fingerprint` | Generate a browser fingerprint. |

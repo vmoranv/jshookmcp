@@ -28,7 +28,7 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 | `search_in_scripts` | Search collected scripts by keyword or regex pattern. |
 | `extract_function_tree` | Extract a function and its dependency tree from collected scripts. |
 | `deobfuscate` | Reverse engineer obfuscated and minified JavaScript back to readable source code: unpack webpack, Vite, esbuild, and Rollup bundles into individual modules; restore meaningful variable and function names stripped by minification; undo string array obfuscation, control flow flattening, and self-defending code wrappers. |
-| `understand_code` | Run semantic code analysis for structure, behavior, and risks. |
+| `understand_code` | Run semantic code analysis for structure, behavior, and risks: outline the function/class structure of the script, analyze how values flow through the code (data flow), and surface security risks. |
 | `detect_crypto` | Detect cryptographic algorithms and usage patterns in source code. |
 | `manage_hooks` | Create, inspect, and clear JavaScript runtime hooks. |
 | `detect_obfuscation` | Detect obfuscation techniques in JavaScript source. |
@@ -48,4 +48,4 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 | `js_symbolic_execute_jsvmp` | Symbolic execution of JSVMP bytecode: step through instructions symbolically to infer original logic, constraints, and confidence score. Use after js_analyze_vm to get instructions. |
 | `ai_suggest_exploits` | Use LLM to suggest exploit primitives and attack chains for a given vulnerability. Returns theoretical exploitation steps, references, and required conditions. IMPORTANT: Does NOT generate executable payloads or malicious code. |
 | `analysis_data_flow` | Trace data flow through JavaScript: identify sources (user input, network, storage), sinks (XSS, eval, SQL injection, command execution), sanitizer pass-through points, and tainted variable propagation paths. Useful for finding injection vulnerabilities. |
-| `analysis_security_scan` | Static security scan of JavaScript: detect hardcoded secrets (API keys, tokens), dangerous functions (eval, Function constructor), XSS sinks (innerHTML, document.write), SQL injection patterns, and weak crypto (Math.random). Returns structured risks with severity and recommendations. |
+| `analysis_security_scan` | Static security scan of JavaScript: detect hardcoded secrets (API keys, tokens), dangerous functions (eval, Function constructor), XSS sinks (innerHTML, document.write), SQL injection patterns, and weak crypto / encryption misuse (Math.random). Returns structured risks with severity and recommendations — the weaknesses an attacker could exploit. |

@@ -123,6 +123,9 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'run an expression while paused',
     'evaluate in the paused frame',
     'evaluate inside the breakpoint',
+    'evaluate in the paused call frame to inspect the local scope',
+    're-evaluate an expression while stepping to see how its value changes',
+    'the paused frame exposes the local variables — evaluate against them',
   ],
   debugger_get_paused_state: ['why are we paused', 'current pause reason', 'show the paused state'],
   debugger_lifecycle: [
@@ -130,7 +133,13 @@ const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'manage debugger session',
     'debugger session lifecycle',
   ],
-  debugger_pause: ['pause execution now', 'break into the debugger', 'pause the execution'],
+  debugger_pause: [
+    'pause execution now',
+    'break into the debugger',
+    'pause the execution',
+    'the debugger is paused when a breakpoint is hit',
+    'paused — use debugger_resume to let the page continue running',
+  ],
   debugger_resume: ['continue execution', 'let the page keep running', 'resume the execution'],
   debugger_run_to_location: [
     'run until this spot',

@@ -26,7 +26,7 @@ Custom protocol analysis domain supporting protocol pattern definition, automati
 | --- | --- |
 | `proto_define_pattern` | Define a protocol pattern with delimiter, byte order, and field layout. |
 | `proto_auto_detect` | Auto-detect a protocol pattern from one or more hex payload samples. |
-| `proto_infer_fields` | Infer likely protocol fields from repeated hex payload samples. |
+| `proto_infer_fields` | Infer likely protocol message fields from repeated hex payload samples — recover the field layout and wire format (offsets, sizes, types) of a custom or unknown protocol so you can draft a dissect pattern for the captured bytes. |
 | `proto_infer_state_machine` | Infer a protocol state machine from captured message sequences. |
 | `proto_export_schema` | Export a protocol pattern to a schema definition. format: proto (default, .proto-like text), ksy (Kaitai Struct for Wireshark/010 Editor), json-schema (draft-07). |
 | `proto_visualize_state` | Generate a Mermaid state diagram from a protocol state machine definition. |

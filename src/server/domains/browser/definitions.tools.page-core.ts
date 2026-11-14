@@ -170,7 +170,11 @@ export const browserPageCoreTools: Tool[] = [
   ),
   tool('get_script_source', (t) =>
     t
-      .desc('Retrieve source code of a script by ID or URL pattern.')
+      .desc(
+        'Retrieve source code of a script by ID or URL pattern — works for any script loaded on the page; ' +
+          'the original source text is returned even when the script was executed from cached V8 bytecode ' +
+          '(use v8_bytecode_decompile to decompile bytecode when no source exists).',
+      )
       .string('scriptId', 'Script ID')
       .string('url', 'Script URL (supports wildcards)')
       .boolean('preview', 'Preview only (first N lines + metadata)', { default: false })

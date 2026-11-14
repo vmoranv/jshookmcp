@@ -73,7 +73,10 @@ export const browserPageSystemTools: Tool[] = [
   ),
   tool('page_set_viewport', (t) =>
     t
-      .desc('Set the browser viewport dimensions.')
+      .desc(
+        'Set the browser viewport dimensions — the visible page area that screenshots capture. ' +
+          'Also part of mobile emulation: set a phone-sized viewport to make the browser behave like a phone screen.',
+      )
       .number('width', 'Width')
       .number('height', 'Height')
       .required('width', 'height')
@@ -106,7 +109,9 @@ export const browserPageSystemTools: Tool[] = [
     t
       .desc(
         'Query navigator.storage.estimate() for {usage, quota} and navigator.storage.persisted() ' +
-          'to inspect the origin storage budget and persistence status (offline/PWA reverse engineering).',
+          'to inspect the origin storage budget and persistence status (offline/PWA reverse engineering). ' +
+          'The usage figure covers the site data stored for the origin (IndexedDB, Caches, web storage), ' +
+          'so it also answers how much storage this origin is using.',
       )
       .query(),
   ),
