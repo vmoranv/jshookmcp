@@ -340,7 +340,9 @@ export const workflowToolDefinitions: Tool[] = [
     t
       .desc(
         'Suggest the next extension workflow to run from the chainsWith / prerequisites chain ' +
-          'metadata declared by loaded workflows. Pass the workflow ids already executed in this ' +
+          'metadata declared by loaded workflows — typical entry points are starting a new ' +
+          'reverse-engineering session for a target, or following up after a first probe of the ' +
+          "target's endpoints. Pass the workflow ids already executed in this " +
           'session; the server stays stateless. Candidates chained from an executed workflow rank ' +
           'first (the reason names the chain), workflows with all prerequisites satisfied rank ' +
           'before those with missing ones, already-executed workflows are never suggested, and ' +
