@@ -201,7 +201,7 @@ importers:
         version: 13.0.3
       camoufox-js:
         specifier: ^0.11.1
-        version: 0.11.5(playwright-core@1.63.0)
+        version: 0.11.5(playwright-core@1.65.0)
       https-proxy-agent:
         specifier: ^9.1.0
         version: 9.1.0
@@ -210,7 +210,7 @@ importers:
         version: 3.3.2
       playwright-core:
         specifier: ^1.61.0
-        version: 1.63.0
+        version: 1.65.0
       webcrack:
         specifier: 2.16.0
         version: 2.16.0
@@ -3263,8 +3263,8 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  playwright-core@1.63.0:
-    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+  playwright-core@1.65.0:
+    resolution: {integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -3664,6 +3664,9 @@ packages:
 
   tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
+
+  tslib@2.9.1:
+    resolution: {integrity: sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==}
 
   tslib@2.9.1:
     resolution: {integrity: sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==}
@@ -5646,7 +5649,7 @@ snapshots:
   callsites@3.1.0:
     optional: true
 
-  camoufox-js@0.11.5(playwright-core@1.63.0):
+  camoufox-js@0.11.5(playwright-core@1.65.0):
     dependencies:
       adm-zip: 0.6.1
       better-sqlite3: 13.0.3
@@ -5657,7 +5660,7 @@ snapshots:
       impit: 0.14.4
       language-tags: 2.1.0
       maxmind: 5.0.7
-      playwright-core: 1.63.0
+      playwright-core: 1.65.0
       pretty-bytes: 7.1.2
       ua-parser-js: 2.0.10
       xml2js: 0.6.2
@@ -6781,7 +6784,7 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  playwright-core@1.63.0:
+  playwright-core@1.65.0:
     optional: true
 
   postcss@8.5.31:
@@ -7287,6 +7290,9 @@ snapshots:
   tslib@1.14.1: {}
 
   tslib@2.9.1: {}
+
+  tslib@2.9.1:
+    optional: true
 
   tslib@2.9.1:
     optional: true
