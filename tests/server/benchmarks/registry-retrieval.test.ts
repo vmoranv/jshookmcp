@@ -175,12 +175,13 @@ describe('registry-corpus retrieval benchmark', () => {
       // 47.4 / S@3 63.2 (38 network cases over the full 736-tool corpus).
       expect(cases.length).toBeGreaterThanOrEqual(30);
       expect(coveredTools).toBeGreaterThanOrEqual(30);
-      // Calibrated 2026-11-13 on the measured full-coverage baseline
-      // (MRR 70.7 / P@1 60.7 / S@3 76.8, 569 cases over 736 tools, minus a
-      // ~5pp buffer) — only-tighten policy.
-      expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.65);
-      expect(agg.pAt1).toBeGreaterThanOrEqual(0.55);
-      expect(agg.successAt3).toBeGreaterThanOrEqual(0.71);
+      // Calibrated 2026-11-13 on the measured full-coverage baseline (MRR
+      // 70.7 / P@1 60.7 / S@3 76.8, minus a ~5pp buffer) — only-tighten.
+      // Tightened 2026-11-14 after the synonym-breadth + drift-threshold
+      // batches (measured MRR 85.3 / P@1 77.0 / S@3 91.8).
+      expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.8);
+      expect(agg.pAt1).toBeGreaterThanOrEqual(0.72);
+      expect(agg.successAt3).toBeGreaterThanOrEqual(0.88);
     },
   );
 
@@ -245,17 +246,21 @@ describe('registry-corpus retrieval benchmark', () => {
         `[registry-holdout] MRR@10=${(agg.mrrAt10 * 100).toFixed(1)}% P@1=${(agg.pAt1 * 100).toFixed(1)}% S@3=${(agg.successAt3 * 100).toFixed(1)}%`,
       );
 
-      // No floors yet. Baseline history (2026-11-13): the first holdout draft
-      // used colloquial Chinese — a distribution that does not occur (agents
-      // query in English) — and scored 7.9%, measuring the language gap, not
-      // retrieval. The English-only paraphrase set below scored MRR 32.6 /
-      // P@1 23.3 / S@3 36.7 vs 70.7/60.7/76.8 same-distribution: a ~38pp
-      // SYNONYM-GENERALIZATION gap inside English — expansion phrases do not
-      // cover the paraphrase space. Fix direction: per-tool synonym breadth in
-      // sceneKeywords / SynonymExpander groups, then the vector layer.
-      // Bound only guards against a fully-broken index.
+      // Floor history (2026-11-13): the first holdout draft used colloquial
+      // Chinese — a distribution that does not occur (agents query in
+      // English) — and scored 7.9%, measuring the language gap, not
+      // retrieval. The English-only paraphrase set scored MRR 32.6 / P@1
+      // 23.3 / S@3 36.7 vs 70.7/60.7/76.8 same-distribution: a ~38pp
+      // SYNONYM-GENERALIZATION gap inside English. Fixed 2026-11-13~14 by
+      // making sceneKeywords reachable in every retrieval layer, replacing
+      // all Chinese phrases with English variants, de-polluting CJK alias
+      // rules, and loosening the drift threshold: measured MRR 79.9 / P@1
+      // 66.7 / S@3 93.3. Floors set 2026-11-14 at measured minus ~4pp —
+      // only-tighten from here.
       expect(cases.length).toBeGreaterThanOrEqual(25);
-      expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.05);
+      expect(agg.mrrAt10).toBeGreaterThanOrEqual(0.75);
+      expect(agg.pAt1).toBeGreaterThanOrEqual(0.62);
+      expect(agg.successAt3).toBeGreaterThanOrEqual(0.89);
     },
   );
 });
