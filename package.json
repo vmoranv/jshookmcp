@@ -153,7 +153,7 @@
     "dns-packet": "^5.6.1",
     "dotenv": "^18.0.4",
     "fast-uri": "^4.1.4",
-    "jsdom": "^30.0.1",
+    "jsdom": "^31.0.0",
     "mockttp": "4.4.2",
     "protobufjs": "8.8.1",
     "quickjs-emscripten": "^0.32.0",
