@@ -12,6 +12,18 @@ import { int } from './helpers.js';
 /** Browser pool idle timeout before auto-disconnect. Default: 5 minutes. */
 export const BROWSER_POOL_IDLE_TIMEOUT_MS = int('BROWSER_POOL_IDLE_TIMEOUT_MS', 300_000);
 
+/**
+ * Per-CDP-call protocol timeout handed to Puppeteer at launch.
+ *
+ * Puppeteer/Playwright reject a stuck CDP command after this window; without
+ * it a hung debugger session blocks the caller indefinitely. Configurable
+ * because the right value depends on the environment: a local headless
+ * browser needs ~60s only for pathological pages, while remote/debug-attached
+ * targets behind a slow link need more (and a laptop that sleeps mid-call
+ * needs the caller-side timeouts, not this one, to intervene).
+ */
+export const BROWSER_PROTOCOL_TIMEOUT_MS = int('BROWSER_PROTOCOL_TIMEOUT_MS', 60_000);
+
 /** Idle timeout for the production CodeCollector browser lifecycle. 0 disables reclamation. */
 export const BROWSER_IDLE_TIMEOUT_MS = int('BROWSER_IDLE_TIMEOUT_MS', 300_000);
 

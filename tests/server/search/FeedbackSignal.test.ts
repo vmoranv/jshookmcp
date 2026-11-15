@@ -124,6 +124,10 @@ describe('search/FeedbackSignal', () => {
 
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     const engine = new ToolSearchEngine();
+    // A search never blocks on the vector bootstrap (see
+    // ColdStartNonBlocking.test.ts); this test is about the PARTICIPATING
+    // signal, so warm the catalog embeddings explicitly first.
+    await engine.waitForEmbeddings();
 
     const full = await engine.search('navigate page url', 5);
     expect(full.length).toBeGreaterThan(0);
@@ -210,6 +214,8 @@ describe('search/FeedbackSignal', () => {
 
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     const engine = new ToolSearchEngine();
+    // Explicit warm-up: queries no longer wait for the bootstrap.
+    await engine.waitForEmbeddings();
 
     const results = await engine.search('navigate page url', 5);
     const before = engine.getFeedbackTracker().getVectorWeight();

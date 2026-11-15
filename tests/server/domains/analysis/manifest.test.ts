@@ -22,6 +22,7 @@ interface Manifest {
   profiles: string[];
   ensure: (ctx: Record<string, unknown>) => unknown;
   registrations: Registration[];
+  prerequisites?: Record<string, { condition: string; fix: string }[]>;
 }
 
 interface Context extends Record<string, unknown> {
@@ -174,5 +175,19 @@ describe('server/domains/analysis/manifest', () => {
 
     const result = await manifest.ensure(ctx);
     expect(result).toBe(existingHandlers);
+  });
+
+  it('declares no runtime-checked prerequisite for collect_code', async () => {
+    // buildPrerequisiteCheck treats an unrecognised condition string as
+    // permanently unsatisfied. collect_code auto-launches its own browser, so
+    // any entry here would report a false unmet prerequisite in the router and
+    // warn on every workflow containing the tool. The actionable guidance lives
+    // in the PrerequisiteError the launch path raises.
+    // @ts-expect-error — auto-suppressed [TS2352]
+    const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
+      default: Manifest;
+    };
+
+    expect(manifest.prerequisites?.['collect_code']).toBeUndefined();
   });
 });

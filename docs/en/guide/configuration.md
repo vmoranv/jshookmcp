@@ -47,6 +47,7 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 | `CHROME_PATH`                | Alternate browser executable path variable.         | no default                                        |
 | `BROWSER_EXECUTABLE_PATH`    | Another alternate browser executable path variable. | no default                                        |
 | `BROWSER_IDLE_TIMEOUT_MS`    | Reclaim launched browsers, or disconnect attached browsers, after inactivity; `0` disables it. | `300000` |
+| `BROWSER_PROTOCOL_TIMEOUT_MS` | Ceiling for a single CDP protocol call. Raise it for slow remote browsers or high-latency links; a hung process is not covered by this timeout — caller-side timeouts intervene there. | `60000` |
 | `CAPTCHA_SCREENSHOT_DIR`     | Fallback directory for CAPTCHA screenshots.         | `./screenshots/captcha`                           |
 | `MCP_SCREENSHOT_DIR`         | Root directory for regular screenshots.             | `./screenshots`                                   |
 | `MCP_DEBUGGER_SESSIONS_DIR`  | Directory used for persisted debugger sessions.     | `./debugger-sessions`                             |

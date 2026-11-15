@@ -21,6 +21,8 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 }));
 
 vi.mock('@src/utils/browserExecutable', () => ({
+  // The enrichment path names the same list the resolver reads.
+  ENV_KEYS: ['CHROME_PATH', 'PUPPETEER_EXECUTABLE_PATH', 'BROWSER_EXECUTABLE_PATH'],
   findBrowserExecutableAsync: findBrowserExecutableMock,
 }));
 
@@ -38,6 +40,7 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 import { CodeCollector } from '@modules/collector/CodeCollector';
 import {
   buildTestUrl,
@@ -106,7 +109,12 @@ describe('CodeCollector', () => {
       executablePath: 'C:\\definitely-not-existing\\browser.exe',
     });
 
+    // The message is preserved, but the error is now a PrerequisiteError so
+    // callers classify it as a missing prerequisite instead of a generic
+    // handler failure. Both facts are asserted: the wording a caller may
+    // match on, and the class the telemetry layer keys off.
     await expect(collector.init()).rejects.toThrow('Configured browser executable was not found');
+    await expect(collector.init()).rejects.toBeInstanceOf(PrerequisiteError);
     expect(launchMock).not.toHaveBeenCalled();
   });
 

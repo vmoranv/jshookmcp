@@ -16,7 +16,10 @@
 import { logger } from '@utils/logger';
 import { asErrorResponse, asTextResponse } from '@server/domains/shared/response';
 import { getToolDomain } from '@server/ToolCatalog';
-import { classifyErrorKind } from '@server/observability/ToolCallTraceRecorder';
+import {
+  classifyErrorKind,
+  classifyFailureCause,
+} from '@server/observability/ToolCallTraceRecorder';
 import { fastValidateToolArgs } from '@server/registry/compiled-validators';
 import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
 import { recordToolUse } from '@server/MCPServer.search.helpers';
@@ -98,45 +101,84 @@ function truncateErrorSummary(error: unknown): string {
     : message;
 }
 
+/** What a soft-fail ToolResponse says about the failure. */
+interface SoftFailReport {
+  readonly message: string | null;
+  /** `ToolErrorCode` carried on the payload, when the handler supplied one. */
+  readonly code: string | null;
+}
+
+/** Strip the `Error: ` prefix `asErrorResponse` prepends before classifying. */
+const AS_ERROR_PREFIX = 'Error: ';
+
+function stripAsErrorPrefix(message: string): string {
+  return message.startsWith(AS_ERROR_PREFIX) ? message.slice(AS_ERROR_PREFIX.length) : message;
+}
+
 /**
- * Extract the failure reason from a soft-fail ToolResponse (handler returned
- * without throwing). ResponseBuilder.fail() writes the message to both
- * `payload.error` and `payload.message`; structured responses carry it on the
- * envelope or inside the text content. Returns null when the response does not
- * report a failure or carries no extractable message — a successful response
- * must never contribute an `error` span attribute.
+ * Extract the failure reason AND the error code from a soft-fail ToolResponse
+ * (handler returned without throwing).
+ *
+ * ResponseBuilder.fail() writes the message to both `payload.error` and
+ * `payload.message`, and — since the same change that added failure
+ * classification — the `ToolError` code to `payload.code`. Structured responses
+ * carry it on the envelope or inside the text content. A response that does not
+ * report a failure yields `{ message: null, code: null }` — a successful
+ * response must never contribute an `error` span attribute or an error class.
  */
-function extractResponseErrorMessage(response: unknown): string | null {
-  if (!response || typeof response !== 'object') return null;
+function readSoftFailResponse(response: unknown): SoftFailReport {
+  const none: SoftFailReport = { message: null, code: null };
+  if (!response || typeof response !== 'object') return none;
   const r = response as Record<string, unknown>;
-  if (r.isError !== true && r.success !== false) return null;
-  const candidates: unknown[] = [
-    r.error,
-    r.message,
+  if (r.isError !== true && r.success !== false) return none;
+
+  const structured =
     r.structuredContent && typeof r.structuredContent === 'object'
-      ? (r.structuredContent as Record<string, unknown>).error
-      : undefined,
-  ];
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.length > 0) {
-      return truncateErrorSummary(new Error(candidate));
-    }
+      ? (r.structuredContent as Record<string, unknown>)
+      : undefined;
+  const code = firstString([r.code, structured?.['code']]);
+
+  const candidates: unknown[] = [r.error, r.message, structured?.['error']];
+  const direct = firstString(candidates);
+  if (direct !== null) {
+    return { message: truncateErrorSummary(new Error(stripAsErrorPrefix(direct))), code };
   }
+
   // Last resort: parse the first text content block (ResponseBuilder.json()
   // serialises the payload into it; raw non-ResponseBuilder handlers encode
-  // `success:false, error:"..."` there directly).
+  // `success:false, error:"..."` there directly, and `asErrorResponse` writes
+  // a bare `Error: <message>` string).
   const first = (r.content as { type?: string; text?: unknown }[] | undefined)?.[0];
   if (first?.type === 'text' && typeof first.text === 'string') {
     try {
       const parsed = JSON.parse(first.text) as Record<string, unknown>;
-      if (typeof parsed.error === 'string' && parsed.error.length > 0) {
-        return truncateErrorSummary(new Error(parsed.error));
+      const parsedError = firstString([parsed['error'], parsed['message']]);
+      if (parsedError !== null) {
+        return {
+          message: truncateErrorSummary(new Error(stripAsErrorPrefix(parsedError))),
+          code: code ?? firstString([parsed['code']]),
+        };
       }
     } catch {
-      /* not JSON — no message to extract */
+      /* not JSON — fall through to the bare-text case */
     }
+    // `asErrorResponse` (a non-JSON text block) still carries the message.
+    return { message: truncateErrorSummary(new Error(stripAsErrorPrefix(first.text))), code };
+  }
+  return { message: null, code };
+}
+
+/** First non-empty string in the list, or null. */
+function firstString(values: readonly unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.length > 0) return value;
   }
   return null;
+}
+
+/** Message-only view of {@link readSoftFailResponse}, kept for existing callers. */
+function extractResponseErrorMessage(response: unknown): string | null {
+  return readSoftFailResponse(response).message;
 }
 
 export function estimateBrowserSessionToolCostMs(toolName: string, args: ToolArgs): number {
@@ -347,14 +389,28 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     // The throwing path exits separately from the success path, so it accounts
     // for its own sample. Without this every throw would be invisible to the
     // counters and the error rate would read as zero.
+    // Classified with the structural signals from the caught value (its
+    // ToolError code / cause chain), not from its prose.
+    // The timeout marker must cover "timed out" as well as "timeout"/"hung" —
+    // a plain `Error('Operation timed out')` is the most common phrasing and
+    // the narrower pattern silently missed it.
+    const failureKind = classifyFailureCause(
+      classifyErrorKind({
+        thrown: true,
+        timedOut: error instanceof Error && /tim(?:ed\s*out|eout)|hung/i.test(error.message),
+      }),
+      { error },
+    );
     instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
       tool: name,
       success: false,
+      outcome: failureKind,
     });
     instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });
     instrumentation.emitMetric(MetricNames.toolDurationMs, failureDurationMs, 'histogram', {
       tool: name,
       success: false,
+      outcome: failureKind,
     });
     // Failures that throw never reach the success-path `tool:called` emit, so
     // without this the trace would record only calls that returned — a trace
@@ -367,10 +423,7 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
       timestamp: new Date().toISOString(),
       success: false,
       durationMs: failureDurationMs,
-      errorKind: classifyErrorKind({
-        thrown: true,
-        timedOut: error instanceof Error && /hung|timeout/i.test(error.message),
-      }),
+      errorKind: failureKind,
     });
     const admissionError =
       error instanceof BrowserSessionQueueError ||
@@ -552,6 +605,21 @@ function emitToolCallTelemetry(
   // Duration is computed ONCE and shared by the event and the metric below.
   // Two clocks for the same interval is exactly how an event stream and a
   // metrics backend drift apart, after which neither is trustworthy.
+  // Stage kind first (which pipeline layer caught it), then the structural
+  // cause layered on top — one value used by the event, the metric dimension
+  // and the trace, so the three can never disagree about why a call failed.
+  const stageKind = classifyErrorKind({
+    isError: (enriched as { isError?: boolean }).isError === true,
+    successFlag: toolResultSuccess,
+  });
+  const softFail = readSoftFailResponse(enriched);
+  const errorKind = classifyFailureCause(stageKind, {
+    // A response envelope has no Error instance — its code and message are the
+    // only structured carriers it has. `R.fail(ToolError)` puts the code on
+    // `payload.code`; a bare `asErrorResponse` has only text.
+    errorCode: softFail.code ?? undefined,
+    platformError: softFail.message ?? undefined,
+  });
   // Emit tool:called event for ActivationController
   void ctx.eventBus.emit('tool:called', {
     toolName: name,
@@ -563,10 +631,7 @@ function emitToolCallTelemetry(
     timestamp: new Date().toISOString(),
     success: toolResultSuccess,
     durationMs: toolDurationMs,
-    errorKind: classifyErrorKind({
-      isError: (enriched as { isError?: boolean }).isError === true,
-      successFlag: toolResultSuccess,
-    }),
+    errorKind,
     args,
     result: {
       success: toolResultSuccess,
@@ -585,9 +650,13 @@ function emitToolCallTelemetry(
   // One observation, two sinks: the event stream stays in-process, these go to
   // whichever instrumentation backend is configured. Emitted from the same
   // point so the two can never disagree about what happened.
+  // `outcome` is the error class the telemetry worker folds into `dim_label`;
+  // without it every failure row arrives with a null label and the failure
+  // profile collapses into a single number that cannot be acted on.
   instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
     tool: name,
     success: toolResultSuccess,
+    ...(errorKind !== undefined ? { outcome: errorKind } : {}),
   });
   if (!toolResultSuccess) {
     instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });
@@ -595,6 +664,12 @@ function emitToolCallTelemetry(
   instrumentation.emitMetric(MetricNames.toolDurationMs, toolDurationMs, 'histogram', {
     tool: name,
     success: toolResultSuccess,
+    // `outcome` MUST match toolCallsTotal above: the worker folds the pair into
+    // one row by hashing the full attrs object, so any attribute present on one
+    // half and absent on the other makes the key miss and one call lands as two
+    // rows — doubling write quota for every failure and skewing fail_pct's
+    // denominator. The throw path in executeToolWithTracking does the same.
+    ...(errorKind !== undefined ? { outcome: errorKind } : {}),
   });
   const searchQualityTracker =
     ctx.getDomainInstance<import('@server/search/SearchQualityTracker').SearchQualityTracker>(

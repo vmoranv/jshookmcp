@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 
 const state = vi.hoisted(() => ({
   findBrowserExecutableAsync: vi.fn(async () => undefined),
 }));
 
 vi.mock('@utils/browserExecutable', () => ({
+  ENV_KEYS: ['CHROME_PATH', 'PUPPETEER_EXECUTABLE_PATH', 'BROWSER_EXECUTABLE_PATH'],
   findBrowserExecutableAsync: state.findBrowserExecutableAsync,
 }));
 
@@ -87,5 +89,61 @@ describe('BrowserLifecycleManager idle reclamation', () => {
 
     await vi.advanceTimersByTimeAsync(25);
     expect(browser.close).toHaveBeenCalledOnce();
+  });
+});
+
+describe('BrowserLifecycleManager launch error enrichment', () => {
+  const PUPPETEER_CORE_MESSAGE =
+    'An `executablePath` or `channel` must be specified for `puppeteer-core`';
+
+  /** Drive launchInner with a puppeteer whose launch() rejects with `error`. */
+  async function launchWithRejectingPuppeteer(error: Error) {
+    vi.doMock('rebrowser-puppeteer-core', () => ({
+      default: {
+        launch: vi.fn(async () => {
+          throw error;
+        }),
+      },
+    }));
+    const { BrowserLifecycleManager } = await import('@modules/collector/BrowserLifecycleManager');
+    const manager = new BrowserLifecycleManager(
+      { headless: true, timeout: 30_000 } as any,
+      { width: 1280, height: 720 },
+      vi.fn(),
+    );
+    return manager.launch().then(
+      () => {
+        throw new Error('launch() should have rejected');
+      },
+      (e: unknown) => e,
+    );
+  }
+
+  afterEach(() => {
+    vi.doUnmock('rebrowser-puppeteer-core');
+    vi.restoreAllMocks();
+  });
+
+  it('turns the missing-executable failure into an actionable PrerequisiteError', async () => {
+    const thrown = await launchWithRejectingPuppeteer(new Error(PUPPETEER_CORE_MESSAGE));
+
+    expect(thrown).toBeInstanceOf(PrerequisiteError);
+    const message = (thrown as Error).message;
+    // Says what was probed and what to do about it — the whole point, because
+    // the puppeteer-core text names neither.
+    expect(message).toContain('No browser executable found');
+    expect(message).toContain('CHROME_PATH');
+    expect(message).toContain('PUPPETEER_EXECUTABLE_PATH');
+    expect(message).toContain('BROWSER_EXECUTABLE_PATH');
+    expect(message).toContain('executablePath');
+  });
+
+  it('leaves an unrelated launch failure untouched', async () => {
+    const original = new Error('Failed to launch the browser process: code=1');
+    const thrown = await launchWithRejectingPuppeteer(original);
+
+    // Rewriting this one would bury the real cause behind a routing hint.
+    expect(thrown).toBe(original);
+    expect(thrown).not.toBeInstanceOf(PrerequisiteError);
   });
 });

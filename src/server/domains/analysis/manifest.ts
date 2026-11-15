@@ -118,10 +118,15 @@ const manifest = {
     hint: 'JavaScript analysis workflow: collect -> deobfuscate -> inspect function tree | LLM-powered naming',
   },
 
+  // `collect_code` deliberately declares NO prerequisite entry. The handler
+  // auto-launches a browser (CodeCollectorCollectInternal calls init()), so
+  // there is no launch step an agent must take first, and whether a usable
+  // browser binary exists is not visible in RoutingState — `buildPrerequisiteCheck`
+  // treats an unmatched condition string as permanently unsatisfied, which made
+  // the router report the prerequisite as failed and WorkflowPreflight warn on
+  // every workflow containing this tool. The actionable guidance lives in the
+  // PrerequisiteError the launch path raises instead, where it is accurate.
   prerequisites: {
-    collect_code: [
-      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
-    ],
     ai_suggest_exploits: [
       {
         condition: 'Client must support MCP sampling',

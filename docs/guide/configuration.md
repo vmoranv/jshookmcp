@@ -47,6 +47,7 @@ Clone 仓库后，在项目根目录创建 `.env` 文件（参考 `.env.example`
 | `CHROME_PATH`                | 作为浏览器路径的备用变量。                 | 无默认值                                       |
 | `BROWSER_EXECUTABLE_PATH`    | 再一个浏览器路径备用变量。                 | 无默认值                                       |
 | `BROWSER_IDLE_TIMEOUT_MS`    | 浏览器空闲后关闭 jshook 启动的实例，或断开外部 attach；`0` 表示禁用。 | `300000` |
+| `BROWSER_PROTOCOL_TIMEOUT_MS` | CDP 协议层单次调用的超时上限。慢速远程浏览器或高延迟链路上的操作需要调大；进程挂死不走这个超时，由调用侧超时兜底。 | `60000` |
 | `CAPTCHA_SCREENSHOT_DIR`     | CAPTCHA 识别失败时的截图落盘目录。         | `./screenshots/captcha`                        |
 | `MCP_SCREENSHOT_DIR`         | 常规截图输出根目录（仍受项目根路径约束）。 | `./screenshots`                                |
 | `MCP_DEBUGGER_SESSIONS_DIR`  | debugger session 存储目录。                | `./debugger-sessions`                          |

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ResponseBuilder, R, handleSafe } from '@server/domains/shared/ResponseBuilder';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 
 describe('ResponseBuilder', () => {
   describe('fluent api', () => {
@@ -28,6 +29,43 @@ describe('ResponseBuilder', () => {
     it('should build a failure response from string', async () => {
       const res = new ResponseBuilder().fail('test err string').json();
       expect((res.content[0] as { text: string }).text).toContain('"error": "test err string"');
+    });
+
+    it('carries a ToolError code onto the payload', async () => {
+      // The code is the only structured thing a serialized soft-fail response
+      // can carry; without it the failure is indistinguishable from any other
+      // and downstream classification can only guess from prose.
+      const res = new ResponseBuilder().fail(new PrerequisiteError('no browser')).json();
+      const payload = JSON.parse((res.content[0] as { text: string }).text) as Record<
+        string,
+        unknown
+      >;
+      expect(payload['code']).toBe('PREREQUISITE');
+      expect(payload['error']).toBe('no browser');
+    });
+
+    it('omits code for an error that has none', async () => {
+      const res = new ResponseBuilder().fail(new Error('plain')).json();
+      const payload = JSON.parse((res.content[0] as { text: string }).text) as Record<
+        string,
+        unknown
+      >;
+      expect(payload).not.toHaveProperty('code');
+    });
+
+    it('survives a null/undefined rejection value', async () => {
+      // `fail()` takes `unknown` and callers pass the rejected value through
+      // verbatim — `page.evaluate` can reject with null. Reading `.code` off it
+      // threw and turned a handled failure into an unhandled one.
+      for (const value of [null, undefined]) {
+        const res = new ResponseBuilder().fail(value).json();
+        expect(res).toMatchObject({ success: false });
+        const payload = JSON.parse((res.content[0] as { text: string }).text) as Record<
+          string,
+          unknown
+        >;
+        expect(payload).not.toHaveProperty('code');
+      }
     });
 
     it('should merge objects', async () => {

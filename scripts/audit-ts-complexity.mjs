@@ -22,6 +22,15 @@
 //   if / ternary / for / for-in / for-of / while / do-while / case / catch /
 //   && / || / ??  inside it. Nested functions are counted separately.
 //
+// BASELINE KEY = `<file>:<name>` (+ `#N` for the Nth same-named sibling in that
+// file), never including a line number. A line number is not an identity: any
+// edit above a function shifts it, and keying on it made the guard report
+// unrelated files as "new high-complexity function" — on master it was red for
+// two files nobody had touched. A ratchet that fires on edits to code it does
+// not measure trains people to ignore it. The ordinal is assigned over TRACKED
+// functions only (>= TRACK_FLOOR, in line order), so an untracked same-named
+// sibling cannot renumber a tracked entry.
+//
 // Usage:
 //   node scripts/audit-ts-complexity.mjs                 # check (CI)
 //   node scripts/audit-ts-complexity.mjs --write-baseline # refresh baseline
@@ -83,10 +92,19 @@ function children(node) {
   const out = [];
   for (const k of Object.keys(node)) {
     if (
-      k === 'loc' || k === 'start' || k === 'end' || k === 'extra' ||
-      k === 'leadingComments' || k === 'trailingComments' || k === 'innerComments' ||
-      k === 'tokens' || k === 'errors' || k === 'comments' || k === 'range'
-    ) continue;
+      k === 'loc' ||
+      k === 'start' ||
+      k === 'end' ||
+      k === 'extra' ||
+      k === 'leadingComments' ||
+      k === 'trailingComments' ||
+      k === 'innerComments' ||
+      k === 'tokens' ||
+      k === 'errors' ||
+      k === 'comments' ||
+      k === 'range'
+    )
+      continue;
     const v = node[k];
     if (v && typeof v === 'object') {
       if (Array.isArray(v)) {
@@ -120,6 +138,7 @@ function complexityOf(fnNode) {
 function analyze() {
   const files = walk(SCAN_DIR);
   const rows = [];
+  let totalFunctions = 0;
   let parseErrors = 0;
   for (const f of files) {
     let ast;
@@ -136,6 +155,7 @@ function analyze() {
     const rel = relative(SCAN_DIR, f).split(sep).join('/');
     const stack = [ast];
     const seen = new Set();
+    const fileRows = [];
     while (stack.length) {
       const n = stack.pop();
       if (seen.has(n)) continue;
@@ -143,12 +163,32 @@ function analyze() {
       if (FN.has(n.type)) {
         const name = n.id?.name ?? n.key?.name ?? n.key?.value ?? '<anon>';
         const line = n.loc?.start.line ?? 0;
-        rows.push({ key: `${rel}:${line}:${name}`, file: rel, line, name, cc: complexityOf(n) });
+        totalFunctions++;
+        fileRows.push({ file: rel, line, name, cc: complexityOf(n) });
       }
       for (const ch of children(n)) stack.push(ch);
     }
+    // Key by file+name, NOT file:line. A line number is not an identity: any
+    // edit above a function shifts it, and the gate then reports every shifted
+    // function as "new high-complexity function (not in baseline)". That is
+    // what made this guard red on master for two files nobody had touched —
+    // a ratchet that fires on unrelated edits trains people to ignore it.
+    // Ordinals are assigned over TRACKED functions only (in line order), so a
+    // same-named sibling below the floor cannot renumber a tracked entry.
+    // Every function still lands in `rows` so `worst` and the scanned-count
+    // keep covering the whole tree, not just the tracked subset.
+    const occurrences = new Map();
+    for (const row of fileRows.toSorted((a, b) => a.line - b.line)) {
+      if (row.cc >= TRACK_FLOOR) {
+        const base = `${row.file}:${row.name}`;
+        const seenCount = occurrences.get(base) ?? 0;
+        occurrences.set(base, seenCount + 1);
+        row.key = seenCount === 0 ? base : `${base}#${seenCount + 1}`;
+      }
+      rows.push(row);
+    }
   }
-  return { files: files.length, parseErrors, rows };
+  return { files: files.length, parseErrors, rows, totalFunctions };
 }
 
 function loadBaseline() {
@@ -160,7 +200,7 @@ function loadBaseline() {
   }
 }
 
-const { files, parseErrors, rows } = analyze();
+const { files, parseErrors, rows, totalFunctions } = analyze();
 if (parseErrors > 0) {
   console.error(`[complexity] ${parseErrors} file(s) failed to parse — cannot trust the report.`);
   process.exit(2);
@@ -173,7 +213,9 @@ if (WRITE) {
   const next = {};
   for (const r of tracked) next[r.key] = r.cc;
   writeFileSync(BASELINE_FILE, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
-  console.log(`[complexity] baseline written: ${Object.keys(next).length} functions >= CC ${TRACK_FLOOR}`);
+  console.log(
+    `[complexity] baseline written: ${Object.keys(next).length} functions >= CC ${TRACK_FLOOR}`,
+  );
   process.exit(0);
 }
 
@@ -195,7 +237,7 @@ const improved = tracked
 const worst = rows.toSorted((a, b) => b.cc - a.cc).slice(0, 5);
 const result = {
   scannedFiles: files,
-  totalFunctions: rows.length,
+  totalFunctions,
   trackFloor: TRACK_FLOOR,
   trackedFunctions: tracked.length,
   baselinedFunctions: Object.keys(baseline).length,
@@ -208,14 +250,16 @@ if (JSON_OUT) {
   console.log(JSON.stringify(result, null, 2));
 } else {
   console.log(
-    `[complexity] scanned ${files} TS files, ${rows.length} functions; ` +
+    `[complexity] scanned ${files} TS files, ${totalFunctions} functions; ` +
       `${tracked.length} >= CC ${TRACK_FLOOR}; ${improved.length} improved`,
   );
   console.log('[complexity] worst:', worst.map((w) => `${w.name}=${w.cc}`).join(', '));
   if (failures.length) {
     console.error(`[complexity] ${failures.length} regression(s):`);
     for (const f of failures) console.error(`  - ${f}`);
-    console.error('[complexity] reduce complexity, or run `node scripts/audit-ts-complexity.mjs --write-baseline` after an intentional increase.');
+    console.error(
+      '[complexity] reduce complexity, or run `node scripts/audit-ts-complexity.mjs --write-baseline` after an intentional increase.',
+    );
   } else {
     console.log('[complexity] pass — no complexity regressions.');
   }

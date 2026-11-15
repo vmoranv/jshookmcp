@@ -6,6 +6,7 @@
  */
 
 import { getToolRequestContext } from '@server/runtime/ToolRequestContext';
+import type { ToolCallErrorKind } from '@server/observability/ToolCallTraceRecorder';
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>;
 
@@ -108,7 +109,7 @@ export interface ServerEventMap {
      * emitters that predate error classification. The trace recorder forwards
      * it verbatim; it never re-derives a cause from the message.
      */
-    errorKind?: 'timeout' | 'validation' | 'gate' | 'handler' | 'unknown';
+    errorKind?: ToolCallErrorKind;
     args?: Record<string, unknown>;
     result?: {
       success?: boolean;

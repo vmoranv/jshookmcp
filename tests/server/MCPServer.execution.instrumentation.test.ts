@@ -56,6 +56,7 @@ vi.mock('@server/runtime/ServerRuntimeState', () => ({
 
 import { executeToolWithTracking } from '@server/MCPServer.execution';
 import { R } from '@server/domains/shared/ResponseBuilder';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 import {
   INSTRUMENTATION_DOMAIN_KEY,
   MetricNames,
@@ -162,11 +163,15 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     expect(instrumentation.metricsNamed(MetricNames.toolCallsTotal)[0]!.attrs).toEqual({
       tool: 'page_navigate',
       success: false,
+      outcome: 'handler',
     });
     expect(instrumentation.metricsNamed(MetricNames.toolErrorsTotal)).toHaveLength(1);
     expect(instrumentation.metricsNamed(MetricNames.toolDurationMs)[0]!.attrs).toEqual({
       tool: 'page_navigate',
       success: false,
+      // Must equal the counter's attrs: the worker folds the pair by hashing
+      // the whole attrs object, so a mismatch costs a second row per failure.
+      outcome: 'handler',
     });
 
     // The failed execution is recorded as a span EVENT, and the span still ends
@@ -195,6 +200,7 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     expect(instrumentation.metricsNamed(MetricNames.toolCallsTotal)[0]!.attrs).toEqual({
       tool: 'browser_launch',
       success: false,
+      outcome: 'unknown',
     });
     const execute = instrumentation.spansNamed(SpanNames.toolExecute);
     expect(execute).toHaveLength(1);
@@ -204,6 +210,30 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
       'Executable not found at D:/chrome/chrome.exe',
     );
     expect(execute[0]!.events).toEqual([]);
+  });
+
+  it('classifies a soft-fail PrerequisiteError by the code R.fail now carries', async () => {
+    // The response envelope has no Error instance. Before the code was carried
+    // on the payload, this path could only ever produce `handler` — which is
+    // why `browser_launch`'s missing-executable failure was mislabelled and a
+    // prerequisite problem looked like a broken handler.
+    const ctx = createCtx(
+      async () => R.fail(new PrerequisiteError('No browser executable found')).json(),
+      instrumentation,
+    );
+
+    await executeToolWithTracking(ctx, 'browser_launch', {});
+
+    expect(instrumentation.metricsNamed(MetricNames.toolCallsTotal)[0]!.attrs).toEqual({
+      tool: 'browser_launch',
+      success: false,
+      outcome: 'prereq_missing',
+    });
+    expect(instrumentation.metricsNamed(MetricNames.toolDurationMs)[0]!.attrs).toEqual({
+      tool: 'browser_launch',
+      success: false,
+      outcome: 'prereq_missing',
+    });
   });
 
   it('omits the error attribute on successful responses and truncates long messages', async () => {
