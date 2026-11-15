@@ -80,9 +80,12 @@ export interface ToolSearchResult {
 }
 
 /**
- * Modular strategy toggles for counterfactual ablation and DreamRSI evaluation.
+ * Internal strategy toggles. Not exported: the values are fixed at construction
+ * and every consumer reads them through the engine, so there is no external
+ * caller to serve. (The setter that made these runtime-mutable existed only for
+ * an ablation harness that has been removed.)
  */
-export interface SearchStrategyFlags {
+interface SearchStrategyFlags {
   /** S1: Expand synonyms & reverse-engineering shorthands (bp, dbg, mem, etc.) */
   enableSynonyms?: boolean;
   /** S2: Boost scores based on inputSchema parameter & required field matching */
@@ -424,15 +427,6 @@ export class ToolSearchEngine {
     if (this.embeddingEngine && SEARCH_VECTOR_PREWARM) {
       void this.ensureToolEmbeddings();
     }
-  }
-
-  /**
-   * Update search strategy flags dynamically (e.g. for ablation benchmarks).
-   * Automatically clears cached queries to avoid stale cross-strategy results.
-   */
-  public setStrategyFlags(flags: Partial<SearchStrategyFlags>): void {
-    this.strategyFlags = { ...this.strategyFlags, ...flags };
-    this.queryCache.clear();
   }
 
   /**

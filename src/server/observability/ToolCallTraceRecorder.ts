@@ -241,11 +241,6 @@ export class ToolCallTraceRecorder {
     this.sessions.delete(sessionId);
   }
 
-  /** Session ids currently held, oldest first. */
-  sessionIds(): readonly string[] {
-    return [...this.sessions.keys()];
-  }
-
   /**
    * Serializable form: one JSON object per line, oldest first, per session.
    *
