@@ -334,9 +334,20 @@ export interface ToolFailureSignals {
  * added to the metric dimension without re-interpreting old data.
  *
  * Precedence: a stage that never reached the handler (gate / validation) is
- * more informative than any structural hint, so those win. Otherwise a
- * `prereq_missing` beats everything below it because retrying without the
- * prerequisite only burns tokens.
+ * more informative than any structural hint, so those win. Then a
+ * `PrerequisiteError` instance, because retrying without the prerequisite only
+ * burns tokens. Timeout comes next — deliberately BEFORE the network table, so
+ * ETIMEDOUT / UND_ERR_CONNECT_TIMEOUT read as `timeout` rather than being
+ * swallowed as a generic network failure.
+ *
+ * Every branch below reads a structural signal. The only prose it consults is
+ * the two markers with no structural carrier at all: a Chromium `net::ERR_*`
+ * name (Playwright and Puppeteer both flatten it into the message) and a
+ * timeout phrase on a soft-fail response (which carries no Error instance).
+ *
+ * The whole `cause` chain is walked, not just the outermost error: a handler
+ * that wraps a ToolError in its own error must still be classified by the
+ * wrapped code.
  */
 export function classifyFailureCause(
   stage: ToolCallErrorKind | undefined,
@@ -344,31 +355,43 @@ export function classifyFailureCause(
 ): ToolCallErrorKind | undefined {
   if (stage === undefined) return undefined;
   if (stage === 'gate' || stage === 'validation') return stage;
-  const { error, errorCode, platformError } = signals;
-  if (error instanceof PrerequisiteError) return 'prereq_missing';
-  const code = errorCode ?? (isToolErrorLike(error) ? error.code : undefined);
-  switch (code) {
-    case 'PREREQUISITE':
-      return 'prereq_missing';
+
+  const chain = readCauseChain(signals.error);
+  const declaredCode = signals.errorCode ?? chain.toolErrorCode;
+  const platformText = signals.platformError;
+  const platformNet = readPlatformText(platformText);
+
+  if (chain.hasPrerequisite || declaredCode === 'PREREQUISITE') return 'prereq_missing';
+  // A timeout is a timeout whether it arrived as a ToolError code, a Node
+  // socket code (ETIMEDOUT / UND_ERR_CONNECT_TIMEOUT) or prose. Checked before
+  // the network table on purpose: a socket timeout must not be swallowed as a
+  // generic network failure.
+  if (
+    declaredCode === 'TIMEOUT' ||
+    (declaredCode !== undefined && TIMEOUT_ERROR_CODES.has(declaredCode)) ||
+    chain.hasTimeoutCode ||
+    isTimeoutText(platformText)
+  ) {
+    return 'timeout';
+  }
+  switch (declaredCode) {
     case 'VALIDATION':
       return 'invalid_args';
     case 'NOT_FOUND':
-      return 'target_gone';
+      // NOT_FOUND covers a missing file, a missing tool and a gone CDP target
+      // alike; the code alone cannot separate them, so it keeps its own name
+      // instead of claiming the target is gone.
+      return 'not_found';
     case 'CONNECTION':
+      // A closed CDP session and a refused socket are both connection
+      // failures. This is the broad-but-true answer; the narrower
+      // target/network distinction needs evidence the code does not carry.
       return 'network';
-    case 'TIMEOUT':
-      return 'timeout';
     default:
       break;
   }
-  const networkSignal = normalizeNetworkSignal(error, platformError);
-  if (networkSignal === 'gone') return 'target_gone';
-  if (networkSignal === 'network') return 'network';
-  // Timeout is the one cause with no structural carrier in Playwright/Puppeteer:
-  // a navigation timeout surfaces as plain prose. The thrown path already
-  // matches the same markers (`/hung|timeout/i` above), so a soft-fail response
-  // is read the same way rather than being dumped into `handler`.
-  if (isTimeoutText(platformError)) return 'timeout';
+  if (chain.hasGoneNetError || platformNet === 'gone') return 'target_gone';
+  if (chain.hasNetError || platformNet === 'network') return 'network';
   // A soft-fail `R.fail(...)` response carries only prose — the cause is
   // genuinely unknown, and the stage ('handler') is the honest answer rather
   // than inventing a category.
@@ -378,24 +401,105 @@ export function classifyFailureCause(
 /** Timeout markers shared by the thrown and soft-fail paths. */
 function isTimeoutText(text: string | undefined): boolean {
   if (text === undefined) return false;
-  return /timeout|timed out|exceeded.*ms/i.test(text);
+  // "timed out" does NOT contain "timeout" — the earlier pattern silently
+  // missed the most common phrasing a plain `Error` uses.
+  return /tim(?:ed\s*out|eout)|exceeded.*ms/i.test(text);
 }
-/** Node platform codes that mean "the network path failed", not the target. */
+
+/**
+ * A ToolError code that could be confirmed at ANY depth of the cause chain.
+ * Only the codes this module maps are recorded; the rest are ignored so an
+ * unrelated `code` property on a third-party error cannot be mistaken for one.
+ */
+interface CauseChainSignals {
+  readonly hasPrerequisite: boolean;
+  readonly toolErrorCode: string | undefined;
+  readonly hasTimeoutCode: boolean;
+  readonly hasGoneNetError: boolean;
+  readonly hasNetError: boolean;
+}
+
+/** Bounded depth: a pathological cause cycle must not hang the telemetry path. */
+const MAX_CAUSE_DEPTH = 4;
+
+/** ToolError codes this module can classify. */
+const CLASSIFIABLE_TOOL_ERROR_CODES = new Set([
+  'PREREQUISITE',
+  'VALIDATION',
+  'NOT_FOUND',
+  'CONNECTION',
+  'TIMEOUT',
+]);
+
+/**
+ * Walk the `cause` chain once, collecting every structural signal it holds.
+ *
+ * Playwright, Puppeteer and the tool handlers themselves all bury the real
+ * cause a level or two down, never on the outermost error's own code.
+ */
+function readCauseChain(error: unknown): CauseChainSignals {
+  let hasPrerequisite = false;
+  let toolErrorCode: string | undefined;
+  let hasTimeoutCode = false;
+  let hasGoneNetError = false;
+  let hasNetError = false;
+
+  let current: unknown = error;
+  for (
+    let depth = 0;
+    depth < MAX_CAUSE_DEPTH && current !== null && current !== undefined;
+    depth++
+  ) {
+    if (current instanceof PrerequisiteError) hasPrerequisite = true;
+    const code = isToolErrorLike(current) ? current.code : undefined;
+    if (code !== undefined) {
+      if (CLASSIFIABLE_TOOL_ERROR_CODES.has(code) && toolErrorCode === undefined)
+        toolErrorCode = code;
+      if (TIMEOUT_ERROR_CODES.has(code)) hasTimeoutCode = true;
+      if (NETWORK_ERROR_CODES.has(code)) hasNetError = true;
+    }
+    const message = current instanceof Error ? current.message : null;
+    if (message !== null && message.includes('net::ERR_')) {
+      if (isGoneNetError(message)) hasGoneNetError = true;
+      else hasNetError = true;
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+
+  return { hasPrerequisite, toolErrorCode, hasTimeoutCode, hasGoneNetError, hasNetError };
+}
+
+/** Timeout codes. Checked before the network table so they keep their own name. */
+const TIMEOUT_ERROR_CODES = new Set(['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT']);
+
+/**
+ * Node platform codes that mean "the network path failed", not the target.
+ * Deliberately excludes the timeout codes above — they live in their own set.
+ */
 const NETWORK_ERROR_CODES = new Set([
   'ECONNREFUSED',
   'ECONNRESET',
   'ENOTFOUND',
   'EAI_AGAIN',
-  'ETIMEDOUT',
   'EHOSTUNREACH',
   'ENETUNREACH',
   'EPIPE',
-  'UND_ERR_CONNECT_TIMEOUT',
   'UND_ERR_SOCKET',
 ]);
 
-/** Chromium network error suffixes that mean "the peer is gone", not "retry". */
-const GONE_NET_ERRORS = ['ERR_CONNECTION_CLOSED', 'ERR_CONNECTION_RESET', 'ERR_ABORTED'];
+/**
+ * Chromium network errors that mean "the peer is gone".
+ *
+ * `ERR_ABORTED` is NOT here: Chromium reports it for any canceled or
+ * superseded navigation, including one the caller triggered deliberately and
+ * one where the target is perfectly alive. Treating it as target loss would
+ * label a working browser as disconnected.
+ */
+const GONE_NET_ERRORS = ['ERR_CONNECTION_CLOSED', 'ERR_CONNECTION_RESET'];
+
+function isGoneNetError(text: string): boolean {
+  return GONE_NET_ERRORS.some((name) => text.includes(name));
+}
 
 function isToolErrorLike(value: unknown): value is { code: string } {
   return (
@@ -406,31 +510,14 @@ function isToolErrorLike(value: unknown): value is { code: string } {
 }
 
 /**
- * Walk the `cause` chain for a platform code or Chromium `net::ERR_*` name.
- * Playwright and Puppeteer both bury the code a level or two down, never in the
- * top-level message. A bare `platformError` string is checked directly before
- * descending into the chain.
+ * Classify a soft-fail response's message text, which is the only carrier a
+ * `R.fail(...)` response has.
  */
-function normalizeNetworkSignal(error: unknown, platformError?: string): 'gone' | 'network' | null {
-  // A soft-fail response only carries prose, so the message is scanned for the
-  // same two markers the cause-chain walk looks for.
-  if (platformError !== undefined) {
-    if (platformError.includes('net::ERR_')) {
-      return GONE_NET_ERRORS.some((name) => platformError.includes(name)) ? 'gone' : 'network';
-    }
-    for (const code of NETWORK_ERROR_CODES) {
-      if (platformError.includes(code)) return 'network';
-    }
-  }
-  let current: unknown = error;
-  for (let depth = 0; depth < 4 && current !== undefined && current !== null; depth += 1) {
-    if (isToolErrorLike(current) && NETWORK_ERROR_CODES.has(current.code)) return 'network';
-    const message = current instanceof Error ? current.message : null;
-    if (message !== null && message.includes('net::ERR_')) {
-      if (GONE_NET_ERRORS.some((name) => message.includes(name))) return 'gone';
-      return 'network';
-    }
-    current = current instanceof Error ? current.cause : undefined;
+function readPlatformText(text: string | undefined): 'gone' | 'network' | null {
+  if (text === undefined) return null;
+  if (text.includes('net::ERR_')) return isGoneNetError(text) ? 'gone' : 'network';
+  for (const code of NETWORK_ERROR_CODES) {
+    if (text.includes(code)) return 'network';
   }
   return null;
 }

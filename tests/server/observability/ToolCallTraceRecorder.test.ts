@@ -146,10 +146,58 @@ describe('classifyFailureCause', () => {
     expect(classifyFailureCause(handlerStage, { errorCode: 'PREREQUISITE' })).toBe(
       'prereq_missing',
     );
-    expect(classifyFailureCause(handlerStage, { error: te('NOT_FOUND') })).toBe('target_gone');
+    // NOT_FOUND is a missing file, a missing tool OR a gone CDP target; the
+    // code alone cannot tell them apart, so it keeps its own name.
+    expect(classifyFailureCause(handlerStage, { error: te('NOT_FOUND') })).toBe('not_found');
     expect(classifyFailureCause(handlerStage, { error: te('VALIDATION') })).toBe('invalid_args');
     expect(classifyFailureCause(handlerStage, { errorCode: 'CONNECTION' })).toBe('network');
     expect(classifyFailureCause(handlerStage, { error: te('TIMEOUT') })).toBe('timeout');
+  });
+
+  it('classifies a wrapped ToolError by the code inside its cause chain', () => {
+    // A handler that wraps a ToolError in its own error must still be
+    // classified by the wrapped code — the outermost error carries none.
+    const wrapped = new Error('collect failed', { cause: new PrerequisiteError('no browser') });
+    expect(classifyFailureCause(handlerStage, { error: wrapped })).toBe('prereq_missing');
+
+    const wrappedNotFound = new Error('lookup failed', {
+      cause: { code: 'NOT_FOUND' } as unknown as Error,
+    });
+    expect(classifyFailureCause(handlerStage, { error: wrappedNotFound })).toBe('not_found');
+  });
+
+  it('prefers timeout over network for ETIMEDOUT / UND_ERR_CONNECT_TIMEOUT', () => {
+    // These are socket timeouts, not "the network path is broken". Recording
+    // them as `network` sent the wrong signal to whoever reads the profile.
+    expect(classifyFailureCause(handlerStage, { errorCode: 'ETIMEDOUT' })).toBe('timeout');
+    expect(classifyFailureCause(handlerStage, { error: { code: 'UND_ERR_CONNECT_TIMEOUT' } })).toBe(
+      'timeout',
+    );
+    expect(
+      classifyFailureCause(handlerStage, { platformError: 'connect ETIMEDOUT 10.0.0.1:443' }),
+    ).toBe('timeout');
+  });
+
+  it('matches the "timed out" phrasing a plain Error uses', () => {
+    // "timed out" does NOT contain the substring "timeout".
+    expect(
+      classifyFailureCause(handlerStage, {
+        platformError: 'Operation timed out after 30000ms',
+      }),
+    ).toBe('timeout');
+  });
+
+  it('does not treat ERR_ABORTED as target loss', () => {
+    // Chromium reports ERR_ABORTED for any canceled or superseded navigation,
+    // including one the caller triggered against a perfectly alive target.
+    expect(
+      classifyFailureCause(handlerStage, { platformError: 'net::ERR_ABORTED at https://x.test/' }),
+    ).toBe('network');
+    expect(
+      classifyFailureCause(handlerStage, {
+        error: new Error('page.goto: net::ERR_ABORTED at https://x.test/'),
+      }),
+    ).toBe('network');
   });
 
   it('classifies Node platform network codes', () => {

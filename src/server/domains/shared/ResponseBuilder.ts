@@ -40,12 +40,29 @@ export class ResponseBuilder {
     return this;
   }
 
-  /** Mark as failure (sets `success: false, error: <message>, message: <message>`). */
+  /**
+   * Mark as failure (sets `success: false, error: <message>, message: <message>`).
+   *
+   * A `ToolError`'s `code` is carried onto the payload as well. Without it the
+   * serialized response is indistinguishable from any other failure, so
+   * downstream classification (the worker's `dim_label`, an agent choosing
+   * whether to retry) can only guess from prose. `code` is a short closed-set
+   * identifier, not a detail payload — it leaks nothing the error message does
+   * not already say.
+   */
   fail(error: unknown): this {
     this.payload.success = false;
     const msg = error instanceof Error ? error.message : String(error);
     this.payload.error = msg;
     this.payload.message = msg;
+    // `error` is typed `unknown` and callers do pass null/undefined (a rejected
+    // page.evaluate promise rejects WITH null). Guard before reading a property.
+    if (typeof error === 'object' && error !== null) {
+      const code = (error as { code?: unknown }).code;
+      if (typeof code === 'string' && code.length > 0) {
+        this.payload.code = code;
+      }
+    }
     return this;
   }
 

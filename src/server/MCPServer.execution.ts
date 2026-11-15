@@ -101,45 +101,84 @@ function truncateErrorSummary(error: unknown): string {
     : message;
 }
 
+/** What a soft-fail ToolResponse says about the failure. */
+interface SoftFailReport {
+  readonly message: string | null;
+  /** `ToolErrorCode` carried on the payload, when the handler supplied one. */
+  readonly code: string | null;
+}
+
+/** Strip the `Error: ` prefix `asErrorResponse` prepends before classifying. */
+const AS_ERROR_PREFIX = 'Error: ';
+
+function stripAsErrorPrefix(message: string): string {
+  return message.startsWith(AS_ERROR_PREFIX) ? message.slice(AS_ERROR_PREFIX.length) : message;
+}
+
 /**
- * Extract the failure reason from a soft-fail ToolResponse (handler returned
- * without throwing). ResponseBuilder.fail() writes the message to both
- * `payload.error` and `payload.message`; structured responses carry it on the
- * envelope or inside the text content. Returns null when the response does not
- * report a failure or carries no extractable message — a successful response
- * must never contribute an `error` span attribute.
+ * Extract the failure reason AND the error code from a soft-fail ToolResponse
+ * (handler returned without throwing).
+ *
+ * ResponseBuilder.fail() writes the message to both `payload.error` and
+ * `payload.message`, and — since the same change that added failure
+ * classification — the `ToolError` code to `payload.code`. Structured responses
+ * carry it on the envelope or inside the text content. A response that does not
+ * report a failure yields `{ message: null, code: null }` — a successful
+ * response must never contribute an `error` span attribute or an error class.
  */
-function extractResponseErrorMessage(response: unknown): string | null {
-  if (!response || typeof response !== 'object') return null;
+function readSoftFailResponse(response: unknown): SoftFailReport {
+  const none: SoftFailReport = { message: null, code: null };
+  if (!response || typeof response !== 'object') return none;
   const r = response as Record<string, unknown>;
-  if (r.isError !== true && r.success !== false) return null;
-  const candidates: unknown[] = [
-    r.error,
-    r.message,
+  if (r.isError !== true && r.success !== false) return none;
+
+  const structured =
     r.structuredContent && typeof r.structuredContent === 'object'
-      ? (r.structuredContent as Record<string, unknown>).error
-      : undefined,
-  ];
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.length > 0) {
-      return truncateErrorSummary(new Error(candidate));
-    }
+      ? (r.structuredContent as Record<string, unknown>)
+      : undefined;
+  const code = firstString([r.code, structured?.['code']]);
+
+  const candidates: unknown[] = [r.error, r.message, structured?.['error']];
+  const direct = firstString(candidates);
+  if (direct !== null) {
+    return { message: truncateErrorSummary(new Error(stripAsErrorPrefix(direct))), code };
   }
+
   // Last resort: parse the first text content block (ResponseBuilder.json()
   // serialises the payload into it; raw non-ResponseBuilder handlers encode
-  // `success:false, error:"..."` there directly).
+  // `success:false, error:"..."` there directly, and `asErrorResponse` writes
+  // a bare `Error: <message>` string).
   const first = (r.content as { type?: string; text?: unknown }[] | undefined)?.[0];
   if (first?.type === 'text' && typeof first.text === 'string') {
     try {
       const parsed = JSON.parse(first.text) as Record<string, unknown>;
-      if (typeof parsed.error === 'string' && parsed.error.length > 0) {
-        return truncateErrorSummary(new Error(parsed.error));
+      const parsedError = firstString([parsed['error'], parsed['message']]);
+      if (parsedError !== null) {
+        return {
+          message: truncateErrorSummary(new Error(stripAsErrorPrefix(parsedError))),
+          code: code ?? firstString([parsed['code']]),
+        };
       }
     } catch {
-      /* not JSON — no message to extract */
+      /* not JSON — fall through to the bare-text case */
     }
+    // `asErrorResponse` (a non-JSON text block) still carries the message.
+    return { message: truncateErrorSummary(new Error(stripAsErrorPrefix(first.text))), code };
+  }
+  return { message: null, code };
+}
+
+/** First non-empty string in the list, or null. */
+function firstString(values: readonly unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.length > 0) return value;
   }
   return null;
+}
+
+/** Message-only view of {@link readSoftFailResponse}, kept for existing callers. */
+function extractResponseErrorMessage(response: unknown): string | null {
+  return readSoftFailResponse(response).message;
 }
 
 export function estimateBrowserSessionToolCostMs(toolName: string, args: ToolArgs): number {
@@ -352,10 +391,13 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     // counters and the error rate would read as zero.
     // Classified with the structural signals from the caught value (its
     // ToolError code / cause chain), not from its prose.
+    // The timeout marker must cover "timed out" as well as "timeout"/"hung" —
+    // a plain `Error('Operation timed out')` is the most common phrasing and
+    // the narrower pattern silently missed it.
     const failureKind = classifyFailureCause(
       classifyErrorKind({
         thrown: true,
-        timedOut: error instanceof Error && /hung|timeout/i.test(error.message),
+        timedOut: error instanceof Error && /tim(?:ed\s*out|eout)|hung/i.test(error.message),
       }),
       { error },
     );
@@ -570,9 +612,13 @@ function emitToolCallTelemetry(
     isError: (enriched as { isError?: boolean }).isError === true,
     successFlag: toolResultSuccess,
   });
+  const softFail = readSoftFailResponse(enriched);
   const errorKind = classifyFailureCause(stageKind, {
-    error: enriched as { code?: string; cause?: unknown },
-    platformError: extractResponseErrorMessage(enriched) ?? undefined,
+    // A response envelope has no Error instance — its code and message are the
+    // only structured carriers it has. `R.fail(ToolError)` puts the code on
+    // `payload.code`; a bare `asErrorResponse` has only text.
+    errorCode: softFail.code ?? undefined,
+    platformError: softFail.message ?? undefined,
   });
   // Emit tool:called event for ActivationController
   void ctx.eventBus.emit('tool:called', {
