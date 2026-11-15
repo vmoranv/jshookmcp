@@ -139,6 +139,16 @@ interface ToolDocument {
 interface CachedSearchEntry {
   kind: 'quick' | 'full';
   feedbackEpoch: number;
+  /**
+   * Whether the vector signal existed when this entry was computed.
+   *
+   * Without it, an entry written while embeddings were absent outlived the
+   * readiness transition: the bootstrap clears the cache on completion, but a
+   * query that scored BEFORE the clear and wrote its entry AFTER it survived,
+   * and `isCachedEntryFresh` (which only compares the feedback epoch) kept
+   * replaying lexical-only results with the vector signal already live.
+   */
+  vectorReady: boolean;
   preAdjust: Array<[number, number]>;
   vectorRanking: Array<[string, number]> | null;
 }
@@ -1073,10 +1083,17 @@ export class ToolSearchEngine {
     return results;
   }
 
-  /** Full-path entries die when a feedback fold moves the vector weight. */
+  /**
+   * Full-path entries die when a feedback fold moves the vector weight, or when
+   * the vector signal has become available since they were computed — a
+   * lexical-only ranking must not outlive the readiness transition whose whole
+   * point was to add that signal.
+   */
   private isCachedEntryFresh(entry: CachedSearchEntry): boolean {
     if (entry.kind === 'quick') return true;
-    return entry.feedbackEpoch === this.feedbackTracker.getFeedbackEpoch();
+    if (entry.feedbackEpoch !== this.feedbackTracker.getFeedbackEpoch()) return false;
+    if (!entry.vectorReady && this.toolEmbeddings !== null) return false;
+    return true;
   }
 
   private replayCached(
@@ -1168,6 +1185,9 @@ export class ToolSearchEngine {
     this.queryCache.set(cacheKey, {
       kind,
       feedbackEpoch: this.feedbackTracker.getFeedbackEpoch(),
+      // Recorded at write time so a later readiness flip invalidates the entry
+      // even if the bootstrap's own clear() lost the race with this write.
+      vectorReady: this.toolEmbeddings !== null,
       preAdjust,
       vectorRanking: vectorRanking ? [...vectorRanking] : null,
     });
@@ -1580,6 +1600,20 @@ export class ToolSearchEngine {
       // BM25 + trigram. A later query picks up the vector signal once the
       // background run lands.
       void this.ensureToolEmbeddings();
+      return null;
+    }
+
+    // Only skip on an AFFIRMATIVE "not ready". An engine that exposes no
+    // readiness signal (a test double, an alternative implementation) gives us
+    // nothing to block on, and inventing a stall there would be worse than the
+    // cost this guard exists to avoid.
+    if (this.embeddingEngine.isReady?.() === false) {
+      // Cached catalog embeddings + a cold worker (post-restart is the common
+      // case): the tool vectors are on disk but the model is not loaded, so
+      // awaiting embed() here would pay the full model-initialization cost on
+      // the query path — exactly what the branch above exists to avoid.
+      // Warming is kicked and this query stays lexical.
+      void this.embeddingEngine.embed(query).catch(() => undefined);
       return null;
     }
 
