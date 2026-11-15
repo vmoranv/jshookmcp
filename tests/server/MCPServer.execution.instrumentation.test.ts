@@ -168,6 +168,9 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     expect(instrumentation.metricsNamed(MetricNames.toolDurationMs)[0]!.attrs).toEqual({
       tool: 'page_navigate',
       success: false,
+      // Must equal the counter's attrs: the worker folds the pair by hashing
+      // the whole attrs object, so a mismatch costs a second row per failure.
+      outcome: 'handler',
     });
 
     // The failed execution is recorded as a span EVENT, and the span still ends

@@ -368,6 +368,7 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     instrumentation.emitMetric(MetricNames.toolDurationMs, failureDurationMs, 'histogram', {
       tool: name,
       success: false,
+      outcome: failureKind,
     });
     // Failures that throw never reach the success-path `tool:called` emit, so
     // without this the trace would record only calls that returned — a trace
@@ -617,6 +618,12 @@ function emitToolCallTelemetry(
   instrumentation.emitMetric(MetricNames.toolDurationMs, toolDurationMs, 'histogram', {
     tool: name,
     success: toolResultSuccess,
+    // `outcome` MUST match toolCallsTotal above: the worker folds the pair into
+    // one row by hashing the full attrs object, so any attribute present on one
+    // half and absent on the other makes the key miss and one call lands as two
+    // rows — doubling write quota for every failure and skewing fail_pct's
+    // denominator. The throw path in executeToolWithTracking does the same.
+    ...(errorKind !== undefined ? { outcome: errorKind } : {}),
   });
   const searchQualityTracker =
     ctx.getDomainInstance<import('@server/search/SearchQualityTracker').SearchQualityTracker>(
