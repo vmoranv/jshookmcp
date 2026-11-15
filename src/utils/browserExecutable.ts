@@ -9,7 +9,16 @@ import { logger } from './logger';
  * - Otherwise let Puppeteer handle browser resolution internally.
  */
 
-const ENV_KEYS = ['CHROME_PATH', 'PUPPETEER_EXECUTABLE_PATH', 'BROWSER_EXECUTABLE_PATH'] as const;
+/**
+ * Environment variables consulted for an explicit browser path, in priority
+ * order. Exported so error messages can name the same list the resolver reads
+ * instead of drifting from it.
+ */
+export const ENV_KEYS = [
+  'CHROME_PATH',
+  'PUPPETEER_EXECUTABLE_PATH',
+  'BROWSER_EXECUTABLE_PATH',
+] as const;
 
 // null = not resolved yet; undefined = resolved but not configured
 let cachedBrowserPath: string | undefined | null = null;

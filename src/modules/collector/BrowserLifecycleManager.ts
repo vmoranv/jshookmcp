@@ -1,7 +1,8 @@
 import type { Browser } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
 import { existsSync } from 'node:fs';
-import { findBrowserExecutableAsync } from '@utils/browserExecutable';
+import { ENV_KEYS, findBrowserExecutableAsync } from '@utils/browserExecutable';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 import {
   resolveChromeLaunchOptions,
   sameChromeLaunchOptions,
@@ -174,7 +175,17 @@ export class BrowserLifecycleManager {
     logger.info('Initializing browser with anti-detection...');
     const puppeteer = await import('rebrowser-puppeteer-core');
     const launchFn = puppeteer.default?.launch ?? puppeteer.launch;
-    this.browser = await launchFn(browserLaunchOptions);
+    try {
+      this.browser = await launchFn(browserLaunchOptions);
+    } catch (error) {
+      // puppeteer-core's own message when it cannot pick a browser
+      // ("An `executablePath` or `channel` must be specified for
+      // `puppeteer-core`") names neither what was probed nor how to fix it, and
+      // tools that auto-launch (collect_code among them) surface it verbatim.
+      // Rewriting it here makes the failure actionable at the one place every
+      // auto-launch path goes through.
+      throw this.enrichLaunchError(error);
+    }
     this.connectedToExistingBrowser = false;
     this.chromePid = this.browser.process()?.pid ?? null;
     if (this.chromePid) {
@@ -188,6 +199,32 @@ export class BrowserLifecycleManager {
     });
     this.touch();
     logger.success('Browser initialized with enhanced anti-detection');
+  }
+
+  /**
+   * Turn "no browser could be resolved" into a PrerequisiteError that names the
+   * probed sources and the fix.
+   *
+   * Only the missing-executable case is rewritten. Any other launch failure
+   * (crashed binary, port conflict, permission denied) is passed through
+   * untouched — rewriting those would hide the real cause behind a routing hint.
+   */
+  private enrichLaunchError(error: unknown): unknown {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      !/executablePath.*channel.*must be specified|Could not find (Chrome|Chromium|browser)/i.test(
+        message,
+      )
+    ) {
+      return error;
+    }
+    const envHint = ENV_KEYS.join(' / ');
+    return new PrerequisiteError(
+      `No browser executable found (${message}). ` +
+        `Fix: pass \`executablePath\` or \`channel\` to browser_launch, or set ${envHint} to a Chrome/Chromium binary. ` +
+        'Probed: the configured executablePath, ' +
+        `${envHint}, and Puppeteer's managed download cache.`,
+    );
   }
 
   private async resolveExecutablePath(): Promise<string | undefined> {

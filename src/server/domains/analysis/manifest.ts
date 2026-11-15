@@ -120,7 +120,17 @@ const manifest = {
 
   prerequisites: {
     collect_code: [
-      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+      {
+        // The handler auto-launches a browser (CodeCollectorCollectInternal
+        // calls init()), so "call browser_launch first" is not a real
+        // prerequisite — and telling an agent to do it wastes a round trip. The
+        // actual prerequisite is a resolvable browser binary.
+        condition: 'A browser executable must be resolvable',
+        fix:
+          'No manual launch needed — the tool starts a browser itself. ' +
+          'If it reports "No browser executable found", install Chrome/Chromium or set ' +
+          'CHROME_PATH / PUPPETEER_EXECUTABLE_PATH / BROWSER_EXECUTABLE_PATH.',
+      },
     ],
     ai_suggest_exploits: [
       {
