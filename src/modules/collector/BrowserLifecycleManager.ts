@@ -9,7 +9,7 @@ import {
   type ResolvedChromeLaunchOptions,
 } from '@modules/collector/CodeCollectorLaunchOptions';
 import type { PuppeteerConfig } from '@internal-types/index';
-import { BROWSER_IDLE_TIMEOUT_MS } from '@src/constants';
+import { BROWSER_IDLE_TIMEOUT_MS, BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
 
 export interface CodeCollectorLaunchResult {
   action: 'launched' | 'relaunched' | 'reused';
@@ -166,7 +166,7 @@ export class BrowserLifecycleManager {
       headless: launchOptions.headless,
       args: launchOptions.args,
       defaultViewport: this.viewport,
-      protocolTimeout: 60000,
+      protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
     };
     if (launchOptions.executablePath) {
       browserLaunchOptions.executablePath = launchOptions.executablePath;

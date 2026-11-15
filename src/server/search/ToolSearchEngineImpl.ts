@@ -1575,9 +1575,18 @@ export class ToolSearchEngine {
     if (!this.embeddingEngine) return null;
 
     if (!this.toolEmbeddings) {
-      if (this.prewarmPromise) return null;
-      await this.ensureToolEmbeddings();
-      if (!this.toolEmbeddings) return null;
+      // NEVER block a user query on the model bootstrap. The bootstrap is a
+      // one-time HF download + full-catalog embed; on a blocked or slow
+      // network that attempt costs seconds and, worse, the failure path
+      // re-entered it on the query path after every retry-cooldown expiry
+      // (measured in production telemetry: ~10.6s queries, all with
+      // vector_participated=false, clustered on fresh installs). Kick the
+      // bootstrap in the background — it is idempotent and shared via
+      // prewarmPromise/embeddingRetryAfterMs — and serve THIS query from
+      // BM25 + trigram. A later query picks up the vector signal once the
+      // background run lands.
+      void this.ensureToolEmbeddings();
+      return null;
     }
 
     let queryEmbedding: Float32Array;
