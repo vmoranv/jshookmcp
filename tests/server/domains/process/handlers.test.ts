@@ -111,4 +111,49 @@ describe('ProcessToolHandlers', () => {
     expect(body.message).toBe('Failed to launch process');
     expect(body.error).toBeUndefined();
   });
+
+  it('refuses to merge details when the PID was reused between lookups', async () => {
+    pm.getProcessByPid.mockResolvedValue({
+      pid: 77,
+      name: 'chrome',
+      executablePath: 'C:/chrome.exe',
+    });
+    // Command-line snapshot sees a DIFFERENT process at the reused PID.
+    pm.getProcessCommandLine.mockResolvedValue({
+      commandLine: 'C:/malware.exe --x',
+      parentPid: 1,
+      name: 'malware.exe',
+    });
+
+    const body = parseJson<{ success: boolean; message: string; process?: unknown }>(
+      await handlers.handleProcessGet({ pid: 77 }),
+    );
+    expect(body.success).toBe(false);
+    expect(body.message).toContain('changed during lookup');
+    expect(body.process).toBeUndefined();
+    // Must not proceed to debug-port probing on a mismatched identity.
+    expect(pm.checkDebugPort).not.toHaveBeenCalled();
+  });
+
+  it('awaits the command-line lookup before returning the not-found response', async () => {
+    pm.getProcessByPid.mockResolvedValue(null);
+    // Gate the command-line lookup: Promise.all must wait for it even on the
+    // not-found path, so the response must stay pending until we release it.
+    const { promise, resolve } = Promise.withResolvers<{ commandLine?: string }>();
+    pm.getProcessCommandLine.mockReturnValue(promise);
+
+    let settled = false;
+    const responsePromise = handlers.handleProcessGet({ pid: 77 }).then((r) => {
+      settled = true;
+      return r;
+    });
+    // Flush microtasks: a non-awaiting implementation would settle here.
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    resolve({});
+    const body = parseJson<{ success: boolean; message: string }>(await responsePromise);
+    expect(body.success).toBe(false);
+    expect(body.message).toContain('not found');
+  });
 });

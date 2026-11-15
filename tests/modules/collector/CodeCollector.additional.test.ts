@@ -3,6 +3,7 @@ import type { PuppeteerConfig, CodeFile } from '@internal-types/index';
 import { CodeCollector } from '@modules/collector/CodeCollector';
 import * as testUrls from '@tests/shared/test-urls';
 import { TEST_URLS, withPath } from '@tests/shared/test-urls';
+import { BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
 
 class TestCodeCollector extends CodeCollector {
   public getProtectedCollectedUrls() {
@@ -466,6 +467,7 @@ describe('CodeCollector – additional coverage', () => {
       expect(mocks.connect).toHaveBeenCalledWith({
         browserWSEndpoint: 'ws://127.0.0.1:9222',
         defaultViewport: null,
+        protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
       });
     });
 
@@ -479,6 +481,7 @@ describe('CodeCollector – additional coverage', () => {
       expect(mocks.connect).toHaveBeenCalledWith({
         browserURL: 'http://127.0.0.1:9222',
         defaultViewport: null,
+        protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
       });
     });
 

@@ -234,12 +234,14 @@ export class ProcessManager {
   /**
    * Get process command line arguments
    */
-  async getProcessCommandLine(pid: number): Promise<{ commandLine?: string; parentPid?: number }> {
+  async getProcessCommandLine(
+    pid: number,
+  ): Promise<{ commandLine?: string; parentPid?: number; name?: string }> {
     try {
       pid = safePid(pid);
       const psCommand =
         `Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' | Select-Object ` +
-        `CommandLine, ParentProcessId | ` +
+        `CommandLine, ParentProcessId, Name | ` +
         'ConvertTo-Json -Compress';
 
       const { stdout } = await execAsync(
@@ -255,6 +257,7 @@ export class ProcessManager {
       return {
         commandLine: data.CommandLine,
         parentPid: data.ParentProcessId,
+        name: data.Name,
       };
     } catch (error) {
       logger.error(`Failed to get command line for PID ${pid}:`, error);

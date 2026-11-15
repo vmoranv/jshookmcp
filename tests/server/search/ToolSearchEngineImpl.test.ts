@@ -587,12 +587,18 @@ describe('search/ToolSearchEngineImpl', () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     const engine = new ToolSearchEngine([makeTool('page_navigate', 'Navigate a page')]);
 
+    // Reach the private cache through a narrow structural view. The test's
+    // subject is "a query populates the cache and clear() empties it", not the
+    // exact key string (which carries etag/stem-mode suffixes by design).
+    const cache = (
+      engine as unknown as {
+        queryCache: { map: Map<string, unknown>; clear(): void };
+      }
+    ).queryCache;
     await engine.search('navigate', 5);
-    const cacheKey = 'navigate';
-
-    expect((engine as any).queryCache.get(cacheKey)).toBeDefined();
-    (engine as any).queryCache.clear();
-    expect((engine as any).queryCache.get(cacheKey)).toBeUndefined();
+    expect(cache.map.size).toBeGreaterThan(0);
+    cache.clear();
+    expect(cache.map.size).toBe(0);
   });
 
   it('returns early when all intent bonuses are non-positive', async () => {

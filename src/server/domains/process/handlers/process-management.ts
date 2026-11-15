@@ -173,14 +173,31 @@ export class ProcessManagementHandlers implements MemoryOperationHost {
       const pid = validatePid(args.pid);
       // The two PID-keyed lookups are independent — run them concurrently
       // instead of two serial PowerShell/CIM spawns (~2x faster found-path).
-      // The early catch observer keeps the not-found short-circuit below from
-      // orphaning a rejection if getProcessCommandLine ever starts throwing.
-      const processPromise = this.processManager.getProcessByPid(pid);
-      const cmdLinePromise = this.processManager.getProcessCommandLine(pid);
-      cmdLinePromise.catch(() => {});
-      const process = await processPromise;
+      // Both are awaited via Promise.all so the not-found branch never leaves
+      // the command-line subprocess running after the response. Neither lookup
+      // rejects on a missing PID (each catches internally), so Promise.all is
+      // safe for the not-found path.
+      const [process, cmdLine] = await Promise.all([
+        this.processManager.getProcessByPid(pid),
+        this.processManager.getProcessCommandLine(pid),
+      ]);
 
-      if (!process) {
+      // A reused PID can make the two lookups observe different processes.
+      // Each lookup now reports the executable name from its own snapshot; if
+      // they disagree, refuse to merge one process's details with another's
+      // command line. Same-name reuse (two instances of one exe) is inherently
+      // indistinguishable without a shared creation-time token.
+      const observedName = (cmdLine.name ?? '')
+        .toLowerCase()
+        .replace(/\.exe$/, '')
+        .trim();
+      const expectedName = (process?.name ?? '')
+        .toLowerCase()
+        .replace(/\.exe$/, '')
+        .trim();
+      const identityMismatch = cmdLine.name !== undefined && observedName !== expectedName;
+
+      if (!process || identityMismatch) {
         return {
           content: [
             {
@@ -188,7 +205,9 @@ export class ProcessManagementHandlers implements MemoryOperationHost {
               text: JSON.stringify(
                 {
                   success: false,
-                  message: `Process with PID ${pid} not found`,
+                  message: identityMismatch
+                    ? `Process with PID ${pid} changed during lookup (PID reused)`
+                    : `Process with PID ${pid} not found`,
                 },
                 null,
                 2,
@@ -198,7 +217,6 @@ export class ProcessManagementHandlers implements MemoryOperationHost {
         };
       }
 
-      const cmdLine = await cmdLinePromise;
       const debugPort = await this.processManager.checkDebugPort(pid, {
         commandLine: cmdLine.commandLine,
       });

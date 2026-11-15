@@ -27,6 +27,7 @@ vi.mock('@modules/collector/playwright-cdp-fallback', () => ({
 }));
 
 import { connectWithTimeoutImpl } from '@modules/collector/CodeCollectorConnectionInternal';
+import { BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
 
 function makeBrowser() {
   return {
@@ -100,5 +101,23 @@ describe('connectWithTimeout attempt superseding', () => {
 
     expect(browser).toBe(browserF);
     expect(browserF.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('forwards BROWSER_PROTOCOL_TIMEOUT_MS to puppeteer.connect', async () => {
+    const ref = { current: 0 };
+    const browser = makeBrowser();
+    connectState.connect.mockResolvedValueOnce(browser);
+
+    await connectWithTimeoutImpl(
+      { browserWSEndpoint: 'ws://z' },
+      'ws://z',
+      { wsEndpoint: 'ws://z' },
+      1000,
+      ref,
+    );
+
+    expect(connectState.connect).toHaveBeenCalledWith(
+      expect.objectContaining({ protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS }),
+    );
   });
 });

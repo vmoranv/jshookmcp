@@ -462,7 +462,7 @@ export const nativeEmulatorTools: Tool[] = [
   tool('nemu_disassemble', (t) =>
     t
       .desc(
-        'Disassemble emulator memory. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.',
+        'Disassemble a supplied opcode or emulator memory. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.',
       )
       .enum(
         'architecture',

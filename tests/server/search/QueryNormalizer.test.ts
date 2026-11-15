@@ -117,5 +117,44 @@ describe('search/QueryNormalizer', () => {
         expect(QueryNormalizer.stemRerankToken('running')).toBe('running');
       });
     });
+
+    it('keeps inflected and base forms on one canonical stem', () => {
+      withMode(undefined, () => {
+        // Short -ing / -ed forms and their silent-e bases (PR #282 finding #6).
+        expect(QueryNormalizer.stemTokenSetToken('using')).toBe(
+          QueryNormalizer.stemTokenSetToken('use'),
+        );
+        expect(QueryNormalizer.stemTokenSetToken('moving')).toBe(
+          QueryNormalizer.stemTokenSetToken('move'),
+        );
+        expect(QueryNormalizer.stemTokenSetToken('moved')).toBe(
+          QueryNormalizer.stemTokenSetToken('move'),
+        );
+        // Doubled-stem verbs must not lose a stem letter (#3).
+        expect(QueryNormalizer.stemTokenSetToken('processing')).toBe('process');
+        expect(QueryNormalizer.stemTokenSetToken('process')).toBe('process');
+        expect(QueryNormalizer.stemTokenSetToken('passing')).toBe('pass');
+        expect(QueryNormalizer.stemTokenSetToken('pass')).toBe('pass');
+        // The tuned happy path still holds.
+        expect(QueryNormalizer.stemTokenSetToken('running')).toBe('run');
+        expect(QueryNormalizer.stemTokenSetToken('collected')).toBe('collect');
+        expect(QueryNormalizer.stemTokenSetToken('captured')).toBe('captur');
+        expect(QueryNormalizer.stemTokenSetToken('capture')).toBe('captur');
+      });
+    });
+
+    it('does not fold -ing nouns or protected trailing-e words into unrelated tokens', () => {
+      withMode(undefined, () => {
+        // -ing nouns (#1/#2).
+        expect(QueryNormalizer.stemTokenSetToken('string')).toBe('string');
+        expect(QueryNormalizer.stemTokenSetToken('spring')).toBe('spring');
+        expect(QueryNormalizer.stemTokenSetToken('thing')).toBe('thing');
+        expect(QueryNormalizer.stemTokenSetToken('handling')).toBe('handling');
+        // Trailing-e words that are overwhelmingly nouns/adjectives (#1).
+        expect(QueryNormalizer.stemTokenSetToken('state')).toBe('state');
+        expect(QueryNormalizer.stemTokenSetToken('drive')).toBe('drive');
+        expect(QueryNormalizer.stemTokenSetToken('value')).toBe('value');
+      });
+    });
   });
 });

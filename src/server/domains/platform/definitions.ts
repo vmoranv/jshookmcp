@@ -29,7 +29,7 @@ export const platformTools: Tool[] = [
   tool('asar_extract', (t) =>
     t
       .desc(
-        'Unpack the electron app archive into a folder: extract and list files from an Electron ASAR package.',
+        'List or unpack the files of an Electron ASAR archive into a folder (listOnly only lists them).',
       )
       .string('inputPath', '必填。asar 文件路径。')
       .string('outputDir', '可选。提取目录；不提供时自动生成 artifacts 临时目录。')
@@ -172,11 +172,11 @@ export const platformTools: Tool[] = [
   tool('asar_deobfuscate', (t) =>
     t
       .desc(
-        'Deobfuscate the scripts inside this electron archive: scan every .js file inside an ' +
-          'ASAR archive for obfuscation indicators (string-array ' +
-          'arrays, webpack bundles, control-flow flattening, dynamic code, minification) and ' +
-          'classify each file. Flagged files are optionally extracted to a directory for ' +
-          'downstream deobfuscation.',
+        'Scan every .js script inside this electron archive to find files to deobfuscate: ' +
+          'classify obfuscation indicators (string-array arrays, webpack bundles, control-flow ' +
+          'flattening, dynamic code, minification) and optionally extract flagged files ' +
+          'unchanged to a directory for downstream deobfuscation. This tool returns an ' +
+          'inventory, not deobfuscated scripts.',
       )
       .string('inputPath', '必填。ASAR 文件路径。')
       .string('fileGlob', '可选。文件扩展名过滤。默认 *.js。', { default: '*.js' })

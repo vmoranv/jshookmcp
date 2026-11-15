@@ -970,6 +970,12 @@ export class BrowserToolHandlers {
   async handleJsdomCookies(args: Record<string, unknown>) {
     return this.jsdomHandlers.handleJsdomCookies(args);
   }
+
+  /** Release a JSDOM session immediately (avoids MAX_SESSIONS pressure in
+   *  repeated benchmark/script runs). */
+  closeJsdomSession(sessionId: string): void {
+    this.jsdomHandlers.closeSession(sessionId);
+  }
 }
 
 // Re-export for direct access

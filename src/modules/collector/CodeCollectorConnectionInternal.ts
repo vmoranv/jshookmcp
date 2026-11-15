@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { Browser } from 'rebrowser-puppeteer-core';
+import { BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
 import { logger } from '@utils/logger';
 import { connectPlaywrightCdpFallback } from '@modules/collector/playwright-cdp-fallback';
 import type { ChromeConnectOptions } from './CodeCollector';
@@ -266,7 +267,11 @@ export async function connectWithTimeoutImpl(
         reject(buildConnectTimeoutError(target, endpointOrOptions, timeoutMs));
       }, timeoutMs);
 
-      void connect({ ...connectOptions, defaultViewport: null })
+      void connect({
+        ...connectOptions,
+        defaultViewport: null,
+        protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
+      })
         .then(async (browser) => {
           // A newer connect attempt has started (ref moved past us) or we
           // already settled via timeout — discard the late result. The timeout

@@ -13,7 +13,8 @@ import { int } from './helpers.js';
 export const BROWSER_POOL_IDLE_TIMEOUT_MS = int('BROWSER_POOL_IDLE_TIMEOUT_MS', 300_000);
 
 /**
- * Per-CDP-call protocol timeout handed to Puppeteer at launch.
+ * Per-CDP-call protocol timeout handed to Puppeteer at launch and when
+ * attaching to an existing browser.
  *
  * Puppeteer/Playwright reject a stuck CDP command after this window; without
  * it a hung debugger session blocks the caller indefinitely. Configurable
