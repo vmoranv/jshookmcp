@@ -25,9 +25,10 @@ export const JADX_SEARCH_DEFAULT_CONTEXT_LINES = int('JADX_SEARCH_DEFAULT_CONTEX
 
 /**
  * Hard ceiling on `contextLines`. The MCP inputSchema also enforces this
- * cap; keep them in sync if changing. Default: 20.
+ * cap; keep them in sync if changing. Default: 50 (change
+ * `close-descoped-behaviors` raised it from 20 to match the blueprint).
  */
-export const JADX_SEARCH_MAX_CONTEXT_LINES = int('JADX_SEARCH_MAX_CONTEXT_LINES', 20);
+export const JADX_SEARCH_MAX_CONTEXT_LINES = int('JADX_SEARCH_MAX_CONTEXT_LINES', 50);
 
 /**
  * Per-file match cap. After this many matches are recorded for a single
@@ -89,3 +90,19 @@ export const JADX_SEARCH_DEFAULT_GLOBS = str(
  * far above any normal Java source line.
  */
 export const JADX_SEARCH_MAX_LINE_BYTES = int('JADX_SEARCH_MAX_LINE_BYTES', 64 * 1024);
+
+/**
+ * Root directory for the content-addressed APK decompile cache (B-phase,
+ * change `close-descoped-behaviors`). Relative paths resolve against the
+ * process cwd. Default: `<os.tmpdir()>/jshook-jadx-cache`.
+ */
+export const JADX_SEARCH_CACHE_ROOT = str('JADX_SEARCH_CACHE_ROOT', '');
+
+/**
+ * Max age of a cached decompile result, in ms. Entries older than this are
+ * rebuilt on the next `apkPath` call. Default: 7 days.
+ */
+export const JADX_SEARCH_CACHE_MAX_AGE_MS = int(
+  'JADX_SEARCH_CACHE_MAX_AGE_MS',
+  7 * 24 * 60 * 60 * 1000,
+);

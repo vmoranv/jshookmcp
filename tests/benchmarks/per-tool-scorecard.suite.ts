@@ -30,6 +30,8 @@ import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from 
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { body, type BenchSuite, type BenchSuiteResult } from './harness';
+import { classify, emptyBuckets, type ToolBuckets } from './classification';
+import { loadHoldoutByTool, renderHoldoutMrr, type HoldoutEvidence } from './loaders';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const COVERAGE_FILE = join(ROOT, 'coverage', 'coverage-final.json');
@@ -87,11 +89,17 @@ const DOMAIN_ENVIRONMENT: Record<string, string> = {
   webgpu: 'live browser (WebGPU)',
   workflow: 'offline',
 };
-
-interface ToolMetrics {
+export interface ToolMetrics {
   tool: string;
   domain: string;
+  /** Backward-compat aggregate field (kept in JSON for the shortfall metric); NOT a rendered column. */
   correctness: string; // "14/14 vectors" or "—"
+  /** A-phase: native per-assertion-kind cells ("x/y" or "—"). */
+  semantic: string;
+  contract: string;
+  adversarial: string;
+  /** E-phase: blind-holdout MRR ("66.7%" or "—"), preserving the query-level gap. */
+  holdoutMrr: string;
   throughput: string; // "1.2ms/call" or "—"
   handlerFn: string; // "100%" or "not measured"
   e2eTasks: string; // "3 tasks" or "not measured"
@@ -214,6 +222,8 @@ export interface ExecStats {
   totalMs: number;
   /** Env-gated cases skipped locally — tracked for the Missing note, NEVER counted into `total`. */
   skipped: number;
+  /** A-phase: per-assertion-kind buckets. Legacy fields above are the sum of all buckets. */
+  buckets: ToolBuckets;
 }
 
 /** Suites whose cases must not feed the per-tool correctness/throughput columns. */
@@ -223,35 +233,41 @@ const STATS_EXCLUDED_SUITES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Derive per-tool correctness/throughput stats from ALREADY-RUN gate results.
- *
- * The gate loop (tests/server/benchmarks/tools-benchmark.test.ts) executes every
- * suite exactly once and collects BenchSuiteResults; this function is a pure
- * reduction over them. Two accounting rules, both locked by
- * tests/server/benchmarks/per-tool-scorecard.stats.test.ts:
- *   - `skipped` cases are excluded from `total` — a skip is not a measurement
- *     (suite-level scoring has always excluded them; the per-tool layer used to
- *     disagree, showing "0/1 vectors" for tools whose only cases are env-gated).
- *   - suites are not re-executed — the previous `measureVectorBenches` re-run
- *     dirtied module-level-state suites (session ledger singleton, tls tmpdir
- *     fixtures), which both reported false per-tool failures on the second pass
- *     and added ~42s to every `pnpm bench:tools`.
+ * Derive per-tool stats from ALREADY-RUN gate results (pure reduction, no
+ * suite re-execution — see the 2026-11-13 audit note). Accounting rules locked
+ * by tests/server/benchmarks/per-tool-scorecard.stats.test.ts:
+ *   - `skipped` cases are excluded from `total` AND from every bucket — a skip
+ *     is not a measurement;
+ *   - A-phase: each non-skipped case is bucketed by `assertionKind`
+ *     (semantic / contract / adversarial). `origin:'adversarial'` is forced to
+ *     the adversarial bucket; legacy cases without a tag default to semantic.
  */
 export function statsFromSuiteResults(
   results: readonly BenchSuiteResult[],
 ): Map<string, ExecStats> {
   const stats = new Map<string, ExecStats>();
+  const fresh = (): ExecStats => ({
+    passed: 0,
+    total: 0,
+    totalMs: 0,
+    skipped: 0,
+    buckets: emptyBuckets(),
+  });
   for (const result of results) {
     if (STATS_EXCLUDED_SUITES.has(result.suite)) continue;
     for (const c of result.cases) {
       if (c.tool.startsWith('*')) continue;
-      const cur = stats.get(c.tool) ?? { passed: 0, total: 0, totalMs: 0, skipped: 0 };
+      const cur = stats.get(c.tool) ?? fresh();
       if (c.status === 'skipped') {
         cur.skipped += 1;
       } else {
         cur.total += 1;
         if (c.status === 'pass') cur.passed += 1;
         cur.totalMs += c.ms;
+        const kind = classify(c).assertionKind;
+        const bucket = cur.buckets[kind];
+        bucket.total += 1;
+        if (c.status === 'pass') bucket.passed += 1;
       }
       stats.set(c.tool, cur);
     }
@@ -275,6 +291,8 @@ interface Loaders {
   e2eAvailable: boolean;
   retrieval: { mrrAt10: number; pAt1: number } | null;
   perToolEvidence: Record<string, PerToolRetrievalEvidence> | null;
+  /** E-phase: per-tool blind-holdout evidence (null when not produced). */
+  holdoutByTool: Record<string, HoldoutEvidence> | null;
   methodMap: Map<string, string[]>;
 }
 
@@ -450,6 +468,10 @@ function domainMethodSites(domain: string): Map<string, MethodSite[]> {
   methodSiteCache.set(domain, sites);
   return sites;
 }
+/** Render one assertion-kind bucket cell ("x/y", or "—" when no case). */
+function bucketCell(b: { passed: number; total: number }): string {
+  return b.total > 0 ? `${b.passed}/${b.total}` : '—';
+}
 
 function summarizeTool(
   tool: string,
@@ -459,7 +481,15 @@ function summarizeTool(
 ): ToolMetrics {
   const methods = loaders.methodMap.get(tool) ?? [];
 
+  // Backward-compat aggregate (kept in JSON for the shortfall metric), plus
+  // the A-phase split cells. All preserve their native "x/y" unit.
   const correctness = exec && exec.total > 0 ? `${exec.passed}/${exec.total} vectors` : '—';
+  const buckets = exec?.buckets;
+  const semantic = buckets ? bucketCell(buckets.semantic) : '—';
+  const contract = buckets ? bucketCell(buckets.contract) : '—';
+  const adversarial = buckets ? bucketCell(buckets.adversarial) : '—';
+  const holdoutMrr = renderHoldoutMrr(loaders.holdoutByTool?.[tool]);
+
   let throughput = '—';
   if (exec && exec.passed > 0 && exec.totalMs > 0) {
     const usPerCall = (exec.totalMs / exec.passed) * 1000;
@@ -485,6 +515,9 @@ function summarizeTool(
   else if (exec.total === 0 && exec.skipped > 0)
     missing.push(`all ${exec.skipped} vector case(s) skipped in this env — not measurements`);
   else if (exec.skipped > 0) missing.push(`${exec.skipped} vector case(s) skipped in this env`);
+  // A-phase: a tool with only contract/refusal votes has NO semantic proof.
+  // It is measured (contract), so it is NOT "not measured" — but name the gap.
+  if (buckets && buckets.semantic.total === 0 && exec.total > 0) missing.push('no semantic vector');
   if (handlerFn === 'not measured') missing.push('coverage not measured (pnpm bench:coverage)');
   if (handlerFn === 'no manifest binding') missing.push('inline binding (method not extractable)');
   if (handlerFn.startsWith('unmapped'))
@@ -495,6 +528,10 @@ function summarizeTool(
     tool,
     domain,
     correctness,
+    semantic,
+    contract,
+    adversarial,
+    holdoutMrr,
     throughput,
     handlerFn,
     e2eTasks,
@@ -614,7 +651,6 @@ export function summarizeHandlerFn(
   // gap honestly instead of inventing a number.
   return 'unmapped (handler fns absent from coverage fn-map)';
 }
-
 function perToolMetrics(): ToolMetrics[] {
   if (cache) return cache;
   const loaders: Loaders = {
@@ -623,6 +659,7 @@ function perToolMetrics(): ToolMetrics[] {
     e2eAvailable: false,
     retrieval: loadRetrievalMetrics(),
     perToolEvidence: loadPerToolRetrievalEvidence(),
+    holdoutByTool: loadHoldoutByTool(),
     methodMap: loadMethodMap(),
   };
   const e2e = loadE2eCoverage();
@@ -636,9 +673,19 @@ function perToolMetrics(): ToolMetrics[] {
   return metrics;
 }
 
-function renderPerToolScorecard(): { md: string; stats: Record<string, number> } {
-  const metrics = perToolMetrics();
+/**
+ * Pure renderer (A-phase). Splits correctness into semantic/contract/adv
+ * native columns plus holdout-MRR; each keeps its own unit, no composite
+ * score. `correctness` stays in the JSON (for the shortfall metric) but is
+ * no longer a rendered column.
+ */
+export function renderPerToolScorecardFrom(metrics: readonly ToolMetrics[]): {
+  md: string;
+  stats: Record<string, number>;
+} {
   const withVectors = metrics.filter((m) => m.correctness !== '—').length;
+  const semanticCovered = metrics.filter((m) => m.semantic !== '—').length;
+  const contractOnly = metrics.filter((m) => m.semantic === '—' && m.contract !== '—').length;
   const withCoverage = metrics.filter(
     (m) => m.handlerFn.endsWith('%') || m.handlerFn.startsWith('excluded'),
   ).length;
@@ -654,7 +701,7 @@ function renderPerToolScorecard(): { md: string; stats: Record<string, number> }
     '',
     'No composite score, no letter grades: every column keeps its native unit.',
     '',
-    `Vector-bench measured: **${withVectors}** tools · handler coverage measured: **${withCoverage}** · e2e real tasks: **${withE2e}** tools · fully measured: **${fullyMeasured}**`,
+    `Semantic covered: **${semanticCovered}** tools · contract-only: **${contractOnly}** · vector-bench measured: **${withVectors}** (compat) · handler coverage measured: **${withCoverage}** · e2e real tasks: **${withE2e}** tools · fully measured: **${fullyMeasured}**`,
     '',
   ];
   const byDomain = new Map<string, ToolMetrics[]>();
@@ -669,20 +716,32 @@ function renderPerToolScorecard(): { md: string; stats: Record<string, number> }
     );
     lines.push('');
     lines.push(
-      '| Tool | Correctness | Throughput | Handler-fn | e2e tasks | Retrieval | Missing |',
+      '| Tool | semantic | contract | adv | holdout-MRR | throughput | handler-fn | e2e | retrieval | Missing |',
     );
-    lines.push('|---|---|---|---|---|---|---|');
+    lines.push('|---|---|---|---|---|---|---|---|---|---|');
     for (const m of [...list].toSorted((a, b) => a.tool.localeCompare(b.tool))) {
       lines.push(
-        `| ${m.tool} | ${m.correctness} | ${m.throughput} | ${m.handlerFn} | ${m.e2eTasks} | ${m.retrieval} | ${m.evaluation === 'all layers measured' ? '' : m.evaluation.replace('missing: ', '')} |`,
+        `| ${m.tool} | ${m.semantic} | ${m.contract} | ${m.adversarial} | ${m.holdoutMrr} | ${m.throughput} | ${m.handlerFn} | ${m.e2eTasks} | ${m.retrieval} | ${m.evaluation === 'all layers measured' ? '' : m.evaluation.replace('missing: ', '')} |`,
       );
     }
     lines.push('');
   }
   return {
     md: lines.join('\n'),
-    stats: { total: metrics.length, withVectors, withCoverage, withE2e, fullyMeasured },
+    stats: {
+      total: metrics.length,
+      withVectors,
+      semanticCovered,
+      contractOnly,
+      withCoverage,
+      withE2e,
+      fullyMeasured,
+    },
   };
+}
+
+function renderPerToolScorecard(): { md: string; stats: Record<string, number> } {
+  return renderPerToolScorecardFrom(perToolMetrics());
 }
 
 /**

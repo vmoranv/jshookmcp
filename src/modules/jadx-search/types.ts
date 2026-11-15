@@ -83,6 +83,11 @@ export interface JadxSearchOptions {
    */
   maxResults?: number;
   /**
+   * Multiline mode: `.` matches newlines and `^`/`$` match line boundaries.
+   * ripgrep: `-U`; Node fallback: RegExp `s` (dotAll) flag. Default: false.
+   */
+  multiline?: boolean;
+  /**
    * Force the Node fallback engine even when ripgrep is available on
    * the host. Used by tests to exercise the fallback path. Default:
    * false.
@@ -127,6 +132,8 @@ export interface NormalizedSearchOptions {
   readonly contextLines: number;
   readonly maxMatchesPerFile: number;
   readonly maxResults: number;
+  /** Multiline mode (ripgrep -U / fallback dotAll). Optional for engine-level callers. */
+  readonly multiline?: boolean;
 }
 
 /**

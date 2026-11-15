@@ -8,11 +8,13 @@
  * Thresholds are calibrated to the current baseline; tighten after improving tools.
  */
 import { describe, expect, it } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { runBenchSuite, renderScorecard, type BenchSuiteResult } from '@tests/benchmarks/harness';
 import { ALL_SUITES } from '@tests/benchmarks/suites';
 import { createPerToolScorecardSuite } from '@tests/benchmarks/per-tool-scorecard.suite';
+import { assertMonotonic } from '@tests/benchmarks/floor-baseline';
+import { layeredVerdict } from '@tests/benchmarks/gate-layers';
 
 // Module-scope and declared BEFORE GATE_SUITES: the per-tool scorecard factory
 // closes over this array and reads the gate loop's first-run results when its
@@ -99,6 +101,22 @@ describe('tool benchmark gate', () => {
   it('runs all tool benchmark suites and meets thresholds', { timeout: 300_000 }, async () => {
     const failures: string[] = [];
 
+    // B-phase floor ratchet: floors may only be tightened against the
+    // committed baseline. A silent loosening is a gate-integrity regression.
+    try {
+      const baseline = JSON.parse(
+        readFileSync(resolve(process.cwd(), 'tests/benchmarks/eval-floor-baseline.json'), 'utf8'),
+      ) as { floors?: Record<string, number> };
+      const ratchet = assertMonotonic(SUITE_THRESHOLDS, baseline.floors ?? {});
+      if (!ratchet.ok) {
+        failures.push(`floor ratchet: ${ratchet.violations.join('; ')}`);
+      }
+    } catch (err) {
+      failures.push(
+        `floor baseline unreadable: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
     // Drift guard: every gated suite must carry an EXPLICIT floor. The `?? 80`
     // fallback below exists for resilience, but a suite silently inheriting it
     // is exactly how a new suite lands without a calibrated threshold (the
@@ -129,6 +147,20 @@ describe('tool benchmark gate', () => {
       if (result.score < floor) {
         failures.push(`${suite.name}: ${result.score.toFixed(1)}% < ${floor}%`);
       }
+      // B-phase layered verdict: smoke cases MUST all pass (zero tolerance);
+      // adversarial cases are reported separately, never merged into score.
+      const layered = layeredVerdict(result.cases, floor);
+      if (!layered.smokeOk) {
+        failures.push(
+          `${suite.name}: ${layered.smokeFailed}/${layered.smokeTotal} smoke case(s) failed`,
+        );
+      }
+      if (layered.adversarialTotal > 0) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[bench]   adversarial cases (reported, not scored): ${layered.adversarialTotal}`,
+        );
+      }
     }
 
     if (process.env.BENCH_SCORECARD === '1') {
@@ -140,8 +172,8 @@ describe('tool benchmark gate', () => {
         resolve(outDir, 'scorecard.json'),
         JSON.stringify({ generatedAt: new Date().toISOString(), results }, null, 2),
       );
-      // eslint-disable-next-line no-console
-      console.log(`[bench] scorecard written to artifacts/benchmarks/scorecard.md`);
+      // Scorecard artifacts written above; no informational logging (avoids a
+      // no-console suppression that the fallow gate flags as added-suppression).
     }
 
     expect(failures, `benchmark floors breached:\n${failures.join('\n')}`).toEqual([]);

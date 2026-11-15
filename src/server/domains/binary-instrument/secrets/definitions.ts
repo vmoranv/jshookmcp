@@ -16,8 +16,7 @@ export const binarySecretsTools: Tool[] = [
   tool('binary_key_extract', (t) =>
     t
       .desc(
-        'Scan a binary for hardcoded key candidates (raw high-entropy, Base64, hex). ' +
-          'Read-only — no decryption.',
+        'Scan binary for key candidates (raw/Base64/hex/custom). Not validated - verify manually.',
       )
       .string('filePath', 'Absolute path to the binary file to scan')
       .array(
@@ -31,8 +30,20 @@ export const binarySecretsTools: Tool[] = [
       })
       .array(
         'formats',
-        { type: 'string', enum: ['raw', 'base64', 'hex'] },
-        'Which candidate formats to emit (default: all three)',
+        { type: 'string', enum: ['raw', 'base64', 'hex', 'custom'] },
+        'Which candidate formats to emit (default: raw, base64, hex)',
+      )
+      .array(
+        'customPatterns',
+        {
+          type: 'object',
+          properties: {
+            pattern: { type: 'string', description: 'Raw regex source (no /flags/ wrapper)' },
+            category: { type: 'string', description: 'Label attached to matches' },
+          },
+          required: ['pattern'],
+        },
+        'Custom regex patterns; scanned only when formats includes custom. ReDoS-guarded.',
       )
       .boolean('includeContext', 'Attach a hex+ASCII context window to each candidate', {
         default: true,

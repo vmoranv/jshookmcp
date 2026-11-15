@@ -74,9 +74,9 @@ export const apkPackerTools: Tool[] = [
   tool('apk_signing_block_parse', (t) =>
     t
       .desc(
-        'Read-only parser for the APK Signing Block (schemes v2/v3/v3.1/v4) plus ' +
-          'key-rotation lineage detection and residue-block / dex-prefix / magic-offset ' +
-          'anomaly flags. Never mutates the APK.',
+        'Read-only parser for the APK Signing Block (schemes v2/v3/v3.1) plus ' +
+          'key-rotation lineage decoding and residue-block / dex-prefix / magic-offset ' +
+          'anomaly flags. v4 is a detached .apk.idsig sidecar, not parsed here. Never mutates the APK.',
       )
       .string('apkPath', 'Absolute path to the .apk file to parse')
       .required('apkPath')

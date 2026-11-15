@@ -77,6 +77,17 @@ export const DART_MAX_PACKAGES_PER_RESULT = int('DART_MAX_PACKAGES_PER_RESULT', 
 export const DART_MAX_FILES_PER_PACKAGE = int('DART_MAX_FILES_PER_PACKAGE', 50);
 
 /**
+ * Wall-clock budget for a single flutter_packages_detect aggregation (ms).
+ * Bounds the aggregation loop over extracted `package:` refs so a pathologically
+ * large ref list cannot monopolize the detector. Env-tunable via
+ * DART_PACKAGES_MAX_DETECT_DURATION_MS.
+ */
+export const DART_PACKAGES_MAX_DETECT_DURATION_MS = int(
+  'DART_PACKAGES_MAX_DETECT_DURATION_MS',
+  30_000,
+);
+
+/**
  * dart_snapshot_header_parse / dart_version_fingerprint safety knobs.
  * MAX_FILE_BYTES caps total input size (default 1 GiB) so the parser refuses
  * pathological inputs early with a PERMISSION error. HEADER_SCAN_MAX_BYTES is

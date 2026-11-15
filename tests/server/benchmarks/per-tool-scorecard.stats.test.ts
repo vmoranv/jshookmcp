@@ -35,13 +35,19 @@ import {
 } from '@tests/benchmarks/per-tool-scorecard.suite';
 import type { BenchCaseResult, BenchSuiteResult } from '@tests/benchmarks/harness';
 
-type CaseSpec = { tool: string; status: BenchCaseResult['status']; ms?: number };
+type CaseSpec = {
+  tool: string;
+  status: BenchCaseResult['status'];
+  ms?: number;
+  assertionKind?: BenchCaseResult['assertionKind'];
+};
 
 function suiteResult(name: string, specs: CaseSpec[]): BenchSuiteResult {
   const cases: BenchCaseResult[] = specs.map((s, i) => ({
     name: `${name}/case-${i}`,
     tool: s.tool,
     origin: 'homemade',
+    ...(s.assertionKind ? { assertionKind: s.assertionKind } : {}),
     reference: 'unit-fixture',
     status: s.status,
     ms: s.ms ?? 1,
@@ -113,6 +119,58 @@ describe('statsFromSuiteResults', () => {
       suiteResult('c', [{ tool: 't', status: 'pass', ms: 5 }]),
     ]);
     expect(stats.get('t')).toMatchObject({ passed: 2, total: 3, totalMs: 12, skipped: 0 });
+  });
+
+  // ── A-phase: assertion-kind buckets (orthogonal to origin) ──
+  it('buckets semantic / contract / adversarial independently', () => {
+    const stats = statsFromSuiteResults([
+      suiteResult('mixed', [
+        { tool: 'enc', status: 'pass', assertionKind: 'semantic', ms: 1 },
+        { tool: 'enc', status: 'pass', assertionKind: 'contract', ms: 2 },
+        { tool: 'enc', status: 'pass', assertionKind: 'adversarial', ms: 3 },
+      ]),
+    ]);
+    const s = stats.get('enc');
+    expect(s?.buckets.semantic).toEqual({ passed: 1, total: 1 });
+    expect(s?.buckets.contract).toEqual({ passed: 1, total: 1 });
+    expect(s?.buckets.adversarial).toEqual({ passed: 1, total: 1 });
+    // compat superset: legacy aggregate fields still correct
+    expect(s).toMatchObject({ passed: 3, total: 3, totalMs: 6 });
+  });
+
+  it('unannotated (legacy) cases default into the semantic bucket', () => {
+    const stats = statsFromSuiteResults([
+      suiteResult('legacy', [
+        { tool: 'old', status: 'pass' },
+        { tool: 'old', status: 'fail' },
+      ]),
+    ]);
+    const s = stats.get('old');
+    expect(s?.buckets.semantic).toEqual({ passed: 1, total: 2 });
+    expect(s?.buckets.contract).toEqual({ passed: 0, total: 0 });
+    expect(s?.buckets.adversarial).toEqual({ passed: 0, total: 0 });
+  });
+
+  it('a skipped case enters NO bucket (skip is not a measurement)', () => {
+    const stats = statsFromSuiteResults([
+      suiteResult('env', [
+        { tool: 't', status: 'pass', assertionKind: 'semantic' },
+        { tool: 't', status: 'skipped', assertionKind: 'contract' },
+      ]),
+    ]);
+    const s = stats.get('t');
+    expect(s?.buckets.semantic).toEqual({ passed: 1, total: 1 });
+    expect(s?.buckets.contract).toEqual({ passed: 0, total: 0 });
+    expect(s?.skipped).toBe(1);
+    expect(s?.total).toBe(1);
+  });
+
+  it('an adversarial-origin case lands in the adversarial bucket even untagged', () => {
+    const stats = statsFromSuiteResults([
+      suiteResult('neg', [{ tool: 't', status: 'pass', assertionKind: 'adversarial' }]),
+    ]);
+    expect(stats.get('t')?.buckets.adversarial).toEqual({ passed: 1, total: 1 });
+    expect(stats.get('t')?.buckets.semantic).toEqual({ passed: 0, total: 0 });
   });
 });
 

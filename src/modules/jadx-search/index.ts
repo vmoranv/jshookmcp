@@ -7,3 +7,10 @@ export {
 } from './ripgrep-detector';
 export { buildRipgrepArgs } from './ripgrep-engine';
 export { compileSafePattern, enumerateFiles, matchesGlobs } from './node-fallback-engine';
+export {
+  resolveCacheDir,
+  getOrCreateCachedSources,
+  type CacheOptions,
+  type CachedSources,
+  type RunJadx,
+} from './decompile-cache';

@@ -119,6 +119,7 @@ jobs:
           pnpm run audit:domains
           pnpm run audit:events
           pnpm run audit:tools
+          pnpm run audit:eval
 
       - name: Run Linters, Formatters & Typecheck
         run: |

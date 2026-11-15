@@ -45,10 +45,22 @@ import {
 import { loadVersionTable } from './snapshot-version-table';
 
 const ELF_MAGIC = Buffer.from([0x7f, 0x45, 0x4c, 0x46]); // 0x7f 'E' 'L' 'F'
+
+// Layout A (Phrack #71, the existing/default layout).
+const HEADER_KIND_OFFSET = 0x04;
 const HEADER_HASH_OFFSET = 0x08;
 const HEADER_HASH_LENGTH = 32;
 const HEADER_FEATURES_OFFSET = 0x28;
-const HEADER_PROBE_BYTES = 4096; // enough for magic + hash + features
+
+// Layout B (dart-sdk variant): kind is an int64 (low u32 carries the enum),
+// hash starts at +0x14, features at +0x34. See design §2.4 — dual-layout
+// compatibility probing is an offline-proven enhancement, not a claim that
+// any particular real libapp.so uses this exact geometry.
+const HEADER_B_KIND_OFFSET = 0x0c;
+const HEADER_B_HASH_OFFSET = 0x14;
+const HEADER_B_FEATURES_OFFSET = 0x34;
+
+const HEADER_PROBE_BYTES = 4096; // enough for magic + hash + features (both layouts)
 
 const [SNAPSHOT_SYMBOL, ALT_SNAPSHOT_SYMBOL] = DART_ISOLATE_SNAPSHOT_SYMBOLS;
 
@@ -495,28 +507,77 @@ async function readHeader(
 
   const magic = buf.readUInt32LE(0);
   if (magic !== DART_SNAPSHOT_MAGIC) return null;
-  const kindNum = buf.readUInt32LE(4);
-  const kind = KIND_BY_VALUE[kindNum] ?? 'unknown';
 
+  // A too-short probe cannot hold either layout's features region. Keep the
+  // legacy structured-unknown result using layout A's kind (default/fallback).
   if (probeLen < HEADER_FEATURES_OFFSET) {
+    const kindNum = buf.readUInt32LE(HEADER_KIND_OFFSET);
     return {
       magic,
-      kind,
+      kind: KIND_BY_VALUE[kindNum] ?? 'unknown',
       hash: '',
       features: [],
       targetArch: 'unknown',
       isProduction: false,
     };
   }
-  const hash = buf
-    .subarray(HEADER_HASH_OFFSET, HEADER_HASH_OFFSET + HEADER_HASH_LENGTH)
-    .toString('hex');
 
-  const features = decodeFeatures(buf, HEADER_FEATURES_OFFSET);
+  // Layout A is the default/fallback. In layout B the A-offset features
+  // region (+0x28) falls inside B's 32-byte hash, so A-decoding a genuine B
+  // header yields non-printable garbage. Switch to B only when A's features
+  // are NOT sensible and B decodes to a known kind with sensible features.
+  // This also keeps a genuine A header with an *unknown* kind on layout A
+  // (its features are still sensible), preserving existing behavior.
+  const decodedA = decodeAtLayout(
+    buf,
+    HEADER_KIND_OFFSET,
+    HEADER_HASH_OFFSET,
+    HEADER_FEATURES_OFFSET,
+    false,
+  );
+  const decodedB = decodeAtLayout(
+    buf,
+    HEADER_B_KIND_OFFSET,
+    HEADER_B_HASH_OFFSET,
+    HEADER_B_FEATURES_OFFSET,
+    true,
+  );
+
+  const aSensible = sensibleFeatures(decodedA.features);
+  const bValid = decodedB.kind !== 'unknown' && sensibleFeatures(decodedB.features);
+  const useB = !aSensible && bValid;
+  const chosen = useB ? decodedB : decodedA;
+
+  return { magic, ...chosen };
+}
+
+/** Decode one header layout into kind/hash/arch/product at the given offsets. */
+function decodeAtLayout(
+  buf: Buffer,
+  kindOff: number,
+  hashOff: number,
+  featOff: number,
+  kindIsU64: boolean,
+): Omit<DecodedHeader, 'magic'> {
+  const kindNum = kindIsU64
+    ? Number(buf.readBigUInt64LE(kindOff) & 0xffffffffn)
+    : buf.readUInt32LE(kindOff);
+  const kind = KIND_BY_VALUE[kindNum] ?? 'unknown';
+  const hash = buf.subarray(hashOff, hashOff + HEADER_HASH_LENGTH).toString('hex');
+  const features = decodeFeatures(buf, featOff);
   const targetArch = pickArch(features);
   const isProduction = features.includes('product');
+  return { kind, hash, features, targetArch, isProduction };
+}
 
-  return { magic, kind, hash, features, targetArch, isProduction };
+/**
+ * Heuristic: a features region is "sensible" when it yields at least one token
+ * and every token is short printable ASCII (no binary garbage). Used only to
+ * disambiguate layout B so random bytes can't win over the default layout A.
+ */
+function sensibleFeatures(features: readonly string[]): boolean {
+  if (features.length === 0) return false;
+  return features.every((t) => t.length > 0 && t.length <= 64 && /^[\x20-\x7e]+$/.test(t));
 }
 
 function decodeFeatures(buf: Buffer, start: number): string[] {

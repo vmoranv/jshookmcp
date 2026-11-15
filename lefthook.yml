@@ -56,4 +56,6 @@ pre-push:
       run: corepack pnpm run test:coverage
     audit-tools:
       run: corepack pnpm run audit:tools
+    audit-eval:
+      run: corepack pnpm run audit:eval
 

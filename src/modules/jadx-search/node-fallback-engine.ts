@@ -49,6 +49,7 @@ export function compileSafePattern(
   query: string,
   literal: boolean,
   caseInsensitive: boolean,
+  multiline = false,
 ): RegExp {
   const source = literal ? escapeForLiteral(query) : query;
   if (!literal) {
@@ -62,7 +63,9 @@ export function compileSafePattern(
       }
     }
   }
-  const flags = caseInsensitive ? 'gi' : 'g';
+  // `s` (dotAll) makes `.` match newlines, mirroring ripgrep `-U`. `g` stays
+  // for the per-line `.exec` loop; callers reset lastIndex as before.
+  const flags = `${caseInsensitive ? 'gi' : 'g'}${multiline ? 's' : ''}`;
   try {
     return new RegExp(source, flags);
   } catch (cause) {
@@ -290,7 +293,7 @@ export class NodeFallbackEngine {
   async run(opts: NormalizedSearchOptions): Promise<EngineRunOutcome> {
     const absDir = resolvePath(opts.decompileDir);
     const files = await enumerateFiles(absDir, opts.globs);
-    const re = compileSafePattern(opts.query, opts.literal, opts.caseInsensitive);
+    const re = compileSafePattern(opts.query, opts.literal, opts.caseInsensitive, opts.multiline);
 
     const matches: JadxMatch[] = [];
     const filesMatched = new Set<string>();

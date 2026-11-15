@@ -18,13 +18,18 @@
  * catch malformed `package:dart` strings.
  */
 
+// The Flutter SDK release this whitelist was last reviewed against.
+// Exported so downstream tooling can report which SDK the curated set
+// corresponds to without duplicating the literal.
+export const SDK_SNAPSHOT_VERSION = '3.24.x';
+
 // Whitelist last reviewed against Flutter SDK 3.24.x.
 
 /**
  * Frozen set of Flutter SDK + Dart core package names (lowercase,
  * `^[a-z_][a-z0-9_]*$`). Sorted alphabetically for diff hygiene.
  */
-const FLUTTER_STDLIB_PACKAGES: ReadonlySet<string> = Object.freeze(
+export const FLUTTER_STDLIB_PACKAGES: ReadonlySet<string> = Object.freeze(
   new Set<string>([
     // Dart core libs (defensive — usually referenced via `dart:` not `package:`)
     '_internal',

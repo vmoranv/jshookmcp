@@ -4,31 +4,27 @@
  * the BinaryInstrumentHandlers facade. The engine selection (ripgrep vs Node
  * fallback) is exercised in module-level tests; here we accept either.
  *
- * Kept in a dedicated file (no node:fs / child_process / yauzl mocks) so the
- * tool's real filesystem search over the fixture runs unmocked.
+ * Kept in a dedicated file (no node:fs / child_process / yauzl mocks beyond
+ * probeCommand) so the tool's real filesystem search over the fixture runs.
+ *
+ * B-phase (change `close-descoped-behaviors`): the old "cleanup mkdtemp scratch
+ * dir" regression is REPLACED by content-addressed cache assertions. This is a
+ * deliberate product behavior reversal (user-approved), not a bug fix.
  */
-import { mkdir as fsMkdir, access } from 'node:fs/promises';
+import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const probeCommandMock = vi.fn();
-const mkdtempMock = vi.fn();
 
 vi.mock('@modules/external/ToolProbe', () => ({
   probeCommand: (...args: unknown[]) => probeCommandMock(...args),
 }));
 
-vi.mock('node:fs/promises', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>();
-  return {
-    ...actual,
-    mkdtemp: (...args: Parameters<typeof actual.mkdtemp>) => mkdtempMock(...args),
-  };
-});
-
 import { BinaryInstrumentHandlers } from '@server/domains/binary-instrument/handlers';
 import { R } from '@server/domains/shared/ResponseBuilder';
+import { getOrCreateCachedSources } from '@modules/jadx-search/decompile-cache';
 
 const FIXTURE_DIR = join(process.cwd(), 'tests', 'fixtures', 'jadx-search', 'jadx-out');
 
@@ -40,6 +36,8 @@ interface ParsedResponse {
   matches?: unknown[];
   truncated?: boolean;
   autoDecompiled?: boolean;
+  cacheHit?: boolean;
+  decompileDir?: string;
 }
 
 function makeHandlers(): BinaryInstrumentHandlers {
@@ -53,6 +51,29 @@ async function call(
   const resp = await handlers.handleJadxSearchCode(args);
   return R.parse<ParsedResponse>(resp as Parameters<typeof R.parse>[0]);
 }
+
+/** A real file with stable bytes — the cache key is sha256 of these bytes. */
+function makeFakeApk(dir: string, name: string, content: string): string {
+  mkdirSync(dir, { recursive: true });
+  const p = join(dir, name);
+  writeFileSync(p, content);
+  return p;
+}
+
+let cacheRoot: string;
+const savedRoot = process.env.JADX_SEARCH_CACHE_ROOT;
+
+beforeEach(() => {
+  cacheRoot = mkdtempSync(join(tmpdir(), 'jshook-jadx-handler-cache-'));
+  process.env.JADX_SEARCH_CACHE_ROOT = cacheRoot;
+  probeCommandMock.mockReset();
+});
+
+afterEach(() => {
+  if (savedRoot === undefined) delete process.env.JADX_SEARCH_CACHE_ROOT;
+  else process.env.JADX_SEARCH_CACHE_ROOT = savedRoot;
+  rmSync(cacheRoot, { recursive: true, force: true });
+});
 
 describe('binary-instrument · handleJadxSearchCode (merged from jadx-search)', () => {
   it('returns a successful result for a valid query', async () => {
@@ -75,6 +96,22 @@ describe('binary-instrument · handleJadxSearchCode (merged from jadx-search)', 
     );
   });
 
+  it('accepts contextLines=50 (raised ceiling) and rejects 51', async () => {
+    const ok = await call(makeHandlers(), {
+      decompileDir: FIXTURE_DIR,
+      query: 'AES',
+      contextLines: 50,
+    });
+    expect(ok.success).toBe(true);
+    await expect(
+      makeHandlers().handleJadxSearchCode({
+        decompileDir: FIXTURE_DIR,
+        query: 'AES',
+        contextLines: 51,
+      }),
+    ).rejects.toThrow(/contextLines/);
+  });
+
   it('caps results when maxResults is supplied', async () => {
     const result = await call(makeHandlers(), {
       decompileDir: FIXTURE_DIR,
@@ -86,8 +123,6 @@ describe('binary-instrument · handleJadxSearchCode (merged from jadx-search)', 
     expect(result.truncated).toBe(true);
   });
 
-  // Argument validation throws (binary-instrument convention: the server layer
-  // maps the thrown error to a JSON-RPC error, unlike the old handleSafe path).
   it('throws on missing query', async () => {
     await expect(
       makeHandlers().handleJadxSearchCode({ decompileDir: FIXTURE_DIR }),
@@ -100,14 +135,16 @@ describe('binary-instrument · handleJadxSearchCode (merged from jadx-search)', 
     );
   });
 
-  it('accepts apkPath alongside decompileDir as contextual metadata', async () => {
-    const result = await call(makeHandlers(), {
-      decompileDir: FIXTURE_DIR,
-      query: 'AES',
-      apkPath: '/tmp/whatever.apk',
-    });
-    expect(result.success).toBe(true);
-    expect(result.totalMatches).toBeGreaterThan(0);
+  // B-phase: blueprint `oneOf` mutual exclusion. Previously both were accepted
+  // (apkPath treated as "contextual metadata"); now it is a validation error.
+  it('rejects decompileDir AND apkPath together (mutually exclusive)', async () => {
+    await expect(
+      makeHandlers().handleJadxSearchCode({
+        decompileDir: FIXTURE_DIR,
+        query: 'AES',
+        apkPath: '/tmp/whatever.apk',
+      }),
+    ).rejects.toThrow(/mutually exclusive/);
   });
 
   it('rejects non-array globs', async () => {
@@ -130,66 +167,76 @@ describe('binary-instrument · handleJadxSearchCode (merged from jadx-search)', 
     ).rejects.toThrow(/globs/);
   });
 
-  it('cleans up the auto-decompiled temp dir after a successful search', async () => {
-    // Auto-decompile path: probe succeeds, jadx CLI is stubbed, and the
-    // mkdtemp scratch dir (with its sources/ subdir) must be removed by the
-    // time the handler returns — no disk leak per request.
+  // ── B-phase: content-addressed cache (replaces the old cleanup tests) ──
+  it('first apkPath call decompiles (cacheHit=false) and the cache dir PERSISTS', async () => {
     probeCommandMock.mockResolvedValue({ available: true, path: 'jadx', reason: undefined });
-    let createdDir: string | undefined;
-    mkdtempMock.mockImplementation(async (prefix: string) => {
-      // Build a real scratch dir + sources/ subdir. The handler already passes
-      // an absolute tmpdir prefix; the mock must not call the mocked mkdtemp
-      // itself (that would recurse).
-      const dir = `${prefix}${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      createdDir = dir;
-      await fsMkdir(join(dir, 'sources'), { recursive: true });
-      return dir;
-    });
+    const apk = makeFakeApk(cacheRoot, 'first.apk', 'UNIQUE-APK-BYTES-1');
 
     const handlers = new BinaryInstrumentHandlers() as unknown as {
       jadx: { runJadx: ReturnType<typeof vi.fn> };
       handleJadxSearchCode: (args: Record<string, unknown>) => Promise<unknown>;
     };
-    handlers.jadx.runJadx = vi.fn(async () => undefined);
+    // Stub jadx to emit one .java file into the cache outDir's sources/.
+    handlers.jadx.runJadx = vi.fn(async (_bin: string, args: string[]) => {
+      const dIdx = args.indexOf('-d');
+      const outDir = args[dIdx + 1]!;
+      mkdirSync(join(outDir, 'sources'), { recursive: true });
+      writeFileSync(join(outDir, 'sources', 'A.java'), 'class A { String AES; }');
+    });
 
-    const result = await handlers.handleJadxSearchCode({
-      apkPath: join(tmpdir(), 'auto-decompile-test.apk'),
+    const parsed = await call(handlers as unknown as BinaryInstrumentHandlers, {
+      apkPath: apk,
       query: 'AES',
     });
-    const parsed = R.parse<ParsedResponse>(result as Parameters<typeof R.parse>[0]);
 
     expect(parsed.success).toBe(true);
+    expect(parsed.cacheHit).toBe(false);
     expect(parsed.autoDecompiled).toBe(true);
-    expect(createdDir).toBeDefined();
     expect(handlers.jadx.runJadx).toHaveBeenCalledTimes(1);
-    // The scratch dir must be gone after the call.
-    await expect(access(createdDir!)).rejects.toThrow();
+    // The cache dir is NOT deleted after the call (old finally-rm is gone).
+    expect(parsed.decompileDir).toBeDefined();
+    expect(existsSync(parsed.decompileDir!)).toBe(true);
   });
 
-  it('cleans up the auto-decompiled temp dir when the search throws', async () => {
+  it('second apkPath call on the SAME apk reuses the cache (cacheHit=true), jadx not re-run', async () => {
     probeCommandMock.mockResolvedValue({ available: true, path: 'jadx', reason: undefined });
-    let createdDir: string | undefined;
-    mkdtempMock.mockImplementation(async (prefix: string) => {
-      const dir = `${prefix}${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      createdDir = dir;
-      await fsMkdir(join(dir, 'sources'), { recursive: true });
-      return dir;
-    });
+    const apk = makeFakeApk(cacheRoot, 'reuse.apk', 'UNIQUE-APK-BYTES-REUSE');
 
     const handlers = new BinaryInstrumentHandlers() as unknown as {
       jadx: { runJadx: ReturnType<typeof vi.fn> };
       handleJadxSearchCode: (args: Record<string, unknown>) => Promise<unknown>;
     };
-    handlers.jadx.runJadx = vi.fn(async () => undefined);
+    handlers.jadx.runJadx = vi.fn(async (_bin: string, args: string[]) => {
+      const outDir = args[args.indexOf('-d') + 1]!;
+      mkdirSync(join(outDir, 'sources'), { recursive: true });
+      writeFileSync(join(outDir, 'sources', 'A.java'), 'class A { String AES; }');
+    });
 
-    // globs validation throws inside the try block — cleanup must still run.
-    await expect(
-      handlers.handleJadxSearchCode({
-        apkPath: join(tmpdir(), 'auto-decompile-throw.apk'),
-        query: 'AES',
-        globs: 'not-an-array',
-      }),
-    ).rejects.toThrow(/globs/);
-    await expect(access(createdDir!)).rejects.toThrow();
+    const first = await call(handlers as unknown as BinaryInstrumentHandlers, {
+      apkPath: apk,
+      query: 'AES',
+    });
+    const second = await call(handlers as unknown as BinaryInstrumentHandlers, {
+      apkPath: apk,
+      query: 'AES',
+    });
+
+    expect(first.cacheHit).toBe(false);
+    expect(second.cacheHit).toBe(true);
+    expect(second.autoDecompiled).toBeUndefined();
+    expect(second.decompileDir).toBe(first.decompileDir);
+    expect(handlers.jadx.runJadx).toHaveBeenCalledTimes(1);
+  });
+
+  it('getOrCreateCachedSources does not delete the cache dir on a hit', async () => {
+    const apk = makeFakeApk(cacheRoot, 'persist.apk', 'PERSIST-BYTES');
+    const runner = async (_bin: string, _args: readonly string[], outDir: string) => {
+      mkdirSync(join(outDir, 'sources'), { recursive: true });
+      writeFileSync(join(outDir, 'sources', 'A.java'), 'class A {}');
+    };
+    const a = await getOrCreateCachedSources(apk, 'jadx', ['x'], runner, { root: cacheRoot });
+    const b = await getOrCreateCachedSources(apk, 'jadx', ['x'], runner, { root: cacheRoot });
+    expect(b.cacheHit).toBe(true);
+    expect(existsSync(a.sourcesDir)).toBe(true);
   });
 });

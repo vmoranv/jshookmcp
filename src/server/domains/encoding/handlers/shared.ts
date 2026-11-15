@@ -8,6 +8,7 @@ import { MAGIC_SIGNATURES } from '@server/domains/encoding/handlers.impl.core.ru
 import { isAbsolute, resolve, sep } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
+import { shannonEntropy } from '@modules/binary-secrets/entropy';
 
 export type DetectSource = 'base64' | 'hex' | 'file' | 'raw';
 export type EntropySource = 'base64' | 'hex' | 'raw' | 'file';
@@ -589,18 +590,8 @@ export function detectEncodingSignals(
   }
   return Array.from(encodings);
 }
-
 export function calculateShannonEntropy(buffer: Buffer): number {
-  if (buffer.length === 0) return 0;
-  const freq: number[] = Array.from({ length: 256 }, () => 0);
-  for (const value of buffer.values()) freq[value]! += 1;
-  let entropy = 0;
-  for (const count of freq) {
-    if (count === 0) continue;
-    const p = count / buffer.length;
-    entropy -= p * Math.log2(p);
-  }
-  return Number(entropy.toFixed(6));
+  return Number(shannonEntropy(buffer, 0, buffer.length).toFixed(6));
 }
 
 export function calculateByteFrequency(buffer: Buffer): ByteFrequencyEntry[] {

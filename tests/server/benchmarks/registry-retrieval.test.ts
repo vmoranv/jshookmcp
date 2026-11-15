@@ -223,6 +223,11 @@ describe('registry-corpus retrieval benchmark', () => {
         rankedByCase.set(testCase.id, ranked);
       }
       const agg = aggregateSearchMetrics(caseMetrics);
+      // E-phase: expose the holdout at per-tool granularity. The aggregate MRR
+      // hides which tools rank 1st on their own phrasing but 3rd/4th on a blind
+      // paraphrase; that gap is a property of the TOOL, so it belongs in the
+      // per-tool scorecard, not only in a global number.
+      const holdoutPerTool = buildPerToolEvidence(rankedByCase, cases);
 
       const report = {
         generatedAt: new Date().toISOString(),
@@ -241,10 +246,19 @@ describe('registry-corpus retrieval benchmark', () => {
         resolve(outDir, 'registry-holdout.json'),
         `${JSON.stringify(report, null, 2)}\n`,
       );
+      writeFileSync(
+        resolve(outDir, 'registry-holdout-per-tool.json'),
+        `${JSON.stringify(holdoutPerTool, null, 2)}\n`,
+      );
       // eslint-disable-next-line no-console
       console.log(
         `[registry-holdout] MRR@10=${(agg.mrrAt10 * 100).toFixed(1)}% P@1=${(agg.pAt1 * 100).toFixed(1)}% S@3=${(agg.successAt3 * 100).toFixed(1)}%`,
       );
+
+      // The generalization gap must be observable per tool (some tool ranks
+      // worse than 1st on a blind phrasing). This is the E->A handoff contract.
+      expect(Object.keys(holdoutPerTool).length).toBeGreaterThan(0);
+      expect(Object.values(holdoutPerTool).some((e) => (e.bestRank ?? 1) > 1)).toBe(true);
 
       // Floor history (2026-11-13): the first holdout draft used colloquial
       // Chinese — a distribution that does not occur (agents query in

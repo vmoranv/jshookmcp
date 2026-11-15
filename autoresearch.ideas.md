@@ -1,6 +1,14 @@
 # Ideas backlog — per-tool quality debt
 
-## Status 2026-11-12: 731 / 736 tools measured (99.3%)
+> **D-phase (2026-11-15): the numbers below are HISTORICAL campaign snapshots,
+> not the current state.** The `debt` definition changed in the A-phase (it now
+> penalizes only missing SEMANTIC coverage), so historical `616 → 56` / `616 → 29`
+> and `731/736` / `736/736` figures are NOT comparable to current values.
+> For CURRENT numbers read `artifacts/benchmarks/per-tool-scorecard.json`
+> (`stats.semanticCovered`, `stats.contractOnly`, `generatedAt`) and
+> `node autoresearch-metric.mjs`. `autoresearch.md` records the debt change.
+
+## Status 2026-11-12 (historical): 731 / 736 tools measured (99.3%)
 
 `debt` went 616 → 56 across 75 runs (-560). The only 5 unmeasured tools are Win32
 memory gates that need a decision (below). Everything else — including all 36

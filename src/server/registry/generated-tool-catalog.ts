@@ -1938,7 +1938,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'apk_signing_block_parse',
       description:
-        'Read-only parser for the APK Signing Block (schemes v2/v3/v3.1/v4) plus key-rotation lineage detection and residue-block / dex-prefix / magic-offset anomaly flags. Never mutates the APK.',
+        'Read-only parser for the APK Signing Block (schemes v2/v3/v3.1) plus key-rotation lineage decoding and residue-block / dex-prefix / magic-offset anomaly flags. v4 is a detached .apk.idsig sidecar, not parsed here. Never mutates the APK.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -2780,7 +2780,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'binary_key_extract',
       description:
-        'Scan a binary for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only — no decryption.',
+        'Scan binary for key candidates (raw/Base64/hex/custom). Not validated - verify manually.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -2807,9 +2807,28 @@ export const GENERATED_TOOL_CATALOG = [
             type: 'array',
             items: {
               type: 'string',
-              enum: ['raw', 'base64', 'hex'],
+              enum: ['raw', 'base64', 'hex', 'custom'],
             },
-            description: 'Which candidate formats to emit (default: all three)',
+            description: 'Which candidate formats to emit (default: raw, base64, hex)',
+          },
+          customPatterns: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                pattern: {
+                  type: 'string',
+                  description: 'Raw regex source (no /flags/ wrapper)',
+                },
+                category: {
+                  type: 'string',
+                  description: 'Label attached to matches',
+                },
+              },
+              required: ['pattern'],
+            },
+            description:
+              'Custom regex patterns; scanned only when formats includes custom. ReDoS-guarded.',
           },
           includeContext: {
             type: 'boolean',
@@ -13067,7 +13086,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'jadx_search_code',
       description:
-        'Ripgrep-backed search over jadx output. Pass decompileDir for read-only search, or apkPath to auto-decompile to a temporary directory first.',
+        'Ripgrep-backed search over jadx output. Pass decompileDir for read-only search, or apkPath to auto-decompile into a content-addressed cache (reused across calls). The two are mutually exclusive.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -13093,12 +13112,17 @@ export const GENERATED_TOOL_CATALOG = [
             description: 'Case-insensitive matching',
             default: false,
           },
+          multiline: {
+            type: 'boolean',
+            description: 'Multiline mode: dot matches newlines (ripgrep -U)',
+            default: false,
+          },
           contextLines: {
             type: 'integer',
             description: 'Lines of context around each match',
             default: 2,
             minimum: 0,
-            maximum: 20,
+            maximum: 50,
           },
           maxMatchesPerFile: {
             type: 'integer',

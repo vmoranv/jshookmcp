@@ -7,6 +7,11 @@ export { StringsExtractor } from './StringsExtractor';
 export { SmiScanner } from './SmiScanner';
 export { Symbolizer } from './Symbolizer';
 export { PackageDetector } from './PackageDetector';
+export {
+  SDK_SNAPSHOT_VERSION,
+  FLUTTER_STDLIB_PACKAGES,
+  isStdlibPackage,
+} from './flutter-stdlib-packages';
 export { SnapshotFingerprint } from './SnapshotFingerprint';
 export { ObjectPoolDumper } from './ObjectPoolDumper';
 export {

@@ -10,7 +10,19 @@
  * See CATALOG.md for the full 36-domain mapping of tools → benchmark source.
  */
 
+// Value import of `classify` is cycle-safe: classification.ts imports only
+// TYPE from this file (`import type`), which is erased at runtime.
+import { classify } from './classification';
 export type BenchmarkOrigin = 'external-vector' | 'homemade' | 'adversarial';
+
+/**
+ * A-phase: orthogonal to `origin`. Says what the assertion PROVES:
+ * semantic (real computation), contract (admission/refusal/arg validation),
+ * adversarial (negative input). See tests/benchmarks/classification.ts.
+ * Optional + defaulted so every existing case stays valid unchanged.
+ */
+export type AssertionKind = 'semantic' | 'contract' | 'adversarial';
+export type Difficulty = 'smoke' | 'semantic' | 'adversarial';
 
 export interface BenchCase {
   /** Stable case id, e.g. "binary_encode/rfc4648-vector-3". */
@@ -19,6 +31,10 @@ export interface BenchCase {
   readonly tool: string;
   /** Where the ground truth comes from. */
   readonly origin: BenchmarkOrigin;
+  /** What the assertion proves (orthogonal to origin). Default: semantic. */
+  readonly assertionKind?: AssertionKind;
+  /** Difficulty tier used by the gate's layered assertions. Default: smoke. */
+  readonly difficulty?: Difficulty;
   /** Human-readable one-liner naming the external source or the homemade fixture. */
   readonly reference: string;
   /** Invoke the tool (returns the raw handler response). */
@@ -44,6 +60,9 @@ export interface BenchCaseResult {
   readonly name: string;
   readonly tool: string;
   readonly origin: BenchmarkOrigin;
+  /** Resolved when present; optional so existing hand-built result fixtures stay valid. */
+  readonly assertionKind?: AssertionKind;
+  readonly difficulty?: Difficulty;
   readonly reference: string;
   readonly status: 'pass' | 'fail' | 'error' | 'skipped';
   readonly ms: number;
@@ -66,16 +85,18 @@ export interface BenchSuiteResult {
 
 const STABLE = (v: unknown): unknown =>
   JSON.parse(JSON.stringify(v, (_k, val) => (typeof val === 'bigint' ? val.toString() : val), 0));
-
 export async function runBenchSuite(suite: BenchSuite): Promise<BenchSuiteResult> {
   const cases: BenchCaseResult[] = [];
   const t0 = performance.now();
   for (const c of suite.cases) {
+    const { assertionKind, difficulty } = classify(c);
     if (c.skip?.()) {
       cases.push({
         name: c.name,
         tool: c.tool,
         origin: c.origin,
+        assertionKind,
+        difficulty,
         reference: c.reference,
         status: 'skipped',
         ms: 0,
@@ -93,6 +114,8 @@ export async function runBenchSuite(suite: BenchSuite): Promise<BenchSuiteResult
         name: c.name,
         tool: c.tool,
         origin: c.origin,
+        assertionKind,
+        difficulty,
         reference: c.reference,
         status: verdict === true ? 'pass' : 'fail',
         ms,
@@ -104,6 +127,8 @@ export async function runBenchSuite(suite: BenchSuite): Promise<BenchSuiteResult
         name: c.name,
         tool: c.tool,
         origin: c.origin,
+        assertionKind,
+        difficulty,
         reference: c.reference,
         status: 'error',
         ms,

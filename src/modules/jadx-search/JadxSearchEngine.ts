@@ -161,6 +161,7 @@ export class JadxSearchEngine {
       contextLines,
       maxMatchesPerFile,
       maxResults,
+      multiline: opts.multiline === true,
     };
   }
 }

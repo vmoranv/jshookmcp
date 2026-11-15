@@ -7,11 +7,12 @@
  */
 import type { BenchSuite } from '../harness';
 import { browserContractCases } from './browser.contracts';
+import { asContract } from '../classification';
 
 export const browserSuite: BenchSuite = {
   name: 'browser',
   domain: 'browser',
   description:
     'CDP/page-bound browser tools: named no-browser failures with no fabricated payload (screenshots/metrics/verdicts), plus argument validation before any page access (59 tools)',
-  cases: [...browserContractCases],
+  cases: asContract(browserContractCases),
 };

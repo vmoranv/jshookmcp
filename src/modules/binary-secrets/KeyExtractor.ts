@@ -46,6 +46,11 @@ import {
   BINARY_SECRETS_VALUE_PREVIEW_BYTES,
 } from './constants';
 import { shannonEntropy, slidingEntropy } from './entropy';
+import {
+  compileCustomPattern,
+  scanCustomPatterns,
+  type CompiledCustomPattern,
+} from './custom-pattern';
 import type {
   ExtractKeysOptions,
   ExtractKeysResult,
@@ -60,6 +65,8 @@ interface RawHit {
   /** Decoded byte length. */
   readonly length: number;
   readonly format: KeyFormat;
+  /** Category label when `format === 'custom'`. */
+  readonly customCategory?: string;
   /** Decoded bytes (referenced view; do not retain across chunk reads). */
   readonly bytes: Uint8Array;
 }
@@ -134,7 +141,7 @@ export class KeyExtractor {
       const combined = pending.length === 0 ? chunk : Buffer.concat([pending, chunk]);
 
       scanChunk(combined, pendingStart, cfg, (hit) => {
-        const key = `${hit.format}@${hit.absOffset}:${hit.length}`;
+        const key = `${hit.format}@${hit.absOffset}:${hit.length}:${hit.customCategory ?? ''}`;
         if (seen.has(key)) return;
         seen.add(key);
         hits.push(hit);
@@ -187,6 +194,8 @@ interface NormalizedConfig {
   readonly minRawWindow: number;
   readonly minEntropy: number;
   readonly formats: ReadonlySet<KeyFormat>;
+  /** Compiled custom patterns (empty unless `formats` includes 'custom'). */
+  readonly customPatterns: readonly CompiledCustomPattern[];
   readonly includeContext: boolean;
   readonly contextBytes: number;
   readonly maxResults: number;
@@ -232,13 +241,17 @@ function normalizeOptions(opts: ExtractKeysOptions): NormalizedConfig {
 
   const formats = new Set<KeyFormat>(opts.formats ?? ['raw', 'base64', 'hex']);
   for (const f of formats) {
-    if (f !== 'raw' && f !== 'base64' && f !== 'hex') {
+    if (f !== 'raw' && f !== 'base64' && f !== 'hex' && f !== 'custom') {
       throw new ToolError(
         'VALIDATION',
-        `Invalid formats entry: "${f}". Expected one of: raw, base64, hex`,
+        `Invalid formats entry: "${f}". Expected one of: raw, base64, hex, custom`,
       );
     }
   }
+
+  const customPatterns = formats.has('custom')
+    ? (opts.customPatterns ?? []).map((spec) => compileCustomPattern(spec))
+    : [];
 
   const includeContext = opts.includeContext ?? true;
   const contextBytes = (() => {
@@ -295,6 +308,7 @@ function normalizeOptions(opts: ExtractKeysOptions): NormalizedConfig {
     minRawWindow: Math.min(...keyLengths),
     minEntropy,
     formats,
+    customPatterns,
     includeContext,
     contextBytes,
     maxResults,
@@ -334,6 +348,9 @@ function scanChunk(
   }
   if (cfg.formats.has('hex')) {
     for (const hit of scanHexRuns(combined, baseOffset, cfg)) emit(hit);
+  }
+  if (cfg.formats.has('custom') && cfg.customPatterns.length > 0) {
+    for (const hit of scanCustomPatterns(combined, baseOffset, cfg.customPatterns)) emit(hit);
   }
 }
 
@@ -471,6 +488,7 @@ async function materializeCandidates(
       entropy,
       value: preview,
       ...(hit.length > previewLen ? { valueTruncated: true } : {}),
+      ...(hit.customCategory !== undefined ? { customCategory: hit.customCategory } : {}),
       ...(cfg.includeContext
         ? { context: await readContextWindow(filePath, hit, cfg.contextBytes, totalSize) }
         : {}),

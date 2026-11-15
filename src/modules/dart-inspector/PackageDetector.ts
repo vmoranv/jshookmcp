@@ -15,7 +15,11 @@
 
 import { stat } from 'node:fs/promises';
 
-import { DART_MAX_FILES_PER_PACKAGE, DART_MAX_PACKAGES_PER_RESULT } from '@src/constants';
+import {
+  DART_MAX_FILES_PER_PACKAGE,
+  DART_MAX_PACKAGES_PER_RESULT,
+  DART_PACKAGES_MAX_DETECT_DURATION_MS,
+} from '@src/constants';
 import { ToolError } from '@errors/ToolError';
 
 import { StringsExtractor } from './StringsExtractor';
@@ -60,6 +64,7 @@ export class PackageDetector {
    * Throws {@link ToolError} for:
    *  - `VALIDATION` — neither `filePath` nor `packageRefs` provided, or invalid options
    *  - `NOT_FOUND` — `filePath` does not exist
+   *  - `TIMEOUT`  — aggregation exceeds `DART_PACKAGES_MAX_DETECT_DURATION_MS`
    */
   async detect(opts: PackageDetectOptions): Promise<PackageReport> {
     validateOptions(opts);
@@ -88,6 +93,19 @@ export class PackageDetector {
     }
 
     const extra = new Set(opts.extraStdlibPackages ?? []);
+    // Budget guard: aggregate() invokes onTick once per ref; each tick
+    // accumulates wall-clock elapsed and aborts with TIMEOUT when the
+    // env-tunable DART_PACKAGES_MAX_DETECT_DURATION_MS budget is exceeded.
+    const onTick = (): void => {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed > DART_PACKAGES_MAX_DETECT_DURATION_MS) {
+        throw new ToolError(
+          'TIMEOUT',
+          `flutter_packages_detect exceeded DART_PACKAGES_MAX_DETECT_DURATION_MS (${elapsed}ms > ${DART_PACKAGES_MAX_DETECT_DURATION_MS}ms)`,
+          { details: { elapsed, limit: DART_PACKAGES_MAX_DETECT_DURATION_MS } },
+        );
+      }
+    };
     const aggregated = PackageDetector.aggregate(refs, {
       includeFlutterStdlib: opts.includeFlutterStdlib ?? false,
       includeFiles: opts.includeFiles ?? true,
@@ -95,6 +113,7 @@ export class PackageDetector {
       maxFilesPerPackage: opts.maxFilesPerPackage ?? DART_MAX_FILES_PER_PACKAGE,
       maxPackages: opts.maxPackages ?? DART_MAX_PACKAGES_PER_RESULT,
       extra,
+      onTick,
     });
 
     const report: PackageReport = {
@@ -130,6 +149,8 @@ export class PackageDetector {
       maxFilesPerPackage: number;
       maxPackages: number;
       extra: ReadonlySet<string>;
+      /** Optional per-ref hook used by detect() to enforce its wall-clock budget. */
+      onTick?: () => void;
     },
   ): Omit<PackageReport, 'durationMs' | 'scannedBytes'> {
     const {
@@ -139,11 +160,13 @@ export class PackageDetector {
       maxFilesPerPackage,
       maxPackages,
       extra,
+      onTick,
     } = options;
 
     const map = new Map<string, MutableEntry>();
 
     for (const ref of refs) {
+      onTick?.();
       const parsed = parsePackageRef(ref.value);
       if (!parsed) continue;
       const { name } = parsed;

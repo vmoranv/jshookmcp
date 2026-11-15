@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { isAbsolute, resolve as resolvePath } from 'node:path';
 import type { Socket } from 'node:net';
 import type { NodeMcpRequestHandler } from '@modelcontextprotocol/node';
 import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
@@ -24,6 +25,8 @@ import {
 import { createEventsEndpoint, type EventsEndpoint } from '@server/http/EventsEndpoint';
 import { logger } from '@utils/logger';
 import { ProcessRegistry } from '@utils/ProcessRegistry';
+import { readEnvBoolean, readEnvString } from '@src/config/environment';
+import type { EnvironmentSource } from '@src/config/environment';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { MultiplexedStreamableHttpTransport } from '@server/transport/MultiplexedStreamableHttpTransport';
 import type { BrowserSessionCoordinator } from '@server/runtime/BrowserSessionCoordinator';
@@ -569,15 +572,49 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
   return ctx.shutdownPromise;
 }
 
+/** Default trace directory, relative to the process cwd. */
+const DEFAULT_TRACE_DIR = '.ccg/traces';
+
+/**
+ * Resolve where tool-call traces are flushed. Exported as a pure, injectable
+ * helper so the production path is unit-testable WITHOUT inverting the
+ * dependency direction (src must not import scripts). The script-side mirror
+ * in `scripts/lib/trace-source.mjs` obeys the same contract.
+ *
+ *   - MCP_TRACE_DISABLE=1|true  -> null (no flush; used by unit tests so they
+ *     never pollute a real agent's trace directory)
+ *   - MCP_TRACE_DIR             -> resolved against cwd (relative) or as-is
+ *   - default                  -> <cwd>/.ccg/traces (byte-identical to the
+ *     pre-change `resolve(process.cwd(), '.ccg', 'traces')`)
+ *
+ * Normalized to forward slashes for deterministic cross-platform evidence
+ * metadata. Uses the repo's standard env helpers (single source of truth for
+ * trim/empty/boolean semantics).
+ */
+export function resolveTraceFlushDir(
+  env: EnvironmentSource = process.env,
+  cwd: string = process.cwd(),
+): string | null {
+  if (readEnvBoolean('MCP_TRACE_DISABLE', false, { env })) return null;
+  const rel = readEnvString('MCP_TRACE_DIR', DEFAULT_TRACE_DIR, { trim: true, env });
+  const absolute = isAbsolute(rel) ? rel : resolvePath(cwd, rel);
+  return absolute.replace(/\\/g, '/');
+}
+
 /** P2: flush the tool-call trace before shutdown so a killed agent session
  * still leaves audit evidence behind. `.ccg/traces/` is gitignored — the
  * trace is machine-local evidence, never repository state. Flushing must
  * never block shutdown: a failed flush is logged and shutdown continues. */
 async function flushToolTracesOnShutdown(ctx: MCPServerContext): Promise<void> {
   if (!ctx.toolTraceRecorder) return;
+  const tracesDir = resolveTraceFlushDir();
+  if (tracesDir === null) {
+    // Explicitly disabled (unit tests): skip persistence, still release state.
+    ctx.toolTraceRecorder = null;
+    return;
+  }
   const { mkdir, appendFile } = await import('node:fs/promises');
   const { resolve } = await import('node:path');
-  const tracesDir = resolve(process.cwd(), '.ccg', 'traces');
   try {
     await mkdir(tracesDir, { recursive: true });
     for (const trace of ctx.toolTraceRecorder.snapshotAll()) {

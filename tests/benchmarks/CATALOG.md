@@ -8,18 +8,21 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 `tests/server/benchmarks/tools-benchmark.test.ts`, run: `pnpm bench:tools`).
 **📋 规划** = mapping identified, suite not yet written.
 
-Runnable suites today: **43 suites / 847 cases (838 pass, 0 fail, 9 env-gated/placeholder skips)** — see `artifacts/benchmarks/scorecard.md`. The 2026-11-12 autoresearch coverage campaign raised measured tools from 171 (23.2%) to **731 / 736 (99.3%)** by adding contract cases for every browser/CDP, network, memory, process, debugger, adb, dart, graphql, syscall, wasm, canvas, webgpu, streaming, mojo, native-bridge, instrumentation, workflow, coordination, maintenance and platform tool — and two new suites (`browser`, `graphql`) graduated an entire domain each. The only unmeasured tools are 5 Win32 memory gates that need a decision (see `autoresearch.ideas.md`).
+Runnable suites and their live case/pass/skip counts: **see `artifacts/benchmarks/scorecard.json` (`generatedAt`)** — this catalog does not hand-copy counts. The 2026-11-12 autoresearch campaign added contract cases for many browser/CDP/network/memory/process tools; the A-phase (2026-11-15) then split those into `semantic` / `contract` / `adversarial` buckets and made `debt` penalize only missing semantic coverage. **"99.3% measured" was a coverage figure, not a quality figure.** Current per-tool counts: `artifacts/benchmarks/per-tool-scorecard.json` → `stats.semanticCovered` / `stats.contractOnly`. The 5 Win32 memory gates that need a product decision are tracked in `autoresearch.ideas.md`.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
 736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
 | Column | Unit | Measured by |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench suites, re-executed every `pnpm bench:tools` — **731 tools measured** |
-| throughput | µs/call (measured wall time) | same execution |
+| semantic | x/y cases passed | real semantic vectors; live count in `per-tool-scorecard.json → stats.semanticCovered` |
+| contract | x/y cases passed | admission/refusal/arg-validation cases (A-phase); live count in `stats.contractOnly` |
+| adv | x/y cases passed | adversarial/negative cases, reported separately by the layered gate |
+| holdout-MRR | % | E-phase blind-phrase generalization (`artifacts/benchmarks/registry-holdout-per-tool.json`) |
+| throughput | µs/call (measured wall time) | same gate execution |
 | handler-fn | % of bound handler functions executed | real `vitest --coverage` run (`pnpm bench:coverage`) |
-| e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`) — min pass-rate across rounds, 115 tools covered |
-| retrieval | MRR@10 / NDCG@10 / P@1 / Success@3 (%) | live 109-query eval vs ToolSearchEngine — **MRR@10 79.8% · NDCG@10 82.2% · P@1 67.0% · S@3 93.6% · S@5 99.1%** |
-| rejection | % out-of-domain rejected | live 12-query eval vs ToolSearchEngine — **100.0% rejected** |
+| e2e-tasks | count of real-task files (≥90% pass) exercising the tool | pass^k e2e run (`pnpm bench:e2e`); live count in `per-tool-scorecard.json → stats.withE2e` |
+| retrieval | MRR@10 / NDCG@10 / P@1 / Success@3 (%) | live eval vs ToolSearchEngine — **current values: `artifacts/benchmarks/registry-retrieval.json` (`generatedAt`)** |
+| rejection | % out-of-domain rejected | live eval — **current value: `artifacts/benchmarks/retrieval-rejection.json` (`generatedAt`)** |
 
 Environment-gated files (browser display, Camoufox, root) that self-skip stay honestly
 unmeasured rather than counted.
