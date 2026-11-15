@@ -109,9 +109,9 @@ describe('connectWithTimeout attempt superseding', () => {
     connectState.connect.mockResolvedValueOnce(browser);
 
     await connectWithTimeoutImpl(
-      { browserWSEndpoint: 'ws://z' },
-      'ws://z',
-      { wsEndpoint: 'ws://z' },
+      { browserWSEndpoint: 'wss://z' },
+      'wss://z',
+      { wsEndpoint: 'wss://z' },
       1000,
       ref,
     );
