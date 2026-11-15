@@ -2,7 +2,7 @@ import type { Tool } from '@modelcontextprotocol/server';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { ToolProfile } from '@server/ToolCatalog';
 import type { SearchConfig } from '@internal-types/config';
-import { readEnvNullableString } from '@src/config/environment';
+import { readEnvInteger } from '@src/config/environment';
 import {
   SEARCH_BM25_B,
   SEARCH_BM25_K1,
@@ -39,7 +39,12 @@ import { loadToolEmbeddingsCachePartial, saveToolEmbeddingsCacheV2 } from './Emb
 import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
 import { FeedbackTracker } from './FeedbackTracker';
-import { QueryNormalizer } from './QueryNormalizer';
+import {
+  QueryNormalizer,
+  readStemMode,
+  foldTokenSetWithMode,
+  type StemMode,
+} from './QueryNormalizer';
 import { ReRanker, type ReRankInput, type ToolMetadata } from './ReRanker';
 import { ScoreCalibrator } from './ScoreCalibrator';
 import { WorkflowTransitionGraph } from './WorkflowTransitionGraph';
@@ -233,6 +238,13 @@ export class ToolSearchEngine {
    */
   private prewarmPromise: Promise<void> | null = null;
   private embeddingRetryAfterMs = 0;
+  /**
+   * Effective SEARCH_STEM_MODE captured at construction. doc.tokenSet is
+   * stem-folded once at index time with this mode; including it in the cache
+   * key prevents a post-switch query from replaying rankings computed under a
+   * different mode. Exposed to the cache-key builder at search time.
+   */
+  private readonly stemMode: StemMode;
   /** Feedback tracking for adaptive vector weight adjustment. */
   private readonly feedbackTracker: FeedbackTracker;
   /** Per-tool recency tracker for frequency / recency boosts. */
@@ -328,7 +340,7 @@ export class ToolSearchEngine {
       // covers nothing. Tokens are stem-normalised when SEARCH_STEM_MODE
       // enables the tokenSet wiring; off-mode indexes them verbatim.
       tokenSet: new Set(
-        [...allTokens, ...sceneTokens].map((t) => QueryNormalizer.stemTokenSetToken(t)),
+        [...allTokens, ...sceneTokens].map((t) => foldTokenSetWithMode(t, this.stemMode)),
       ),
       scenePhrases: toolScenePhrases,
     };
@@ -373,6 +385,11 @@ export class ToolSearchEngine {
     sceneKeywords?: ReadonlyMap<string, readonly string[]>,
   ) {
     const source = tools ?? allTools;
+    // Pin the stem mode for the engine's lifetime. Both index-time doc.tokenSet
+    // and query-time folding use this snapshot, and the cache key carries it,
+    // so a mid-process SEARCH_STEM_MODE change can neither desync the two
+    // sides nor replay rankings computed under the prior mode.
+    this.stemMode = readStemMode();
     this.domainOverrides = domainOverrides;
     this.domainScoreMultipliers = domainScoreMultipliers;
     this.toolScoreMultipliers = toolScoreMultipliers;
@@ -548,7 +565,7 @@ export class ToolSearchEngine {
       // wiring is enabled; folding the query tokens with the same function
       // keeps both sides of the comparison symmetric.
       for (const qt of queryTokenSet) {
-        if (doc.tokenSet.has(QueryNormalizer.stemTokenSetToken(qt))) matchedContent++;
+        if (doc.tokenSet.has(foldTokenSetWithMode(qt, this.stemMode))) matchedContent++;
       }
       // Threshold <=2 (not <=1): a candidate covering 2 of N>=4 query tokens
       // is usually on-topic too — the common failure is a name-token match on
@@ -559,9 +576,14 @@ export class ToolSearchEngine {
       // Stem modes shift the matchedContent distribution upward (folded
       // variants match more tokens), so the threshold is env-tunable for the
       // stem scan; the default keeps the measured <=2 behaviour.
-      const thresholdRaw = readEnvNullableString('SEARCH_STEM_DRIFT_THRESHOLD');
-      const driftThreshold = thresholdRaw !== null ? Number.parseInt(thresholdRaw, 10) : Number.NaN;
-      if (matchedContent <= (Number.isFinite(driftThreshold) ? driftThreshold : 2)) {
+      // Strict parse: the old parseInt accepted numeric prefixes ('2junk')
+      // and negative/out-of-range values, silently overriding the measured
+      // default. readEnvInteger rejects junk and out-of-range, falling back to 2.
+      const driftThreshold = readEnvInteger('SEARCH_STEM_DRIFT_THRESHOLD', 2, {
+        min: 0,
+        max: 100,
+      });
+      if (matchedContent <= driftThreshold) {
         multiplier *= Math.max(0.1, matchedContent / queryTokenSet.size);
       }
     }
@@ -822,7 +844,11 @@ export class ToolSearchEngine {
 
     // Cache key is the baked statement only. topK, profile, and visible
     // domains are replayed from the stored pre-adjust scores.
-    const cacheKey = buildSearchCacheKey({ query, extensionEtag: this.extensionEtag });
+    const cacheKey = buildSearchCacheKey({
+      query,
+      extensionEtag: this.extensionEtag,
+      stemMode: this.stemMode,
+    });
     const cached = this.queryCache.get(cacheKey);
     if (cached && this.isCachedEntryFresh(cached)) {
       const results = this.replayCached(

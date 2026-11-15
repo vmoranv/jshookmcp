@@ -26,6 +26,13 @@ const state = vi.hoisted(() => ({
   /** Resolved by the test to release the in-flight bootstrap. */
   releaseBootstrap: null as null | (() => void),
   embed: vi.fn(async (_text: string) => new Float32Array([1, 0, 0])),
+  /**
+   * Per-call overrides for the embedding bootstrap, in order. Each entry is
+   * either 'fail' (reject, simulating a failed prewarm) or 'gate' (hang until
+   * the test calls releaseBootstrap). Lets a test drive the retry-cooldown
+   * path instead of always taking the in-flight-prewarm fast path.
+   */
+  embedBatchBehaviors: [] as Array<'fail' | 'gate'>,
 }));
 
 /**
@@ -78,10 +85,14 @@ vi.mock('@server/search/EmbeddingEngine', () => ({
     }
     async embedBatch(texts: string[]) {
       state.embedBatchCalls += 1;
+      const behavior = state.embedBatchBehaviors.shift() ?? 'gate';
+      if (behavior === 'fail') {
+        throw new Error('simulated embedding bootstrap failure');
+      }
       // Gate the bootstrap so the test controls when it lands.
-      await new Promise<void>((resolve) => {
-        state.releaseBootstrap = resolve;
-      });
+      const { promise, resolve } = Promise.withResolvers<void>();
+      state.releaseBootstrap = resolve;
+      await promise;
       return texts.map(() => new Float32Array([1, 0, 0]));
     }
   },
@@ -94,6 +105,9 @@ vi.mock('@src/constants', async (importOriginal) => {
     SEARCH_VECTOR_PREWARM: true,
     SEARCH_VECTOR_CACHE_ENABLED: false,
     SEARCH_QUERY_CACHE_CAPACITY: 8,
+    // Cooldown is zero so the retry-cooldown path is immediately reachable;
+    // the test still drives it through a failed prewarm, not a timer.
+    SEARCH_VECTOR_RETRY_COOLDOWN_MS: 0,
     // No BM25 skip threshold: the warm query must actually reach the vector
     // stage, otherwise the "vectors participate" claim below could be vacuously
     // true (strong lexical hit → vector skipped → nothing to observe).
@@ -116,6 +130,7 @@ describe('search cold-start: a query never waits for the vector bootstrap', () =
   beforeEach(() => {
     vi.resetModules();
     state.embedBatchCalls = 0;
+    state.embedBatchBehaviors = [];
     state.releaseBootstrap = null;
     state.embed.mockClear();
     previousCacheDir = process.env['JSHOOK_EMBEDDING_CACHE_DIR'];
@@ -144,15 +159,14 @@ describe('search cold-start: a query never waits for the vector bootstrap', () =
       const engine = new ToolSearchEngine();
 
       // Cold-start query while embedBatch is still pending. It must return
-      // without the bootstrap being released — the assertion is that this
-      // resolves at all (a blocking implementation hangs until the release).
-      const started = Date.now();
+      // without the bootstrap being released: the await below resolving (while
+      // releaseBootstrap is still uncalled) IS the non-blocking assertion.
+      // No wall-clock budget: a loaded CI host stalling for >2s must not fail
+      // a test whose real subject is "the query did not wait for the gate".
       const coldResults = await engine.search('navigate the browser to a url', 5);
-      const coldElapsed = Date.now() - started;
 
       expect(coldResults.length).toBeGreaterThan(0);
       expect(coldResults[0]!.name).toBe('page_navigate');
-      expect(coldElapsed).toBeLessThan(2_000);
       expect(state.embedBatchCalls).toBeGreaterThan(0); // bootstrap was kicked
       expect(state.embed).not.toHaveBeenCalled(); // this query did not embed
 
@@ -179,6 +193,39 @@ describe('search cold-start: a query never waits for the vector bootstrap', () =
       // The lexical contender set is unchanged; only the fusion differs.
       expect(warmLexical).toEqual(expect.arrayContaining(coldLexical));
       expect(warmResults[0]!.name).toBe('page_navigate');
+    },
+  );
+
+  it(
+    'does not block a query on the bootstrap retry after a failed prewarm',
+    { timeout: 15_000 },
+    async () => {
+      // First call = constructor prewarm that FAILS (sets the retry cooldown).
+      // Second call = the retry, gated so we can prove the query does not wait.
+      state.embedBatchBehaviors = ['fail', 'gate'];
+      const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+      const engine = new ToolSearchEngine();
+
+      // Let the failed constructor prewarm settle so prewarmPromise clears and
+      // embeddingRetryAfterMs is the only thing standing between us and a retry.
+      await engine.waitForEmbeddings();
+      expect(state.embedBatchCalls).toBe(1);
+
+      // Cooldown is zero (see constants mock), so this query must re-enter
+      // ensureToolEmbeddings(). A blocking regression would await the gated
+      // embedBatch; the search must resolve before we release that gate.
+      const results = await engine.search('navigate the browser to a url', 5);
+
+      expect(results.length).toBeGreaterThan(0);
+      expect(results[0]!.name).toBe('page_navigate');
+      // The retry was kicked in the background but NOT awaited on the query
+      // path. waitFor tolerates the async disk-cache load before embedBatch.
+      await vi.waitFor(() => expect(state.embedBatchCalls).toBe(2));
+      expect(state.embed).not.toHaveBeenCalled();
+
+      // Release the gated retry so no pending promise outlives the test.
+      state.releaseBootstrap?.();
+      await engine.waitForEmbeddings();
     },
   );
 });

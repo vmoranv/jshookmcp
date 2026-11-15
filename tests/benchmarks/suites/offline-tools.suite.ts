@@ -179,10 +179,14 @@ export const offlineToolsSuite: BenchSuite = {
         const parsed = body(await browserHandlers.handleJsdomParse({ html: JSDOM_HTML }));
         const sessionId = String(parsed.sessionId ?? '');
         if (!sessionId) return { error: 'no sessionId returned' };
-        const query = body(
-          await browserHandlers.handleJsdomQuery({ sessionId, selector: 'li.item' }),
-        );
-        return { query };
+        try {
+          const query = body(
+            await browserHandlers.handleJsdomQuery({ sessionId, selector: 'li.item' }),
+          );
+          return { query };
+        } finally {
+          browserHandlers.closeJsdomSession(sessionId);
+        }
       },
       validate: (v) => {
         const { error, query } = v as { error?: string; query: Record<string, unknown> };
@@ -201,7 +205,11 @@ export const offlineToolsSuite: BenchSuite = {
         const parsed = body(await browserHandlers.handleJsdomParse({ html: JSDOM_HTML }));
         const sessionId = String(parsed.sessionId ?? '');
         if (!sessionId) return { error: 'no sessionId returned' };
-        return browserHandlers.handleJsdomQuery({ sessionId, selector: 'a' });
+        try {
+          return browserHandlers.handleJsdomQuery({ sessionId, selector: 'a' });
+        } finally {
+          browserHandlers.closeJsdomSession(sessionId);
+        }
       },
       validate: (v) => {
         const b = body(v);
@@ -220,16 +228,33 @@ export const offlineToolsSuite: BenchSuite = {
         const parsed = body(await browserHandlers.handleJsdomParse({ html: JSDOM_HTML }));
         const sessionId = String(parsed.sessionId ?? '');
         if (!sessionId) return { error: 'no sessionId returned' };
-        return browserHandlers.handleJsdomSerialize({ sessionId });
+        try {
+          return browserHandlers.handleJsdomSerialize({ sessionId });
+        } finally {
+          browserHandlers.closeJsdomSession(sessionId);
+        }
       },
       validate: (v) => {
         const b = body(v);
         if (b.success === false) return `serialize failed: ${b.error}`;
         const html = String(b.html ?? '');
         const bytes = Number(b.bytes ?? 0);
-        if (!html.includes('li class="item"'))
-          return `serialized HTML lost the list items: ${html.slice(0, 120)}`;
-        if (!html.includes('/next')) return 'serialized HTML lost the anchor href';
+        // Verify the whole fixture survives, not just one classed li and the
+        // href — otherwise a serializer that dropped the other nodes/text/
+        // attributes would still pass. Whitespace/attribute-order agnostic.
+        const expected = [
+          'id="list"',
+          '>one<',
+          '>two<',
+          '>three<',
+          'li class="item"',
+          '<a href="/next">',
+          '>link<',
+        ];
+        for (const marker of expected) {
+          if (!html.includes(marker))
+            return `serialized HTML lost fixture content (${marker}): ${html.slice(0, 160)}`;
+        }
         return bytes > 0 ? true : `byte count not reported: ${JSON.stringify(b).slice(0, 120)}`;
       },
     },
@@ -248,19 +273,25 @@ export const offlineToolsSuite: BenchSuite = {
         );
         const sessionId = String(parsed.sessionId ?? '');
         if (!sessionId) return { error: 'no sessionId returned' };
-        const set = body(
-          await browserHandlers.handleJsdomCookies({
-            sessionId,
-            action: 'set',
-            cookie: { name: 'bench', value: 'v1' },
-          }),
-        );
-        const got = body(await browserHandlers.handleJsdomCookies({ sessionId, action: 'get' }));
-        const cleared = body(
-          await browserHandlers.handleJsdomCookies({ sessionId, action: 'clear' }),
-        );
-        const after = body(await browserHandlers.handleJsdomCookies({ sessionId, action: 'get' }));
-        return { set, got, cleared, after };
+        try {
+          const set = body(
+            await browserHandlers.handleJsdomCookies({
+              sessionId,
+              action: 'set',
+              cookie: { name: 'bench', value: 'v1' },
+            }),
+          );
+          const got = body(await browserHandlers.handleJsdomCookies({ sessionId, action: 'get' }));
+          const cleared = body(
+            await browserHandlers.handleJsdomCookies({ sessionId, action: 'clear' }),
+          );
+          const after = body(
+            await browserHandlers.handleJsdomCookies({ sessionId, action: 'get' }),
+          );
+          return { set, got, cleared, after };
+        } finally {
+          browserHandlers.closeJsdomSession(sessionId);
+        }
       },
       validate: (v) => {
         const { error, set, got, after } = v as {
@@ -275,10 +306,15 @@ export const offlineToolsSuite: BenchSuite = {
         const found = cookies.some((c) => (c as { key?: string }).key === 'bench');
         if (!found)
           return `cookie 'bench' not visible after set: ${JSON.stringify(got).slice(0, 180)}`;
-        const afterCookies = Array.isArray(after.cookies) ? after.cookies : [];
-        return afterCookies.length === 0
+        // A failed final lookup (success:false, or no cookies array) must not
+        // be mistaken for a successful empty jar.
+        if (after.success === false)
+          return `final cookie lookup failed: ${JSON.stringify(after).slice(0, 180)}`;
+        if (!Array.isArray(after.cookies))
+          return `final cookie lookup returned no cookies array: ${JSON.stringify(after).slice(0, 180)}`;
+        return after.cookies.length === 0
           ? true
-          : `clear left ${afterCookies.length} cookie(s) behind`;
+          : `clear left ${after.cookies.length} cookie(s) behind`;
       },
     },
     {
@@ -287,13 +323,36 @@ export const offlineToolsSuite: BenchSuite = {
       origin: 'homemade',
       reference:
         'argument contract: seeding a WebAuthn credential requires relyingPartyId, credentialId, userHandle and privateKey',
-      run: () => browserHandlers.handleBrowserPasskeySeed({}),
+      run: async () => {
+        const full = {
+          relyingPartyId: 'example.com',
+          credentialId: 'Y3JlZA==',
+          userHandle: 'dXNlcg==',
+          privateKey: 'a2V5',
+        };
+        const required = ['relyingPartyId', 'credentialId', 'userHandle', 'privateKey'];
+        // One call per field, each omitting exactly that field while supplying
+        // the other three. A handler that validates only one of them fails here.
+        const responses = await Promise.all(
+          required.map((field) => {
+            const args: Record<string, unknown> = { ...full };
+            delete args[field];
+            return browserHandlers.handleBrowserPasskeySeed(args).then((r) => ({
+              field,
+              response: body(r),
+            }));
+          }),
+        );
+        return responses;
+      },
       validate: (v) => {
-        const b = body(v);
-        const text = JSON.stringify(b);
-        return b.success === false && /relyingPartyId|credentialId|userHandle|privateKey/.test(text)
-          ? true
-          : `expected a required-fields error: ${text.slice(0, 180)}`;
+        const responses = v as Array<{ field: string; response: Record<string, unknown> }>;
+        for (const { field, response } of responses) {
+          const text = JSON.stringify(response);
+          if (response.success !== false)
+            return `missing ${field} was accepted (expected a required-fields error): ${text.slice(0, 180)}`;
+        }
+        return true;
       },
     },
     {

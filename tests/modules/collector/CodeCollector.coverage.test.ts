@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PuppeteerConfig } from '@internal-types/index';
 import * as testUrls from '@tests/shared/test-urls';
+import { BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
 
 const mocks = vi.hoisted(() => ({
   launch: vi.fn(),
@@ -311,6 +312,7 @@ describe('CodeCollector – coverage gap', () => {
       expect(mocks.connect).toHaveBeenCalledWith({
         browserURL: 'http://127.0.0.1:9222',
         defaultViewport: null,
+        protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
       });
     });
 
@@ -324,6 +326,7 @@ describe('CodeCollector – coverage gap', () => {
       expect(mocks.connect).toHaveBeenCalledWith({
         browserWSEndpoint: 'ws://127.0.0.1:9222/devtools/browser/abc',
         defaultViewport: null,
+        protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
       });
     });
 

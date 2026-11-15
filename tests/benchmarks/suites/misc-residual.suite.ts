@@ -354,9 +354,17 @@ export const miscResidualSuite: BenchSuite = {
       validate: (v) => {
         const b = body(v);
         const text = JSON.stringify(b);
-        return b.success === false && /Server context not initialized/.test(text)
+        // An honest no-runtime refusal must not fabricate suggestions: a broken
+        // branch returning success:false + the error text but also a filled
+        // suggestions array would otherwise pass as an honest refusal.
+        const suggestions = (b as Record<string, unknown>)['suggestions'];
+        const noFabricatedNames =
+          suggestions === undefined || (Array.isArray(suggestions) && suggestions.length === 0);
+        return b.success === false &&
+          /Server context not initialized/.test(text) &&
+          noFabricatedNames
           ? true
-          : `expected an honest no-runtime refusal: ${text.slice(0, 180)}`;
+          : `expected an honest no-runtime refusal with no suggestions: ${text.slice(0, 180)}`;
       },
     },
   ],

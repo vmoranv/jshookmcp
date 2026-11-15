@@ -275,7 +275,9 @@ export class LinuxProcessManager {
   /**
    * Get process command line arguments
    */
-  async getProcessCommandLine(pid: number): Promise<{ commandLine?: string; parentPid?: number }> {
+  async getProcessCommandLine(
+    pid: number,
+  ): Promise<{ commandLine?: string; parentPid?: number; name?: string }> {
     try {
       pid = safePid(pid);
       const { stdout: cmdline } = await execAsync(
@@ -286,10 +288,14 @@ export class LinuxProcessManager {
       );
 
       const ppidMatch = status.match(/PPid:\s*(\d+)/);
+      // argv[0] basename serves as the PID-reuse identity, consistent with
+      // getProcessByPid's /proc/status Name after normalization.
+      const argv0 = (cmdline.trim().split(' ')[0] || '').split('/').pop();
 
       return {
         commandLine: cmdline.trim() || undefined,
         parentPid: ppidMatch?.[1] ? parseInt(ppidMatch[1], 10) : undefined,
+        name: argv0 || undefined,
       };
     } catch (error) {
       logger.error(`Failed to get command line for PID ${pid}:`, error);

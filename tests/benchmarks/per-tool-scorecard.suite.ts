@@ -487,6 +487,8 @@ function summarizeTool(
   else if (exec.skipped > 0) missing.push(`${exec.skipped} vector case(s) skipped in this env`);
   if (handlerFn === 'not measured') missing.push('coverage not measured (pnpm bench:coverage)');
   if (handlerFn === 'no manifest binding') missing.push('inline binding (method not extractable)');
+  if (handlerFn.startsWith('unmapped'))
+    missing.push('handler coverage unmapped (method names absent from coverage fn-map)');
   if (!loaders.e2eAvailable) missing.push('e2e not measured (pnpm bench:e2e)');
 
   return {

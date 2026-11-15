@@ -11,6 +11,12 @@
 export interface BakedStatement {
   readonly query: string;
   readonly extensionEtag: string;
+  /**
+   * Effective SEARCH_STEM_MODE at index time. Part of the key so a query made
+   * after a mid-process mode switch never replays scores computed under the
+   * prior mode (index-time doc.tokenSet and query-time folding would disagree).
+   */
+  readonly stemMode: string;
 }
 
 export interface FeedbackEvidence {
@@ -29,7 +35,8 @@ export interface SearchWitness {
 
 export function buildSearchCacheKey(statement: BakedStatement): string {
   const query = statement.query.toLowerCase().trim();
-  return statement.extensionEtag.length > 0 ? `${query}\0${statement.extensionEtag}` : query;
+  const base = statement.extensionEtag.length > 0 ? `${query}\0${statement.extensionEtag}` : query;
+  return `${base}\0stem=${statement.stemMode}`;
 }
 
 export function capturePositiveScores(scores: Float64Array): Array<[number, number]> {

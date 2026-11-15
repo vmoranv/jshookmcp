@@ -93,7 +93,10 @@ export class JsdomHandlers {
     return session;
   }
 
-  private closeSession(sessionId: string): void {
+  /** Close a single session. Public so long-running consumers (benchmarks,
+   *  scripts) can release a session as soon as they are done with it instead
+   *  of waiting for the TTL expiry / hitting MAX_SESSIONS. */
+  closeSession(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
     clearTimeout(session.timer);

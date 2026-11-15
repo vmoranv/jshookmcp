@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PuppeteerConfig } from '@internal-types/index';
+import { BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
 
 const mocks = vi.hoisted(() => ({
   launch: vi.fn(),
@@ -175,6 +176,7 @@ describe('CodeCollector launch options', () => {
     expect(mocks.connect).toHaveBeenCalledWith({
       browserWSEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
       defaultViewport: null,
+      protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
     });
   });
 });

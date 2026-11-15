@@ -271,16 +271,22 @@ export class MacProcessManager {
   /**
    * Get process command line arguments
    */
-  async getProcessCommandLine(pid: number): Promise<{ commandLine?: string; parentPid?: number }> {
+  async getProcessCommandLine(
+    pid: number,
+  ): Promise<{ commandLine?: string; parentPid?: number; name?: string }> {
     try {
       pid = safePid(pid);
       const { stdout } = await execAsync(`ps -p ${pid} -o ppid=,args= 2>/dev/null || echo ""`);
 
       const parts = stdout.trim().split(/\s+/);
       if (parts.length >= 2) {
+        // argv[0] basename matches getProcessByPid's `comm` name closely
+        // enough for a PID-reuse identity check after normalization.
+        const argv0 = parts[1] || '';
         return {
           parentPid: parseInt(parts[0] || '0', 10),
           commandLine: parts.slice(1).join(' ') || undefined,
+          name: argv0.split('/').pop() || undefined,
         };
       }
 

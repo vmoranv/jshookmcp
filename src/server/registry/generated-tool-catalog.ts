@@ -2189,7 +2189,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'asar_deobfuscate',
       description:
-        'Deobfuscate the scripts inside this electron archive: scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and classify each file. Flagged files are optionally extracted to a directory for downstream deobfuscation.',
+        'Scan every .js script inside this electron archive to find files to deobfuscate: classify obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and optionally extract flagged files unchanged to a directory for downstream deobfuscation. This tool returns an inventory, not deobfuscated scripts.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -2240,7 +2240,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'asar_extract',
       description:
-        'Unpack the electron app archive into a folder: extract and list files from an Electron ASAR package.',
+        'List or unpack the files of an Electron ASAR archive into a folder (listOnly only lists them).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -18350,7 +18350,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'nemu_disassemble',
       description:
-        'Disassemble emulator memory. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.',
+        'Disassemble a supplied opcode or emulator memory. Two modes: (1) single-instruction — pass `opcode` (a number, 0x hex string, or hex bytes) and optional `pc`; no session needed. (2) batch — pass `sessionId`, `vaddr`, and `count`; reads `count` 4-byte words from guest memory starting at `vaddr` and returns a `{pc, opcode, asm}[]` list. Batch supports fixed-width ISAs only (arm64/aarch64, riscv32/riscv64, mips/mips32/mipsel); x86/x64 are rejected. A local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions.',
       inputSchema: {
         type: 'object',
         properties: {

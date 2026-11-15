@@ -263,22 +263,147 @@ function modePlural(): boolean {
   return mode === 'plural' || mode.endsWith('-plural');
 }
 
-const stripTrailingE = (t: string): string =>
-  t.length >= 5 && t.endsWith('e') ? t.slice(0, -1) : t;
-const collapseDoubled = (t: string): string =>
-  t.length >= 3 && !/[aeiou]$/.test(t) && t[t.length - 1] === t[t.length - 2] ? t.slice(0, -1) : t;
+/** Resolve the effective stem mode once (for engines that pin it for life). */
+export function readStemMode(): StemMode {
+  return currentStemMode();
+}
+
+/** Whether an explicit mode applies the given wiring. */
+function modeInExplicit(mode: StemMode, area: 'rerank' | 'tokenset'): boolean {
+  if (mode === 'off') return false;
+  if (mode === 'verb' || mode === 'plural') return true;
+  if (mode.startsWith('rerank')) return area === 'rerank';
+  return area === 'tokenset';
+}
+
+/** Explicit-mode tokenSet stem. Used by engines that snapshot the mode at
+ *  construction so index-time and query-time folding can never diverge. */
+export function foldTokenSetWithMode(token: string, mode: StemMode): string {
+  if (!modeInExplicit(mode, 'tokenset')) return token;
+  return stemFold(token, mode === 'plural' || mode.endsWith('-plural'));
+}
 
 /**
- * Verb-inflection-only stem: "running" → "run", "collected" → "collect",
- * "captured" → "captur" (equals the e-folded "capture"). Guards protect
- * short tokens and lookalike endings (process / status / address / this).
+ * Strip a trailing silent "e" so a base verb matches its e-dropping
+ * inflections (capture→captur, use→us, move→mov). Lowered to length>=3 so
+ * short verbs (use/move) fold too. Words that are overwhelmingly nouns/
+ * adjectives are protected verbatim: folding them creates false matches
+ * (state→stat, drive→driv colliding with unrelated short roots).
+ */
+const PROTECTED_TRAILING_E: Record<string, true> = {
+  state: true,
+  drive: true,
+  scope: true,
+  while: true,
+  since: true,
+  value: true,
+  table: true,
+  sample: true,
+  module: true,
+  profile: true,
+  message: true,
+  package: true,
+  variable: true,
+  structure: true,
+  attribute: true,
+  instance: true,
+  response: true,
+  request: true,
+  template: true,
+  framework: true,
+  environment: true,
+};
+
+/** "-ing" tokens that are nouns/other, not verb inflections. */
+const NON_VERB_ING: Record<string, true> = {
+  string: true,
+  spring: true,
+  bring: true,
+  thing: true,
+  king: true,
+  ring: true,
+  sing: true,
+  wing: true,
+  cling: true,
+  fling: true,
+  sling: true,
+  sting: true,
+  swing: true,
+  wring: true,
+  during: true,
+  evening: true,
+  morning: true,
+  ceiling: true,
+  nothing: true,
+  something: true,
+  anything: true,
+  everything: true,
+  building: true,
+  setting: true,
+  mapping: true,
+  handling: true,
+  matching: true,
+  ranking: true,
+  binding: true,
+};
+
+/** Verb bases that already end in a doubled consonant. Their inflected forms
+ *  must NOT collapse that doubling (processing→process, passing→pass). */
+const DOUBLED_STEM_BASE: Record<string, true> = {
+  process: true,
+  pass: true,
+  address: true,
+  status: true,
+  class: true,
+  access: true,
+  less: true,
+  miss: true,
+  cross: true,
+  press: true,
+  stress: true,
+  guess: true,
+  dress: true,
+  progress: true,
+  success: true,
+  discuss: true,
+  express: true,
+  impress: true,
+  possess: true,
+  assess: true,
+  compress: true,
+};
+
+const stripTrailingE = (t: string): string =>
+  t.length >= 3 && t.endsWith('e') ? t.slice(0, -1) : t;
+
+/** Collapse an inflectional doubling only for short CVC roots (runn→run),
+ *  never for a real doubled-stem base (process / pass). */
+function collapseInflectionalDoubling(root: string): string {
+  if (DOUBLED_STEM_BASE[root]) return root;
+  if (
+    root.length >= 3 &&
+    root.length <= 5 &&
+    !/[aeiou]$/.test(root) &&
+    root[root.length - 1] === root[root.length - 2]
+  ) {
+    return root.slice(0, -1);
+  }
+  return root;
+}
+
+/**
+ * Verb-inflection-only stem. Both an inflected form and its base fold to ONE
+ * canonical stem ("running"/"run"→run, "captured"/"capture"→captur,
+ * "using"/"use"→us, "processing"/"process"→process). Non-verbs (-ing nouns,
+ * protected trailing-e words, doubled-stem bases) are left verbatim.
  */
 function stemInflectionOnly(token: string): string {
-  if (token.length >= 6 && token.endsWith('ing')) {
-    return collapseDoubled(stripTrailingE(token.slice(0, -3)));
+  if (PROTECTED_TRAILING_E[token] || NON_VERB_ING[token]) return token;
+  if (token.endsWith('ing') && token.length >= 5) {
+    return stripTrailingE(collapseInflectionalDoubling(token.slice(0, -3)));
   }
-  if (token.length >= 5 && token.endsWith('ed')) {
-    return collapseDoubled(stripTrailingE(token.slice(0, -2)));
+  if (token.endsWith('ed') && token.length >= 4) {
+    return stripTrailingE(collapseInflectionalDoubling(token.slice(0, -2)));
   }
   return stripTrailingE(token);
 }
