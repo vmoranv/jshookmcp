@@ -114,7 +114,15 @@ export class BrowserLifecycleManager {
       await initPromise;
     }
 
-    const executablePath = await this.resolveExecutablePath();
+    // Path resolution happens BEFORE launchInner, so a configured-but-missing
+    // executable throws out here and would bypass the enrichment inside it.
+    // Same class of failure (no usable browser), same actionable error.
+    let executablePath: string | undefined;
+    try {
+      executablePath = await this.resolveExecutablePath();
+    } catch (error) {
+      throw this.enrichLaunchError(error);
+    }
     const launchOptions = resolveChromeLaunchOptions(
       this.config,
       overrides,
@@ -211,8 +219,12 @@ export class BrowserLifecycleManager {
    */
   private enrichLaunchError(error: unknown): unknown {
     const message = error instanceof Error ? error.message : String(error);
+    // Two shapes reach here: puppeteer-core's own "no executablePath or
+    // channel" assert (nothing resolved at all), and resolveExecutablePath's
+    // "Configured browser executable was not found" (a path was configured but
+    // does not exist). Both mean the same thing to the caller.
     if (
-      !/executablePath.*channel.*must be specified|Could not find (Chrome|Chromium|browser)/i.test(
+      !/executablePath.*channel.*must be specified|Could not find (Chrome|Chromium|browser)|Configured browser executable was not found/i.test(
         message,
       )
     ) {

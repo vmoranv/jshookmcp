@@ -38,6 +38,9 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 }));
 
 vi.mock('@utils/browserExecutable', () => ({
+  // The error message names the same list the resolver reads, so the mock must
+  // expose it or the enrichment path throws while building its own message.
+  ENV_KEYS: ['CHROME_PATH', 'PUPPETEER_EXECUTABLE_PATH', 'BROWSER_EXECUTABLE_PATH'],
   findBrowserExecutableAsync: mocks.findBrowserExecutable,
 }));
 
