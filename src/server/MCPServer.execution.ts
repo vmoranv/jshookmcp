@@ -16,7 +16,10 @@
 import { logger } from '@utils/logger';
 import { asErrorResponse, asTextResponse } from '@server/domains/shared/response';
 import { getToolDomain } from '@server/ToolCatalog';
-import { classifyErrorKind } from '@server/observability/ToolCallTraceRecorder';
+import {
+  classifyErrorKind,
+  classifyFailureCause,
+} from '@server/observability/ToolCallTraceRecorder';
 import { fastValidateToolArgs } from '@server/registry/compiled-validators';
 import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
 import { recordToolUse } from '@server/MCPServer.search.helpers';
@@ -347,9 +350,19 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     // The throwing path exits separately from the success path, so it accounts
     // for its own sample. Without this every throw would be invisible to the
     // counters and the error rate would read as zero.
+    // Classified with the structural signals from the caught value (its
+    // ToolError code / cause chain), not from its prose.
+    const failureKind = classifyFailureCause(
+      classifyErrorKind({
+        thrown: true,
+        timedOut: error instanceof Error && /hung|timeout/i.test(error.message),
+      }),
+      { error },
+    );
     instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
       tool: name,
       success: false,
+      outcome: failureKind,
     });
     instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });
     instrumentation.emitMetric(MetricNames.toolDurationMs, failureDurationMs, 'histogram', {
@@ -367,10 +380,7 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
       timestamp: new Date().toISOString(),
       success: false,
       durationMs: failureDurationMs,
-      errorKind: classifyErrorKind({
-        thrown: true,
-        timedOut: error instanceof Error && /hung|timeout/i.test(error.message),
-      }),
+      errorKind: failureKind,
     });
     const admissionError =
       error instanceof BrowserSessionQueueError ||
@@ -552,6 +562,17 @@ function emitToolCallTelemetry(
   // Duration is computed ONCE and shared by the event and the metric below.
   // Two clocks for the same interval is exactly how an event stream and a
   // metrics backend drift apart, after which neither is trustworthy.
+  // Stage kind first (which pipeline layer caught it), then the structural
+  // cause layered on top — one value used by the event, the metric dimension
+  // and the trace, so the three can never disagree about why a call failed.
+  const stageKind = classifyErrorKind({
+    isError: (enriched as { isError?: boolean }).isError === true,
+    successFlag: toolResultSuccess,
+  });
+  const errorKind = classifyFailureCause(stageKind, {
+    error: enriched as { code?: string; cause?: unknown },
+    platformError: extractResponseErrorMessage(enriched) ?? undefined,
+  });
   // Emit tool:called event for ActivationController
   void ctx.eventBus.emit('tool:called', {
     toolName: name,
@@ -563,10 +584,7 @@ function emitToolCallTelemetry(
     timestamp: new Date().toISOString(),
     success: toolResultSuccess,
     durationMs: toolDurationMs,
-    errorKind: classifyErrorKind({
-      isError: (enriched as { isError?: boolean }).isError === true,
-      successFlag: toolResultSuccess,
-    }),
+    errorKind,
     args,
     result: {
       success: toolResultSuccess,
@@ -585,9 +603,13 @@ function emitToolCallTelemetry(
   // One observation, two sinks: the event stream stays in-process, these go to
   // whichever instrumentation backend is configured. Emitted from the same
   // point so the two can never disagree about what happened.
+  // `outcome` is the error class the telemetry worker folds into `dim_label`;
+  // without it every failure row arrives with a null label and the failure
+  // profile collapses into a single number that cannot be acted on.
   instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
     tool: name,
     success: toolResultSuccess,
+    ...(errorKind !== undefined ? { outcome: errorKind } : {}),
   });
   if (!toolResultSuccess) {
     instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });

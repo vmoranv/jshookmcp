@@ -58,6 +58,7 @@
  */
 
 import { RingBuffer } from '@utils/RingBuffer';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 
 /** Entries retained before the oldest are evicted. */
 const DEFAULT_MAX_ENTRIES = 2000;
@@ -73,10 +74,28 @@ const MAX_TRACKED_SESSIONS = 64;
  * watchdog fired, `validation` means the argument validator rejected the call
  * before any handler ran, `gate` means a permission rule or the doom-loop
  * breaker blocked it, `handler` means the tool body threw or returned an error
- * response. Guessing a finer cause from the message would be inference dressed
- * up as measurement.
+ * response.
+ *
+ * The cause-level kinds (`prereq_missing` / `target_gone` / `network` /
+ * `invalid_args` / `timeout`) are NEVER inferred from free-form prose except
+ * for the two cases where prose is the only carrier that exists: a Chromium
+ * `net::ERR_*` marker (Playwright and Puppeteer both flatten it into the
+ * message) and a timeout marker on a soft-fail response, which has no Error
+ * instance to inspect at all. Everything else requires a structural signal — a
+ * `PrerequisiteError` instance or a `ToolError` code. Unmarked failures stay at
+ * the stage kind (`handler` / `unknown`).
  */
-export type ToolCallErrorKind = 'timeout' | 'validation' | 'gate' | 'handler' | 'unknown';
+export type ToolCallErrorKind =
+  | 'timeout'
+  | 'validation'
+  | 'gate'
+  | 'handler'
+  | 'unknown'
+  | 'prereq_missing'
+  | 'target_gone'
+  | 'network'
+  | 'not_found'
+  | 'invalid_args';
 
 /** One tool call, at the action layer. */
 export interface ToolCallTraceEntry {
@@ -295,4 +314,128 @@ export function classifyErrorKind(outcome: {
   if (outcome.blockedByGate === true) return 'gate';
   if (outcome.thrown === true || outcome.isError === true) return 'handler';
   return 'unknown';
+}
+
+/**
+ * Structural signals that distinguish a cause from a generic handler failure.
+ * Every field is one the process already holds (an error instance it caught, or
+ * a `ToolError` code), so no branch below reads prose.
+ */
+export interface ToolFailureSignals {
+  /** The thrown value, when the failure surfaced as an exception. */
+  readonly error?: unknown;
+  /** `ToolError.code` of the caught error, when it is a `ToolError`. */
+  readonly errorCode?: string;
+  /** Chromium/`net::` error name or Node platform code seen by the caller. */
+  readonly platformError?: string;
+}
+
+/**
+ * Cause-level classification layered on `classifyErrorKind`.
+ *
+ * `classifyErrorKind` answers "which stage caught this"; this answers "what, if
+ * anything structural, explains it". They are separate so the stage kind stays
+ * stable for consumers that only understand stages, and the cause kind can be
+ * added to the metric dimension without re-interpreting old data.
+ *
+ * Precedence: a stage that never reached the handler (gate / validation) is
+ * more informative than any structural hint, so those win. Otherwise a
+ * `prereq_missing` beats everything below it because retrying without the
+ * prerequisite only burns tokens.
+ */
+export function classifyFailureCause(
+  stage: ToolCallErrorKind | undefined,
+  signals: ToolFailureSignals = {},
+): ToolCallErrorKind | undefined {
+  if (stage === undefined) return undefined;
+  if (stage === 'gate' || stage === 'validation') return stage;
+  const { error, errorCode, platformError } = signals;
+  if (error instanceof PrerequisiteError) return 'prereq_missing';
+  const code = errorCode ?? (isToolErrorLike(error) ? error.code : undefined);
+  switch (code) {
+    case 'PREREQUISITE':
+      return 'prereq_missing';
+    case 'VALIDATION':
+      return 'invalid_args';
+    case 'NOT_FOUND':
+      return 'target_gone';
+    case 'CONNECTION':
+      return 'network';
+    case 'TIMEOUT':
+      return 'timeout';
+    default:
+      break;
+  }
+  const networkSignal = normalizeNetworkSignal(error, platformError);
+  if (networkSignal === 'gone') return 'target_gone';
+  if (networkSignal === 'network') return 'network';
+  // Timeout is the one cause with no structural carrier in Playwright/Puppeteer:
+  // a navigation timeout surfaces as plain prose. The thrown path already
+  // matches the same markers (`/hung|timeout/i` above), so a soft-fail response
+  // is read the same way rather than being dumped into `handler`.
+  if (isTimeoutText(platformError)) return 'timeout';
+  // A soft-fail `R.fail(...)` response carries only prose — the cause is
+  // genuinely unknown, and the stage ('handler') is the honest answer rather
+  // than inventing a category.
+  return stage;
+}
+
+/** Timeout markers shared by the thrown and soft-fail paths. */
+function isTimeoutText(text: string | undefined): boolean {
+  if (text === undefined) return false;
+  return /timeout|timed out|exceeded.*ms/i.test(text);
+}
+/** Node platform codes that mean "the network path failed", not the target. */
+const NETWORK_ERROR_CODES = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'EPIPE',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_SOCKET',
+]);
+
+/** Chromium network error suffixes that mean "the peer is gone", not "retry". */
+const GONE_NET_ERRORS = ['ERR_CONNECTION_CLOSED', 'ERR_CONNECTION_RESET', 'ERR_ABORTED'];
+
+function isToolErrorLike(value: unknown): value is { code: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { code?: unknown }).code === 'string'
+  );
+}
+
+/**
+ * Walk the `cause` chain for a platform code or Chromium `net::ERR_*` name.
+ * Playwright and Puppeteer both bury the code a level or two down, never in the
+ * top-level message. A bare `platformError` string is checked directly before
+ * descending into the chain.
+ */
+function normalizeNetworkSignal(error: unknown, platformError?: string): 'gone' | 'network' | null {
+  // A soft-fail response only carries prose, so the message is scanned for the
+  // same two markers the cause-chain walk looks for.
+  if (platformError !== undefined) {
+    if (platformError.includes('net::ERR_')) {
+      return GONE_NET_ERRORS.some((name) => platformError.includes(name)) ? 'gone' : 'network';
+    }
+    for (const code of NETWORK_ERROR_CODES) {
+      if (platformError.includes(code)) return 'network';
+    }
+  }
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current !== undefined && current !== null; depth += 1) {
+    if (isToolErrorLike(current) && NETWORK_ERROR_CODES.has(current.code)) return 'network';
+    const message = current instanceof Error ? current.message : null;
+    if (message !== null && message.includes('net::ERR_')) {
+      if (GONE_NET_ERRORS.some((name) => message.includes(name))) return 'gone';
+      return 'network';
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
 }

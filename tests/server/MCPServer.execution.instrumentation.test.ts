@@ -162,6 +162,7 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     expect(instrumentation.metricsNamed(MetricNames.toolCallsTotal)[0]!.attrs).toEqual({
       tool: 'page_navigate',
       success: false,
+      outcome: 'handler',
     });
     expect(instrumentation.metricsNamed(MetricNames.toolErrorsTotal)).toHaveLength(1);
     expect(instrumentation.metricsNamed(MetricNames.toolDurationMs)[0]!.attrs).toEqual({
@@ -195,6 +196,7 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     expect(instrumentation.metricsNamed(MetricNames.toolCallsTotal)[0]!.attrs).toEqual({
       tool: 'browser_launch',
       success: false,
+      outcome: 'unknown',
     });
     const execute = instrumentation.spansNamed(SpanNames.toolExecute);
     expect(execute).toHaveLength(1);

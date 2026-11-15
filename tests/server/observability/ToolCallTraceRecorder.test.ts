@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ToolCallTraceRecorder } from '@server/observability/ToolCallTraceRecorder';
+import {
+  ToolCallTraceRecorder,
+  classifyFailureCause,
+} from '@server/observability/ToolCallTraceRecorder';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
 
 describe('ToolCallTraceRecorder', () => {
   it('assigns monotonic seq and detects consecutive repeats per session', () => {
@@ -111,5 +115,94 @@ describe('ToolCallTraceRecorder', () => {
     const trace = rec.snapshot('s1');
     expect(trace.entries).toHaveLength(1);
     expect(trace.droppedEntries).toBe(1);
+  });
+});
+
+describe('classifyFailureCause', () => {
+  const handlerStage = 'handler';
+  const fineSig = {};
+
+  it('keeps a stage-only kind when the failure legitimately has no structural signal', () => {
+    expect(classifyFailureCause(handlerStage, fineSig)).toBe('handler');
+    expect(classifyFailureCause('unknown', fineSig)).toBe('unknown');
+  });
+
+  it('returns undefined for a non-failure stage', () => {
+    expect(classifyFailureCause(undefined, fineSig)).toBeUndefined();
+  });
+
+  it('lets gate and validation (pre-handler stages) pass through untouched', () => {
+    expect(classifyFailureCause('gate', fineSig)).toBe('gate');
+    expect(classifyFailureCause('validation', fineSig)).toBe('validation');
+  });
+
+  it('classifies a PrerequisiteError as prereq_missing regardless of its message', () => {
+    const e = new PrerequisiteError('debugger unavailable');
+    expect(classifyFailureCause(handlerStage, { error: e })).toBe('prereq_missing');
+  });
+
+  it('classifies a ToolError PREREQUISITE / NOT_FOUND / VALIDATION / CONNECTION', () => {
+    const te = (code: string) => ({ code });
+    expect(classifyFailureCause(handlerStage, { errorCode: 'PREREQUISITE' })).toBe(
+      'prereq_missing',
+    );
+    expect(classifyFailureCause(handlerStage, { error: te('NOT_FOUND') })).toBe('target_gone');
+    expect(classifyFailureCause(handlerStage, { error: te('VALIDATION') })).toBe('invalid_args');
+    expect(classifyFailureCause(handlerStage, { errorCode: 'CONNECTION' })).toBe('network');
+    expect(classifyFailureCause(handlerStage, { error: te('TIMEOUT') })).toBe('timeout');
+  });
+
+  it('classifies Node platform network codes', () => {
+    expect(classifyFailureCause(handlerStage, { error: { code: 'ENOTFOUND' } })).toBe('network');
+    expect(classifyFailureCause(handlerStage, { error: { code: 'ECONNREFUSED' } })).toBe('network');
+  });
+
+  it('classifies Chromium network errors from the message', () => {
+    const errNet = new Error('Navigating frame was detached: net::ERR_NAME_NOT_RESOLVED');
+    expect(classifyFailureCause(handlerStage, { error: errNet })).toBe('network');
+    const errGone = new Error('Protocol error (Target.getTargets): Session closed');
+    expect(classifyFailureCause(handlerStage, { error: errGone })).toBe('handler');
+  });
+
+  it('walks the cause chain to find a nested network code', () => {
+    const inner = new Error('inner', { cause: { code: 'ECONNREFUSED' } as unknown as Error });
+    const tail = new Error('top', { cause: inner });
+    expect(classifyFailureCause(handlerStage, { error: tail })).toBe('network');
+  });
+
+  it('explicit platformError wins', () => {
+    expect(
+      classifyFailureCause(handlerStage, { platformError: 'EHOSTUNREACH', error: undefined }),
+    ).toBe('network');
+  });
+
+  it('scans a soft-fail response message for a Chromium net:: error', () => {
+    // The soft-fail path only has prose: R.fail(error) serialises the message
+    // and drops the Error instance, so the platform marker is the last
+    // structural thing left.
+    expect(
+      classifyFailureCause(handlerStage, {
+        platformError: 'page.goto: net::ERR_NAME_NOT_RESOLVED at https://x.test/',
+      }),
+    ).toBe('network');
+    expect(
+      classifyFailureCause(handlerStage, {
+        platformError: 'page.goto: net::ERR_CONNECTION_CLOSED at https://x.test/',
+      }),
+    ).toBe('target_gone');
+  });
+
+  it('leaves an unmarked soft-fail message at the stage kind', () => {
+    expect(classifyFailureCause(handlerStage, { platformError: 'Something odd happened' })).toBe(
+      'handler',
+    );
+  });
+
+  it('classifies a soft-fail timeout message as timeout', () => {
+    expect(
+      classifyFailureCause(handlerStage, {
+        platformError: 'Navigation timeout of 30000 ms exceeded',
+      }),
+    ).toBe('timeout');
   });
 });
