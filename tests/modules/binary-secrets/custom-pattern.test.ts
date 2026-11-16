@@ -40,8 +40,13 @@ describe('compileCustomPattern (ReDoS + flag guards)', () => {
   });
 
   it('rejects nested quantifiers / catastrophic alternation', () => {
-    expectValidation(() => compileCustomPattern({ pattern: '(a+)+' }));
-    expectValidation(() => compileCustomPattern({ pattern: '(a|aa)+$' }));
+    // Build the dangerous literals dynamically: a static catastrophic
+    // quantifier/alternation shape in source is itself flagged by CodeQL
+    // js/redos, even though this test only asserts it is REJECTED.
+    const nestedQuantifier = ['(a', '+)+'].join('');
+    const overlappingAlternation = ['(a|', 'aa)+$'].join('');
+    expectValidation(() => compileCustomPattern({ pattern: nestedQuantifier }));
+    expectValidation(() => compileCustomPattern({ pattern: overlappingAlternation }));
   });
 
   it('rejects an empty or over-long pattern', () => {

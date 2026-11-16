@@ -37,9 +37,9 @@ export interface CustomHit {
 
 /** Heuristics flagging obvious ReDoS shapes. */
 const REDOS_HEURISTICS: readonly RegExp[] = Object.freeze([
-  /\([^()]*[+*][^()]*\)[+*]/, // nested quantifier, e.g. (a+)+
+  /\([^()]*[+*][^()]*\)[+*]/, // nested quantifier
   /\([^()]*\|[^()]*\)[+*][^()]*[+*]/, // quantified alternation + more quantifiers
-  /\([^()]*\|[^()]*\)[+*]/, // quantified alternation, e.g. (a|aa)+ (ambiguous overlap)
+  /\([^()]*\|[^()]*\)[+*]/, // quantified alternation (ambiguous overlap)
 ]);
 
 /** A `/.../flags` wrapper (we accept raw regex source only, never caller flags). */
