@@ -204,8 +204,23 @@ describe('registry/index', () => {
       toolCount: 2,
       timestamp: expect.any(String),
     });
-  });
 
+    // Regression (P0, v0.4.5): ensureDomainLoaded used to update only its
+    // local registrationsByName map, leaving the shared read cache in
+    // state.ts untouched. Router-layer consumers (getRegistrationByName /
+    // buildHandlerMapFromRegistry) read that cache, so every tool in a
+    // lazily loaded domain was reported as notFound by activate_tools even
+    // though the manifest loaded successfully. Assert the cross-layer sync,
+    // not just the event.
+    expect(registry.getRegistrationByName('t1')?.tool.name).toBe('t1');
+    expect(registry.getRegistrationByName('t2')?.tool.name).toBe('t2');
+    expect(registry.getAllRegistrations().map((r) => r.tool.name)).toEqual(['t1', 't2']);
+
+    // Idempotency: loading the same domain again must not duplicate entries.
+    await registry.ensureDomainLoaded('ondemand', bus);
+    expect(registry.getAllRegistrations().map((r) => r.tool.name)).toEqual(['t1', 't2']);
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
   it('does not re-emit domain:loaded for an already-loaded domain', async () => {
     state.discoverDomainManifests.mockResolvedValue([
       makeManifest('alpha', 'alphaDep', ['full'], [makeRegistration('alpha_tool', 'alpha')]),
