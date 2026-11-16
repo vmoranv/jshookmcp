@@ -75,6 +75,10 @@ export function compileCustomPattern(spec: CustomPattern): CompiledCustomPattern
   }
   let re: RegExp;
   try {
+    // nosemgrep: dynamic RegExp is the feature (caller-supplied customPatterns).
+    // Mitigated above: /flags/ wrappers rejected, ReDoS-shape heuristics,
+    // length cap; and scanCustomPatterns enforces a runtime timeout budget.
+    // Matching is on a latin1 byte view; matched bytes are never executed.
     re = new RegExp(pattern, 'g');
   } catch (cause) {
     throw new ToolError(

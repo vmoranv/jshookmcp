@@ -88,7 +88,6 @@ function runCli() {
   const res = spawnSync(process.execPath, [AUDIT_SCRIPT, '--json', '--file', sourceDir], {
     encoding: 'utf8',
     cwd: process.cwd(),
-    shell: process.platform === 'win32',
   });
   if (res.status !== 0 || res.error) {
     console.error(`[eval:trace] audit failed: ${res.error?.message ?? res.stderr?.slice(0, 400)}`);

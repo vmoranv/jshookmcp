@@ -49,12 +49,23 @@ function readText(file) {
   }
 }
 
-/** Extract a labelled integer from a report header line. */
+/** Extract a labelled integer from a report header line (no dynamic RegExp). */
 function headerNumber(md, label) {
   if (!md) return null;
-  const re = new RegExp(`${label}[^0-9]*\\*\\*(\\d+)\\*\\*`);
-  const m = re.exec(md);
-  return m ? Number(m[1]) : null;
+  // Header shape: "<label>: **<int>**". Use indexOf + char scanning instead of
+  // building a RegExp from the label (Codacy: RegExp constructor with non-literal).
+  const at = md.indexOf(label);
+  if (at < 0) return null;
+  const tail = md.slice(at + label.length);
+  const open = tail.indexOf('**');
+  if (open < 0) return null;
+  let i = open + 2;
+  let digits = '';
+  while (i < tail.length && tail[i] >= '0' && tail[i] <= '9') {
+    digits += tail[i];
+    i += 1;
+  }
+  return digits.length > 0 && tail.slice(i, i + 2) === '**' ? Number(digits) : null;
 }
 
 /**
