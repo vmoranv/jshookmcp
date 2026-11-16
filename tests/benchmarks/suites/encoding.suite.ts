@@ -351,7 +351,7 @@ export const encodingSuite: BenchSuite = {
       assertionKind: 'adversarial',
       difficulty: 'adversarial',
       reference:
-        'autoresearch.ideas.md fixed-bug regression: malformed base64 previously produced a silent empty result; must now name the failure (graceful, never silent)',
+        'fixed-bug regression: malformed base64 previously produced a silent empty result; must now name the failure (graceful, never silent)',
       run: () =>
         handlers.handleBinaryDecodeTool({
           data: '####invalid####',

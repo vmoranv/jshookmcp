@@ -161,3 +161,11 @@ docs/agents
 
 # bench:e2e per-round vitest JSON reporter byproducts
 /tests/e2e/e2e-results-round*.json
+
+# Local autoresearch/eval-loop scratch — session state, metric harness, logs.
+# These are machine-local experiment byproducts, never a deliverable; do not push.
+/autoresearch*
+/.autoresearch-off
+/experiments/
+/tests/server/benchmarks/autoresearch-metric.debt.test.ts
+/checks.sh
