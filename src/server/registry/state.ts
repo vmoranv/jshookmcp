@@ -63,3 +63,23 @@ export function pushLoadedManifest(manifest: DomainManifest): DomainManifest[] {
   manifestsCache.push(manifest);
   return manifestsCache;
 }
+
+/**
+ * `ensureDomainLoaded` keeps its own deduplicated `registrationsByName` map,
+ * but router-layer consumers read `getLoadedRegistrations()` from this leaf
+ * module. Without keeping the two in sync, a domain lazily loaded after
+ * `initRegistry` (e.g. a workflow/full domain activated from a search-tier
+ * session) reports 0 tools: its manifest is cached here, but its registrations
+ * never reach the read cache, so `getRegistrationByName` cannot find them and
+ * `activate_tools` reports them as notFound. Append only names not already
+ * present so repeated loads stay idempotent.
+ */
+export function appendLoadedRegistrations(registrations: readonly ToolRegistration[]): void {
+  if (!registrationsCache)
+    throw new Error('[registry] Not initialised - call initRegistry() first.');
+  const known = new Set(registrationsCache.map((r) => r.tool.name));
+  const additions = registrations.filter((r) => !known.has(r.tool.name));
+  if (additions.length > 0) {
+    registrationsCache = [...registrationsCache, ...additions];
+  }
+}

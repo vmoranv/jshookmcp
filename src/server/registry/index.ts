@@ -23,6 +23,7 @@ import { logger } from '@utils/logger';
 // graph reaches every domain manifest via discovery.ts → generated-domains.ts.
 
 import {
+  appendLoadedRegistrations,
   getLoadedManifests,
   isRegistryInitialised,
   notifyRegistryInvalidation,
@@ -112,13 +113,19 @@ export async function ensureDomainLoaded(
   domainsView!.add(manifest.domain);
 
   // Add registrations
+  const newRegistrations: ToolRegistration[] = [];
   for (const r of manifest.registrations) {
     const registration: ToolRegistration = r.domain ? r : { ...r, domain: manifest.domain };
     if (!registrationsByName!.has(registration.tool.name)) {
       registrationsByName!.set(registration.tool.name, registration);
+      newRegistrations.push(registration);
     }
     registerCompiledValidator(registration.tool);
   }
+  // Router-layer consumers (getRegistrationByName / buildHandlerMapFromRegistry)
+  // read the shared cache in state.ts, not the local map above. Keep both in
+  // sync so a lazily loaded domain's tools are actually resolvable/activatable.
+  appendLoadedRegistrations(newRegistrations);
   // Invalidate the ToolCatalog toolGroups cache so the next getToolsByDomains
   // call picks up the newly registered tools for this domain.
   notifyRegistryInvalidation();
