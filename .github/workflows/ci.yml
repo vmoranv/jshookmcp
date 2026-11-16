@@ -258,6 +258,13 @@ jobs:
       - name: Build project
         run: pnpm run build
 
+      - name: Meta-tools runtime E2E (search-tier lazy activation, P0 regression)
+        # Drives the REAL stdio MCP pipeline against the just-built dist. The
+        # default `pnpm test` excludes tests/e2e/**, and the full-profile e2e
+        # cannot catch a search-tier-only bug (full loads all domains up front).
+        # This subset needs no E2E_TARGET_URL and gates the v0.4.5 P0 in CI.
+        run: pnpm run test:e2e:meta
+
   cross-platform-smoke:
     runs-on: ${{ matrix.os }}
     strategy:
