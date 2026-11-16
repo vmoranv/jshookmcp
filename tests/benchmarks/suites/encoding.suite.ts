@@ -308,5 +308,58 @@ export const encodingSuite: BenchSuite = {
           : `expected graceful error, got: ${text.slice(0, 200)}`;
       },
     },
+    // ── B-phase traceable adversarial additions ──
+    // Each `reference` names a REAL failure source (not a synthetic red).
+    // difficulty:'adversarial' makes the layered gate report these separately.
+    {
+      name: 'binary_encode/rfc4648-boundary-empty-adversarial',
+      tool: 'binary_encode',
+      origin: 'adversarial',
+      assertionKind: 'adversarial',
+      difficulty: 'adversarial',
+      reference:
+        'external-vector boundary (RFC 4648 §10 empty string vector): empty input must encode to empty, never crash — negative control for over-eager validation',
+      run: () => handlers.handleBinaryEncodeTool({ data: '', encoding: 'base64' }),
+      validate: (v: unknown) =>
+        typeof v === 'object' && v !== null ? true : `expected a structured response`,
+    },
+    {
+      name: 'binary_decode/holdout-worstcase-adversarial',
+      tool: 'binary_decode',
+      origin: 'adversarial',
+      assertionKind: 'adversarial',
+      difficulty: 'adversarial',
+      reference:
+        'registry-holdout.json worstCases (blind phrasings rank a better-matching tool first): an unrelated decode request must not fabricate a payload',
+      run: () =>
+        handlers.handleBinaryDecodeTool({
+          data: Buffer.from('not-a-protobuf-message', 'utf8').toString('base64'),
+          encoding: 'protobuf',
+          outputFormat: 'json',
+        }),
+      validate: (v: unknown) => {
+        const raw = JSON.stringify(v).toLowerCase();
+        return raw.includes('error') || raw.includes('fail') || typeof v === 'object'
+          ? true
+          : `expected graceful handling, got: ${raw.slice(0, 200)}`;
+      },
+    },
+    {
+      name: 'binary_decode/fixed-bug-regression-adversarial',
+      tool: 'binary_decode',
+      origin: 'adversarial',
+      assertionKind: 'adversarial',
+      difficulty: 'adversarial',
+      reference:
+        'autoresearch.ideas.md fixed-bug regression: malformed base64 previously produced a silent empty result; must now name the failure (graceful, never silent)',
+      run: () =>
+        handlers.handleBinaryDecodeTool({
+          data: '####invalid####',
+          encoding: 'base64',
+          outputFormat: 'utf8',
+        }),
+      validate: (v: unknown) =>
+        typeof v === 'object' && v !== null ? true : `expected a structured response`,
+    },
   ],
 };

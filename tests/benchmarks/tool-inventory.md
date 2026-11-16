@@ -36,7 +36,7 @@
 - apk_packer_detect: Detect Android APK packers by matching `lib/<abi>/lib*.so` filenames against user-supplied customSignatures (ReDoS-guarded regex compilation). The framework ships no built-in signature table — callers provide their own. **Does not unpack, execute, or otherwise interact with packed code.**
 - apk_packer_list_signatures: List the in-process signature table used by `apk_packer_detect`. Empty by default; reflects caller-managed state at request time. Optionally filter by case-insensitive category substring.
 - apk_sign: Sign an APK with apksigner using a caller-supplied keystore. Pairs with apktool_build for a full repack-and-sign workflow.
-- apk_signing_block_parse: Read-only parser for the APK Signing Block (schemes v2/v3/v3.1/v4) plus key-rotation lineage detection and residue-block / dex-prefix / magic-offset anomaly flags. Never mutates the APK.
+- apk_signing_block_parse: Read-only parser for the APK Signing Block (schemes v2/v3/v3.1) plus key-rotation lineage decoding and residue-block / dex-prefix / magic-offset anomaly flags. v4 is a detached .apk.idsig sidecar, not parsed here. Never mutates the APK.
 - apk_static_triage: One-shot APK triage: ZIP metadata, manifest summary, native libs, asset hints, likely packers/protectors, and recommended next steps.
 - apktool_build: Rebuild an APK from a decoded apktool source directory (closes the patch-and-repack loop with apk_sign).
 - apktool_decode: Decode an APK using apktool to inspect resources, manifest, and smali output.

@@ -77,3 +77,19 @@ export const BINARY_SECRETS_MAX_EXTRACT_DURATION_MS = int(
   'BINARY_SECRETS_MAX_EXTRACT_DURATION_MS',
   60_000,
 );
+
+/** Max length of a caller-supplied custom regex pattern (bounds compile cost). */
+export const BINARY_SECRETS_MAX_CUSTOM_PATTERN_LENGTH = int(
+  'BINARY_SECRETS_MAX_CUSTOM_PATTERN_LENGTH',
+  256,
+);
+
+/**
+ * Wall-clock budget for custom-pattern matching over the whole file. Default:
+ * 50 ms. Compile-time ReDoS guards are the primary defence; this is the
+ * runtime safety net (a single pattern's `.exec` cannot hang the call).
+ */
+export const BINARY_SECRETS_CUSTOM_PATTERN_TIMEOUT_MS = int(
+  'BINARY_SECRETS_CUSTOM_PATTERN_TIMEOUT_MS',
+  50,
+);

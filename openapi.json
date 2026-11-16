@@ -919,14 +919,32 @@
             "minimum": 0,
             "type": "integer"
           },
+          "customPatterns": {
+            "description": "Custom regex patterns; scanned only when formats includes custom. ReDoS-guarded.",
+            "items": {
+              "properties": {
+                "category": {
+                  "description": "Label attached to matches",
+                  "type": "string"
+                },
+                "pattern": {
+                  "description": "Raw regex source (no /flags/ wrapper)",
+                  "type": "string"
+                }
+              },
+              "required": ["pattern"],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "filePath": {
             "description": "Absolute path to the binary file to scan",
             "type": "string"
           },
           "formats": {
-            "description": "Which candidate formats to emit (default: all three)",
+            "description": "Which candidate formats to emit (default: raw, base64, hex)",
             "items": {
-              "enum": ["raw", "base64", "hex"],
+              "enum": ["raw", "base64", "hex", "custom"],
               "type": "string"
             },
             "type": "array"
@@ -1506,7 +1524,7 @@
           "contextLines": {
             "default": 2,
             "description": "Lines of context around each match",
-            "maximum": 20,
+            "maximum": 50,
             "minimum": 0,
             "type": "integer"
           },
@@ -1536,6 +1554,11 @@
             "description": "Hard ceiling on total matches across all files",
             "minimum": 1,
             "type": "integer"
+          },
+          "multiline": {
+            "default": false,
+            "description": "Multiline mode: dot matches newlines (ripgrep -U)",
+            "type": "boolean"
           },
           "query": {
             "description": "Search query (regex unless `literal:true`)",
@@ -20245,7 +20268,7 @@
     },
     "/binary-instrument/apk_signing_block_parse": {
       "post": {
-        "description": "Read-only parser for the APK Signing Block (schemes v2/v3/v3.1/v4) plus key-rotation lineage detection and residue-block / dex-prefix / magic-offset anomaly flags. Never mutates the APK.",
+        "description": "Read-only parser for the APK Signing Block (schemes v2/v3/v3.1) plus key-rotation lineage decoding and residue-block / dex-prefix / magic-offset anomaly flags. v4 is a detached .apk.idsig sidecar, not parsed here. Never mutates the APK.",
         "operationId": "apk_signing_block_parse",
         "requestBody": {
           "content": {
@@ -20269,7 +20292,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Read-only parser for the APK Signing Block (schemes v2/v3/v3.1/v4) plus key-rotation lineage detection and residue-bl...",
+        "summary": "Read-only parser for the APK Signing Block (schemes v2/v3/v3.1) plus key-rotation lineage decoding and residue-block ...",
         "tags": ["binary-instrument"],
         "x-domain": "binary-instrument"
       }
@@ -20431,7 +20454,7 @@
     },
     "/binary-instrument/binary_key_extract": {
       "post": {
-        "description": "Scan a binary for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only — no decryption.",
+        "description": "Scan binary for key candidates (raw/Base64/hex/custom). Not validated - verify manually.",
         "operationId": "binary_key_extract",
         "requestBody": {
           "content": {
@@ -20455,7 +20478,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Scan a binary for hardcoded key candidates (raw high-entropy, Base64, hex).",
+        "summary": "Scan binary for key candidates (raw/Base64/hex/custom).",
         "tags": ["binary-instrument"],
         "x-domain": "binary-instrument"
       }
@@ -21268,7 +21291,7 @@
     },
     "/binary-instrument/jadx_search_code": {
       "post": {
-        "description": "Ripgrep-backed search over jadx output. Pass decompileDir for read-only search, or apkPath to auto-decompile to a temporary directory first.",
+        "description": "Ripgrep-backed search over jadx output. Pass decompileDir for read-only search, or apkPath to auto-decompile into a content-addressed cache (reused across calls). The two are mutually exclusive.",
         "operationId": "jadx_search_code",
         "requestBody": {
           "content": {

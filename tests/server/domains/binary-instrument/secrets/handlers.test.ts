@@ -184,11 +184,14 @@ describe('BinarySecretsHandlers — manifest registration', () => {
     expect(secretsRegs[0]!.tool.name).toBe('binary_key_extract');
   });
 
-  it('declares a description below the 110-char tool list cap', async () => {
+  it('declares a description below the 110-char tool list cap with advisory wording', async () => {
     const { binarySecretsTools } =
       await import('@server/domains/binary-instrument/secrets/definitions');
     const tool = binarySecretsTools.find((t) => t.name === 'binary_key_extract');
     expect(tool).toBeDefined();
-    expect((tool!.description ?? '').length).toBeLessThan(110);
+    const desc = tool!.description ?? '';
+    expect(desc.length).toBeLessThan(110);
+    expect(/not validated/i.test(desc)).toBe(true);
+    expect(/verify manually/i.test(desc)).toBe(true);
   });
 });

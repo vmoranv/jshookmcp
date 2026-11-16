@@ -1,8 +1,13 @@
 /**
  * SigningBlockParser — read-only parser for the APK Signing Block (v2/v3/
- * v3.1/v4) plus heuristic detection of non-standard residue blocks and
+ * v3.1) plus heuristic detection of non-standard residue blocks and
  * dex-prefix-anomaly layouts (where a DEX header is prepended to the file
  * so DEX loaders and ZIP loaders disagree on the content).
+ *
+ * NOTE: APK Signature Scheme v4 is intentionally NOT parsed here — per AOSP
+ * v4 is a detached signature in a separate `.apk.idsig` sidecar, not an
+ * ID-value pair inside the Signing Block (`0x42726577` is verity padding).
+ * See docs/operations/descope-spike-findings.md.
  *
  * Implementation contract:
  *   - **No payload, no signature regeneration, no APK mutation.** The
@@ -15,7 +20,7 @@
  * References (canonical):
  *   - AOSP v2 spec   https://source.android.com/docs/security/features/apksigning/v2
  *   - AOSP v3 spec   https://source.android.com/docs/security/features/apksigning/v3
- *   - AOSP v4 spec   https://source.android.com/docs/security/features/apksigning/v4
+ *   - AOSP v4 spec   https://source.android.com/docs/security/features/apksigning/v4 (sidecar rationale)
  *   - apksig source  tools/apksig/src/main/java/com/android/apksig/internal/apk/{v2,v3}/
  */
 
@@ -38,7 +43,6 @@ import type {
   SigningBlockReport,
   V2Signer,
   V3Signer,
-  V4Block,
 } from './signing-block-types';
 import {
   APK_SIG_BLOCK_MAGIC,
@@ -73,7 +77,7 @@ interface WriteableSchemes {
   v2?: { signers: V2Signer[] };
   v3?: { signers: V3Signer[]; keyRotation?: ProofOfRotation };
   v3_1?: { signers: V3Signer[] };
-  v4?: V4Block;
+  // No v4: see header NOTE (detached .apk.idsig sidecar, not a Signing Block pair).
 }
 
 interface ParserState {
@@ -441,6 +445,9 @@ function parseSingleSigner(signerBuf: Buffer, isV3: boolean): V2Signer | V3Signe
   const attrsLen = sd.readU32();
   const attrsBuf = sd.readSlice(attrsLen, 'attributes');
   const additionalAttributes: V2Signer['additionalAttributes'][number][] = [];
+  // Raw bytes of the proofOfRotation attribute payload (after the 4-byte id),
+  // stashed internally for lineage decoding. Not part of the public shape.
+  let porPayload: Buffer | undefined;
   const attrsReader = new LengthReader(attrsBuf, 'attrs-inner');
   while (attrsReader.remaining() > 0) {
     const oneLen = attrsReader.readU32();
@@ -448,6 +455,9 @@ function parseSingleSigner(signerBuf: Buffer, isV3: boolean): V2Signer | V3Signe
     if (oneBuf.length < 4) continue;
     const attrId = oneBuf.readUInt32LE(0);
     additionalAttributes.push({ id: toHexId(attrId), size: oneBuf.length });
+    if (attrId === BLOCK_ID_PROOF_OF_ROTATION_ATTR) {
+      porPayload = Buffer.from(oneBuf.subarray(4));
+    }
   }
 
   const base: V2Signer = {
@@ -462,42 +472,77 @@ function parseSingleSigner(signerBuf: Buffer, isV3: boolean): V2Signer | V3Signe
       minSdkVersion: minSdk,
       maxSdkVersion: maxSdk,
     };
+    if (porPayload) POR_BYTES.set(v3, porPayload);
     return v3;
   }
   return base;
 }
 
 /**
- * Locate `proofOfRotation` attribute(s) inside the given v3 signers and
- * decode the lineage. The attribute payload starts with a u32 attribute
- * id (which we've already stripped during attribute enumeration in
- * `parseSingleSigner`, but we need raw access here). To avoid keeping the
- * raw buffer around we re-scan signedData when we know a candidate exists.
- *
- * Simplification: for now we treat the *first* v3 signer's first PoR
- * attribute as the lineage source. apksig itself follows the same
- * convention because all signers in a v3 block share lineage.
- *
- * We need the raw signedData to actually parse — store the cached attrs
- * buffer alongside the V3Signer at parse time. For now we return undefined
- * if the attribute size is the only thing we kept (caller falls back to
- * a missing lineage which is still a valid report).
+ * Raw PoR attribute bytes, stashed per-signer during `parseSingleSigner` via
+ * an internal WeakMap (NOT part of the public `V3Signer` shape). This lets
+ * `collectProofOfRotation` decode a real lineage without exposing raw byte
+ * buffers in the JSON report, and without widened public types.
  */
-function collectProofOfRotation(signers: ReadonlyArray<V3Signer>): ProofOfRotation | undefined {
-  // We only declared size; full parsing requires raw bytes. Persist a
-  // best-effort proof signal: the *presence* of the PoR attribute id
-  // among signedData attrs.
-  for (const s of signers) {
-    for (const a of s.additionalAttributes) {
-      if (a.id === toHexId(BLOCK_ID_PROOF_OF_ROTATION_ATTR)) {
-        // We don't have the raw bytes here. Return an empty-levels marker
-        // so the report shows `keyRotation: { levels: [] }` — analysts
-        // know a lineage exists and can drop down to an external signing
-        // CLI if they need the full chain. This avoids carrying raw byte
-        // buffers through the report (and keeps the JSON small).
-        return { levels: [] };
-      }
+const POR_BYTES = new WeakMap<V3Signer, Buffer>();
+
+/**
+ * Decode a v3 `SigningCertificateLineage` attribute payload into levels.
+ *
+ * Wire shape (AOSP apksig V3SigningCertificateLineage, structural decode —
+ * signatures are NOT cryptographically verified here):
+ *   repeated, until bytes exhausted:
+ *     u32 signedDataLen
+ *     signedData:
+ *       u32 certLen | cert DER bytes (X.509)
+ *       u32 flags
+ *     u32 signatureAlgorithmId
+ *     u32 signatureLen | signature bytes (read, not verified)
+ *
+ * Fail-soft: any underflow / zero-length / malformed record aborts and the
+ * caller falls back to `{ levels: [] }` (the legacy sentinel behavior), so a
+ * malformed lineage never breaks the whole APK report.
+ */
+export function decodeProofOfRotationBytes(raw: Buffer): ProofOfRotation['levels'] {
+  const levels: Array<ProofOfRotation['levels'][number]> = [];
+  if (!raw || raw.length < 8) return levels;
+  const reader = new LengthReader(raw, 'proof-of-rotation');
+  try {
+    while (reader.remaining() > 0) {
+      const sdLen = reader.readU32();
+      if (sdLen < 8) return [];
+      const sd = new LengthReader(reader.readSlice(sdLen, 'signedData'), 'por-signedData');
+      const certLen = sd.readU32();
+      if (certLen === 0) return [];
+      const certDer = sd.readSlice(certLen, 'por-cert');
+      const flags = sd.readU32();
+      const sigAlgId = reader.readU32();
+      const sigLen = reader.readU32();
+      reader.readSlice(sigLen, 'por-signature'); // structural only, not verified
+      levels.push({
+        certificate: fingerprintCert(Buffer.from(certDer)),
+        flags,
+        signedDataSigAlgorithm: mapAlgorithmId(sigAlgId),
+      });
     }
+  } catch {
+    return []; // malformed -> caller uses empty-levels fallback
+  }
+  return levels;
+}
+
+function collectProofOfRotation(signers: ReadonlyArray<V3Signer>): ProofOfRotation | undefined {
+  for (const s of signers) {
+    const hasMarker = s.additionalAttributes.some(
+      (a) => a.id === toHexId(BLOCK_ID_PROOF_OF_ROTATION_ATTR),
+    );
+    if (!hasMarker) continue;
+    const raw = POR_BYTES.get(s);
+    const levels = raw ? decodeProofOfRotationBytes(raw) : [];
+    // Empty levels is the honest fallback for the legacy sentinel fixture
+    // (which carries only the attribute id, no real lineage bytes) and for
+    // malformed payloads. A real, decodable chain yields >= 1 level.
+    return { levels };
   }
   return undefined;
 }
@@ -563,11 +608,6 @@ function readU64LEAsNumber(buf: Buffer, offset: number): number {
   }
   return hi * 0x1_0000_0000 + lo;
 }
-
-// Used to keep the proofOfRotation attribute id import alive — used in the
-// report wiring. Marker kept so future enhancements can wire raw PoR bytes
-// through.
-export const PROOF_OF_ROTATION_ATTR_ID = BLOCK_ID_PROOF_OF_ROTATION_ATTR;
 
 /**
  * Minimal length-prefixed buffer reader used inside the signers tree.

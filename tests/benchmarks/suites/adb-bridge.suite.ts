@@ -17,6 +17,7 @@ import {
 } from '@server/domains/adb-bridge/logcat-parser';
 import type { BenchSuite } from '../harness';
 import { adbArgCases, adbRemoteCases } from './adb-bridge.contracts';
+import { asContract } from '../classification';
 
 const SAMPLE_GETPROP = `
 [ro.product.model]: [Pixel 7 Pro]
@@ -207,7 +208,7 @@ export const adbBridgeSuite: BenchSuite = {
     // ── Contract batch 2026-11-12 (autoresearch) ────────────────────────────
     // Argument rejection by name + unreachable-device honesty for the 21
     // CLI-bound tools (the tables live in adb-bridge.contracts.ts).
-    ...adbArgCases,
-    ...adbRemoteCases,
+    ...asContract(adbArgCases),
+    ...asContract(adbRemoteCases),
   ],
 };

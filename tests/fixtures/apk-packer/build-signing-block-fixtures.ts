@@ -148,6 +148,8 @@ function buildSigner(opts: {
   algorithmId: number;
   cert: Buffer;
   proofOfRotation?: boolean;
+  /** Real SigningCertificateLineage bytes (after the 4-byte attr id). */
+  proofOfRotationPayload?: Buffer;
   isV3?: boolean;
 }): Buffer {
   // signedData = digests(seq) | certificates(seq) | additionalAttributes(seq).
@@ -157,11 +159,14 @@ function buildSigner(opts: {
   const certs = lengthPrefixedSequence([opts.cert]);
   const attrs: Buffer[] = [];
   if (opts.proofOfRotation) {
-    // attribute = u32 id + payload. We just include the id and a 4-byte
-    // sentinel payload — the parser only inspects the id.
-    const attrBuf = Buffer.alloc(8);
+    // attribute = u32 id + payload. When no real payload is supplied we keep
+    // the legacy 4-byte sentinel (the parser decodes it to `levels: []`).
+    const legacySentinel = Buffer.alloc(4);
+    legacySentinel.writeUInt32LE(0xcafebabe, 0);
+    const payload = opts.proofOfRotationPayload ?? legacySentinel;
+    const attrBuf = Buffer.alloc(4 + payload.length);
     attrBuf.writeUInt32LE(PROOF_OF_ROTATION_ATTR_ID, 0);
-    attrBuf.writeUInt32LE(0xcafebabe, 4);
+    payload.copy(attrBuf, 4);
     attrs.push(attrBuf);
   }
   const additionalAttrs = lengthPrefixedSequence(attrs);
@@ -192,6 +197,34 @@ function buildAlgEntry(algId: number, body: Buffer): Buffer {
   buf.writeUInt32LE(algId, 0);
   body.copy(buf, 4);
   return buf;
+}
+
+function u32(n: number): Buffer {
+  const b = Buffer.alloc(4);
+  b.writeUInt32LE(n, 0);
+  return b;
+}
+
+/** One lineage level: signedData(len|cert(len)|cert|flags) | sigAlgId | sig(len|bytes). */
+function buildLineageLevel(cert: Buffer, flags: number, algId: number): Buffer {
+  const certPart = Buffer.concat([u32(cert.length), cert]);
+  const signedData = Buffer.concat([certPart, u32(flags)]);
+  const signature = Buffer.from('11223344', 'hex');
+  return Buffer.concat([
+    u32(signedData.length),
+    signedData,
+    u32(algId),
+    u32(signature.length),
+    signature,
+  ]);
+}
+
+/** Two-level SigningCertificateLineage payload (structural; signatures unverified). */
+export function buildTwoLevelLineage(): Buffer {
+  return Buffer.concat([
+    buildLineageLevel(CERT_A, 0, ALG_RSA_PKCS1_V1_5_SHA256),
+    buildLineageLevel(CERT_B, 1, ALG_RSA_PKCS1_V1_5_SHA256),
+  ]);
 }
 
 /** Build a `signers` payload (list of signers, length-prefixed). */
@@ -248,6 +281,7 @@ function composePlainZip(entries: ZipEntry[]): Buffer {
 export interface FixturePaths {
   v2Only: string;
   v3Rotation: string;
+  v3RotationLineage: string;
   extraBlockAnomaly: string;
   noSigblock: string;
   corruptEocd: string;
@@ -279,6 +313,19 @@ export async function buildAll(): Promise<FixturePaths> {
   const v3Path = join(FIXTURE_DIR, 'v3-rotation.apk');
   await writeFile(v3Path, v3Rotation);
 
+  // v3-rotation-lineage (v2 + v3, v3 carries a REAL 2-level lineage payload).
+  const v3LineageSigner = buildSigner({
+    algorithmId: ALG_RSA_PKCS1_V1_5_SHA256,
+    cert: CERT_B,
+    proofOfRotation: true,
+    proofOfRotationPayload: buildTwoLevelLineage(),
+    isV3: true,
+  });
+  const v3LineagePair = buildIdValuePair(BLOCK_ID_V3, buildSigners([v3LineageSigner]));
+  const v3Lineage = composeApkWithSigningBlock(entries, buildSigningBlock([v2Pair, v3LineagePair]));
+  const v3LineagePath = join(FIXTURE_DIR, 'v3-rotation-lineage.apk');
+  await writeFile(v3LineagePath, v3Lineage);
+
   // extra-block-anomaly (v2 + bogus 0x42424242 pair).
   const extraBlockPair = buildIdValuePair(
     BLOCK_ID_EXTRA_42,
@@ -306,6 +353,7 @@ export async function buildAll(): Promise<FixturePaths> {
   return {
     v2Only: v2Path,
     v3Rotation: v3Path,
+    v3RotationLineage: v3LineagePath,
     extraBlockAnomaly: extraBlockPath,
     noSigblock: noBlockPath,
     corruptEocd: corruptPath,

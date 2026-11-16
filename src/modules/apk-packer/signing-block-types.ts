@@ -84,15 +84,14 @@ export interface ProofOfRotation {
   readonly levels: ReadonlyArray<ProofOfRotationLevel>;
 }
 
-/** v4 block (root hash of the fs-verity Merkle tree). */
-export interface V4Block {
-  /** Lowercase hex digest of the root hash. */
-  readonly rootHash: string;
-  /** Size of the Merkle tree in bytes. */
-  readonly treeSize: number;
-  /** Algorithm declared in the block. */
-  readonly algorithm: SigAlgorithm;
-}
+/**
+ * NOTE: there is intentionally NO `V4Block` / `schemes.v4` here. Per AOSP,
+ * APK Signature Scheme v4 is a detached signature stored in a separate
+ * `.apk.idsig` sidecar file — there is no v4 ID-value pair inside the APK
+ * Signing Block, and `0x42726577` is the verity *padding* block, not v4.
+ * See docs/operations/descope-spike-findings.md for the full rationale.
+ * A future `apk_v4_idsig_parse` tool would be a separate capability.
+ */
 
 /** Anomaly kinds we surface as advisory signals (not blocking errors). */
 export type AnomalyKind =
@@ -126,7 +125,6 @@ export interface SigningBlockReport {
       readonly keyRotation?: ProofOfRotation;
     };
     readonly v3_1?: { readonly signers: ReadonlyArray<V3Signer> };
-    readonly v4?: V4Block;
   };
   readonly unknownBlocks: ReadonlyArray<{ readonly id: string; readonly size: number }>;
   readonly warnings: ReadonlyArray<string>;

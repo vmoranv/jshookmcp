@@ -10,7 +10,15 @@
  */
 
 /** Format dimension of a candidate hit. */
-export type KeyFormat = 'raw' | 'base64' | 'hex';
+export type KeyFormat = 'raw' | 'base64' | 'hex' | 'custom';
+
+/** A caller-supplied regex pattern for the `custom` format. */
+export interface CustomPattern {
+  /** Regex source (no `/.../flags` wrapper; flags are rejected). */
+  readonly pattern: string;
+  /** Label attached to every candidate this pattern matches. */
+  readonly category?: string;
+}
 
 /** Short ASCII context window around a candidate. */
 export interface KeyCandidateContext {
@@ -48,6 +56,8 @@ export interface KeyCandidate {
   readonly valueTruncated?: boolean;
   /** Optional surrounding bytes (omitted when `includeContext: false`). */
   readonly context?: KeyCandidateContext;
+  /** Category label of the custom pattern that matched (only `format:'custom'`). */
+  readonly customCategory?: string;
 }
 
 /** Options accepted by {@link KeyExtractor.extractFromFile}. */
@@ -68,6 +78,11 @@ export interface ExtractKeysOptions {
    * Which format dimensions to scan. Defaults to all three.
    */
   readonly formats?: readonly KeyFormat[];
+  /**
+   * Caller-supplied regex patterns for the `custom` format. Compiled with
+   * ReDoS/flag guards; only scanned when `formats` includes `'custom'`.
+   */
+  readonly customPatterns?: readonly CustomPattern[];
   /** Whether to attach a context window to each candidate (default: true). */
   readonly includeContext?: boolean;
   /** Size of the context window on each side, in bytes (default: 16). */

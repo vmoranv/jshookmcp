@@ -80,6 +80,22 @@ const NON_TOOL_TOKENS: ReadonlyMap<string, string> = new Map<string, string>([
     'search_feedback_used',
     'OTLP metric emitted on search→tool-call association (see docs/guide/telemetry), not a tool',
   ],
+  // APK v4 signing-block spike (docs/operations/descope-spike-findings.md):
+  // V4Signature / hashing_info field names, not tools. The v4 scenario was
+  // deliberately descoped; apk_v4_idsig_parse is a FUTURE, unregistered tool.
+  ['hashing_info', 'APK v4 V4Signature field name, not a tool'],
+  ['signing_info', 'APK v4 V4Signature field name, not a tool'],
+  ['merkle_tree', 'APK v4 V4Signature field name, not a tool'],
+  ['raw_root_hash', 'APK v4 hashing_info field name, not a tool'],
+  ['hash_algorithm', 'APK v4 hashing_info constant, not a tool'],
+  ['log2_blocksize', 'APK v4 hashing_info constant, not a tool'],
+  [
+    'apk_v4_idsig_parse',
+    'descoped future capability (docs/operations/descope-spike-findings.md), not a registered tool',
+  ],
+  // Synthetic trace fixtures (docs/operations/trace-capture-and-calibration.md).
+  ['tool_alpha', 'placeholder fixture tool id in trace-calibration docs, not a tool'],
+  ['tool_beta', 'placeholder fixture tool id in trace-calibration docs, not a tool'],
 ]);
 
 interface ToolNameReference {

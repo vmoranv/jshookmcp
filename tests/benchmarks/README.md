@@ -6,9 +6,9 @@ Quantifiable benchmark evaluation for the 736 MCP tools (36 domains).
 - **[existing-tests-coverage.suite.ts](./existing-tests-coverage.suite.ts)** — the audit/test-asset benchmark layer (breadth).
 - **[tool-inventory.md](./tool-inventory.md)** — the full 736-tool inventory grouped by domain, generated from `src/server/registry/generated-tool-catalog.ts`.
 - **[harness.ts](./harness.ts)** — case runner + scorecard renderer (per-case pass/fail/skip with references).
-- **[suites/](./suites/)** — runnable suites (38 suites / 252 cases today, 243 passing + 9 env-gated/placeholder skips).
-- **existing-tests-coverage** — converts the existing handler-test + e2e asset into a per-tool coverage matrix (649/736 unit, 153/736 e2e).
-- **per-tool-scorecard** — per-tool NATIVE metrics (correctness / throughput / handler-fn / e2e-tasks / retrieval) for every one of the 736 tools; no composite score, no letter grades.
+- **[suites/](./suites/)** — runnable suites; live case/pass/skip counts are in `artifacts/benchmarks/scorecard.json` (`generatedAt`), never hand-copied here.
+- **existing-tests-coverage** — converts the existing handler-test + e2e asset into a per-tool breadth matrix; live counts are in `artifacts/benchmarks/existing-test-coverage.json`.
+- **per-tool-scorecard** — per-tool NATIVE metrics for every one of the 736 tools; no composite score, no letter grades. A-phase splits correctness into `semantic` / `contract` / `adv` columns plus `holdout-MRR` (E-phase); `correctness` remains a backward-compat JSON field only.
 
 ## Commands
 
@@ -18,17 +18,23 @@ pnpm bench:bootstrap    # ensure the 2 gitignored measurement files exist (hones
 pnpm bench:coverage     # measure the unit layer: full vitest run + V8 fn-level coverage
 pnpm bench:e2e          # measure the e2e layer: real-task runs → e2e-results.json
 pnpm bench:e2e:local    # deterministic self-hosted e2e (fixture server + 3-round pass^k)
+pnpm eval:trace         # L0 third hop: audit-tool-traces --json → artifacts/benchmarks/trace-audit.json
+pnpm eval:cross-view    # L0 × L2 cross-view (report-only; trace 缺席时优雅降级为 "—")
+pnpm trace:calibrate    # 观察值 vs 阈值(只读,不 gate,不回填)
 
 The per-tool scorecard reports NATIVE metrics in each metric's own unit — no composite
 score, no letter grades:
 
 | Column | Unit | Measurement |
 |---|---|---|
-| correctness | x/y vectors passed | vector-bench cases aggregated from the same gate run (`pnpm bench:tools`) — no suite re-execution; env-gated `skipped` cases are excluded (a skip is not a measurement) and noted in the Missing column |
+| semantic | x/y cases passed | real semantic vectors (RFC/spec computation), aggregated from the same gate run (`pnpm bench:tools`); no suite re-execution |
+| contract | x/y cases passed | admission/refusal/argument-validation cases (e.g. no-browser PREREQUISITE) — measured, but NOT semantic proof |
+| adv | x/y cases passed | adversarial/negative inputs; reported separately by the layered gate |
+| holdout-MRR | % | E-phase blind-paraphrase generalization (`artifacts/benchmarks/registry-holdout-per-tool.json`) |
 | throughput | µs/call | measured wall time of those executions |
 | handler-fn | % | V8 function-level coverage from a real `vitest --coverage` run |
 | e2e-tasks | count | real-task e2e files (≥90% pass-rate) that exercise the tool |
-| retrieval | MRR@10 / P@1 / … (%) | live evaluation over the 109-query search-quality set |
+| retrieval | MRR@10 / P@1 / … (%) | live evaluation over the search-quality set |
 
 No layer falls back to a static guess: an unmeasured layer shows "—" / "not measured"
 and the Missing column names exactly which command produces it.
@@ -40,9 +46,14 @@ The same suites run as a gate inside `pnpm test` (server project):
 
 The scorecard is a renderer over external measurement artefacts, not a live
 tracer. A tool gets a correctness/throughput number **iff** at least one bench
-case names it. As of 2026-11-05: **171/736** tools have a correctness vector,
-**162/736** have a measured latency, and **164/736** are fully measured. The
-remaining tools are honestly `"—"` / `"not measured"` — never a static guess.
+case names it. The A-phase (2026-11-15) split `correctness` into semantic /
+contract / adversarial buckets and redefined `debt` to penalize ONLY missing
+semantic coverage — so "99.3% measured" is no longer a quality conclusion.
+For CURRENT numbers read `artifacts/benchmarks/per-tool-scorecard.json`
+(`stats.semanticCovered`, `stats.contractOnly`, `generatedAt`); the historical
+2026-11-05 snapshot (171/736 correctness, 162/736 latency, 164/736 fully
+measured) is a campaign artifact, NOT the current state. The remaining tools
+are honestly `"—"` / `"not measured"` — never a static guess.
 
 Low coverage is a conscious tradeoff, not an accident: ~11 domains need a live
 browser / native FFI / device / root / GPU and cannot be measured offline
@@ -114,6 +125,34 @@ flaky dependency; `bench-e2e.mjs` always writes `e2e-results.json` (an empty
 `measuredFiles: []` result when zero files pass all 3 rounds), so the measurement
 is real even then — never a guessed value. The fully-measured scorecard + all
 three raw measurements are uploaded as the `benchmark-scorecard` artifact.
+
+## L0 trace pipeline (C 段续接, change `eval-trace-capture`)
+
+The cross-view joins **L2** (per-tool capability, above) with **L0** (runtime
+tool-call traffic). Production already records every call via
+`ToolCallTraceRecorder` → `closeServer()` flush → `<MCP_TRACE_DIR>/*.jsonl`;
+`audit-tool-traces.mjs --json` computes workspace-wide `combined` metrics.
+The missing third hop is now wired:
+
+```bash
+pnpm eval:trace --file <真实 trace 目录>   # --json -> trace-audit.json (+ sourceKind/sourceDir)
+pnpm eval:cross-view                        # cross-view.{md,json}, traceAvailable=true
+pnpm trace:calibrate                        # 观察值 vs 阈值(只读)
+```
+
+- **When L0 should show `—`**: no trace was collected (fresh checkout, or
+  `MCP_TRACE_DISABLE=1` in unit tests). "No trace" is *no evidence*, never bad
+  evidence — the cross-view still renders L2 and stays report-only.
+- **Provenance is mandatory**: `sourceKind` is `live` / `fixture` / `unknown`.
+  Selftest data (`tool_alpha`/`tool_beta` from `MCPServer.test.ts`) is labelled
+  `fixture` and the report says **NOT real agent traffic, do not use for
+  calibration**. It is shown, never silently dropped.
+- **No gate, no fabrication**: L0 is workspace-wide `combined` only — there are
+  NO per-tool trace columns (that would be a proxy dressed as a measurement).
+  `--fail-on-severity` remains opt-in; `trace:calibrate` never writes thresholds.
+- **Isolation**: `MCP_TRACE_DIR` (default `.ccg/traces`) + `MCP_TRACE_DISABLE`
+  keep unit-test traces out of a real agent's directory. Full workflow:
+  [`docs/operations/trace-capture-and-calibration.md`](../../docs/operations/trace-capture-and-calibration.md).
 
 ## Adding a suite
 

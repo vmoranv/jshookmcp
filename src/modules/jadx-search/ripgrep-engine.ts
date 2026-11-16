@@ -105,6 +105,7 @@ export function buildRipgrepArgs(opts: NormalizedSearchOptions): string[] {
   const args: string[] = ['--json', '--no-heading', '-n', '--no-config'];
   if (opts.literal) args.push('-F');
   if (opts.caseInsensitive) args.push('-i');
+  if (opts.multiline) args.push('-U');
   if (opts.contextLines > 0) {
     args.push('-C', String(opts.contextLines));
   }

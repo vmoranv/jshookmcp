@@ -542,17 +542,18 @@ export const binaryInstrumentTools: Tool[] = [
   tool('jadx_search_code', (t) =>
     t
       .desc(
-        'Ripgrep-backed search over jadx output. Pass decompileDir for read-only search, or apkPath to auto-decompile to a temporary directory first.',
+        'Ripgrep-backed search over jadx output. Pass decompileDir for read-only search, or apkPath to auto-decompile into a content-addressed cache (reused across calls). The two are mutually exclusive.',
       )
       .string('decompileDir', 'Absolute path to an existing jadx decompile output directory.')
       .string('apkPath', 'Optional APK path. Used only when decompileDir is omitted.')
       .string('query', 'Search query (regex unless `literal:true`)')
       .boolean('literal', 'Treat `query` as a literal string, not a regex', { default: false })
       .boolean('caseInsensitive', 'Case-insensitive matching', { default: false })
+      .boolean('multiline', 'Multiline mode: dot matches newlines (ripgrep -U)', { default: false })
       .integer('contextLines', 'Lines of context around each match', {
         default: 2,
         minimum: 0,
-        maximum: 20,
+        maximum: 50,
       })
       .integer('maxMatchesPerFile', 'Cap on matches recorded per file', { minimum: 1 })
       .integer('maxResults', 'Hard ceiling on total matches across all files', { minimum: 1 })

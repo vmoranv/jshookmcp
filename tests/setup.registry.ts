@@ -2,6 +2,10 @@
 // Used by "server" and "native" projects that depend on registry or page evaluate wrappers.
 import { afterEach, vi } from 'vitest';
 process.env.NODE_ENV = 'test';
+// eval-trace-capture: unit-test servers must NOT flush tool-call traces into
+// the real .ccg/traces directory (that is where a live agent's evidence lives).
+// Production flush reads this at closeServer(); see MCPServer.transport.ts.
+process.env.MCP_TRACE_DISABLE = '1';
 
 if (typeof globalThis.navigator === 'undefined') {
   Object.defineProperty(globalThis, 'navigator', {

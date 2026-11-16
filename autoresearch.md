@@ -3,6 +3,15 @@
 > The metric is the sole arbiter. "This looks better" never drives a keep/discard —
 > only a measured improvement that clears the noise floor does.
 
+> **A-phase debt redefinition (2026-11-15, change `eval-pipeline-eacbd`)**:
+> `debt` now penalizes ONLY missing **semantic** coverage
+> (`debt = (total − stats.semanticCovered) + low_mrr + vector_fail`).
+> Previously any vector case counted, so a cheap refusal/contract case could
+> lower debt without proving the tool's computation. Contract coverage is now
+> reported as `METRIC contract_only` (monitoring) and `METRIC semantic_covered`.
+> **The historical `616 → 29` series below is NOT directly comparable** to values
+> produced after this change — the objective's meaning changed, not the tools.
+
 ## Objective
 
 Close the measurable per-tool quality gaps of the 736-tool MCP server, as scored by

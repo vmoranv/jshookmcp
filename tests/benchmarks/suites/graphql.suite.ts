@@ -8,11 +8,12 @@
  */
 import type { BenchSuite } from '../harness';
 import { graphqlContractCases } from './graphql.contracts';
+import { asContract } from '../classification';
 
 export const graphqlSuite: BenchSuite = {
   name: 'graphql',
   domain: 'graphql',
   description:
     'graphql admission + SSRF contracts: page prerequisites, private-endpoint refusal, required endpoint/url/replacement arguments (7 tools)',
-  cases: [...graphqlContractCases],
+  cases: asContract(graphqlContractCases),
 };

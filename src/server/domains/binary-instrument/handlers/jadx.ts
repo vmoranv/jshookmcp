@@ -11,6 +11,7 @@ import { probeCommand } from '@modules/external/ToolProbe';
 import { killProcessTree, toExecFileCommand } from '@modules/external/WindowsCommand';
 import { JadxSearchEngine } from '@modules/jadx-search';
 import type { JadxSearchOptions } from '@modules/jadx-search';
+import { getOrCreateCachedSources } from '@modules/jadx-search/decompile-cache';
 import { analyzeApkDexIntake } from '@modules/binary-instrument/apk-dex-intake';
 import {
   matchApkSurfaceHints,
@@ -39,6 +40,44 @@ import { summarizeManifestXml } from '../shared/apk-manifest-utils';
 
 function uniqueStrings(values: string[], limit = 200): string[] {
   return [...new Set(values.filter(Boolean))].slice(0, limit);
+}
+
+/**
+ * Build {@link JadxSearchOptions} from MCP args (kept out of the handler so
+ * `handleJadxSearchCode` stays below the complexity ratchet). All optional
+ * fields are applied only when present; `globs` is validated by shape.
+ */
+function parseJadxSearchOptions(
+  args: Record<string, unknown>,
+  decompileDir: string,
+  query: string,
+): JadxSearchOptions {
+  const opts: JadxSearchOptions = { decompileDir, query };
+  const literal = readOptionalBoolean(args, 'literal');
+  if (literal !== undefined) opts.literal = literal;
+  const caseInsensitive = readOptionalBoolean(args, 'caseInsensitive');
+  if (caseInsensitive !== undefined) opts.caseInsensitive = caseInsensitive;
+  const multiline = readOptionalBoolean(args, 'multiline');
+  if (multiline !== undefined) opts.multiline = multiline;
+  const contextLines = readOptionalNumber(args, 'contextLines');
+  if (contextLines !== undefined) opts.contextLines = contextLines;
+  const maxMatchesPerFile = readOptionalNumber(args, 'maxMatchesPerFile');
+  if (maxMatchesPerFile !== undefined) opts.maxMatchesPerFile = maxMatchesPerFile;
+  const maxResults = readOptionalNumber(args, 'maxResults');
+  if (maxResults !== undefined) opts.maxResults = maxResults;
+
+  const rawGlobs = args['globs'];
+  if (rawGlobs !== undefined) {
+    if (!Array.isArray(rawGlobs)) {
+      throw new ToolError('VALIDATION', 'globs must be an array of strings');
+    }
+    const globs = readStringArray(args, 'globs');
+    if (globs.length !== rawGlobs.length) {
+      throw new ToolError('VALIDATION', 'globs contains non-string entries');
+    }
+    if (globs.length > 0) opts.globs = globs;
+  }
+  return opts;
 }
 
 function readSurfaceHintOptions(args: Record<string, unknown>): {
@@ -198,75 +237,63 @@ export class JadxHandlers {
         'Either decompileDir or apkPath must be provided for jadx_search_code.',
       );
     }
-    let autoDecompiled = false;
-    let outDir: string | undefined;
-    try {
-      if (!decompileDir && apkPath) {
-        const jadxProbe = await probeCommand('jadx', ['--version']);
-        if (!jadxProbe.available) {
-          return jsonResponse({
-            success: false,
-            available: false,
-            capability: 'jadx_cli',
-            fix: 'Install JADX and ensure jadx is on PATH.',
-            apkPath,
-            reason: jadxProbe.reason ?? 'jadx is not available',
-          });
-        }
-        outDir = await mkdtemp(join(tmpdir(), `jshook-jadx-search-${basename(apkPath)}-`));
-        await this.runJadx(
-          jadxProbe.path ?? 'jadx',
-          ['--no-res', '--no-debug-info', '-j', String(threads), '-d', outDir, apkPath],
-          searchTimeoutMs,
-        );
-        decompileDir = join(outDir, 'sources');
-        autoDecompiled = true;
-      }
-
-      const opts: JadxSearchOptions = { decompileDir: decompileDir!, query };
-      const literal = readOptionalBoolean(args, 'literal');
-      if (literal !== undefined) opts.literal = literal;
-      const caseInsensitive = readOptionalBoolean(args, 'caseInsensitive');
-      if (caseInsensitive !== undefined) opts.caseInsensitive = caseInsensitive;
-      const contextLines = readOptionalNumber(args, 'contextLines');
-      if (contextLines !== undefined) opts.contextLines = contextLines;
-      const maxMatchesPerFile = readOptionalNumber(args, 'maxMatchesPerFile');
-      if (maxMatchesPerFile !== undefined) opts.maxMatchesPerFile = maxMatchesPerFile;
-      const maxResults = readOptionalNumber(args, 'maxResults');
-      if (maxResults !== undefined) opts.maxResults = maxResults;
-
-      const rawGlobs = args['globs'];
-      if (rawGlobs !== undefined) {
-        if (!Array.isArray(rawGlobs)) {
-          throw new ToolError('VALIDATION', 'globs must be an array of strings');
-        }
-        const globs = readStringArray(args, 'globs');
-        if (globs.length !== rawGlobs.length) {
-          throw new ToolError('VALIDATION', 'globs contains non-string entries');
-        }
-        if (globs.length > 0) opts.globs = globs;
-      }
-
-      const result = await this.getJadxSearchEngine().search(opts);
-      return jsonResponse({
-        success: true,
-        matches: result.matches,
-        filesMatched: result.filesMatched,
-        totalMatches: result.totalMatches,
-        engine: result.engine,
-        durationMs: result.durationMs,
-        decompileDir: result.decompileDir,
-        ...(autoDecompiled ? { autoDecompiled: true } : {}),
-        ...(apkPath ? { apkPath } : {}),
-        ...(result.truncated ? { truncated: true } : {}),
-      });
-    } finally {
-      // The auto-decompile scratch dir is a per-request artifact: always remove
-      // it, whether the search succeeded, threw, or was interrupted mid-flight.
-      if (outDir !== undefined) {
-        await rm(outDir, { recursive: true, force: true }).catch(() => {});
-      }
+    // B-phase: the two inputs are mutually exclusive (blueprint `oneOf`).
+    // Previously apkPath was silently accepted as "contextual metadata";
+    // now supplying both is a validation error, not an ignored arg.
+    if (decompileDir && apkPath) {
+      throw new ToolError(
+        'VALIDATION',
+        'decompileDir and apkPath are mutually exclusive for jadx_search_code; provide exactly one.',
+      );
     }
+
+    let autoDecompiled = false;
+    let cacheHit = false;
+    if (!decompileDir && apkPath) {
+      const jadxProbe = await probeCommand('jadx', ['--version']);
+      if (!jadxProbe.available) {
+        return jsonResponse({
+          success: false,
+          available: false,
+          capability: 'jadx_cli',
+          fix: 'Install JADX and ensure jadx is on PATH.',
+          apkPath,
+          reason: jadxProbe.reason ?? 'jadx is not available',
+        });
+      }
+      // B-phase (user-approved intent reversal): content-addressed cache,
+      // NOT a per-request mkdtemp scratch dir deleted in `finally`. The cache
+      // persists across calls; same APK reuses sources, stale entries rebuild.
+      const jadxBin = jadxProbe.path ?? 'jadx';
+      const baseArgs = ['--no-res', '--no-debug-info', '-j', String(threads)];
+      const cached = await getOrCreateCachedSources(
+        apkPath,
+        jadxBin,
+        baseArgs,
+        async (_bin, _baseArgs, outDir) => {
+          await this.runJadx(jadxBin, [...baseArgs, '-d', outDir, apkPath], searchTimeoutMs);
+        },
+      );
+      decompileDir = cached.sourcesDir;
+      cacheHit = cached.cacheHit;
+      autoDecompiled = !cacheHit;
+    }
+
+    const opts = parseJadxSearchOptions(args, decompileDir!, query);
+
+    const result = await this.getJadxSearchEngine().search(opts);
+    return jsonResponse({
+      success: true,
+      matches: result.matches,
+      filesMatched: result.filesMatched,
+      totalMatches: result.totalMatches,
+      engine: result.engine,
+      durationMs: result.durationMs,
+      decompileDir: result.decompileDir,
+      ...(autoDecompiled ? { autoDecompiled: true } : {}),
+      ...(apkPath ? { apkPath, cacheHit } : {}),
+      ...(result.truncated ? { truncated: true } : {}),
+    });
   }
 
   async handleApkManifestDump(args: Record<string, unknown>): Promise<unknown> {
