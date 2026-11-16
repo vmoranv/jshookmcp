@@ -206,6 +206,26 @@ on:
 #       npm stage approve <stage-id> --otp <code>
 #   (or npmjs.com -> package page -> Staged Packages tab)
 #
+#   ⚠️ "Validating" on the versions page is NOT the staged/approve state.
+#   npm's per-version lifecycle has distinct statuses (see the registry
+#   `/-/package/<pkg>/version/<ver>/status` endpoint, auth-gated):
+#     staging    -> `staged`:  "waiting for a maintainer to approve it";
+#                  THIS is the state with an Approve button (2FA, CLI or web).
+#     publishing -> `validating`: "still on its way ... check again shortly".
+#                  This is npm's publish-time automated security/malware scan
+#                  (dual-use content triggers extra scanning). It is NOT a
+#                  manual-approval queue: there is no Approve button, nothing
+#                  for a maintainer to click, and the version stays
+#                  unavailable until the SERVER-side scan finishes on its own.
+#                  The versions tab shows "Validating: Automated review hasn't
+#                  finished ...". Once it passes, the status flips to
+#                  `published` automatically; if it fails, `blocked` (appeal).
+#   So a `validating` row is expected for this dual-use package and may take
+#   well beyond the usual ~5 min (content size / scan queue). Do NOT re-run this
+#   workflow to "fix" it: the semver is already consumed (E409) and the scan is
+#   outside this repo. The authoritative detector is the registry status/poll,
+#   not the presence of an Approve button.
+#
 #   Two properties of the staging area worth knowing when debugging:
 #     - A version can never be BOTH staged and published — they share one semver
 #       uniqueness index. So "already staged" and "already published" are
