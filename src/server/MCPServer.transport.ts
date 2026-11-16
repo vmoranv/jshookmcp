@@ -592,9 +592,12 @@ const DEFAULT_TRACE_DIR = '.ccg/traces';
  * trim/empty/boolean semantics).
  */
 export function resolveTraceFlushDir(
-  env: EnvironmentSource = process.env,
+  env?: EnvironmentSource,
   cwd: string = process.cwd(),
 ): string | null {
+  // No `process.env` default here: the env helpers in @src/config/environment
+  // resolve to process.env internally when `env` is omitted. Keeping raw
+  // process.env access out of this file satisfies the env-boundary contract.
   if (readEnvBoolean('MCP_TRACE_DISABLE', false, { env })) return null;
   const rel = readEnvString('MCP_TRACE_DIR', DEFAULT_TRACE_DIR, { trim: true, env });
   const absolute = isAbsolute(rel) ? rel : resolvePath(cwd, rel);

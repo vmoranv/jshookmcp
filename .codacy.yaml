@@ -57,7 +57,12 @@ engines:
       # computed cache key; the consumer (handlers/jadx.ts) is NOT excluded.
       - "src/modules/jadx-search/decompile-cache.ts"
 
-
+  # Security-pattern engine (Codacy's Semgrep fork) flags caller-supplied
+  # RegExp / computed cache paths as "non-literal" hazards. Those are the
+  # features here, guarded by the mitigations documented above; exclude the
+  # same two files from this engine too (PR-diff analysis honors this anchor).
+  opengrep:
+    exclude_paths: *codacy_domain_excludes
 
   eslint-9:
     exclude_paths: *codacy_domain_excludes
