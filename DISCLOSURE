@@ -135,9 +135,10 @@ invokes a tool that does.
     standard `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS` vars.
     This is the one form of background network egress; it is stated here rather
     than discovered.
-  - Native dependencies (`better-sqlite3`, `isolated-vm`, `koffi`) are optional
-    (`optionalDependencies`) and are used for local storage, sandboxed
-    evaluation, and FFI. `isolated-vm` is a sandbox, not an escape from one.
+  - Optional native dependencies (`better-sqlite3`, `koffi`) are used for local
+    storage and FFI. Sandboxed evaluation uses `quickjs-emscripten`, a bundled
+    WASM runtime (a regular dependency, not native, not optional). None of these
+    is an escape from a sandbox.
   - Dynamic evaluation (`Runtime.evaluate`, sandboxed V8 contexts) is a core
     feature of the tool, not an obfuscation technique.
   - The package reads and writes files under the operator's working directory

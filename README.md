@@ -144,6 +144,15 @@ No global install needed — add to your MCP client config and you're ready.
 This lightweight configuration skips optional ONNX, Z3, Binaryen, Camoufox, and Playwright
 packages. Remove `npm_config_omit` when those full-profile runtimes are required.
 
+**This is a Node.js service, not a browser library.** It runs over stdio or a local
+Streamable HTTP daemon (`engines.node: ^22.22.2 || ^24.15.0 || >=26.0.0`); it is not
+intended for bundling into a web page. The published tarball is ~1.45 MB gzipped /
+~5 MB unpacked (358 files, mostly `dist/`). Bundle-size sites such as Bundlephobia
+report a much smaller tree-shaken figure (~48 KB gzip) because they analyze the
+`dist/index.mjs` entry as if it were a browser bundle — that number does not describe
+the installed CLI/server. There are no install-time lifecycle scripts and no bundled
+native binaries; native runtimes are optional and loaded on demand.
+
 ### Share one daemon across multiple agents
 
 The default stdio configuration starts one full jshook process per MCP host. To share the

@@ -140,6 +140,13 @@
 该轻量配置会跳过可选的 ONNX、Z3、Binaryen、Camoufox 和 Playwright 包；需要这些完整档
 运行时，移除 `npm_config_omit`。
 
+**这是一个 Node.js 服务，不是浏览器库。** 它通过 stdio 或本地 Streamable HTTP 守护进程运行
+（`engines.node: ^22.22.2 || ^24.15.0 || >=26.0.0`），并非用于打包进网页。发布的 tarball
+约 1.45 MB（gzip）/ 约 5 MB（解包，358 个文件，主要为 `dist/`）。Bundlephobia 一类体积站点
+给出的数值要小得多（约 48 KB gzip），是因为它们把 `dist/index.mjs` 当作浏览器 bundle 做
+tree-shaking 分析——该数值并不代表实际安装的 CLI/服务。本包没有安装期生命周期脚本，
+也不夹带原生二进制；原生运行时均为可选、按需加载。
+
 ### 多个 Agent 共用一个本地进程
 
 默认 stdio 配置会让每个 MCP 宿主启动一份完整的 jshook。若要共享 embedding 模型、浏览器运行时和缓存，可以启动一个本地 Streamable HTTP daemon：
