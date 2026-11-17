@@ -11,6 +11,7 @@ import {
 } from '@modules/collector/CodeCollectorLaunchOptions';
 import type { PuppeteerConfig } from '@internal-types/index';
 import { BROWSER_IDLE_TIMEOUT_MS, BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
+import { beginStderrCapture, installLaunchSignals } from '@server/observability/launchSignals';
 
 export interface CodeCollectorLaunchResult {
   action: 'launched' | 'relaunched' | 'reused';
@@ -183,16 +184,23 @@ export class BrowserLifecycleManager {
     logger.info('Initializing browser with anti-detection...');
     const puppeteer = await import('rebrowser-puppeteer-core');
     const launchFn = puppeteer.default?.launch ?? puppeteer.launch;
+    // stderr attribution: capture only the launch window, only the byte count.
+    // A failure WITH stderr means the binary ran and refused; with EMPTY stderr
+    // nothing executed (missing binary / permission / arch). The two have
+    // different owners, and without the flag they collapse into one number.
+    // `dumpio` is what makes the count observable at all: without it puppeteer
+    // gives the browser an ignore-mode stderr and nothing reaches this process.
+    // The text itself is never stored — only how many bytes arrived.
+    const stderrCapture = beginStderrCapture();
+    let stderrByteCount: number | null = null;
     try {
-      this.browser = await launchFn(browserLaunchOptions);
+      this.browser = await launchFn({ ...browserLaunchOptions, dumpio: true });
+      stderrByteCount = stderrCapture.bytesSoFar();
     } catch (error) {
-      // puppeteer-core's own message when it cannot pick a browser
-      // ("An `executablePath` or `channel` must be specified for
-      // `puppeteer-core`") names neither what was probed nor how to fix it, and
-      // tools that auto-launch (collect_code among them) surface it verbatim.
-      // Rewriting it here makes the failure actionable at the one place every
-      // auto-launch path goes through.
+      stderrCapture.markFailed();
       throw this.enrichLaunchError(error);
+    } finally {
+      stderrCapture.stop();
     }
     this.connectedToExistingBrowser = false;
     this.chromePid = this.browser.process()?.pid ?? null;
@@ -201,6 +209,13 @@ export class BrowserLifecycleManager {
     }
     this.currentHeadless = launchOptions.headless;
     this.currentLaunchOptions = launchOptions;
+    // stderr is only readable at the moment the browser is up: puppeteer
+    // closes its pipe once launch resolves. So the count is captured HERE,
+    // into the same record the tool-call attribution reads.
+    installLaunchSignals({
+      stderrByteCount: () => stderrByteCount,
+      browserMode: () => 'launch',
+    });
     const browser = this.browser;
     browser.on('disconnected', () => {
       this.handleBrowserDisconnected(browser);
