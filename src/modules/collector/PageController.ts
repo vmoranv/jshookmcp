@@ -40,6 +40,50 @@ export interface DialogHandlerOptions {
 
 type PageCookie = Awaited<ReturnType<Page['cookies']>>[number];
 
+/** A cookie as CDP announces it (Network.getAllCookies). */
+interface RawCdpCookie {
+  name: string;
+  domain?: string;
+  path?: string;
+  partitionKey?: { topLevelSite?: string; hasCrossSiteAncestor?: boolean } | string;
+}
+
+/**
+ * Turn read-back cookies into `page.deleteCookie` requests.
+ *
+ * The failure this exists for, seen in production on `page_cookies`:
+ *
+ * ```
+ * Protocol error (Network.deleteCookies): Invalid parameters
+ * Failed to deserialize params.partitionKey - BINDINGS: string value expected
+ * ```
+ *
+ * `page.deleteCookie()` forwards each cookie OBJECT verbatim to CDP, and Chromium
+ * accepts exactly `{ name, url?, domain?, path?, partitionKey? }` there. A cookie
+ * from `Network.getAllCookies` carries far more (`value`, `secure`, `httpOnly`,
+ * `expires`, ...), so its `partitionKey` arrives as
+ * `{ topLevelSite, hasCrossSiteAncestor }` and Chromium rejects the whole call.
+ *
+ * A partition key with no `topLevelSite` (unpartitioned) must be omitted rather
+ * than sent as `{}`, which deserializes to the same "string value expected".
+ */
+export function toDeleteCookieRequests(
+  cookies: readonly RawCdpCookie[],
+): Array<{ name: string; domain?: string; path?: string; partitionKey?: string }> {
+  return cookies.map((cookie) => {
+    const partitionSite =
+      typeof cookie.partitionKey === 'string'
+        ? cookie.partitionKey
+        : cookie.partitionKey?.topLevelSite;
+    return {
+      name: cookie.name,
+      ...(cookie.domain ? { domain: cookie.domain } : {}),
+      ...(cookie.path ? { path: cookie.path } : {}),
+      ...(partitionSite ? { partitionKey: partitionSite } : {}),
+    };
+  });
+}
+
 export interface ClickOptions {
   button?: 'left' | 'right' | 'middle';
   clickCount?: number;
@@ -624,7 +668,7 @@ export class PageController {
     }
     const page = await this.collector.getActivePage();
     const cookies = await this.getCookies();
-    await page.deleteCookie(...cookies);
+    await page.deleteCookie(...toDeleteCookieRequests(cookies as unknown as RawCdpCookie[]));
     logger.info('All cookies cleared');
   }
 

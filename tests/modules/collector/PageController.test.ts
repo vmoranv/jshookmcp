@@ -340,7 +340,10 @@ describe('PageController', () => {
       value: 'abc',
       domain: TEST_HOSTS.root,
     });
-    expect(page.deleteCookie).toHaveBeenCalledWith({ name: 'sid', value: '1' });
+    // Deletion goes through the CDP-shaped selector: the read-back cookie shape
+    // (with `value`) is exactly what Chromium rejected with
+    // "Failed to deserialize params.partitionKey".
+    expect(page.deleteCookie).toHaveBeenCalledWith({ name: 'sid' });
     expect(page.setViewport).toHaveBeenCalledWith({ width: 1280, height: 720 });
   });
 

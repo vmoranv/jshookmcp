@@ -382,7 +382,10 @@ describe('PageController', () => {
   });
 
   describe('clearCookies', () => {
-    it('clears all cookies', async () => {
+    it('clears all cookies as CDP delete requests, never as raw cookie objects', async () => {
+      // The raw object path is what failed in production:
+      //   Protocol error (Network.deleteCookies): Invalid parameters
+      //   Failed to deserialize params.partitionKey - BINDINGS: string value expected
       const cookies = [
         { name: 'a', value: '1' },
         { name: 'b', value: '2' },
@@ -390,7 +393,30 @@ describe('PageController', () => {
       page.cookies.mockResolvedValue(cookies);
 
       await controller.clearCookies();
-      expect(page.deleteCookie).toHaveBeenCalledWith(...cookies);
+      // Values must NOT ride along: CDP's deleteCookies takes a selector, and
+      // forwarding the read-back shape is what Chromium rejects.
+      expect(page.deleteCookie).toHaveBeenCalledWith({ name: 'a' }, { name: 'b' });
+    });
+
+    it('sends a partitioned cookie as its top-level site string', async () => {
+      page.cookies.mockResolvedValue([
+        {
+          name: 'a',
+          value: '1',
+          domain: '.example.com',
+          path: '/',
+          partitionKey: { topLevelSite: 'https://example.com' },
+        },
+        { name: 'b', value: '2', partitionKey: { hasCrossSiteAncestor: true } },
+      ]);
+
+      await controller.clearCookies();
+      expect(page.deleteCookie).toHaveBeenCalledWith(
+        { name: 'a', domain: '.example.com', path: '/', partitionKey: 'https://example.com' },
+        // No topLevelSite -> unpartitioned -> the key must be OMITTED, not sent
+        // as `{}` (which deserializes to the same "string value expected").
+        { name: 'b' },
+      );
     });
 
     it('rejects when connected to an existing browser', async () => {
