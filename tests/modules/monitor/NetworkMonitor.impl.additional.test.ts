@@ -519,13 +519,17 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       expect(body).toBeNull();
     });
 
-    it('returns null when request not found', async () => {
+    it('reports an evicted request instead of returning null', async () => {
+      // `null` was indistinguishable from "still pending", so the handler told
+      // the caller to retry something that could never succeed. The reason now
+      // rides a typed error the handler can translate into an action.
       const { session } = createMockSession();
       const monitor = new NetworkMonitor(session);
       await monitor.enable();
 
-      const body = await monitor.getResponseBody('nonexistent');
-      expect(body).toBeNull();
+      await expect(monitor.getResponseBody('nonexistent')).rejects.toMatchObject({
+        details: { bodyUnavailable: true, reason: 'request_evicted' },
+      });
     });
 
     it('returns null when response not yet received', async () => {
@@ -623,8 +627,10 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       send.mockRejectedValueOnce(new Error('No resource with given identifier found'));
 
-      const body = await monitor.getResponseBody('r1');
-      expect(body).toBeNull();
+      // Chrome discarded the body: deterministic, so retrying is wasted work.
+      await expect(monitor.getResponseBody('r1')).rejects.toMatchObject({
+        details: { bodyUnavailable: true, reason: 'body_expired' },
+      });
     });
   });
 

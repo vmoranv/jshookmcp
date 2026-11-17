@@ -88,14 +88,19 @@ describe('NetworkMonitor', () => {
     expect(monitor.getStats().byMethod.GET).toBe(1);
   });
 
-  it('returns null response body when monitor is disabled or request is incomplete', async () => {
+  it('separates "disabled" and "evicted" from "response still pending"', async () => {
     const { session, emit } = createMockSession();
     const monitor = new NetworkMonitor(session);
 
+    // Disabled: a caller mistake the handler reports on its own path, and it
+    // becomes retryable after enable() — so it stays null.
     await expect(monitor.getResponseBody('req-missing')).resolves.toBeNull();
 
     await monitor.enable();
-    await expect(monitor.getResponseBody('req-missing')).resolves.toBeNull();
+    // Enabled but never seen: the request is gone, not pending. Deterministic.
+    await expect(monitor.getResponseBody('req-missing')).rejects.toMatchObject({
+      details: { bodyUnavailable: true, reason: 'request_evicted' },
+    });
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-pending',

@@ -67,7 +67,7 @@ interface RawCdpCookie {
  * A partition key with no `topLevelSite` (unpartitioned) must be omitted rather
  * than sent as `{}`, which deserializes to the same "string value expected".
  */
-export function toDeleteCookieRequests(
+function toDeleteCookieRequests(
   cookies: readonly RawCdpCookie[],
 ): Array<{ name: string; domain?: string; path?: string; partitionKey?: string }> {
   return cookies.map((cookie) => {

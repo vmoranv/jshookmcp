@@ -417,6 +417,53 @@ describe('CoreHandlers', () => {
       expect(body.summary.truncated).toBe(true);
     });
 
+    it.each([
+      ['request_evicted', 'network_enable before navigating'],
+      ['no_body_by_status', 'never carries a body'],
+      ['from_cache', 'caching disabled'],
+      ['body_expired', 'auto-capture before navigating'],
+    ])('reports %s with an action, and stops retrying', async (reason, hintFragment) => {
+      // The old handler returned one generic "may not have completed yet"
+      // for every cause, which sent callers into a retry loop that could not
+      // succeed. Each reason must now name its own next action.
+      deps.consoleMonitor.getResponseBody.mockRejectedValue(
+        new ToolError('NOT_FOUND', `Response body unavailable: ${reason}`, {
+          toolName: 'network_get_response_body',
+          details: { bodyUnavailable: true, reason, requestId: 'r1', detail: 'because' },
+        }),
+      );
+
+      const r = await handlers.handleNetworkGetResponseBody({
+        requestId: 'r1',
+        retries: 3,
+        retryIntervalMs: 1,
+      });
+      const body = parseBody(r);
+
+      expect(body.success).toBe(false);
+      expect(body.bodyUnavailable).toBe(true);
+      expect(body.reason).toBe(reason);
+      expect(body.hint).toContain(hintFragment);
+      // Deterministic: one attempt, not retries+1.
+      expect(body.attempts).toBe(1);
+      expect(deps.consoleMonitor.getResponseBody).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the transient message honest when the response never arrives', async () => {
+      deps.consoleMonitor.getResponseBody.mockResolvedValue(null);
+
+      const r = await handlers.handleNetworkGetResponseBody({
+        requestId: 'r1',
+        retries: 2,
+        retryIntervalMs: 1,
+      });
+      const body = parseBody(r);
+
+      // Genuinely retryable: no bodyUnavailable marker, and the hint says wait.
+      expect(body.bodyUnavailable).toBeUndefined();
+      expect(body.hint).toContain('has not completed yet');
+    });
+
     it('returns full body when within maxSize', async () => {
       deps.consoleMonitor.getResponseBody.mockResolvedValue({
         body: 'short',

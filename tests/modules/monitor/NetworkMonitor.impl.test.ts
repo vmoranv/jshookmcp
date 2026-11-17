@@ -512,14 +512,17 @@ describe('NetworkMonitor impl', () => {
     expect(result).toBeNull();
   });
 
-  it('getResponseBody returns null when request is not found', async () => {
+  it('getResponseBody reports an evicted request instead of returning null', async () => {
     const { session } = createMockSession();
     const monitor = new NetworkMonitor(session);
 
     await monitor.enable();
 
-    const result = await monitor.getResponseBody('nonexistent-req');
-    expect(result).toBeNull();
+    // Still logs the operator-facing line first; the caller now also gets a
+    // machine-readable reason.
+    await expect(monitor.getResponseBody('nonexistent-req')).rejects.toMatchObject({
+      details: { bodyUnavailable: true, reason: 'request_evicted' },
+    });
     expect(loggerState.error).toHaveBeenCalledWith(
       expect.stringContaining('Request not found: nonexistent-req'),
     );

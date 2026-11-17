@@ -1,6 +1,21 @@
 import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
 import { logger } from '@utils/logger';
 import { ToolError } from '@errors/ToolError';
+
+/**
+ * Why a response body could not be read.
+ *
+ * Every one of these used to surface as the same `null` -> "No response body
+ * found for requestId", which told the caller to retry something that could
+ * never succeed. Production telemetry showed `network_get_response_body` at
+ * 32% call-weighted failure on 24 installs, with a bimodal per-install shape
+ * (0% or ~50%) that a generic message cannot explain.
+ */
+type NetworkBodyUnavailableReason =
+  | 'request_evicted'
+  | 'no_body_by_status'
+  | 'from_cache'
+  | 'body_expired';
 import type {
   NetworkMonitorLike,
   NetworkRequest,
@@ -561,6 +576,8 @@ export class NetworkMonitor implements NetworkMonitorLike {
       logger.error(
         'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
       );
+      // No `bodyUnavailable` marker: a disabled monitor is a caller mistake the
+      // handler reports on its own path, and it IS retryable after enable().
       return null;
     }
 
@@ -581,14 +598,40 @@ export class NetworkMonitor implements NetworkMonitorLike {
       logger.error(
         `Request not found: ${requestId}. Make sure network monitoring was enabled before the request.`,
       );
-      return null;
+      throw this.bodyUnavailable(
+        requestId,
+        'request_evicted',
+        'The request is no longer tracked: either network monitoring was enabled after it was sent, ' +
+          `or more than ${this.MAX_NETWORK_RECORDS} requests were recorded since.`,
+      );
     }
 
     if (!response) {
+      // Not a failure of the body layer: the request never got a response (still
+      // pending, blocked, or aborted). Transient, so the caller SHOULD retry.
       logger.warn(
         `Response not yet received for request: ${requestId}. The request may still be pending.`,
       );
       return null;
+    }
+
+    // Deterministic "this response cannot have a body". Throwing stops the
+    // handler's retry loop, which otherwise spends retries*interval waiting for
+    // something that will never arrive, and lets the caller see WHY.
+    if (response.status === 204 || response.status === 304 || response.status < 200) {
+      throw this.bodyUnavailable(
+        requestId,
+        'no_body_by_status',
+        `HTTP ${response.status} responses carry no body.`,
+      );
+    }
+    if (response.fromCache) {
+      throw this.bodyUnavailable(
+        requestId,
+        'from_cache',
+        'The response was served from the disk cache or a service worker, so Chrome did not keep ' +
+          'the body. Re-run the request with the cache disabled to capture it.',
+      );
     }
 
     // Pre-check content-length so an explicit getResponseBody doesn't pull an
@@ -645,8 +688,41 @@ export class NetworkMonitor implements NetworkMonitorLike {
           'The response body may not be available for this request type (e.g., cached, redirected, or failed ' +
           'requests)',
       });
+      // Chrome keeps response bodies only while the request is still in its
+      // network cache. Once it evicts them, every later fetch answers
+      // "No resource with given identifier found" — deterministic, not a race.
+      if (/No resource with given identifier/i.test(errorMessage)) {
+        throw this.bodyUnavailable(
+          requestId,
+          'body_expired',
+          'Chrome has already discarded this response body. Read it closer to when the request ' +
+            'completes, or enable auto-capture before navigating.',
+          error,
+        );
+      }
       return null;
     }
+  }
+
+  /**
+   * Build the "this response has no readable body" error.
+   *
+   * Carries `details.bodyUnavailable = true` so batch readers
+   * (`getAllJavaScriptResponses`) can skip it exactly like they skipped `null`,
+   * while the single-request handler reports the real reason instead of the
+   * generic "may not have completed yet, or the requestId is invalid".
+   */
+  private bodyUnavailable(
+    requestId: string,
+    reason: NetworkBodyUnavailableReason,
+    detail: string,
+    cause?: unknown,
+  ): ToolError {
+    return new ToolError('NOT_FOUND', `Response body unavailable for ${requestId}: ${detail}`, {
+      toolName: 'network_get_response_body',
+      details: { bodyUnavailable: true, reason, requestId, detail },
+      ...(cause instanceof Error ? { cause } : {}),
+    });
   }
 
   async getAllJavaScriptResponses(): Promise<
@@ -680,9 +756,13 @@ export class NetworkMonitor implements NetworkMonitorLike {
           try {
             bodyResult = await this.getResponseBody(requestId);
           } catch (error) {
-            // A skipped body (content-length over cap) is not an error for
-            // collection — omit this response exactly like a missing body.
-            if (error instanceof ToolError && error.details?.skipped === true) {
+            // A body that cannot be read (over the cap, evicted, cached, or
+            // already discarded by Chrome) is not an error for collection —
+            // omit this response exactly like a missing body.
+            if (
+              error instanceof ToolError &&
+              (error.details?.skipped === true || error.details?.bodyUnavailable === true)
+            ) {
               return null;
             }
             throw error;
