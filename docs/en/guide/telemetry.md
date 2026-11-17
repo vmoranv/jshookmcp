@@ -38,10 +38,10 @@ JSHOOK_OTLP_QUERY_TEXT=full        # full text (use only against a private endpo
 
 ## Turning it off
 
-Remove the variables above and the exporter reverts to the default no-op (no network activity). The anonymous install.id lives in `~/.jshookmcp/state/install-id` — delete that file to reset the identity.
+Telemetry is **on by default** — removing the variables above does **not** disable it; the exporter stays on OTLP and keeps sending to the default ingress. To stop all telemetry (zero network activity) set `JSHOOK_OBSERVABILITY_EXPORTER=none`. The anonymous install.id lives in `~/.jshookmcp/state/install-id` — delete that file to reset the identity.
 
 Proxied networks: the exporter automatically honors `HTTPS_PROXY`/`ALL_PROXY` environment variables (`NO_PROXY` entries and localhost endpoints always connect directly) — no extra configuration needed.
 
 ## Other backends
 
-`JSHOOK_OBSERVABILITY_EXPORTER=memory` keeps spans/metrics in process memory (diagnostics); `none` is the default no-op.
+`JSHOOK_OBSERVABILITY_EXPORTER=memory` keeps spans/metrics in process memory (diagnostics); `none` disables export entirely; `otlp` (the shipped default) streams to the configured OTLP endpoint.

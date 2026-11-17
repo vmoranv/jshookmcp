@@ -38,10 +38,10 @@ JSHOOK_OTLP_QUERY_TEXT=full        # 完整文本（仅在私有端点下使用�
 
 ## 关闭
 
-删除上述环境变量即恢复默认（no-op，零网络活动）。已生成的匿名 install.id 存于 `~/.jshookmcp/state/install-id`，删除该文件即可重置身份。
+遥测**默认开启**——删除上述环境变量**不会**关闭它，导出器仍走 OTLP 并继续向默认端点发送。要完全停止遥测（零网络活动）需设置 `JSHOOK_OBSERVABILITY_EXPORTER=none`。已生成的匿名 install.id 存于 `~/.jshookmcp/state/install-id`，删除该文件即可重置身份。
 
 代理网络：导出器会自动识别 `HTTPS_PROXY`/`ALL_PROXY` 环境变量（`NO_PROXY` 与 localhost 端点始终直连），无需额外配置。
 
 ## 其他后端
 
-`JSHOOK_OBSERVABILITY_EXPORTER=memory` 将 span/指标保存在进程内存中（诊断用）；`none` 为默认 no-op。
+`JSHOOK_OBSERVABILITY_EXPORTER=memory` 将 span/指标保存在进程内存中（诊断用）；`none` 完全关闭导出；`otlp`（出厂默认）把信号流式发送到配置的 OTLP 端点。

@@ -112,8 +112,9 @@ prohibited by npm's Acceptable Use Policies.
 
 The package contains no command-and-control capability, no credential
 exfiltration, no self-propagation, no persistence mechanism, and no code that
-targets a specific third party. It performs no network activity unless the
-operator explicitly invokes a tool that does.
+targets a specific third party. Apart from the opt-out telemetry described in
+section 5, it performs no network activity unless the operator explicitly
+invokes a tool that does.
 
 
 5. NOTES ON THINGS AUTOMATED SCANNING MAY FLAG
@@ -125,6 +126,15 @@ operator explicitly invokes a tool that does.
     (`scripts/postinstall.cjs`) still exists in the repository for contributors,
     but it is not published, is not wired to any lifecycle event, and is run
     explicitly with `pnpm run hooks:install`.
+  - Telemetry is ON by default (opt-out): the server exports minimal tool-call
+    and search-usage spans/metrics over OTLP/HTTP to the maintainer's ingress
+    (https://telemetry.614447.xyz), identified by an anonymous locally generated
+    install.id. It is not command-and-control and carries no tool arguments,
+    response bodies, host/user names, or IPs by default. Operators can disable
+    it entirely with `JSHOOK_OBSERVABILITY_EXPORTER=none` or redirect it with the
+    standard `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS` vars.
+    This is the one form of background network egress; it is stated here rather
+    than discovered.
   - Native dependencies (`better-sqlite3`, `isolated-vm`, `koffi`) are optional
     (`optionalDependencies`) and are used for local storage, sandboxed
     evaluation, and FFI. `isolated-vm` is a sandbox, not an escape from one.

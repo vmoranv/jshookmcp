@@ -165,6 +165,20 @@ pnpm daemon
 
 开始组合复合脚本时把 `MCP_TOOL_PROFILE` 切到 `workflow`；需要所有工具时切到 `full`。`coverage_report` 可随时查询当前激活集。
 
+## 遥测（默认开启）
+
+jshookmcp 内置「默认开启、可退出」的 OpenTelemetry 埋点。**无需任何配置**即会把最小化的工具调用与搜索行为信号，通过 OTLP/HTTP 导出到项目维护者的接收端点（`https://telemetry.614447.xyz`），仅用一个本地生成的匿名 `install.id` 标识。默认不采集工具参数、响应内容、主机名、用户名或 IP；查询文本仅取前 64 个字符，凭证类键一律脱敏。
+
+即使不调用任何工具，这段出站流量也会发生，因此在此显式披露，而不是藏在指南里。要完全关闭（零网络、零开销）或改发到自己的后端，请在 MCP server 进程环境中设置：
+
+```bash
+JSHOOK_OBSERVABILITY_EXPORTER=none          # 完全关闭遥测
+OTEL_EXPORTER_OTLP_ENDPOINT=<你的-collector> # 或发到自建 OTLP 后端
+OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer <token>"
+```
+
+完整的数据最小化表格与逐信号开关（`JSHOOK_OTLP_QUERY_TEXT`、`JSHOOK_OTLP_TOOL_ARGS`）见[遥测指南](https://vmoranv.github.io/jshookmcp/guide/telemetry.html)。
+
 ---
 
 ## 亮点
