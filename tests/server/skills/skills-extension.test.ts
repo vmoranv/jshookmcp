@@ -62,7 +62,10 @@ describe('loadJshookSkills', () => {
         'troubleshooting',
       ]);
       for (const entry of catalog!.entries) {
+        // skills/list descriptions are matched by English-querying agents; a
+        // reverted-to-Chinese guide must fail here, not silently ship.
         expect(entry.frontmatter.description).toBeTruthy();
+        expect(entry.frontmatter.description).toMatch(/^[\x20-\x7E]+$/);
       }
     });
   });
