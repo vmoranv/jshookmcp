@@ -32,6 +32,13 @@ The `-y` flag in the arguments is strictly required. Omitting it causes `npx` to
 This lightweight install omits optional ONNX, Z3, Binaryen, Camoufox, and Playwright packages.
 Remove `npm_config_omit` when those runtimes are needed.
 
+### Windows Process Debugging
+
+On Windows, process probing and debug launches hide the extra console window; the GUI
+application's own window remains under the application's control. When using
+`process_launch_debug`, choose a program that exposes a remote debugging interface — a
+hidden console does not imply that an arbitrary executable supports remote debugging.
+
 ## 3. Restart and Verify
 
 Restart your MCP client and verify that the `jshook` tools are available. Send the following test prompt to your AI:

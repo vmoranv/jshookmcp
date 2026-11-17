@@ -25,6 +25,7 @@ export const en = defineConfig({
             { text: '.env and Configuration', link: '/en/guide/configuration' },
             { text: 'Telemetry', link: '/en/guide/telemetry' },
             { text: 'Tool Selection', link: '/en/guide/tool-selection' },
+            { text: 'Troubleshooting', link: '/en/guide/troubleshooting' },
           ],
         },
       ],

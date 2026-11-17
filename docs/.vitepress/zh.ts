@@ -24,6 +24,7 @@ export const zh = defineConfig({
             { text: '.env 与配置', link: '/guide/configuration' },
             { text: '遥测', link: '/guide/telemetry' },
             { text: '工具选择', link: '/guide/tool-selection' },
+            { text: 'Troubleshooting', link: '/guide/troubleshooting' },
           ],
         },
       ],
