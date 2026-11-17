@@ -552,13 +552,26 @@ describe('MCPServer.search', () => {
     registerSearchMetaTools(ctx);
     const searchToolsRegistration = ctx.registeredToolsForTest.get('search_tools')!;
 
-    // Extension tool counted in total (4 built-in + 1 extension = 5)
+    // Extension tool counted in total (4 built-in + 1 extension = 5) and in the loaded-extension count.
     expect(searchToolsRegistration.options.description).toContain('Search 5 tools');
-    // Extension tool's workflow domain appears
-    expect(searchToolsRegistration.options.description).toContain('workflow (1)');
+    expect(searchToolsRegistration.options.description).toContain('(1 currently loaded)');
     expect(searchToolsRegistration.options.description).toContain(
       'activate_tools for exact matches',
     );
+  });
+
+  it('enumerates known domains in activate_domain (regression: search profile rendered "Domains: .")', () => {
+    // getAllKnownDomains() is build-time metadata and stays populated even when
+    // the search profile has loaded 0 manifests. The old description used
+    // getAllDomains() (loaded manifests only) and rendered an empty clause.
+    const ctx = createCtx();
+    registerSearchMetaTools(ctx);
+    const description = ctx.registeredToolsForTest.get('activate_domain')!.options.description;
+
+    expect(description).toContain('Domains: browser, network, workflow.');
+    expect(description).not.toContain('Domains: .');
+    // The dead-end pointer to reload_extensions (a workflow/full-tier tool) is gone.
+    expect(description).not.toContain('reload_extensions');
   });
 
   it('reuses the cached search engine when the signature is unchanged', async () => {

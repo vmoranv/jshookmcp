@@ -56,6 +56,7 @@ vi.mock('@server/registry/index', () => ({
   getRegistrationByName: (name: string) => mocks.registrations.find((r) => r.tool.name === name),
   getAllManifests: () => [],
   getAllDomains: () => new Set(['browser', 'network', 'process']),
+  getAllKnownDomains: () => new Set(['browser', 'network', 'process']),
   getAllToolNames: () => new Set(mocks.registrations.map((r) => r.tool.name)),
   initRegistry: async () => {},
   buildToolGroups: () => ({}),

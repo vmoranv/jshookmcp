@@ -22,7 +22,7 @@ import type { Tool } from '@modelcontextprotocol/server';
 import { logger } from '@utils/logger';
 import { asErrorResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import { getAllDomains } from '@server/registry/index';
+import { getAllKnownDomains } from '@server/registry/index';
 import { buildZodShape } from '@server/MCPServer.schema';
 import { allTools } from '@server/ToolCatalog';
 import { z } from 'zod';
@@ -198,9 +198,7 @@ const META_TOOL_DEFINITIONS: MetaToolDef[] = [
       'Dynamically register specific tools by name, regardless of current base tier. ' +
       'Use after search_tools to enable exactly the tools you need. ' +
       'In search-tier sessions this is usually enough; use activate_domain when you need every tool in a ' +
-      'domain. ' +
-      'Activated tools appear in the tool list immediately. ' +
-      'If tools do not appear after activation, use call_tool to invoke them directly.',
+      'domain.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -250,18 +248,17 @@ const META_TOOL_DEFINITIONS: MetaToolDef[] = [
   },
   {
     name: 'activate_domain',
+    // Use build-time known domains, not getAllDomains() (loaded manifests only):
+    // the search profile starts with 0 loaded domains, which rendered "Domains: .".
     description: () =>
       `Register every tool in a single domain at once. ` +
-      `Use this when a task needs a whole capability area; prefer search_tools or activate_tools when you ` +
-      `only need a few specific tools, because activating a domain costs far more context. ` +
-      `Domains: ${[...getAllDomains()].join(', ')}. ` +
-      `Activated tools appear in the tool list immediately; if your client does not refresh its tool list, ` +
-      `invoke them with call_tool. ` +
-      `Activation draws on the session context budget: when the budget is full, least-recently-used tools are ` +
-      `evicted to make room, and the response reports what was activated and what was evicted. ` +
+      `Use this when a task needs a whole capability area; prefer search_tools or activate_tools for a few tools, ` +
+      `because activating a domain costs far more context. ` +
+      `Domains: ${[...getAllKnownDomains()].join(', ')}. ` +
+      `Activation draws on the session context budget: when full, least-recently-used tools are evicted and ` +
+      `the response reports what was activated and evicted. ` +
       `Pass precheck: true to preview wouldActivate / wouldEvict without changing anything. ` +
-      `Activated tools auto-deactivate after ttlMinutes (default 30; pass 0 for no expiry). ` +
-      `Use reload_extensions first to include external plugin/workflow domains.`,
+      `Activated tools auto-deactivate after ttlMinutes (default 30; pass 0 for no expiry).`,
     inputSchema: {
       type: 'object',
       properties: {

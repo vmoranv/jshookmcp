@@ -364,18 +364,11 @@ export function buildDomainDescription(ctx: MCPServerContext): string {
   const totalTools = loadedCount + extensionCount;
   const domainCount = Object.keys(groups).length;
 
-  const parts = Object.entries(groups)
-    .toSorted((a, b) => b[1] - a[1])
-    .map(([domain, count]) => `${domain} (${count})`)
-    .join(' | ');
-
   return (
     `Search ${totalTools} tools across ${domainCount} capability domains. ` +
     `This includes built-in tools plus any loaded plugin/workflow tools (${extensionCount} currently loaded). ` +
     `In search-tier sessions, call this before assuming a capability is unavailable. ` +
     `Use activate_tools for exact matches, activate_domain for an entire domain. ` +
-    `Domains: ${parts}. ` +
-    `Query tip: before searching, distill your intent into key concepts (action verb + target + domain). ` +
     `The engine combines token matching, fuzzy names, profile context, and optional static embeddings.`
   );
 }

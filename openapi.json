@@ -31491,7 +31491,7 @@
     },
     "/meta/activate_domain": {
       "post": {
-        "description": "Register every tool in a single domain at once. Use this when a task needs a whole capability area; prefer search_tools or activate_tools when you only need a few specific tools, because activating a domain costs far more context. Domains: adb-bridge, core, binary-instrument, browser, canvas, coordination, cross-domain, dart-inspector, debugger, encoding, exploit-dev, extension-registry, graphql, instrumentation, maintenance, memory, mojo-ipc, native-bridge, native-emulator, network, platform, process, protocol-analysis, proxy, session, sourcemap, streaming, syscall-hook, tasks, tls-inspector, trace, transform, v8-inspector, wasm, webgpu, workflow. Activated tools appear in the tool list immediately; if your client does not refresh its tool list, invoke them with call_tool. Activation draws on the session context budget: when the budget is full, least-recently-used tools are evicted to make room, and the response reports what was activated and what was evicted. Pass precheck: true to preview wouldActivate / wouldEvict without changing anything. Activated tools auto-deactivate after ttlMinutes (default 30; pass 0 for no expiry). Use reload_extensions first to include external plugin/workflow domains.",
+        "description": "Register every tool in a single domain at once. Use this when a task needs a whole capability area; prefer search_tools or activate_tools for a few tools, because activating a domain costs far more context. Domains: adb-bridge, core, binary-instrument, browser, canvas, coordination, cross-domain, dart-inspector, debugger, encoding, exploit-dev, extension-registry, graphql, instrumentation, maintenance, memory, mojo-ipc, native-bridge, native-emulator, network, platform, process, protocol-analysis, proxy, session, sourcemap, streaming, syscall-hook, tasks, tls-inspector, trace, transform, v8-inspector, wasm, webgpu, workflow. Activation draws on the session context budget: when full, least-recently-used tools are evicted and the response reports what was activated and evicted. Pass precheck: true to preview wouldActivate / wouldEvict without changing anything. Activated tools auto-deactivate after ttlMinutes (default 30; pass 0 for no expiry).",
         "operationId": "activate_domain",
         "requestBody": {
           "content": {
@@ -31521,7 +31521,7 @@
     },
     "/meta/activate_tools": {
       "post": {
-        "description": "Dynamically register specific tools by name, regardless of current base tier. Use after search_tools to enable exactly the tools you need. In search-tier sessions this is usually enough; use activate_domain when you need every tool in a domain. Activated tools appear in the tool list immediately. If tools do not appear after activation, use call_tool to invoke them directly.",
+        "description": "Dynamically register specific tools by name, regardless of current base tier. Use after search_tools to enable exactly the tools you need. In search-tier sessions this is usually enough; use activate_domain when you need every tool in a domain.",
         "operationId": "activate_tools",
         "requestBody": {
           "content": {
@@ -31701,7 +31701,7 @@
     },
     "/meta/search_tools": {
       "post": {
-        "description": "Search 736 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. Domains: browser (85) | memory (75) | native-emulator (57) | binary-instrument (46) | network (38) | process (29) | tls-inspector (29) | adb-bridge (26) | core (25) | debugger (21) | exploit-dev (21) | v8-inspector (21) | protocol-analysis (20) | platform (18) | maintenance (17) | streaming (17) | wasm (17) | dart-inspector (16) | syscall-hook (15) | instrumentation (13) | workflow (13) | coordination (12) | canvas (11) | proxy (11) | trace (10) | webgpu (10) | cross-domain (8) | mojo-ipc (8) | transform (8) | extension-registry (7) | graphql (7) | sourcemap (7) | native-bridge (6) | encoding (5) | tasks (4) | session (3). Query tip: before searching, distill your intent into key concepts (action verb + target + domain). The engine combines token matching, fuzzy names, profile context, and optional static embeddings.",
+        "description": "Search 736 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. The engine combines token matching, fuzzy names, profile context, and optional static embeddings.",
         "operationId": "search_tools",
         "requestBody": {
           "content": {

@@ -311,9 +311,9 @@ describe('MCPServer.search.helpers', () => {
 
     expect(description).toContain('Search 5 tools across 3 capability domains.');
     expect(description).toContain('plugin/workflow tools (2 currently loaded)');
-    expect(description).toContain('browser (3)');
-    expect(description).toContain('network (1)');
-    expect(description).toContain('workflow (1)');
+    // Domain names/counts live in activate_domain's domain param; the query tip lives in search_tools.query.
+    expect(description).not.toContain('Domains:');
+    expect(description).not.toContain('Query tip');
   });
 });
 

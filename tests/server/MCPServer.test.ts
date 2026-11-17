@@ -211,6 +211,7 @@ vi.mock('@src/server/registry/index', () => ({
   getAllManifests: () => mocks.allManifests,
   getAllRegistrations: () => [],
   getAllDomains: () => new Set(),
+  getAllKnownDomains: () => new Set(),
   getAllToolNames: () => new Set(),
   initRegistry: async () => {},
   buildToolGroups: () => ({}),
