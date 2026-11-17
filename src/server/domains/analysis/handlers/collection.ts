@@ -118,6 +118,7 @@ export class CollectionHandlers {
     if (returnSummaryOnly) {
       const summaryResult = summarizeResult(result);
       return asJsonResponse({
+        success: true,
         mode: 'summary',
         ...summaryResult,
         hint: 'Use get_script_source for specific files.',
@@ -136,6 +137,7 @@ export class CollectionHandlers {
 
       const summaryResult = summarizeResult(result);
       return asJsonResponse({
+        success: true,
         warning: 'Code size exceeds safe response threshold; summary returned.',
         ...summaryResult,
         estimatedResponseSize,
@@ -148,7 +150,7 @@ export class CollectionHandlers {
       });
     }
 
-    return asJsonResponse(result);
+    return asJsonResponse({ success: true, ...result });
   }
 
   async handleSearchInScripts(args: ToolArgs): Promise<ToolResponse> {

@@ -192,6 +192,11 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
       const body = parseJson<CollectCodeResponse>(result);
       expect(body.totalSize).toBe(1000);
+      // Without an explicit flag, `computeToolResultSuccess` reads
+      // `parsed.success !== false` — a successful collection that omits it is
+      // indistinguishable from a soft failure, and production telemetry showed
+      // collect_code at a 100% failure rate across 4 installs.
+      expect((body as unknown as { success?: boolean }).success).toBe(true);
     });
 
     it('returns summary mode when returnSummaryOnly is true', async () => {
@@ -214,6 +219,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         await handlers.handleCollectCode({ url: testUrls.TEST_URLS.root, returnSummaryOnly: true }),
       );
 
+      expect((body as unknown as { success?: boolean }).success).toBe(true);
       expect(body.mode).toBe('summary');
       expect(body.filesCount).toBe(2);
       expect(body.summary).toHaveLength(2);
