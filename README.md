@@ -220,7 +220,7 @@ For production deployments see the [Security and Production guide](https://vmora
 The built-in surface below is generated from the runtime registry and checked in CI.
 
 <!-- metadata-sync:start -->
-- Package version: `0.4.6`
+- Package version: `0.4.7`
 - Built-in tools: `736`
 - Domains: `adb-bridge`, `binary-instrument`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `dart-inspector`, `debugger`, `encoding`, `exploit-dev`, `extension-registry`, `graphql`, `instrumentation`, `maintenance`, `memory`, `mojo-ipc`, `native-bridge`, `native-emulator`, `network`, `platform`, `process`, `protocol-analysis`, `proxy`, `session`, `sourcemap`, `streaming`, `syscall-hook`, `tasks`, `tls-inspector`, `trace`, `transform`, `v8-inspector`, `wasm`, `webgpu`, `workflow`
 - Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.
