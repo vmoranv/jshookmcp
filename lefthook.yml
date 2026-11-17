@@ -22,11 +22,15 @@ pre-commit:
       run: corepack pnpm install --no-frozen-lockfile && git add pnpm-lock.yaml
     oxfmt:
       glob: "*.{ts,tsx,js,mjs,json}"
-      run: npx oxfmt {staged_files} --write
+      # `pnpm exec`, not `npx`: npx resolves the repo's own package name
+      # (`@jshookmcp/jshook`, which provides no `oxfmt` binary) and looks for
+      # the tool relative to D:/coding/reverse, failing every commit. Same
+      # resolution rule as `fallow` below.
+      run: pnpm exec oxfmt {staged_files} --write
       stage_fixed: true
     oxlint:
       glob: "*.{ts,tsx,js,mjs}"
-      run: npx oxlint {staged_files}
+      run: pnpm exec oxlint {staged_files}
     # fallow audits the whole changeset against the upstream merge-base (new-only
     # gate, see .fallowrc.json), so it is not scoped to staged files. `pnpm exec`
     # resolves the binary on Windows, macOS, and Linux; a direct
