@@ -19,7 +19,9 @@ import { getToolDomain } from '@server/ToolCatalog';
 import {
   classifyErrorKind,
   classifyFailureCause,
+  type ToolCallErrorKind,
 } from '@server/observability/ToolCallTraceRecorder';
+import { failureStageSpan } from '@server/observability/FailureStageSpan';
 import { fastValidateToolArgs } from '@server/registry/compiled-validators';
 import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
 import { recordToolUse } from '@server/MCPServer.search.helpers';
@@ -30,6 +32,8 @@ import {
   SpanNames,
 } from '@server/observability/InstrumentationContract';
 import { renderToolArgsAttrs } from '@server/observability/toolArgsPolicy';
+import { launchSignalAttrs } from '@server/observability/launchSignals';
+import { failureSpanAttrs } from '@server/observability/failureFingerprint';
 import {
   buildDoomLoopErrorResponse,
   buildToolGateDenyResponse,
@@ -288,6 +292,14 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
   const instrumentation = resolveInstrumentation(ctx);
   const executionCpuStart = collectExecutionMetrics ? process.cpuUsage() : null;
   const executionMemoryBefore = collectExecutionMetrics ? captureExecutionMetricMemory() : null;
+  // Stage signals for the thrown path, filled in by metadata-only series spans
+  // inside the session scope. `kind` is the failing step's verdict;
+  // `failedCallEmitted` records that the innermost layer already emitted the
+  // failure metric, so the outer catch neither re-emits it (double count) nor
+  // stays silent.
+  const failureStage: { kind?: ToolCallErrorKind; failedCallEmitted: boolean } = {
+    failedCallEmitted: false,
+  };
   try {
     const gateResponse = checkToolExecutionGate(ctx, name, args);
     if (gateResponse) return gateResponse;
@@ -331,6 +343,11 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
       timeoutMs,
       instrumentation,
       startAt: executionStartTime,
+      // Where the failing step's verdict lands (throw path). A throw can come
+      // from the fleet admission, the session restore or the handler itself,
+      // and only the innermost layer knows which — so the verdict rides a
+      // per-call slot rather than being inferred from the error's shape.
+      failureStage,
     });
 
     ctx.getDomainInstance<ServerRuntimeState>('serverRuntimeState')?.recordToolCall(name, args);
@@ -373,119 +390,24 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
       )
       ?.commit();
     return enriched;
-  } catch (error) {
-    // Pair the earlier started event even on the failure path. Message-only
-    // summary — never the args or response payloads.
+  } catch (thrown) {
+    // The session scope wraps whatever escaped it in StagedToolCallError so the
+    // failing stage can reach this handler. Unwrap it HERE and nowhere else:
+    // callers above see the original value (constructor unchanged, `instanceof`
+    // intact, rejection identity preserved), and everything below — error
+    // envelope, admission checks, rethrow — works on the real error.
+    const staged = thrown instanceof StagedToolCallError ? thrown : null;
+    const error: unknown = staged ? staged.original : thrown;
     const failureDurationMs = Number((performance.now() - executionStartTime).toFixed(2));
-    emitBusEvent(ctx.eventBus, 'tool.execution.finished', {
-      toolName: name,
-      domain: getToolDomain(name) ?? null,
-      sessionId: resolveCallSessionId(args),
-      durationMs: failureDurationMs,
-      ok: false,
-      errorSummary: truncateErrorSummary(error),
-      timestamp: new Date().toISOString(),
-    });
-    // The throwing path exits separately from the success path, so it accounts
-    // for its own sample. Without this every throw would be invisible to the
-    // counters and the error rate would read as zero.
-    // Classified with the structural signals from the caught value (its
-    // ToolError code / cause chain), not from its prose.
-    // The timeout marker must cover "timed out" as well as "timeout"/"hung" —
-    // a plain `Error('Operation timed out')` is the most common phrasing and
-    // the narrower pattern silently missed it.
-    const failureKind = classifyFailureCause(
-      classifyErrorKind({
-        thrown: true,
-        timedOut: error instanceof Error && /tim(?:ed\s*out|eout)|hung/i.test(error.message),
-      }),
-      { error },
+    const errorResponse = buildThrownFailure(
+      ctx,
+      instrumentation,
+      name,
+      args,
+      error,
+      failureDurationMs,
+      staged,
     );
-    instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
-      tool: name,
-      success: false,
-      outcome: failureKind,
-    });
-    instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });
-    instrumentation.emitMetric(MetricNames.toolDurationMs, failureDurationMs, 'histogram', {
-      tool: name,
-      success: false,
-      outcome: failureKind,
-    });
-    // Failures that throw never reach the success-path `tool:called` emit, so
-    // without this the trace would record only calls that returned — a trace
-    // of the easy calls. Timeouts, validation rejections and gate blocks all
-    // surface here as thrown errors.
-    void ctx.eventBus.emit('tool:called', {
-      toolName: name,
-      domain: getToolDomain(name) ?? null,
-      sessionId: resolveCallSessionId(args),
-      timestamp: new Date().toISOString(),
-      success: false,
-      durationMs: failureDurationMs,
-      errorKind: failureKind,
-    });
-    const admissionError =
-      error instanceof BrowserSessionQueueError ||
-      error instanceof BrowserFleetLeaseError ||
-      error instanceof SessionScopedResourcePoolCapacityError;
-    if (!admissionError) {
-      ctx.circuitBreaker.recordFailure(name);
-    }
-    const errorResponse =
-      error instanceof BrowserSessionQueueError
-        ? {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify({
-                  success: false,
-                  error: error.message,
-                  code: error.code,
-                  retryAfterMs: error.retryAfterMs,
-                  queueDepth: error.queueDepth,
-                  queueLimit: error.queueLimit,
-                }),
-              },
-            ],
-            isError: true,
-          }
-        : error instanceof BrowserFleetLeaseError
-          ? {
-              content: [
-                {
-                  type: 'text' as const,
-                  text: JSON.stringify({
-                    success: false,
-                    error: error.message,
-                    code: error.code,
-                    retryAfterMs: error.retryAfterMs,
-                    targetWorkerId: error.targetWorkerId,
-                    targetEndpoint: error.targetEndpoint,
-                    fencingToken: error.fencingToken,
-                  }),
-                },
-              ],
-              isError: true,
-            }
-          : error instanceof SessionScopedResourcePoolCapacityError
-            ? {
-                content: [
-                  {
-                    type: 'text' as const,
-                    text: JSON.stringify({
-                      success: false,
-                      error: error.message,
-                      code: error.code,
-                      retryAfterMs: error.retryAfterMs,
-                      resourceCount: error.size,
-                      resourceLimit: error.limit,
-                    }),
-                  },
-                ],
-                isError: true,
-              }
-            : asErrorResponse(error);
     try {
       ctx.tokenBudget.recordToolCall(name, args, errorResponse);
     } catch (trackingError) {
@@ -496,12 +418,214 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
         'evidenceGraph',
       )
       ?.commit();
-    if (admissionError) return errorResponse;
+    if (isAdmissionError(error)) return errorResponse;
     // Log the original error (including its stack) before re-throwing — the
     // error response above only carries the message, and the throw would
     // otherwise be the last trace of the failure.
     logger.error(`Tool execution failed for '${name}':`, error);
     throw error;
+  }
+}
+
+/**
+ * Callback for `failureStageSpan`: record the stage's verdict before rethrow.
+ *
+ * A failure in a LATER stage overwrites the earlier class, because the last
+ * stage entered is the one whose work the failure actually interrupted.
+ */
+function reportStageFailure(slot: { kind?: ToolCallErrorKind }): (error: unknown) => void {
+  return (error) => {
+    slot.kind = classifyFailureCause(classifyErrorKind({ thrown: true }), { error });
+  };
+}
+
+/**
+ * Verdict for a failure that escaped the handler.
+ *
+ * A staged failure already knows its verdict — reclassifying it from the
+ * wrapper's message would overwrite `target_gone`/`network` with a bare
+ * `handler`. Otherwise the structural signals are read from the caught value
+ * (its ToolError code / cause chain), never from its prose.
+ *
+ * The timeout marker must cover "timed out" as well as "timeout"/"hung" — a
+ * plain `Error('Operation timed out')` is the most common phrasing and the
+ * narrower pattern silently missed it.
+ */
+function resolveFailureKind(
+  error: unknown,
+  stagedKind: ToolCallErrorKind | undefined,
+): ToolCallErrorKind | undefined {
+  if (stagedKind !== undefined) return stagedKind;
+  return classifyFailureCause(
+    classifyErrorKind({
+      thrown: true,
+      timedOut: error instanceof Error && /tim(?:ed\s*out|eout)|hung/i.test(error.message),
+    }),
+    { error },
+  );
+}
+
+/**
+ * Failure sample for a call that threw.
+ *
+ * The throwing path exits separately from the success path, so it accounts for
+ * its own sample; without it every throw would be invisible to the counters and
+ * the error rate would read as zero. `alreadyEmitted` covers the handler that
+ * emitted its own sample before rethrowing — the event stream, circuit breaker
+ * and error envelope still run, only the double count is skipped.
+ */
+function emitThrownFailureMetrics(
+  instrumentation: ReturnType<typeof resolveInstrumentation>,
+  name: string,
+  failureKind: ToolCallErrorKind | undefined,
+  failureDurationMs: number,
+  alreadyEmitted: boolean,
+): void {
+  if (alreadyEmitted) return;
+  const callSignals = launchSignalAttrs();
+  instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
+    tool: name,
+    success: false,
+    outcome: failureKind,
+    ...callSignals,
+  });
+  instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });
+  instrumentation.emitMetric(MetricNames.toolDurationMs, failureDurationMs, 'histogram', {
+    tool: name,
+    success: false,
+    outcome: failureKind,
+    // The worker folds this histogram and the counter above into ONE row by
+    // hashing the full attrs object, so any attribute on one half and not the
+    // other makes the pair miss and doubles the row. Mirror, always.
+    ...callSignals,
+  });
+}
+
+/** Admission refusals are backpressure, not breakage: no circuit-breaker trip. */
+function isAdmissionError(error: unknown): boolean {
+  return (
+    error instanceof BrowserSessionQueueError ||
+    error instanceof BrowserFleetLeaseError ||
+    error instanceof SessionScopedResourcePoolCapacityError
+  );
+}
+
+/**
+ * Everything the throw path owes the outside world before the error leaves
+ * `executeToolWithTracking`: the paired `finished` event, the failure sample
+ * (unless the handler already emitted one) and the error envelope.
+ */
+function buildThrownFailure(
+  ctx: MCPServerContext,
+  instrumentation: ReturnType<typeof resolveInstrumentation>,
+  name: string,
+  args: ToolArgs,
+  error: unknown,
+  failureDurationMs: number,
+  staged: StagedToolCallError | null,
+) {
+  // Pair the earlier started event even on the failure path. Message-only
+  // summary — never the args or response payloads.
+  emitBusEvent(ctx.eventBus, 'tool.execution.finished', {
+    toolName: name,
+    domain: getToolDomain(name) ?? null,
+    sessionId: resolveCallSessionId(args),
+    durationMs: failureDurationMs,
+    ok: false,
+    errorSummary: truncateErrorSummary(error),
+    timestamp: new Date().toISOString(),
+  });
+  const failureKind = resolveFailureKind(error, staged?.stage);
+  emitThrownFailureMetrics(
+    instrumentation,
+    name,
+    failureKind,
+    failureDurationMs,
+    staged?.failureEmitted === true,
+  );
+  // Failures that throw never reach the success-path `tool:called` emit, so
+  // without this the trace would record only calls that returned — a trace of
+  // the easy calls. Timeouts, validation rejections and gate blocks all surface
+  // here as thrown errors.
+  void ctx.eventBus.emit('tool:called', {
+    toolName: name,
+    domain: getToolDomain(name) ?? null,
+    sessionId: resolveCallSessionId(args),
+    timestamp: new Date().toISOString(),
+    success: false,
+    durationMs: failureDurationMs,
+    errorKind: failureKind,
+  });
+  if (!isAdmissionError(error)) {
+    ctx.circuitBreaker.recordFailure(name);
+  }
+  return admissionErrorResponse(error);
+}
+
+/** Structured envelope for the three admission refusals, else the generic one. */
+function admissionErrorResponse(error: unknown) {
+  if (error instanceof BrowserSessionQueueError) {
+    return textErrorResponse({
+      success: false,
+      error: error.message,
+      code: error.code,
+      retryAfterMs: error.retryAfterMs,
+      queueDepth: error.queueDepth,
+      queueLimit: error.queueLimit,
+    });
+  }
+  if (error instanceof BrowserFleetLeaseError) {
+    return textErrorResponse({
+      success: false,
+      error: error.message,
+      code: error.code,
+      retryAfterMs: error.retryAfterMs,
+      targetWorkerId: error.targetWorkerId,
+      targetEndpoint: error.targetEndpoint,
+      fencingToken: error.fencingToken,
+    });
+  }
+  if (error instanceof SessionScopedResourcePoolCapacityError) {
+    return textErrorResponse({
+      success: false,
+      error: error.message,
+      code: error.code,
+      retryAfterMs: error.retryAfterMs,
+      resourceCount: error.size,
+      resourceLimit: error.limit,
+    });
+  }
+  return asErrorResponse(error);
+}
+
+function textErrorResponse(payload: Record<string, unknown>) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(payload) }],
+    isError: true as const,
+  };
+}
+
+/**
+ * A tool-call failure annotated with the pipeline stage that produced it.
+ *
+ * The outer catch needs two facts the thrown error does not carry: which step
+ * failed, and whether the innermost layer already emitted the failure metric.
+ * The wrapper is unwrapped at the TOP of that catch, so callers above still see
+ * the original value with its `instanceof` identity intact, and `cause` keeps
+ * its stack reachable.
+ */
+class StagedToolCallError extends Error {
+  readonly original: unknown;
+  readonly stage: ToolCallErrorKind | undefined;
+  /** The handler emitted its own failure sample before rethrowing. */
+  readonly failureEmitted: boolean;
+
+  constructor(original: unknown, stage: ToolCallErrorKind | undefined, failureEmitted: boolean) {
+    super(original instanceof Error ? original.message : String(original), { cause: original });
+    this.name = 'StagedToolCallError';
+    this.original = original;
+    this.stage = stage;
+    this.failureEmitted = failureEmitted;
   }
 }
 
@@ -653,10 +777,15 @@ function emitToolCallTelemetry(
   // `outcome` is the error class the telemetry worker folds into `dim_label`;
   // without it every failure row arrives with a null label and the failure
   // profile collapses into a single number that cannot be acted on.
+  // `callSignals` (entrypoint / browser_mode / stderr_empty) answer "why the
+  // browser did not come up", which `outcome` alone cannot express. Computed
+  // once so both halves of the counter/duration pair carry identical attrs.
+  const callSignals = launchSignalAttrs();
   instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
     tool: name,
     success: toolResultSuccess,
     ...(errorKind !== undefined ? { outcome: errorKind } : {}),
+    ...callSignals,
   });
   if (!toolResultSuccess) {
     instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });
@@ -670,6 +799,7 @@ function emitToolCallTelemetry(
     // rows — doubling write quota for every failure and skewing fail_pct's
     // denominator. The throw path in executeToolWithTracking does the same.
     ...(errorKind !== undefined ? { outcome: errorKind } : {}),
+    ...callSignals,
   });
   const searchQualityTracker =
     ctx.getDomainInstance<import('@server/search/SearchQualityTracker').SearchQualityTracker>(
@@ -704,6 +834,8 @@ interface SessionScopeParams {
   timeoutMs: number;
   instrumentation: ReturnType<typeof resolveInstrumentation>;
   startAt: number;
+  /** Verdict slot filled by the failing step; read by the outer catch. */
+  failureStage: { kind?: ToolCallErrorKind; failedCallEmitted: boolean };
 }
 
 /** Execute the tool inside the browser session scope (coordinator
@@ -749,7 +881,14 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
     }
     let fleetRoute: BrowserFleetRoute | null = null;
     if (browserCoordinator && fleetRouter) {
-      fleetRoute = await fleetRouter.admitLocalSession(sessionId?.trim() || 'default');
+      P.failureStage.kind = 'handler';
+      fleetRoute = await failureStageSpan(
+        instrumentation,
+        name,
+        'fleet_admit',
+        async () => fleetRouter.admitLocalSession(sessionId?.trim() || 'default'),
+        reportStageFailure(P.failureStage),
+      );
     }
     const executeInContext = async () => {
       activeWatchdogTimer = setTimeout(() => {
@@ -766,6 +905,10 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
         }
       }, timeoutMs);
       activeWatchdogTimer!.unref();
+      // The handler stage is the innermost and last one entered, so it is what
+      // the current work keeps by default. Every stage below overrides it
+      // before it can throw.
+      P.failureStage.kind = 'handler';
       try {
         const executeTool = async () => {
           // Covers the real handler call only — not the whole request. The
@@ -792,9 +935,24 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
           // carry their reason only in the payload, so both paths funnel
           // through this one variable.
           let spanErrorMessage: string | null = null;
+          // Classified error kind for the span: same classifier as the metric's
+          // `outcome`, so the trace and the counter never disagree about WHY.
+          let spanFailureKind: ToolCallErrorKind | undefined;
           try {
             if (browserCoordinator) {
-              await browserCoordinator.restoreSessionContext(sessionId);
+              // Restoring the session context is its own stage AND a known
+              // failure source: a factory that refuses a restored cookie/tab
+              // set throws here, not in the handler. Attributing it to
+              // `handler` is how every factory-restore failure used to look
+              // like an unclassifiable handler crash.
+              P.failureStage.kind = 'handler';
+              await failureStageSpan(
+                instrumentation,
+                name,
+                'session_restore',
+                () => browserCoordinator.restoreSessionContext(sessionId),
+                reportStageFailure(P.failureStage),
+              );
             }
             const response = await ctx.router.execute(name, args);
 
@@ -811,9 +969,17 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
             const enrichedResponse = ctx.contextGuard.enrichResponse(name, response);
             handlerReturned = true;
             spanErrorMessage = extractResponseErrorMessage(enrichedResponse);
+            if (spanErrorMessage !== null) {
+              const softFail = readSoftFailResponse(enrichedResponse);
+              spanFailureKind = classifyFailureCause(classifyErrorKind({ successFlag: false }), {
+                errorCode: softFail.code ?? undefined,
+                platformError: softFail.message ?? undefined,
+              });
+            }
             return enrichedResponse;
           } catch (error) {
             spanErrorMessage = truncateErrorSummary(error);
+            spanFailureKind = classifyFailureCause(classifyErrorKind({ thrown: true }), { error });
             // Recorded as a span event rather than a second end(): keeping a
             // single end path in `finally` is what keeps the duration honest.
             executeSpan.addEvent('error', {
@@ -821,16 +987,19 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
             });
             throw error;
           } finally {
+            // "ok" = handler ran AND the response reports success. A soft fail
+            // (R.fail without a throw) previously left ok:true here while the
+            // paired toolCallsTotal metric said success:false — the two sinks
+            // disagreeing is exactly the drift the paired emission was built
+            // to prevent.
+            //
+            // A failure carries `error_class` + `error_fingerprint` instead of
+            // the raw message: the message used to put the caller's target URL
+            // into the telemetry database, and an unstructured string could not
+            // be grouped into "one bug, many targets" downstream.
+            const failed = !(handlerReturned && spanErrorMessage === null);
             executeSpan.end({
-              // "ok" = handler ran AND the response reports success. A soft
-              // fail (R.fail without a throw) previously left ok:true here
-              // while the paired toolCallsTotal metric said success:false —
-              // the two sinks disagreeing is exactly the drift the paired
-              // emission was built to prevent. soft-fail error message rides
-              // the same extract below.
-              ok: handlerReturned && spanErrorMessage === null,
-              // Always emitted on failure (soft or thrown); never on success.
-              ...(spanErrorMessage !== null ? { error: spanErrorMessage } : {}),
+              ...(failed ? failureSpanAttrs(spanFailureKind, spanErrorMessage) : { ok: true }),
               // Argument capture per the global tool-args policy: default
               // records ONLY key names (shape) — values need an explicit
               // JSHOOK_OTLP_TOOL_ARGS opt-in and are credential-scrubbed.
@@ -856,6 +1025,10 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
           signal: getToolRequestContext()?.signal,
         })
       : await executeInContext();
+  } catch (error) {
+    // Carry the stage verdict out to the outer catch, the only place with the
+    // metrics, envelope and rethrow in one owner.
+    throw new StagedToolCallError(error, P.failureStage.kind, P.failureStage.failedCallEmitted);
   } finally {
     if (activeWatchdogTimer) clearTimeout(activeWatchdogTimer);
   }
