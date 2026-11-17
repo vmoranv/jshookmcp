@@ -56,6 +56,7 @@ vi.mock('@server/runtime/ServerRuntimeState', () => ({
 
 import { executeToolWithTracking } from '@server/MCPServer.execution';
 import { R } from '@server/domains/shared/ResponseBuilder';
+import { installLaunchSignals, resetLaunchSignals } from '@server/observability/launchSignals';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
 import {
   INSTRUMENTATION_DOMAIN_KEY,
@@ -110,7 +111,54 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Stage spans are emitted only for per-process entrypoints, and vitest's
+    // node_modules shim already detects as `bin` — pin it so a runner change
+    // cannot silently drop the stage assertions.
+    resetLaunchSignals();
+    installLaunchSignals({ entrypoint: 'bin' });
     instrumentation = new RecordingInstrumentation();
+  });
+
+  it('records the failing stage instead of a bare handler verdict', async () => {
+    // Session restore is its own stage: a factory that refuses a restored
+    // cookie/tab set must not look like the handler crashed.
+    const broker = {
+      restoreSessionContext: vi.fn(async () => {
+        // A real factory failure carries a platform code in the cause chain;
+        // that is the structural signal the classifier reads.
+        throw new Error('fetch failed', { cause: { code: 'ECONNREFUSED' } });
+      }),
+      noteToolResult: vi.fn(),
+      runExclusive: (_s: string, fn: () => Promise<unknown>) => fn(),
+    };
+    const ctx = createCtx(async () => R.ok().json(), instrumentation);
+    (ctx as unknown as { getDomainInstance: (k: string) => unknown }).getDomainInstance = ((
+      key: string,
+    ) =>
+      key === 'browserSessionCoordinator'
+        ? broker
+        : key === INSTRUMENTATION_DOMAIN_KEY
+          ? instrumentation
+          : undefined) as never;
+
+    await expect(executeToolWithTracking(ctx, 'page_navigate', {})).rejects.toThrow('fetch failed');
+    // The stage helper gates on the entrypoint; re-pin it here because the test
+    // itself may follow another describe's `library` fixture.
+    installLaunchSignals({ entrypoint: 'bin' });
+
+    const stages = instrumentation.spansNamed(SpanNames.toolExecuteStage);
+    expect(stages).toHaveLength(1);
+    expect(stages[0]!.attrs).toMatchObject({ toolName: 'page_navigate', stage: 'session_restore' });
+    expect(stages[0]!.endAttrs).toEqual({ ok: false });
+
+    // One failure, ONE metric sample — classified by the stage, not `handler`.
+    const calls = instrumentation.metricsNamed(MetricNames.toolCallsTotal);
+    expect(calls).toHaveLength(1);
+    const callAttrs = calls[0]!.attrs ?? {};
+    expect(callAttrs).toMatchObject({ tool: 'page_navigate', success: false });
+    expect(callAttrs['outcome']).toBe('network');
+    const durationAttrs = instrumentation.metricsNamed(MetricNames.toolDurationMs)[0]?.attrs;
+    expect(durationAttrs).toEqual(calls[0]!.attrs);
   });
 
   it('emits the tool spans and metrics on a successful call', async () => {
@@ -138,7 +186,7 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
         name: MetricNames.toolCallsTotal,
         value: 1,
         type: 'counter',
-        attrs: { tool: 'page_navigate', success: true },
+        attrs: { tool: 'page_navigate', success: true, entrypoint: 'bin' },
       },
     ]);
     expect(instrumentation.metricsNamed(MetricNames.toolErrorsTotal)).toHaveLength(0);
@@ -164,6 +212,9 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
       tool: 'page_navigate',
       success: false,
       outcome: 'handler',
+      // Attribution signal, present on EVERY call so the counter/duration pair
+      // stays byte-identical (the worker folds by hashing the whole attrs).
+      entrypoint: 'bin',
     });
     expect(instrumentation.metricsNamed(MetricNames.toolErrorsTotal)).toHaveLength(1);
     expect(instrumentation.metricsNamed(MetricNames.toolDurationMs)[0]!.attrs).toEqual({
@@ -172,16 +223,21 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
       // Must equal the counter's attrs: the worker folds the pair by hashing
       // the whole attrs object, so a mismatch costs a second row per failure.
       outcome: 'handler',
+      entrypoint: 'bin',
     });
 
     // The failed execution is recorded as a span EVENT, and the span still ends
-    // exactly once — that is what keeps the duration honest. The message ALSO
-    // lands on the span's end attributes: the OTLP worker persists only
-    // span.attributes, so event-only messages never reach the database.
+    // exactly once — that is what keeps the duration honest. The REASON rides
+    // the end attributes as structured fields (the OTLP worker persists only
+    // span.attributes, so event-only details never reach the database).
     const execute = instrumentation.spansNamed(SpanNames.toolExecute);
     expect(execute).toHaveLength(1);
     expect(execute[0]!.ended).toBe(true);
-    expect(execute[0]!.endAttrs).toEqual({ ok: false, error: 'handler exploded' });
+    // Structured, not raw: the message used to land verbatim in the telemetry
+    // database. `error_class` names the stage; the fingerprint groups repeats.
+    expect(execute[0]!.endAttrs).toMatchObject({ ok: false, error_class: 'handler' });
+    expect(execute[0]!.endAttrs).toHaveProperty('error_fingerprint');
+    expect(execute[0]!.endAttrs).not.toHaveProperty('error');
     expect(execute[0]!.events).toEqual(['error']);
   });
 
@@ -194,20 +250,22 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     const response = await executeToolWithTracking(ctx, 'browser_launch', {});
     expect(response).toMatchObject({ success: false });
 
-    // Soft-fail = one call + one error in metrics, same as a throw. The reason
-    // is the span attribute — this is the path telemetry previously went blind
-    // on (ok:false with no trace of WHY).
+    // Soft-fail = one call + one error in metrics, same as a throw. The span
+    // says WHY via error_class + fingerprint — never the message itself, which
+    // would carry the caller's executable path into the telemetry database.
     expect(instrumentation.metricsNamed(MetricNames.toolCallsTotal)[0]!.attrs).toEqual({
       tool: 'browser_launch',
       success: false,
       outcome: 'unknown',
+      entrypoint: 'bin',
     });
     const execute = instrumentation.spansNamed(SpanNames.toolExecute);
     expect(execute).toHaveLength(1);
     expect(execute[0]!.endAttrs).toMatchObject({ ok: false });
-    expect(execute[0]!.endAttrs).toHaveProperty(
-      'error',
-      'Executable not found at D:/chrome/chrome.exe',
+    expect(execute[0]!.endAttrs).toMatchObject({ ok: false, error_class: 'unknown' });
+    expect(execute[0]!.endAttrs).not.toHaveProperty('error');
+    expect(typeof (execute[0]!.endAttrs as Record<string, unknown>)['error_fingerprint']).toBe(
+      'string',
     );
     expect(execute[0]!.events).toEqual([]);
   });
@@ -228,31 +286,39 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
       tool: 'browser_launch',
       success: false,
       outcome: 'prereq_missing',
+      entrypoint: 'bin',
     });
     expect(instrumentation.metricsNamed(MetricNames.toolDurationMs)[0]!.attrs).toEqual({
       tool: 'browser_launch',
       success: false,
       outcome: 'prereq_missing',
+      entrypoint: 'bin',
     });
   });
 
-  it('omits the error attribute on successful responses and truncates long messages', async () => {
+  it('omits every error attribute on success and fingerprints (not truncates) failures', async () => {
     const longMessage = 'x'.repeat(EXECUTION_EVENT_ERROR_SUMMARY_MAX_CHARS + 50);
     const okCtx = createCtx(async () => R.ok().merge({ anything: 1 }).json(), instrumentation);
     await executeToolWithTracking(okCtx, 'page_navigate', {});
     const okExecute = instrumentation.spansNamed(SpanNames.toolExecute);
     expect(okExecute[0]!.endAttrs).toEqual({ ok: true });
     expect(okExecute[0]!.endAttrs).not.toHaveProperty('error');
+    expect(okExecute[0]!.endAttrs).not.toHaveProperty('error_class');
+    expect(okExecute[0]!.endAttrs).not.toHaveProperty('error_fingerprint');
 
     const failCtx = createCtx(async () => R.fail(longMessage).json(), instrumentation);
     await executeToolWithTracking(failCtx, 'page_navigate', {});
     const failExecute = instrumentation.spansNamed(SpanNames.toolExecute);
     expect(failExecute).toHaveLength(2);
-    // Truncation must PRESERVE the reason: first 200 chars + ellipsis marker,
-    // not any short string the implementation happens to substitute.
-    const err = (failExecute[1]!.endAttrs as Record<string, unknown>)['error'];
-    expect(err).toBe(`${'x'.repeat(EXECUTION_EVENT_ERROR_SUMMARY_MAX_CHARS)}…`);
-    expect((failExecute[1]!.endAttrs as Record<string, unknown>)['ok']).toBe(false);
+    const endAttrs = failExecute[1]!.endAttrs as Record<string, unknown>;
+    // The raw text is gone: a 250-char message and a 250,000-char one describe
+    // the same failure, and neither may carry the caller's data downstream.
+    expect(endAttrs['ok']).toBe(false);
+    expect(endAttrs).not.toHaveProperty('error');
+    // A soft-fail `R.fail('prose')` carries no structural cause -> `unknown`,
+    // which is what the metric's `outcome` says above.
+    expect(endAttrs['error_class']).toBe('unknown');
+    expect(endAttrs['error_fingerprint']).toMatch(/^[0-9a-f]{8}$/);
   });
 
   it('emits nothing when the execution gate denies the call', async () => {

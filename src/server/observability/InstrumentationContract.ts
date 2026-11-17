@@ -52,6 +52,13 @@ export interface InstrumentationContract {
 
 export const SpanNames = {
   toolExecute: 'tool.execute',
+  /**
+   * One span per pipeline STAGE that can fail before the handler runs
+   * (session restore, ...). Attributes: toolName, stage, ok. Metadata only —
+   * no arguments and no error text — so the stage can be named downstream even
+   * for installs that never enabled the richer `tool.execute` trace.
+   */
+  toolExecuteStage: 'tool.execute.stage',
   toolValidateInput: 'tool.validate_input',
   registryDiscovery: 'registry.discovery',
   pluginLifecycle: 'plugin.lifecycle',
