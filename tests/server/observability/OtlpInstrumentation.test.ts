@@ -84,6 +84,24 @@ function makeLive(): {
 }
 
 describe('OtlpInstrumentation', () => {
+  it('honours the configured metric export interval (row-volume lever)', async () => {
+    const metricExporter = new InMemoryMetricExporter(AggregationTemporality.DELTA);
+    const configured = new OtlpInstrumentation({
+      makeMetricExporter: () => metricExporter,
+      metricExportIntervalMs: 180_000,
+    });
+    // flush() awaits the in-flight SDK init, so the reader is built by then —
+    // more deterministic than a timed wait.
+    await configured.flush();
+    expect(configured.metricExportInterval()).toBe(180_000);
+
+    // No override → the module default. This is the number that decides how
+    // many metric rows a day of traffic writes, so it must not drift silently.
+    const defaulted = new OtlpInstrumentation({ makeMetricExporter: () => metricExporter });
+    await defaulted.flush();
+    expect(defaulted.metricExportInterval()).toBe(120_000);
+  });
+
   it('buffers spans emitted before init and replays them with their attributes', async () => {
     const { exporter, otlp } = makeLive();
 

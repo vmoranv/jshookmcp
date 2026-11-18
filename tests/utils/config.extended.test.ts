@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getConfig, validateConfig } from '@utils/config';
 
 describe('config validation – extended checks', () => {
@@ -41,6 +41,27 @@ describe('config validation – extended checks', () => {
     const result = validateConfig(config);
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('cache.ttl must be non-negative');
+  });
+
+  it('maps the OTLP metric export interval, defaulting to 120s', async () => {
+    // The interval is the metric ROW-VOLUME lever: one row per tool/outcome
+    // per flush window. Default must stay in sync with
+    // OtlpInstrumentation.DEFAULT_METRIC_EXPORT_INTERVAL_MS.
+    vi.resetModules();
+    delete process.env.JSHOOK_OTLP_METRIC_EXPORT_INTERVAL_MS;
+    const defaulted = await import('@utils/config');
+    expect(defaulted.getConfig().observability?.metricExportIntervalMs).toBe(120_000);
+
+    vi.resetModules();
+    process.env.JSHOOK_OTLP_METRIC_EXPORT_INTERVAL_MS = '300000';
+    const overridden = await import('@utils/config');
+    expect(overridden.getConfig().observability?.metricExportIntervalMs).toBe(300_000);
+
+    // Out of range falls back to the default rather than exporting every 0ms.
+    vi.resetModules();
+    process.env.JSHOOK_OTLP_METRIC_EXPORT_INTERVAL_MS = '1';
+    const clamped = await import('@utils/config');
+    expect(clamped.getConfig().observability?.metricExportIntervalMs).toBe(120_000);
   });
 
   it('validates browser session scheduler limits', () => {

@@ -419,6 +419,13 @@ const ConfigSchema = z.object({
       typeof value === 'string' && value.trim().length > 0 ? value.trim().toLowerCase() : 'shape',
     z.enum(['off', 'shape', 'truncated', 'full']),
   ),
+  // Row volume scales inversely with this interval (one row per tool/outcome
+  // per flush window), so it is the first lever when the sink has a daily
+  // row budget. Floor 10s keeps a mis-set value from spamming the collector;
+  // ceiling 1h keeps it from going effectively silent.
+  JSHOOK_OTLP_METRIC_EXPORT_INTERVAL_MS: envInt(120_000).pipe(
+    z.number().min(10_000).max(3_600_000),
+  ),
 
   // Extension/plugin trust boundary
   EXTENSION_REGISTRY_BASE_URL: optionalTrimmedString,
@@ -804,6 +811,7 @@ function buildObservabilityConfig(env: ParsedConfigEnvironment): ObservabilityCo
     maxSpans: env.JSHOOK_OBSERVABILITY_MAX_SPANS,
     queryText: env.JSHOOK_OTLP_QUERY_TEXT,
     toolArgs: env.JSHOOK_OTLP_TOOL_ARGS,
+    metricExportIntervalMs: env.JSHOOK_OTLP_METRIC_EXPORT_INTERVAL_MS,
   };
 }
 

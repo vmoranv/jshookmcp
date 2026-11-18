@@ -66,6 +66,18 @@ export interface ObservabilityConfig {
    * credential-masked and size-capped), `off`.
    */
   toolArgs?: 'off' | 'shape' | 'truncated' | 'full';
+  /**
+   * How often the OTLP metric exporter flushes, in milliseconds.
+   *
+   * This is the dominant driver of metric ROW VOLUME: each flush window emits
+   * one row per (tool, outcome) combination seen in it, so halving the flush
+   * rate halves the rows written. D1's free tier allows 100k rows written per
+   * day, and the measured 60s cadence burned it (2026-11-18: 63,877 metric
+   * rows + 43,328 span-index writes in 24h, ingestion dead for the rest of
+   * the day). 120s is the shipped default: fine-grained enough for CI-shaped
+   * traffic, half the rows.
+   */
+  metricExportIntervalMs?: number;
 }
 
 /** One ordered tool-execution permission rule (the LAST matching rule wins). */

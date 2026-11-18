@@ -112,8 +112,17 @@ const FLUSH_TIMEOUT_MS = 5_000;
 
 /** Ceiling for one metric export attempt; clamped down when the interval is shorter. */
 const METRIC_EXPORT_TIMEOUT_MS = 10_000;
-/** Default metric export interval. See `metricExportIntervalMs` for the reasoning. */
-const DEFAULT_METRIC_EXPORT_INTERVAL_MS = 60_000;
+/**
+ * Default metric export interval when the caller passes no override.
+ *
+ * 120s rather than the original 60s: each window emits one row per
+ * (tool, outcome) combination, and the sink's daily row budget (D1 free tier,
+ * 100k rows written) was exhausted by the 60s cadence — measured 2026-11-18:
+ * 63,877 metric rows/day, ingestion dead from 01:46 UTC onward. Operators who
+ * need finer resolution set metricExportIntervalMs (env
+ * JSHOOK_OTLP_METRIC_EXPORT_INTERVAL_MS).
+ */
+const DEFAULT_METRIC_EXPORT_INTERVAL_MS = 120_000;
 
 /** OTLP attribute values: primitives (and arrays thereof) only. */
 function sanitizeAttrs(attrs: Record<string, unknown> | undefined): Record<string, unknown> {
@@ -138,6 +147,13 @@ export class OtlpInstrumentation implements InstrumentationContract {
   private readonly pendingSpans: BufferedSpan[] = [];
   private readonly pendingMetrics: BufferedMetric[] = [];
   private readonly options: OtlpInstrumentationOptions;
+  /**
+   * The interval the metric reader was actually built with (option override,
+   * else the module default). Exposed so the config → exporter wiring can be
+   * asserted: a config key that silently does nothing is the defect class
+   * this observability work exists to remove.
+   */
+  private effectiveMetricExportIntervalMs: number | null = null;
   /**
    * The in-flight (or settled) init. flush()/shutdown() await it first — a
    * shutdown that races the SDK still loading would otherwise no-op and drop
@@ -245,6 +261,7 @@ export class OtlpInstrumentation implements InstrumentationContract {
         1,
         this.options.metricExportIntervalMs ?? DEFAULT_METRIC_EXPORT_INTERVAL_MS,
       );
+      this.effectiveMetricExportIntervalMs = intervalMs;
       const metricProvider = new MeterProvider({
         resource,
         readers: [
@@ -373,6 +390,14 @@ export class OtlpInstrumentation implements InstrumentationContract {
     } catch {
       /* swallow: metrics must never break the caller */
     }
+  }
+
+  /**
+   * The metric flush interval this instance uses, or null before the SDK
+   * reader is built (the no-op/degraded paths never build one).
+   */
+  metricExportInterval(): number | null {
+    return this.effectiveMetricExportIntervalMs;
   }
 
   /** Force-push buffered spans/metrics to the endpoint. Bounded. */

@@ -44,6 +44,11 @@ export function createInstrumentation(
   }
   if (settings?.exporter === 'otlp') {
     return new OtlpInstrumentation({
+      // Wired from config so an operator can trade metric resolution for
+      // row volume without a code change; see ObservabilityConfig.
+      ...(typeof settings?.metricExportIntervalMs === 'number'
+        ? { metricExportIntervalMs: settings.metricExportIntervalMs }
+        : {}),
       // The OTel SDK loads via dynamic import from optionalDependencies; a
       // missing package or a broken provider build degrades the instance to
       // a no-op. Telemetry must never take the server down with it.
