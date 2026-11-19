@@ -216,7 +216,7 @@ importers:
         version: 2.16.0
       z3-solver:
         specifier: ^5.0.0
-        version: 5.3.3
+        version: 5.4.1
 
   packages/extension-sdk:
     devDependencies:
@@ -4212,8 +4212,8 @@ packages:
     resolution: {integrity: sha512-XrBh9ZiQK5mJVRxZBAvD6LwRyAYrK3MFtH3+onyuxFL5hFD44EC3QOmIC1FjTj6H2MMwq46/NAI+NZxLZPZgxg==}
     engines: {node: '>=14.18.0'}
 
-  z3-solver@5.3.3:
-    resolution: {integrity: sha512-7M2HEYYypcaFib2UOLuR69PHqoOWfXC2VhiVnQggm4ykJXWUfZyZxNhhy9ai1yiu4/yPA9X/rutqSGgafNB4TA==}
+  z3-solver@5.4.1:
+    resolution: {integrity: sha512-HyRpufMZ1NuaYfnxzc34qw9tLzwoUipv8ySfRewnCwXaKVuT5LHs313+edFfaWs0MLmk1v9yg4V44QqtdFLtDg==}
     engines: {node: '>=16'}
 
   zod@4.6.7:
@@ -7969,7 +7969,7 @@ snapshots:
       '@yuku-toolchain/types': 0.19.0
       yuku-core: 0.19.0
 
-  z3-solver@5.3.3:
+  z3-solver@5.4.1:
     dependencies:
       async-mutex: 0.3.2
     optional: true
