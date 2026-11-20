@@ -177,7 +177,7 @@ importers:
     optionalDependencies:
       '@devicefarmer/adbkit':
         specifier: ^4.0.0
-        version: 4.0.1
+        version: 4.1.0
       '@opentelemetry/api':
         specifier: ^1.10.0
         version: 1.10.0
@@ -375,8 +375,8 @@ packages:
     resolution: {integrity: sha512-lG0vEFDN6v6UQAwxVLzzRSC5z9su1Z7T02B0BHYFGh06DUAja/N42hWztJ63zsF0cNTJuUze8fNnWgpVUL5tLA==}
     engines: {node: '>= 22'}
 
-  '@devicefarmer/adbkit@4.0.1':
-    resolution: {integrity: sha512-GWGnu7QO9d8fk9t6PomkUD5gouo9qeH9s1HPPawiat6z7CKDTou3aNGiKLdUr/k10D/z8rVrGwBF5Da/VcUteA==}
+  '@devicefarmer/adbkit@4.1.0':
+    resolution: {integrity: sha512-6UeRZ8LdCV7OuXR7a/yKyrCE9QR2ZRO3syYj4hINqFFh89FSR+oPw4kIHIVFEWwnG7JL62IyUAatD03Pf+7ehg==}
     engines: {node: '>= 22.12'}
     hasBin: true
 
@@ -1833,6 +1833,9 @@ packages:
   '@types/mdurl@2.0.0':
     resolution: {integrity: sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg==}
 
+  '@types/node-forge@1.3.14':
+    resolution: {integrity: sha512-mhVF2BnD4BO+jtOp7z1CdzaK4mbuK0LLQYAvdOLqHTavxFNq4zA1EmYkpnFjP8HOUzedfQkRnp0E2ulSAYSzAw==}
+
   '@types/node@26.6.5':
     resolution: {integrity: sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg==}
 
@@ -2364,8 +2367,8 @@ packages:
     resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
     engines: {node: '>=20'}
 
-  commander@15.0.0:
-    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+  commander@15.1.0:
+    resolution: {integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==}
     engines: {node: '>=22.12.0'}
 
   common-tags@1.8.2:
@@ -4417,11 +4420,12 @@ snapshots:
   '@devicefarmer/adbkit-monkey@2.0.0':
     optional: true
 
-  '@devicefarmer/adbkit@4.0.1':
+  '@devicefarmer/adbkit@4.1.0':
     dependencies:
       '@devicefarmer/adbkit-logcat': 3.0.0
       '@devicefarmer/adbkit-monkey': 2.0.0
-      commander: 15.0.0
+      '@types/node-forge': 1.3.14
+      commander: 15.1.0
       debug: 4.4.3
       node-forge: 1.4.3
       split: 1.0.1
@@ -5558,6 +5562,11 @@ snapshots:
 
   '@types/mdurl@2.0.0': {}
 
+  '@types/node-forge@1.3.14':
+    dependencies:
+      '@types/node': 26.6.5
+    optional: true
+
   '@types/node@26.6.5':
     dependencies:
       undici-types: 8.9.0
@@ -5993,7 +6002,7 @@ snapshots:
   commander@14.0.3:
     optional: true
 
-  commander@15.0.0:
+  commander@15.1.0:
     optional: true
 
   common-tags@1.8.2: {}
