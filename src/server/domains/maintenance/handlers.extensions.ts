@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { logger } from '@utils/logger';
-import type { MCPServerContext } from '@server/MCPServer.context';
+import type { ExtensionManagementPort } from '@server/domains/shared/ports';
 import type { ToolResponse } from '@server/types';
 import { asJsonResponse, serializeError } from '@server/domains/shared/response';
 import { INSTALLED_EXTENSION_METADATA_FILENAME } from '@server/extensions/types';
@@ -29,9 +29,9 @@ import {
 import { summarizeExtensionIntegrity } from './handlers/extension-integrity-utils';
 
 export class ExtensionManagementHandlers {
-  private readonly ctx: MCPServerContext;
+  private readonly ctx: ExtensionManagementPort;
 
-  constructor(ctx: MCPServerContext) {
+  constructor(ctx: ExtensionManagementPort) {
     this.ctx = ctx;
   }
 

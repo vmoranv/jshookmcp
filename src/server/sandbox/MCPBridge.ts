@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { MCPServerContext } from '@server/MCPServer.context';
+import type { SandboxDomainPort } from '@server/domains/shared/ports';
 import type { ToolResponse } from '@server/types';
 
 // ── Types ──
@@ -26,11 +26,11 @@ export interface MCPBridgeOptions {
 // ── MCPBridge ──
 
 export class MCPBridge {
-  private readonly ctx: MCPServerContext;
+  private readonly ctx: SandboxDomainPort;
   private allowlist: Set<string> | null = null;
   private readonly pendingCalls: BridgeCallRequest[] = [];
 
-  constructor(ctx: MCPServerContext, options: MCPBridgeOptions = {}) {
+  constructor(ctx: SandboxDomainPort, options: MCPBridgeOptions = {}) {
     this.ctx = ctx;
     if (options.allowedTools !== undefined) {
       this.setAllowlist(options.allowedTools);
