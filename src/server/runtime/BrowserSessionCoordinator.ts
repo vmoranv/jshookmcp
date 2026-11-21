@@ -4,6 +4,14 @@ import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { TabRegistry } from '@modules/browser/TabRegistry';
 import { IndexedMinHeap } from '@server/runtime/IndexedMinHeap';
 import {
+  BrowserSessionCostModel,
+  DEFAULT_COST_MS,
+  MAX_COST_MS,
+  MIN_COST_MS,
+  type BrowserSessionToolCostStats,
+} from '@server/runtime/BrowserSessionCostModel';
+export type { BrowserSessionToolCostStats } from '@server/runtime/BrowserSessionCostModel';
+import {
   BROWSER_SESSION_IDLE_TTL_MS,
   BROWSER_SESSION_MAX_SESSIONS,
   BROWSER_SESSION_SWEEP_MS,
@@ -69,11 +77,6 @@ export interface BrowserSessionExecutionOptions {
   costHintMs?: number;
   weight?: number;
   signal?: AbortSignal;
-}
-
-export interface BrowserSessionToolCostStats {
-  estimateMs: number;
-  samples: number;
 }
 
 interface PendingExecution {
@@ -166,9 +169,6 @@ const DEFAULT_SCHEDULER_OPTIONS: BrowserSessionSchedulerOptions = {
   costEwmaAlpha: 0.2,
   maxLagMs: 500,
 };
-const DEFAULT_COST_MS = 250;
-const MIN_COST_MS = 1;
-const MAX_COST_MS = 30_000;
 
 function positiveInteger(value: number | undefined, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 1
@@ -257,7 +257,7 @@ export class BrowserSessionCoordinator {
   private readonly browserOwners = new Set<string>();
   private readonly pendingBySession = new Map<string, SessionPendingQueue>();
   private readonly scheduleBySession = new Map<string, SessionScheduleState>();
-  private readonly toolCosts = new Map<string, BrowserSessionToolCostStats>();
+  private readonly costModel = new BrowserSessionCostModel();
   private readonly deadlineHeap = new IndexedMinHeap<PendingExecution>({
     compare: (left, right) => left.deadlineAt - right.deadlineAt || left.sequence - right.sequence,
     getIndex: (task) => task.deadlineHeapIndex,
@@ -515,7 +515,7 @@ export class BrowserSessionCoordinator {
       averageServiceMs:
         this.dispatchCount === 0 ? 0 : roundMetric(this.totalServiceMs / this.dispatchCount),
       maxQueueWaitMs: roundMetric(this.maxQueueWaitMs),
-      trackedToolCosts: this.toolCosts.size,
+      trackedToolCosts: this.costModel.size,
       deadlineTimerActive: this.deadlineTimer !== null,
       trackedSessions: this.sessions.size,
       sessionLimit: this.lifecycle.maxSessions,
@@ -523,8 +523,7 @@ export class BrowserSessionCoordinator {
   }
 
   getToolCostStats(toolName: string): BrowserSessionToolCostStats | null {
-    const state = this.toolCosts.get(toolName);
-    return state ? { ...state } : null;
+    return this.costModel.getStats(toolName);
   }
 
   async restoreSessionContext(sessionId: string | null | undefined): Promise<void> {
@@ -976,25 +975,11 @@ export class BrowserSessionCoordinator {
   }
 
   private estimateCost(toolName: string | undefined, costHintMs: number | undefined): number {
-    const normalizedName = toolName?.trim();
-    const observed = normalizedName ? this.toolCosts.get(normalizedName)?.estimateMs : undefined;
-    const hint =
-      typeof costHintMs === 'number' && Number.isFinite(costHintMs) && costHintMs > 0
-        ? costHintMs
-        : undefined;
-    const estimate = observed ?? hint ?? DEFAULT_COST_MS;
-    return clamp(estimate, MIN_COST_MS, MAX_COST_MS);
+    return this.costModel.estimate(toolName, costHintMs);
   }
 
   private updateToolCost(toolName: string, serviceMs: number): void {
-    const previous = this.toolCosts.get(toolName);
-    if (!previous) {
-      this.toolCosts.set(toolName, { estimateMs: roundMetric(serviceMs), samples: 1 });
-      return;
-    }
-    const alpha = this.schedulerOptions.costEwmaAlpha;
-    previous.estimateMs = roundMetric(alpha * serviceMs + (1 - alpha) * previous.estimateMs);
-    previous.samples += 1;
+    this.costModel.update(toolName, serviceMs, this.schedulerOptions.costEwmaAlpha);
   }
 
   private getAdmissionLimit(incomingSessionId?: string): number {
