@@ -38,6 +38,7 @@ import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
 import { applyIntentBonusBandToScores } from './SearchIntentBonus';
 import { SearchFusion } from './SearchFusion';
+import { SearchResultCache, type CachedSearchEntry } from './SearchResultCache';
 import { FeedbackTracker } from './FeedbackTracker';
 import {
   QueryNormalizer,
@@ -138,58 +139,6 @@ interface ToolDocument {
  * `feedbackEpoch` invalidates full-path entries when a fold moves the vector
  * weight. Quick-path entries do not read that weight.
  */
-interface CachedSearchEntry {
-  kind: 'quick' | 'full';
-  feedbackEpoch: number;
-  /**
-   * Whether the vector signal existed when this entry was computed.
-   *
-   * Without it, an entry written while embeddings were absent outlived the
-   * readiness transition: the bootstrap clears the cache on completion, but a
-   * query that scored BEFORE the clear and wrote its entry AFTER it survived,
-   * and `isCachedEntryFresh` (which only compares the feedback epoch) kept
-   * replaying lexical-only results with the vector signal already live.
-   */
-  vectorReady: boolean;
-  preAdjust: Array<[number, number]>;
-  vectorRanking: Array<[string, number]> | null;
-}
-
-// ── LRU Cache ──
-
-class LRUCache<K, V> {
-  private readonly capacity: number;
-  private readonly map = new Map<K, V>();
-
-  constructor(capacity: number) {
-    this.capacity = Math.max(1, capacity);
-  }
-
-  get(key: K): V | undefined {
-    const value = this.map.get(key);
-    if (value !== undefined) {
-      // Move to end (most recently used)
-      this.map.delete(key);
-      this.map.set(key, value);
-    }
-    return value;
-  }
-
-  set(key: K, value: V): void {
-    this.map.delete(key);
-    this.map.set(key, value);
-    if (this.map.size > this.capacity) {
-      // Delete oldest (first entry in insertion order)
-      const firstKey = this.map.keys().next().value!;
-      this.map.delete(firstKey);
-    }
-  }
-
-  clear(): void {
-    this.map.clear();
-  }
-}
-
 // ── ToolSearchEngine ──
 
 export class ToolSearchEngine {
@@ -218,7 +167,7 @@ export class ToolSearchEngine {
    * Query result LRU cache. Full-path entries are versioned by the feedback
    * fold epoch. Recency and tier are replayed on hit.
    */
-  private readonly queryCache: LRUCache<string, CachedSearchEntry>;
+  private readonly queryCache: SearchResultCache;
   /** Evidence from the search the caller just saw. Tool-call learning reads this. */
   private lastWitness: SearchWitness | null = null;
   /** Trigram fuzzy matching index over tool names. */
@@ -451,7 +400,7 @@ export class ToolSearchEngine {
     });
 
     // ── Query result cache (§4.3 CSAPC) ──
-    this.queryCache = new LRUCache<string, CachedSearchEntry>(SEARCH_QUERY_CACHE_CAPACITY);
+    this.queryCache = new SearchResultCache(SEARCH_QUERY_CACHE_CAPACITY);
 
     // A shared daemon should not load the embedding model until vector scoring is needed.
     // Operators can opt back into background prewarm for latency-sensitive deployments.
