@@ -592,13 +592,13 @@ describe('search/ToolSearchEngineImpl', () => {
     // exact key string (which carries etag/stem-mode suffixes by design).
     const cache = (
       engine as unknown as {
-        queryCache: { map: Map<string, unknown>; clear(): void };
+        queryCache: { size: number; clear(): void };
       }
     ).queryCache;
     await engine.search('navigate', 5);
-    expect(cache.map.size).toBeGreaterThan(0);
+    expect(cache.size).toBeGreaterThan(0);
     cache.clear();
-    expect(cache.map.size).toBe(0);
+    expect(cache.size).toBe(0);
   });
 
   it('returns early when all intent bonuses are non-positive', async () => {
