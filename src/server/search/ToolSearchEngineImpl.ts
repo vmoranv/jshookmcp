@@ -39,6 +39,7 @@ import { TrigramIndex } from './TrigramIndex';
 import { applyIntentBonusBandToScores } from './SearchIntentBonus';
 import { SearchFusion } from './SearchFusion';
 import { VectorScorer } from './VectorScorer';
+import { SearchResultProjector } from './SearchResultProjector';
 import { SearchResultCache, type CachedSearchEntry } from './SearchResultCache';
 import { FeedbackTracker } from './FeedbackTracker';
 import {
@@ -47,7 +48,7 @@ import {
   foldTokenSetWithMode,
   type StemMode,
 } from './QueryNormalizer';
-import { ReRanker, type ReRankInput, type ToolMetadata } from './ReRanker';
+import { ReRanker, type ToolMetadata } from './ReRanker';
 import { ScoreCalibrator } from './ScoreCalibrator';
 import { WorkflowTransitionGraph } from './WorkflowTransitionGraph';
 import { SearchQualityTracker } from './SearchQualityTracker';
@@ -204,6 +205,7 @@ export class ToolSearchEngine {
   private readonly qualityTracker = new SearchQualityTracker();
   private readonly fusion: SearchFusion;
   private readonly vectorScorer: VectorScorer;
+  private readonly resultProjector: SearchResultProjector;
 
   // ── Lookup tables & Cryptographic State (Mina / PLONK inspired) ──
   private readonly idfLookupTable: Float64Array;
@@ -388,6 +390,12 @@ export class ToolSearchEngine {
         description: d.description,
       })),
     );
+    this.resultProjector = new SearchResultProjector({
+      docs: this.docs,
+      docNameIndex: this.docNameIndex,
+      reRanker: this.reRanker,
+      enableMMR: this.strategyFlags.enableMMR === true,
+    });
 
     // ── Tool affinity graph (§4.1.4 dependency hull expansion) ──
     this.affinityGraph = buildAffinityGraph(this.docs);
@@ -616,29 +624,6 @@ export class ToolSearchEngine {
       if (scores[i]! > maxScore) maxScore = scores[i]!;
     }
     scores[explicitIdx]! += Math.max(1, maxScore + 1);
-  }
-
-  private collectRankedResults(
-    scores: Float64Array,
-    activeToolNames: ReadonlySet<string> | undefined,
-    topK: number,
-  ): ToolSearchResult[] {
-    const active = activeToolNames ?? new Set<string>();
-    const candidates: ToolSearchResult[] = [];
-    for (let i = 0; i < this.docCount; i++) {
-      if (scores[i]! > 0) {
-        const doc = this.docs[i]!;
-        candidates.push({
-          name: doc.name,
-          domain: doc.domain,
-          shortDescription: doc.shortDescription,
-          score: Math.round(scores[i]! * 1000) / 1000,
-          isActive: active.has(doc.name),
-        });
-      }
-    }
-    candidates.sort((a, b) => b.score - a.score);
-    return candidates.slice(0, topK);
   }
 
   /**
@@ -1122,46 +1107,8 @@ export class ToolSearchEngine {
     if (kind === 'full') this.applyRecencyBoost(scores);
     this.applyTierPenalty(scores, visibleDomains, profile);
     if (kind === 'full') this.promoteExplicitMention(scores, explicitToolMention);
-    const ranked = this.collectRankedResults(scores, activeToolNames, topK);
-    return kind === 'full' ? this.rerankResults(query, ranked, activeToolNames) : ranked;
-  }
-
-  private rerankResults(
-    query: string,
-    results: ToolSearchResult[],
-    activeToolNames?: ReadonlySet<string>,
-  ): ToolSearchResult[] {
-    if (results.length <= 1) return results;
-    const reRankInputs: ReRankInput[] = results.map((result) => {
-      const doc = this.docs[this.docNameIndex.get(result.name) ?? 0];
-      // The re-ranker's lexical features (keyword overlap, intent alignment)
-      // read a single description string. Fold the doc-expansion scene phrases
-      // into it so expansion text is visible to this layer too — otherwise a
-      // tool can win the BM25 stage on its expansion phrases and still be
-      // re-ranked away by a tool with a longer raw description.
-      const description =
-        doc && doc.scenePhrases.length > 0
-          ? `${doc.description} ${doc.scenePhrases.join(' ')}`
-          : (doc?.description ?? '');
-      return {
-        toolName: result.name,
-        score: result.score,
-        domain: result.domain ?? '',
-        description,
-      };
-    });
-    // If active session indicates a focused workflow, relax slot capping and boost relevance lambda
-    const isSessionFocused = Boolean(activeToolNames && activeToolNames.size > 0);
-    const reRanked = this.reRanker.reRank(query, reRankInputs, {
-      topK: results.length,
-      enableMMR: this.strategyFlags.enableMMR,
-      diversityLambda: isSessionFocused ? 0.95 : 0.85,
-      maxPerDomain: isSessionFocused ? 4 : 2,
-    });
-    const rankMap = new Map(reRanked.map((item, index) => [item.toolName, index]));
-    return results
-      .slice()
-      .toSorted((a, b) => (rankMap.get(a.name) ?? 0) - (rankMap.get(b.name) ?? 0));
+    const ranked = this.resultProjector.collect(scores, activeToolNames, topK);
+    return kind === 'full' ? this.resultProjector.rerank(query, ranked, activeToolNames) : ranked;
   }
 
   private writeCache(
