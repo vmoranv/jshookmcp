@@ -17,6 +17,7 @@ import {
   BROWSER_SESSION_SWEEP_MS,
 } from '@src/constants/server';
 import { BrowserSessionQueueError } from './BrowserSessionErrors';
+import { computeAdmissionLimit, computeRetryAfterMs } from './BrowserSessionAdmission';
 import {
   BrowserSessionRegistry,
   type BrowserSessionEntry,
@@ -936,14 +937,7 @@ export class BrowserSessionCoordinator {
       demandSessionCount += 1;
     }
 
-    // Hold capacity for sessions that have not queued yet. As each late session
-    // arrives its reservation becomes immediately admissible.
-    const reservableConcurrency = Math.min(
-      this.schedulerOptions.expectedConcurrency,
-      Math.floor(this.schedulerOptions.maxPending / reserved),
-    );
-    const protectedSessions = Math.max(0, reservableConcurrency - demandSessionCount);
-    return Math.max(1, this.schedulerOptions.maxPending - protectedSessions * reserved);
+    return computeAdmissionLimit(this.schedulerOptions, demandSessionCount);
   }
 
   private appendPendingTask(queue: SessionPendingQueue, task: PendingExecution): void {
@@ -1073,12 +1067,11 @@ export class BrowserSessionCoordinator {
       this.dispatchCount > 0 && this.totalServiceMs > 0
         ? this.totalServiceMs / this.dispatchCount
         : DEFAULT_COST_MS;
-    const competingSessions = Math.max(
-      1,
-      this.readySessionCount + (this.activeExecutionSessionId ? 1 : 0),
-    );
-    return Math.ceil(
-      clamp(averageServiceMs * competingSessions, MIN_COST_MS, this.schedulerOptions.waitTimeoutMs),
+    const competingSessions = this.readySessionCount + (this.activeExecutionSessionId ? 1 : 0);
+    return computeRetryAfterMs(
+      averageServiceMs,
+      competingSessions,
+      this.schedulerOptions.waitTimeoutMs,
     );
   }
 
