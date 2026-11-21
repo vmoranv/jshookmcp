@@ -484,7 +484,7 @@ export async function resolveBufferBySource(options: {
 }
 
 export async function resolveRequestBodyFromActivePage(
-  collector: CodeCollector,
+  collector: Pick<CodeCollector, 'getActivePage'>,
   requestId: string,
 ): Promise<Buffer | null> {
   try {

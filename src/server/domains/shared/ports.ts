@@ -13,9 +13,10 @@ export interface BrowserResponseBody {
   base64Encoded: boolean;
 }
 
-/** Collector + optional response-body lookup used by encoding/transform tools. */
+/** Narrow browser page + optional response-body lookup used by encoding tools. */
 export interface BrowserAccessPort {
-  readonly collector: CodeCollector;
+  /** Only the page lookup is exposed; callers cannot reach the rest of the collector. */
+  getActivePage(): ReturnType<CodeCollector['getActivePage']>;
   getResponseBody(requestId: string): Promise<BrowserResponseBody | null>;
 }
 
@@ -32,8 +33,9 @@ export function createBrowserAccessPort(ctx: MCPServerContext): BrowserAccessPor
   if (!ctx.collector) {
     throw new Error('Browser collector is not available for this profile');
   }
+  const collector = ctx.collector;
   return {
-    collector: ctx.collector,
+    getActivePage: () => collector.getActivePage(),
     getResponseBody: async (requestId) =>
       (await ctx.consoleMonitor?.getResponseBody(requestId)) ?? null,
   };
