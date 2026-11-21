@@ -206,8 +206,13 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
   ctx.httpServer = createServer((req, res) => {
     const url = new URL(req.url ?? '/', `http://localhost:${port}`);
 
-    // Health check endpoint — no auth, no rate limit
+    // Health check. Origin is validated on every incoming connection (MCP
+    // requires it to prevent DNS rebinding). The minimal liveness body stays
+    // public; the verbose body requires auth because it exposes topology.
     if (url.pathname === '/health' && req.method === 'GET') {
+      if (!checkOrigin(req, res, authConfig)) return;
+      const healthVerbose = ctx.config?.server?.healthVerbose ?? MCP_HEALTH_VERBOSE;
+      if (healthVerbose && !checkAuth(req, res, authConfig)) return;
       handleHealthCheck(ctx, res);
       return;
     }
@@ -349,8 +354,8 @@ import type { ServerResponse as HttpServerResponse } from 'node:http';
 
 function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void {
   // Minimal output by default to avoid exposing internal state (domains, tool
-  // counts, token budget). Full details are gated behind MCP_AUTH_TOKEN or
-  // MCP_HEALTH_VERBOSE=true for trusted environments.
+  // counts, token budget). Verbose output is gated by checkAuth in the router
+  // above; MCP_HEALTH_VERBOSE selects the payload, it does not grant access.
   const verbose = ctx.config?.server?.healthVerbose ?? MCP_HEALTH_VERBOSE;
 
   const body: Record<string, unknown> = {
