@@ -24,7 +24,7 @@ V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory 
 
 | Tool | Description |
 | --- | --- |
-| `v8_heap_snapshot_capture` | Capture a V8 heap snapshot for offline analysis. The snapshot is persisted to artifacts/heap-snapshots/ (data + sidecar meta) so it survives a server restart; set persist=false to keep it in-memory only. |
+| `v8_heap_snapshot_capture` | Capture a V8 heap snapshot for offline analysis. The snapshot is persisted to artifacts/heap-snapshots/ (data + sidecar meta) so it survives a server restart; set persist=false to keep it in-memory only. Requires an attached or launched browser page: when no CDP target is reachable the call returns success:false with degraded:true and a size-only placeholder instead of fabricating a snapshot. |
 | `v8_heap_snapshot_analyze` | Analyze a heap snapshot: class histogram (object count/sizes by constructor), statistics (total objects, detached DOM nodes), optional dominator tree, and leak detection. |
 | `v8_heap_diff` | Compare two heap snapshots to find allocation changes. |
 | `v8_object_inspect` | Inspect a live JS object by objectId with property enumeration. |

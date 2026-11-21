@@ -17031,7 +17031,7 @@
       "tls_inspector_tls_keylog_parse": {
         "properties": {
           "path": {
-            "description": "Path to SSLKEYLOGFILE",
+            "description": "Path to SSLKEYLOGFILE. Defaults to the keylog file opened by the last tls_keylog_enable call.",
             "type": "string"
           }
         },
@@ -17050,7 +17050,7 @@
             "type": "string"
           },
           "path": {
-            "description": "Path to a keylog file to summarize (used when content is not provided)",
+            "description": "Path to a keylog file to summarize when content is not provided. Defaults to the keylog file opened by the last tls_keylog_enable call.",
             "type": "string"
           }
         },
@@ -40690,7 +40690,7 @@
     },
     "/v8-inspector/v8_heap_snapshot_capture": {
       "post": {
-        "description": "Capture a V8 heap snapshot for offline analysis. The snapshot is persisted to artifacts/heap-snapshots/ (data + sidecar meta) so it survives a server restart; set persist=false to keep it in-memory only.",
+        "description": "Capture a V8 heap snapshot for offline analysis. The snapshot is persisted to artifacts/heap-snapshots/ (data + sidecar meta) so it survives a server restart; set persist=false to keep it in-memory only. Requires an attached or launched browser page: when no CDP target is reachable the call returns success:false with degraded:true and a size-only placeholder instead of fabricating a snapshot.",
         "operationId": "v8_heap_snapshot_capture",
         "requestBody": {
           "content": {

@@ -27193,7 +27193,8 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           path: {
             type: 'string',
-            description: 'Path to SSLKEYLOGFILE',
+            description:
+              'Path to SSLKEYLOGFILE. Defaults to the keylog file opened by the last tls_keylog_enable call.',
           },
         },
         required: [],
@@ -27235,7 +27236,8 @@ export const GENERATED_TOOL_CATALOG = [
           },
           path: {
             type: 'string',
-            description: 'Path to a keylog file to summarize (used when content is not provided)',
+            description:
+              'Path to a keylog file to summarize when content is not provided. Defaults to the keylog file opened by the last tls_keylog_enable call.',
           },
         },
         required: [],
@@ -28372,7 +28374,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'v8_heap_snapshot_capture',
       description:
-        'Capture a V8 heap snapshot for offline analysis. The snapshot is persisted to artifacts/heap-snapshots/ (data + sidecar meta) so it survives a server restart; set persist=false to keep it in-memory only.',
+        'Capture a V8 heap snapshot for offline analysis. The snapshot is persisted to artifacts/heap-snapshots/ (data + sidecar meta) so it survives a server restart; set persist=false to keep it in-memory only. Requires an attached or launched browser page: when no CDP target is reachable the call returns success:false with degraded:true and a size-only placeholder instead of fabricating a snapshot.',
       inputSchema: {
         type: 'object',
         properties: {
