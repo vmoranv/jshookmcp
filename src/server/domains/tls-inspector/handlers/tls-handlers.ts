@@ -124,10 +124,15 @@ export class TlsInspectorTlsHandlers extends TlsInspectorBaseHandlers {
     let entries: KeyLogEntry[];
     let firstSeen: string | undefined;
     let lastSeen: string | undefined;
+    // When neither content nor path is supplied the extractor falls back to
+    // the keylog opened by the last tls_keylog_enable. Report the path actually
+    // read so the caller can tell implicit state apart from an explicit file.
+    let resolvedPath: string | undefined;
 
     if (content) {
       entries = parseKeyLogEntries(content);
     } else {
+      resolvedPath = path ?? this.keyLogExtractor.getKeyLogFilePath();
       // File path: parse fresh, then borrow the class summarize for firstSeen/
       // lastSeen (the temporal window is the only datum the standalone helper
       // does not compute). cachedEntries is now populated for later lookup.
@@ -141,6 +146,7 @@ export class TlsInspectorTlsHandlers extends TlsInspectorBaseHandlers {
     const classification = classifyKeyLogSecrets(entries);
 
     return {
+      ...(resolvedPath ? { path: resolvedPath } : {}),
       totalEntries: summary.totalEntries,
       labels: summary.labels,
       uniqueClientRandom: summary.uniqueClients,
@@ -174,6 +180,7 @@ export class TlsInspectorTlsHandlers extends TlsInspectorBaseHandlers {
     const target = argString(args, 'target') ?? null;
     if (target !== 'android' && target !== 'ios' && target !== 'desktop') {
       return {
+        ok: false,
         error: 'target must be one of android, ios, or desktop',
       };
     }

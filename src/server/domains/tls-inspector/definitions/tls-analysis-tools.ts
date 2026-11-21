@@ -6,7 +6,8 @@ export const tlsAnalysisTools: Tool[] = [
   objectTool('tls_keylog_parse', 'Parse an SSLKEYLOGFILE and summarize available key material.', {
     path: {
       type: 'string',
-      description: 'Path to SSLKEYLOGFILE',
+      description:
+        'Path to SSLKEYLOGFILE. Defaults to the keylog file opened by the last tls_keylog_enable call.',
     },
   }),
   objectTool(
@@ -65,7 +66,8 @@ export const tlsAnalysisTools: Tool[] = [
       },
       path: {
         type: 'string',
-        description: 'Path to a keylog file to summarize (used when content is not provided)',
+        description:
+          'Path to a keylog file to summarize when content is not provided. Defaults to the keylog file opened by the last tls_keylog_enable call.',
       },
     },
   ),
