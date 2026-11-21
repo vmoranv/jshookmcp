@@ -19,6 +19,15 @@ export interface BrowserAccessPort {
   getResponseBody(requestId: string): Promise<BrowserResponseBody | null>;
 }
 
+/** Extension lifecycle surface used by maintenance tools. */
+export type ExtensionManagementPort = Pick<
+  MCPServerContext,
+  'listExtensions' | 'reloadExtensions' | 'extensionToolsByName'
+>;
+
+/** Sandbox host surface: tool discovery + tracked execution only. */
+export type SandboxDomainPort = Pick<MCPServerContext, 'selectedTools' | 'executeToolWithTracking'>;
+
 export function createBrowserAccessPort(ctx: MCPServerContext): BrowserAccessPort {
   if (!ctx.collector) {
     throw new Error('Browser collector is not available for this profile');
