@@ -978,7 +978,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: true,
       },
@@ -12497,7 +12497,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
@@ -12547,7 +12547,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
@@ -14224,7 +14224,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
@@ -17198,7 +17198,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
@@ -19090,7 +19090,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
@@ -20055,7 +20055,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
@@ -20102,7 +20102,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
@@ -23254,7 +23254,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
@@ -24165,7 +24165,7 @@ export const GENERATED_TOOL_CATALOG = [
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },

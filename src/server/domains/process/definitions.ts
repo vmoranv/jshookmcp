@@ -46,7 +46,8 @@ export const processToolDefinitions: Tool[] = [
     t
       .desc('Terminate a process by PID. Requires appropriate privileges.')
       .number('pid', 'Process ID to terminate')
-      .required('pid'),
+      .required('pid')
+      .destructive(),
   ),
   tool('process_windows', (t) =>
     t
@@ -89,7 +90,8 @@ export const processToolDefinitions: Tool[] = [
       .string('address', 'Memory address to write to (hex string like "0x12345678")')
       .string('data', 'Data to write (hex string or base64)')
       .enum('encoding', ['hex', 'base64'], 'Encoding of the data parameter', { default: 'hex' })
-      .required('address', 'data'),
+      .required('address', 'data')
+      .destructive(),
   ),
   tool('memory_scan', (t) =>
     t
@@ -159,7 +161,8 @@ export const processToolDefinitions: Tool[] = [
         },
         'Array of patches to apply',
       )
-      .required('patches'),
+      .required('patches')
+      .destructive(),
   ),
   tool('memory_dump_region', (t) =>
     t
@@ -201,7 +204,8 @@ export const processToolDefinitions: Tool[] = [
         ['strict', 'balanced', 'permissive', 'disabled'],
         'Validation mode override (default: from JSHOOK_INJECTION_VALIDATION_MODE env var)',
       )
-      .required('pid', 'dllPath'),
+      .required('pid', 'dllPath')
+      .destructive(),
   ),
   tool('inject_shellcode', (t) =>
     t
@@ -217,7 +221,8 @@ export const processToolDefinitions: Tool[] = [
         ['strict', 'balanced', 'permissive', 'disabled'],
         'Validation mode override (default: from JSHOOK_INJECTION_VALIDATION_MODE env var)',
       )
-      .required('pid', 'shellcode'),
+      .required('pid', 'shellcode')
+      .destructive(),
   ),
 
   // Anti-detection tools
