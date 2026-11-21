@@ -7,14 +7,10 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import {
-  COORDINATION_GOTO_TIMEOUT_MS,
-  COORDINATION_MAX_HANDOFFS,
-  COORDINATION_MAX_INSIGHTS,
-  COORDINATION_MAX_SNAPSHOTS,
-} from '@src/constants';
+import { COORDINATION_MAX_HANDOFFS, COORDINATION_MAX_INSIGHTS } from '@src/constants';
 import type { MCPServerContext } from '@server/domains/shared/registry';
 import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
+import { PageSnapshotService } from './page-snapshot/service';
 export * from './definitions';
 export { sharedStateBoardTools } from './state-board/definitions';
 export { SharedStateBoardHandlers } from './state-board';
@@ -74,9 +70,11 @@ export class CoordinationHandlers {
   private mutationSeq = 0;
   private lastPersistedSeq = 0;
   private persistNotifier?: PersistNotifier;
+  private readonly pageSnapshots: PageSnapshotService;
 
   constructor(ctx: MCPServerContext) {
     this.ctx = ctx;
+    this.pageSnapshots = new PageSnapshotService(() => this.ctx.pageController);
   }
 
   setPersistNotifier(notify?: PersistNotifier): void {
@@ -160,18 +158,6 @@ export class CoordinationHandlers {
   private trimInsights(): void {
     while (this.insights.length > COORDINATION_MAX_INSIGHTS) {
       this.insights.shift();
-    }
-  }
-
-  /** Drop the oldest (by timestamp) snapshots until the Map fits within `COORDINATION_MAX_SNAPSHOTS`. */
-  private trimSnapshots(): void {
-    if (this.snapshots.size <= COORDINATION_MAX_SNAPSHOTS) return;
-    const entries = [...this.snapshots.entries()].toSorted(
-      (a, b) => a[1].timestamp - b[1].timestamp,
-    );
-    const excess = entries.length - COORDINATION_MAX_SNAPSHOTS;
-    for (const [id] of entries.slice(0, excess)) {
-      this.snapshots.delete(id);
     }
   }
 
@@ -534,118 +520,12 @@ export class CoordinationHandlers {
 
   // ── Page Snapshots ──
 
-  private readonly snapshots = new Map<string, PageSnapshot>();
-
   async handleSavePageSnapshotTool(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => await this.handleSavePageSnapshot(args));
   }
 
   async handleSavePageSnapshot(args: Record<string, unknown>): Promise<unknown> {
-    const label = args.label as string | undefined;
-
-    const pc = this.ctx.pageController;
-    if (!pc) throw new Error('No page controller available');
-
-    const page = await pc.getPage();
-    if (!page) throw new Error('No active page to snapshot');
-
-    const url = page.url();
-
-    // Capture cookies via CDP
-    let cookies: PageSnapshot['cookies'] = [];
-    try {
-      const cdp = await page.createCDPSession();
-      const result = (await cdp.send('Network.getAllCookies')) as {
-        cookies: Array<{ name: string; value: string; domain: string; path: string }>;
-      };
-      cookies = result.cookies.map((c) => ({
-        name: c.name,
-        value: c.value,
-        domain: c.domain,
-        path: c.path,
-      }));
-      await cdp.detach();
-    } catch {
-      // Cookie capture may fail without browser — proceed without
-    }
-
-    // Capture storage
-    let localStorage: Record<string, string> = {};
-    let sessionStorage: Record<string, string> = {};
-    try {
-      localStorage = await page.evaluate(() => {
-        const ls: Record<string, string> = {};
-        for (let i = 0; i < window.localStorage.length; i++) {
-          const key = window.localStorage.key(i);
-          if (key) ls[key] = window.localStorage.getItem(key) ?? '';
-        }
-        return ls;
-      });
-      sessionStorage = await page.evaluate(() => {
-        const ss: Record<string, string> = {};
-        for (let i = 0; i < window.sessionStorage.length; i++) {
-          const key = window.sessionStorage.key(i);
-          if (key) ss[key] = window.sessionStorage.getItem(key) ?? '';
-        }
-        return ss;
-      });
-    } catch {
-      // Storage capture may fail on some pages — proceed without
-    }
-
-    // Capture IndexedDB metadata (database / store / keyPath / count) for
-    // forensic diagnosis. Modern web apps keep auth tokens / draft state in
-    // IndexedDB (not localStorage); without this the snapshot misses the
-    // dominant "restore logged-in session" surface.
-    let indexedDB: IndexedDBDatabaseSummary[] | undefined;
-    let indexedDBData: IndexedDBRecordData[] | undefined;
-    try {
-      const captured = (await page.evaluate(INDEXEDDB_CAPTURE_SCRIPT)) as
-        | IndexedDBDatabaseSummary[]
-        | null;
-      if (Array.isArray(captured) && captured.length > 0) {
-        indexedDB = captured;
-      }
-      // Also capture record data for restore support (limited to 100 records per store)
-      const recordData = (await page.evaluate(INDEXEDDB_DATA_CAPTURE_SCRIPT)) as
-        | IndexedDBRecordData[]
-        | null;
-      if (Array.isArray(recordData) && recordData.length > 0) {
-        indexedDBData = recordData;
-      }
-    } catch {
-      // IndexedDB capture may fail (no browser / cross-origin) — proceed without
-    }
-
-    const snapshot: PageSnapshot = {
-      id: randomUUID().slice(0, 8),
-      url,
-      cookies,
-      localStorage,
-      sessionStorage,
-      ...(indexedDB ? { indexedDB } : {}),
-      ...(indexedDBData ? { indexedDBData } : {}),
-      timestamp: Date.now(),
-      label,
-    };
-
-    this.snapshots.set(snapshot.id, snapshot);
-    this.trimSnapshots();
-
-    return {
-      snapshotId: snapshot.id,
-      url: snapshot.url,
-      cookieCount: snapshot.cookies.length,
-      localStorageKeys: Object.keys(snapshot.localStorage).length,
-      sessionStorageKeys: Object.keys(snapshot.sessionStorage).length,
-      indexedDBDatabaseCount: snapshot.indexedDB?.length ?? 0,
-      indexedDBRecordCount:
-        snapshot.indexedDBData?.reduce(
-          (sum, r) => sum + (Array.isArray(r.records) ? r.records.length : 0),
-          0,
-        ) ?? 0,
-      label: snapshot.label,
-    };
+    return this.pageSnapshots.save(args);
   }
 
   async handleRestorePageSnapshotTool(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -653,69 +533,17 @@ export class CoordinationHandlers {
   }
 
   async handleRestorePageSnapshot(args: Record<string, unknown>): Promise<unknown> {
-    const snapshotId = args.snapshotId as string;
-    if (!snapshotId) throw new Error('snapshotId is required');
-
-    const snapshot = this.snapshots.get(snapshotId);
-    if (!snapshot) throw new Error(`Snapshot "${snapshotId}" not found`);
-
-    const pc = this.ctx.pageController;
-    if (!pc) throw new Error('No page controller available');
-
-    const page = await pc.getPage();
-    if (!page) throw new Error('No active page for restoration');
-
-    // Navigate to saved URL
-    await page.goto(snapshot.url, {
-      waitUntil: 'domcontentloaded',
-      timeout: COORDINATION_GOTO_TIMEOUT_MS,
-    });
-
-    // Restore cookies via CDP
-    if (snapshot.cookies.length > 0) {
-      try {
-        const cdp = await page.createCDPSession();
-        await cdp.send('Network.setCookies', {
-          cookies: snapshot.cookies.map((c) => ({
-            name: c.name,
-            value: c.value,
-            domain: c.domain,
-            path: c.path,
-          })),
-        });
-        await cdp.detach();
-      } catch {
-        // Cookie restore may fail — proceed
-      }
-    }
-
-    // Restore localStorage and sessionStorage
-    try {
-      await page.evaluate(
-        (ls: Record<string, string>, ss: Record<string, string>) => {
-          window.localStorage.clear();
-          for (const [k, v] of Object.entries(ls)) {
-            window.localStorage.setItem(k, v);
-          }
-          window.sessionStorage.clear();
-          for (const [k, v] of Object.entries(ss)) {
-            window.sessionStorage.setItem(k, v);
-          }
-        },
-        snapshot.localStorage,
-        snapshot.sessionStorage,
-      );
-    } catch {
-      // Storage restore may fail on some pages
-    }
-
+    const snapshotId = readSnapshotIdArg(args);
+    const restored = await this.pageSnapshots.restore(snapshotId, { includeIndexedDB: false });
+    // Legacy shape: report the snapshot's cookie count, not the number actually
+    // written. The pre-service implementation did the same even when CDP failed.
     return {
-      restored: true,
-      snapshotId: snapshot.id,
-      url: snapshot.url,
-      cookiesRestored: snapshot.cookies.length,
-      localStorageKeysRestored: Object.keys(snapshot.localStorage).length,
-      sessionStorageKeysRestored: Object.keys(snapshot.sessionStorage).length,
+      restored: restored.restored,
+      snapshotId: restored.snapshotId,
+      url: restored.url,
+      cookiesRestored: restored.cookieCount,
+      localStorageKeysRestored: restored.localStorageKeys,
+      sessionStorageKeysRestored: restored.sessionStorageKeys,
     };
   }
 
@@ -724,23 +552,7 @@ export class CoordinationHandlers {
   }
 
   async handleListPageSnapshots(): Promise<unknown> {
-    const list = [...this.snapshots.values()].map((s) => ({
-      id: s.id,
-      url: s.url,
-      label: s.label,
-      cookieCount: s.cookies.length,
-      localStorageKeys: Object.keys(s.localStorage).length,
-      sessionStorageKeys: Object.keys(s.sessionStorage).length,
-      indexedDBDatabaseCount: s.indexedDB?.length ?? 0,
-      indexedDBRecordCount:
-        s.indexedDBData?.reduce(
-          (sum, r) => sum + (Array.isArray(r.records) ? r.records.length : 0),
-          0,
-        ) ?? 0,
-      createdAt: new Date(s.timestamp).toISOString(),
-    }));
-
-    return { snapshots: list, total: list.length };
+    return this.pageSnapshots.list();
   }
 
   // ── coordination_restore_snapshot ──
@@ -752,359 +564,27 @@ export class CoordinationHandlers {
   }
 
   async handleCoordinationRestoreSnapshot(args: Record<string, unknown>): Promise<unknown> {
-    const snapshotId = args.snapshotId as string;
-    if (!snapshotId) throw new Error('snapshotId is required');
-
-    const snapshot = this.snapshots.get(snapshotId);
-    if (!snapshot) throw new Error(`Snapshot "${snapshotId}" not found`);
-
-    const pc = this.ctx.pageController;
-    if (!pc) throw new Error('No page controller available');
-
-    const page = await pc.getPage();
-    if (!page) throw new Error('No active page for restoration');
-
-    // Navigate to saved URL
-    await page.goto(snapshot.url, {
-      waitUntil: 'domcontentloaded',
-      timeout: COORDINATION_GOTO_TIMEOUT_MS,
-    });
-
-    // Restore cookies via CDP
-    let cookiesRestored = 0;
-    if (snapshot.cookies.length > 0) {
-      try {
-        const cdp = await page.createCDPSession();
-        await cdp.send('Network.setCookies', {
-          cookies: snapshot.cookies.map((c) => ({
-            name: c.name,
-            value: c.value,
-            domain: c.domain,
-            path: c.path,
-          })),
-        });
-        await cdp.detach();
-        cookiesRestored = snapshot.cookies.length;
-      } catch {
-        // Cookie restore may fail — proceed
-      }
-    }
-
-    // Restore localStorage and sessionStorage
-    let storageRestored = false;
-    try {
-      await page.evaluate(
-        (ls: Record<string, string>, ss: Record<string, string>) => {
-          window.localStorage.clear();
-          for (const [k, v] of Object.entries(ls)) {
-            window.localStorage.setItem(k, v);
-          }
-          window.sessionStorage.clear();
-          for (const [k, v] of Object.entries(ss)) {
-            window.sessionStorage.setItem(k, v);
-          }
-        },
-        snapshot.localStorage,
-        snapshot.sessionStorage,
-      );
-      storageRestored = true;
-    } catch {
-      // Storage restore may fail on some pages
-    }
-
-    // Restore IndexedDB data
-    let indexedDBRestored = false;
-    let indexedDBRecordsRestored = 0;
-    if (snapshot.indexedDBData && snapshot.indexedDBData.length > 0) {
-      try {
-        const dataJson = JSON.stringify({
-          records: snapshot.indexedDBData,
-          schemas: snapshot.indexedDB ?? [],
-        });
-        const restored = (await page.evaluate(async (json: string) => {
-          const idb = (globalThis as Record<string, unknown>).indexedDB as IDBFactory | undefined;
-          if (!idb) return { restored: false, recordCount: 0 };
-          const captured = JSON.parse(json) as {
-            records: Array<{
-              database?: string;
-              store?: string;
-              records?: Array<{ key: unknown; value: unknown }>;
-            }>;
-            schemas: Array<{
-              name: string;
-              version?: number;
-              stores?: Array<{
-                name: string;
-                keyPath?: string | string[];
-                autoIncrement?: boolean;
-              }>;
-            }>;
-          };
-          const data = captured.records;
-          if (!Array.isArray(data) || data.length === 0) return { restored: false, recordCount: 0 };
-
-          // Group by database
-          const dbMap = new Map<
-            string,
-            Array<{ store: string; records: Array<{ key: unknown; value: unknown }> }>
-          >();
-          for (const entry of data) {
-            if (!entry.database || !entry.store || !Array.isArray(entry.records)) continue;
-            if (!dbMap.has(entry.database)) dbMap.set(entry.database, []);
-            dbMap.get(entry.database)!.push({ store: entry.store, records: entry.records });
-          }
-
-          let totalRecords = 0;
-          for (const [dbName, entries] of dbMap) {
-            try {
-              // Delete existing
-              await new Promise<void>((resolve, reject) => {
-                const delReq = idb.deleteDatabase(dbName);
-                // eslint-disable-next-line unicorn/prefer-add-event-listener
-                delReq.onsuccess = () => resolve();
-                // eslint-disable-next-line unicorn/prefer-add-event-listener
-                delReq.onerror = () => reject(delReq.error);
-                // eslint-disable-next-line unicorn/prefer-add-event-listener
-                delReq.onblocked = () => reject(new Error(`Deletion blocked for ${dbName}`));
-              });
-
-              // Create and populate
-              await new Promise<void>((resolve, reject) => {
-                const schema = captured.schemas.find((item) => item.name === dbName);
-                const openReq = idb.open(dbName, schema?.version ?? 1);
-                openReq.onupgradeneeded = () => {
-                  const db = openReq.result;
-                  for (const entry of entries) {
-                    if (!db.objectStoreNames.contains(entry.store)) {
-                      const storeSchema = schema?.stores?.find((item) => item.name === entry.store);
-                      db.createObjectStore(entry.store, {
-                        ...(storeSchema?.keyPath !== undefined
-                          ? { keyPath: storeSchema.keyPath }
-                          : {}),
-                        autoIncrement: storeSchema?.autoIncrement ?? false,
-                      });
-                    }
-                  }
-                };
-                openReq.onsuccess = async () => {
-                  const db = openReq.result;
-                  for (const entry of entries) {
-                    try {
-                      await new Promise<void>((resolveStore) => {
-                        const tx = db.transaction(entry.store, 'readwrite');
-                        // eslint-disable-next-line unicorn/prefer-add-event-listener
-                        tx.oncomplete = () => resolveStore();
-                        // eslint-disable-next-line unicorn/prefer-add-event-listener
-                        tx.onerror = () => resolveStore();
-                        // eslint-disable-next-line unicorn/prefer-add-event-listener
-                        tx.onabort = () => resolveStore();
-                        const store = tx.objectStore(entry.store);
-                        for (const rec of entry.records) {
-                          try {
-                            if (store.keyPath === null)
-                              store.add(rec.value, rec.key as IDBValidKey);
-                            else store.add(rec.value);
-                            totalRecords++;
-                          } catch {
-                            /* skip */
-                          }
-                        }
-                      });
-                    } catch {
-                      /* skip store */
-                    }
-                  }
-                  db.close();
-                  resolve();
-                };
-                // eslint-disable-next-line unicorn/prefer-add-event-listener
-                openReq.onerror = () => reject(openReq.error);
-              });
-            } catch {
-              /* skip db */
-            }
-          }
-          return { restored: totalRecords > 0, recordCount: totalRecords };
-        }, dataJson)) as { restored: boolean; recordCount: number };
-        indexedDBRestored = restored.restored;
-        indexedDBRecordsRestored = restored.recordCount;
-      } catch {
-        // IndexedDB restore may fail — proceed
-      }
-    }
-
+    const snapshotId = readSnapshotIdArg(args);
+    const restored = await this.pageSnapshots.restore(snapshotId, { includeIndexedDB: true });
     return {
-      restored: true,
-      snapshotId: snapshot.id,
-      url: snapshot.url,
-      cookiesRestored,
-      storageRestored,
-      indexedDBRestored,
-      indexedDBRecordsRestored,
+      restored: restored.restored,
+      snapshotId: restored.snapshotId,
+      url: restored.url,
+      cookiesRestored: restored.cookiesRestored,
+      storageRestored: restored.storageRestored,
+      indexedDBRestored: restored.indexedDBRestored,
+      indexedDBRecordsRestored: restored.indexedDBRecordsRestored,
     };
   }
 }
 
-// ── Snapshot type ──
-
-/**
- * In-page IndexedDB metadata capture, run via `page.evaluate(string)`. Returns
- * database → store summaries (name / count / keyPath). Serialized as a string
- * so it carries no Node-side type/lint surface and runs self-contained in the
- * page. Uses `indexedDB.databases()` (Chromium 71+); older browsers return [].
- * Fail-soft: an unopenable DB (cross-origin / blocked) is surfaced with
- * `{ name, error }` rather than aborting the whole capture.
- */
-const INDEXEDDB_CAPTURE_SCRIPT = `(async () => {
-  const idb = globalThis.indexedDB;
-  if (!idb) return [];
-  let dbs = [];
-  try { if (typeof idb.databases === 'function') dbs = await idb.databases(); } catch (e) {}
-  const out = [];
-  for (const info of dbs) {
-    const name = info && info.name;
-    if (typeof name !== 'string') continue;
-    try {
-      const db = await new Promise((resolve, reject) => {
-        const r = idb.open(name);
-        r.onsuccess = () => resolve(r.result);
-        r.onerror = () => reject(r.error);
-      });
-      const storeNames = Array.from(db.objectStoreNames);
-      const stores = [];
-      if (storeNames.length) {
-        await new Promise((resolve) => {
-          const tx = db.transaction(storeNames, 'readonly');
-          tx.oncomplete = () => resolve();
-          tx.onerror = () => resolve();
-          tx.onabort = () => resolve();
-          for (const sn of storeNames) {
-            const s = tx.objectStore(sn);
-            const c = s.count();
-            c.onsuccess = () => {
-              const kp = s.keyPath;
-              const base = { name: sn, count: c.result, autoIncrement: s.autoIncrement };
-              stores.push(kp === null || kp === undefined ? base : { ...base, keyPath: kp });
-            };
-            c.onerror = () => stores.push({ name: sn, count: 0 });
-          }
-        });
-      }
-      const version = typeof db.version === 'number' ? db.version : undefined;
-      db.close();
-      out.push(version === undefined ? { name, stores } : { name, version, stores });
-    } catch (e) {
-      out.push({ name, error: (e && e.message) ? String(e.message) : 'open-failed' });
-    }
+function readSnapshotIdArg(args: Record<string, unknown>): string {
+  const value = args['snapshotId'];
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error('snapshotId is required');
   }
-  return out;
-})()`;
-
-interface IndexedDBStoreSummary {
-  name: string;
-  count: number;
-  keyPath?: string | string[];
-  autoIncrement?: boolean;
+  return value;
 }
-
-interface IndexedDBDatabaseSummary {
-  name: string;
-  version?: number;
-  stores?: IndexedDBStoreSummary[];
-  /** Present when a database is listed but cannot be opened (cross-origin / blocked). */
-  error?: string;
-}
-
-interface IndexedDBRecordData {
-  database: string;
-  store: string;
-  key: unknown;
-  value: unknown;
-  records: Array<{ key: unknown; value: unknown }>;
-}
-
-interface PageSnapshot {
-  id: string;
-  url: string;
-  cookies: Array<{ name: string; value: string; domain: string; path: string }>;
-  localStorage: Record<string, string>;
-  sessionStorage: Record<string, string>;
-  /**
-   * IndexedDB metadata (database / store / keyPath / count) captured for
-   * forensic diagnosis.
-   */
-  indexedDB?: IndexedDBDatabaseSummary[];
-  /**
-   * Captured IndexedDB record data for snapshot restore. Limited to 100 records
-   * per store to bound memory usage. Stored as serializable JSON-safe values.
-   */
-  indexedDBData?: IndexedDBRecordData[];
-  timestamp: number;
-  label?: string;
-}
-
-/**
- * In-page IndexedDB record data capture. Opens each database and reads up to
- * MAX_RECORDS_PER_STORE records from each object store. Returns an array of
- * { database, store, key, value, records } objects suitable for serialization.
- * Records must be JSON-serializable; non-serializable values (Buffer, Blob,
- * etc.) are replaced with a type marker string.
- */
-const INDEXEDDB_DATA_CAPTURE_SCRIPT = `(async () => {
-  const MAX_RECORDS_PER_STORE = 100;
-  const idb = globalThis.indexedDB;
-  if (!idb) return [];
-  let dbs = [];
-  try { if (typeof idb.databases === 'function') dbs = await idb.databases(); } catch (e) {}
-  const out = [];
-  for (const info of dbs) {
-    const name = info && info.name;
-    if (typeof name !== 'string') continue;
-    try {
-      const db = await new Promise((resolve, reject) => {
-        const r = idb.open(name);
-        r.onsuccess = () => resolve(r.result);
-        r.onerror = () => reject(r.error);
-      });
-      const storeNames = Array.from(db.objectStoreNames);
-      for (const sn of storeNames) {
-        try {
-          const records = [];
-          let count = 0;
-          await new Promise((resolve) => {
-            const tx = db.transaction(sn, 'readonly');
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => resolve();
-            tx.onabort = () => resolve();
-            const store = tx.objectStore(sn);
-            const cursorReq = store.openCursor();
-            cursorReq.onsuccess = (event) => {
-              const cursor = event.target.result;
-              if (cursor && count < MAX_RECORDS_PER_STORE) {
-                try {
-                  records.push({ key: JSON.parse(JSON.stringify(cursor.key)), value: JSON.parse(JSON.stringify(cursor.value)) });
-                } catch (e) {
-                  records.push({ key: String(cursor.key), value: '<non-serializable>' });
-                }
-                count++;
-                cursor.continue();
-              }
-            };
-          });
-          if (records.length > 0) {
-            out.push({ database: name, store: sn, records });
-          }
-        } catch (e) {
-          // skip unreadable stores
-        }
-      }
-      db.close();
-    } catch (e) {
-      // skip unopenable databases
-    }
-  }
-  return out;
-})()`;
 
 function cloneHandoff(handoff: TaskHandoff): TaskHandoff {
   return {

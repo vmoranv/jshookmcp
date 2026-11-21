@@ -16,6 +16,7 @@ describe('CoordinationHandlers — page snapshots (IndexedDB capture)', () => {
   function makePage(opts: { idb: unknown; cookies?: unknown[] }) {
     return {
       url: () => withPath(TEST_URLS.root, 'app'),
+      goto: vi.fn(),
       createCDPSession: vi.fn().mockResolvedValue({
         send: vi.fn().mockResolvedValue({ cookies: opts.cookies ?? [] }),
         detach: vi.fn(),
@@ -85,6 +86,40 @@ describe('CoordinationHandlers — page snapshots (IndexedDB capture)', () => {
     expect(res.indexedDBDatabaseCount).toBe(0);
   });
 
+  it('restore_page_snapshot keeps the legacy response shape and skips IndexedDB', async () => {
+    const page = makePage({ idb: [] });
+    pageController.getPage.mockResolvedValue(page);
+    const snapshotId = 'legacy-shape';
+    (handlers as any).pageSnapshots.snapshots.set(snapshotId, {
+      id: snapshotId,
+      url: withPath(TEST_URLS.root, 'app'),
+      cookies: [{ name: 'sid', value: '1', domain: 'example.test', path: '/' }],
+      localStorage: { a: '1' },
+      sessionStorage: { b: '2' },
+      indexedDB: [{ name: 'authDB', version: 1, stores: [{ name: 'tokens' }] }],
+      indexedDBData: [
+        { database: 'authDB', store: 'tokens', records: [{ key: 1, value: { token: 'x' } }] },
+      ],
+      timestamp: Date.now(),
+    });
+
+    const result = (await handlers.handleRestorePageSnapshot({ snapshotId })) as Record<
+      string,
+      unknown
+    >;
+
+    expect(result).toEqual({
+      restored: true,
+      snapshotId,
+      url: withPath(TEST_URLS.root, 'app'),
+      cookiesRestored: 1,
+      localStorageKeysRestored: 1,
+      sessionStorageKeysRestored: 1,
+    });
+    // Only the web-storage restore is sent to the page; IndexedDB is skipped.
+    expect(page.evaluate).toHaveBeenCalledTimes(1);
+  });
+
   it('does not open a replacement database when deletion is blocked', async () => {
     const open = vi.fn();
     const deleteDatabase = vi.fn(() => {
@@ -103,7 +138,7 @@ describe('CoordinationHandlers — page snapshots (IndexedDB capture)', () => {
       }),
     };
     pageController.getPage.mockResolvedValue(page);
-    (handlers as any).snapshots.set('blocked', {
+    (handlers as any).pageSnapshots.snapshots.set('blocked', {
       id: 'blocked',
       url: withPath(TEST_URLS.root, 'app'),
       cookies: [],
@@ -174,7 +209,7 @@ describe('CoordinationHandlers — page snapshots (IndexedDB capture)', () => {
       }),
     };
     pageController.getPage.mockResolvedValue(page);
-    (handlers as any).snapshots.set('schema-keys', {
+    (handlers as any).pageSnapshots.snapshots.set('schema-keys', {
       id: 'schema-keys',
       url: withPath(TEST_URLS.root, 'app'),
       cookies: [],
