@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ToolError } from '@errors/ToolError';
 import {
   getHandledToolNames,
   createToolHandlerMap,
@@ -89,6 +90,23 @@ describe('ToolHandlerMap', () => {
     const { deps } = createDeps();
     const map = createToolHandlerMap(deps, new Set(['totally_unknown']));
     expect(map).toEqual({});
+  });
+
+  it('throws when a selected tool cannot bind its dependency', () => {
+    expect(() => createToolHandlerMap({}, new Set(['page_navigate']))).toThrow(ToolError);
+    expect(() => createToolHandlerMap({}, new Set(['page_navigate']))).toThrow(
+      /tool handler\(s\) failed to bind: page_navigate/,
+    );
+  });
+
+  it('can collect binding failures without throwing in lenient mode', () => {
+    const failures: string[] = [];
+    const map = createToolHandlerMap({}, new Set(['page_navigate']), {
+      strict: false,
+      onBindingFailure: (failure) => failures.push(failure.toolName),
+    });
+    expect(map).toEqual({});
+    expect(failures).toEqual(['page_navigate']);
   });
 
   it('returns full binding map when no filter is provided', () => {
