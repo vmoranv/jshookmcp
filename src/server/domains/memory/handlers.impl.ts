@@ -28,6 +28,7 @@ import type { AntiCheatDetector } from '@native/AntiCheatDetector';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import type { UnifiedProcessManager } from '@server/domains/shared/modules/native';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { asJsonResponse } from '@server/domains/shared/response';
 
 import { SessionHandlers } from './handlers/session';
 import { ScanHandlers } from './handlers/scan';
@@ -335,11 +336,11 @@ export class MemoryScanHandlers {
     const listAll = args.list === true || args.list === 'true';
 
     if (listAll) {
-      return {
+      return asJsonResponse({
         success: true,
         knownEmulators: listKnownEmulators(),
         count: listKnownEmulators().length,
-      };
+      });
     }
 
     if (!processName) {
@@ -349,10 +350,10 @@ export class MemoryScanHandlers {
     }
 
     const result = detectEmulator(processName, moduleNames);
-    return {
+    return asJsonResponse({
       success: true,
       ...result,
-    };
+    });
   }
 
   // ── Region Enumeration ──
@@ -448,13 +449,13 @@ export class MemoryScanHandlers {
 
     if (action === 'disconnect') {
       const removed = removeRemoteProxy(proxyId);
-      return { disconnected: removed, proxyId };
+      return asJsonResponse({ disconnected: removed, proxyId });
     }
 
     if (action === 'status') {
       const proxy = getRemoteProxy(proxyId);
-      if (proxy) return proxy.status;
-      return { proxies: listRemoteProxies() };
+      if (proxy) return asJsonResponse(proxy.status);
+      return asJsonResponse({ proxies: listRemoteProxies() });
     }
 
     if (action === 'connect') {
@@ -466,7 +467,7 @@ export class MemoryScanHandlers {
 
       const proxy = getOrCreateRemoteProxy(proxyId, { url, authToken, connectTimeoutMs });
       await proxy.connect();
-      return proxy.status;
+      return asJsonResponse(proxy.status);
     }
 
     if (action === 'forward') {
@@ -484,7 +485,7 @@ export class MemoryScanHandlers {
 
       const proxy = getOrCreateRemoteProxy(proxyId, { url });
       const result = await proxy.forward(toolName, toolArgs, requestTimeoutMs);
-      return { result, proxyId };
+      return asJsonResponse({ result, proxyId });
     }
 
     throw new Error(
