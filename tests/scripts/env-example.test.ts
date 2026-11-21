@@ -77,6 +77,10 @@ const dynamicReaderContracts = new Map<string, readonly string[]>([
   // Plugin-owned settings intentionally form an open namespace rather than a
   // finite .env.example inventory: PLUGIN_<ID>_* and PLUGINS_<ID>_*.
   ['src/server/extensions/plugin-config.ts:readEnvNullableString:candidate', []],
+  [
+    'src/server/security/dangerousCapabilities.ts:readEnvBoolean:ALLOW_DANGEROUS_CAPABILITIES_ENV',
+    ['JSHOOK_ALLOW_DANGEROUS_CAPABILITIES'],
+  ],
 ]);
 
 const contextualTypedDefaults = new Map<string, string>([
@@ -98,6 +102,8 @@ const allowedRawProcessEnvironment = new Set([
   'src/modules/binary-instrument/UnidbgRunner.ts:JAVA_HOME',
   'src/modules/tls-inspector/TLSKeyLogExtractor.ts:SSLKEYLOGFILE',
   'src/modules/collector/CodeCollectorConnectionInternal.ts:LOCALAPPDATA',
+  'src/server/domains/platform/handlers/electron-userdata-handler.ts:APPDATA',
+  'src/server/domains/platform/handlers/electron-userdata-handler.ts:LOCALAPPDATA',
   'src/modules/collector/CodeCollectorConnectionInternal.ts:XDG_CONFIG_HOME',
   'src/modules/external/ExternalToolRunner.ts:<dynamic>',
   'src/utils/artifact-snapshot.ts:<all>',

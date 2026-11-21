@@ -19,6 +19,7 @@ import {
 
 // ── Allowed origins for localhost CSRF protection ──
 const LOCALHOST_ORIGINS = new Set(['http://127.0.0.1', 'http://localhost', 'http://[::1]']);
+const SAFE_LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
 
 export interface HttpAuthRuntimeConfig {
   authToken?: string;
@@ -41,7 +42,7 @@ export interface HttpRateLimitRuntimeConfig {
 export function checkOrigin(
   req: IncomingMessage,
   res: ServerResponse,
-  config?: Pick<HttpAuthRuntimeConfig, 'authToken'>,
+  config?: Pick<HttpAuthRuntimeConfig, 'authToken' | 'host'>,
 ): boolean {
   const origin = req.headers.origin;
   if (!origin) return true; // non-browser clients
@@ -59,9 +60,14 @@ export function checkOrigin(
 
   if (LOCALHOST_ORIGINS.has(originBase)) return true;
 
-  // If MCP_AUTH_TOKEN is set, any origin with valid auth is OK (checked by checkAuth)
-  const authToken =
-    config === undefined ? readEnvNullableString('MCP_AUTH_TOKEN') : (config.authToken ?? null);
+  const host = config?.host ?? readEnvString('MCP_HOST', '127.0.0.1', { trim: true });
+  if (SAFE_LOCAL_HOSTS.has(host)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden – cross-origin requests to a local MCP server are not allowed');
+    return false;
+  }
+
+  const authToken = config?.authToken ?? readEnvNullableString('MCP_AUTH_TOKEN');
   if (authToken) return true;
 
   res.writeHead(403, { 'Content-Type': 'text/plain' });
@@ -87,7 +93,6 @@ export function checkAuth(
     const host = config?.host ?? readEnvString('MCP_HOST', '127.0.0.1', { trim: true });
     // '0.0.0.0' and '::' bind to ALL interfaces (including external), so they
     // are NOT safe to treat as local — require auth or explicit insecure flag.
-    const SAFE_LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
     const isLocal = SAFE_LOCAL_HOSTS.has(host);
     const allowInsecure = config?.allowInsecure ?? readEnvBoolean('MCP_ALLOW_INSECURE', false);
     if (!isLocal && !allowInsecure) {

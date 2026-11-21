@@ -5,11 +5,9 @@
 import { argBool, argEnum, argObject } from '@server/domains/shared/parse-args';
 import { cpuLimit } from '@utils/concurrency';
 import { asJsonResponse, asTextResponse } from '@server/domains/shared/response';
-import type {
-  CodeAnalyzer,
-  CryptoDetector,
-  ObfuscationDetector,
-} from '@server/domains/shared/modules';
+import type { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
+import type { CryptoDetector } from '@modules/crypto/CryptoDetector';
+import type { ObfuscationDetector } from '@modules/detector/ObfuscationDetector';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import { requireCodeArg } from './shared';
 

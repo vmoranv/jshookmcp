@@ -3,7 +3,7 @@
  */
 
 import { tmpdir } from 'node:os';
-import { ExternalToolRunner } from '@server/domains/shared/modules';
+import { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
 import { resolveSafeOutputPath } from '@utils/safeOutput';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 

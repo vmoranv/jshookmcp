@@ -17,31 +17,24 @@ const mockClass = () =>
     run: vi.fn().mockResolvedValue({ ok: true, stdout: '', stderr: '', exitCode: 0 }),
   }));
 
-vi.mock('@server/domains/shared/modules', () => ({
-  CodeAnalyzer: mockClass(),
-  CamoufoxBrowserManager: mockClass(),
-  AICaptchaDetector: mockClass(),
-  CodeCollector: mockClass(),
-  DOMInspector: mockClass(),
-  PageController: mockClass(),
-  CryptoDetector: mockClass(),
-  ASTOptimizer: mockClass(),
+vi.mock('@modules/analyzer/CodeAnalyzer', () => ({ CodeAnalyzer: mockClass() }));
+vi.mock('@modules/browser/CamoufoxBrowserManager', () => ({ CamoufoxBrowserManager: mockClass() }));
+vi.mock('@modules/captcha/AICaptchaDetector', () => ({ AICaptchaDetector: mockClass() }));
+vi.mock('@modules/crypto/CryptoDetector', () => ({ CryptoDetector: mockClass() }));
+vi.mock('@modules/deobfuscator/AdvancedDeobfuscator', () => ({
   AdvancedDeobfuscator: mockClass(),
-  Deobfuscator: mockClass(),
-  ObfuscationDetector: mockClass(),
-  DebuggerManager: mockClass(),
-  RuntimeInspector: mockClass(),
-  ScriptManager: mockClass(),
-  BlackboxManager: mockClass(),
-  ExternalToolRunner: mockClass(),
-  ToolRegistry: mockClass(),
-  HookManager: mockClass(),
-  ConsoleMonitor: mockClass(),
-  PerformanceMonitor: mockClass(),
-  MemoryManager: mockClass(),
-  UnifiedProcessManager: mockClass(),
-  StealthScripts: mockClass(),
 }));
+vi.mock('@modules/deobfuscator/Deobfuscator', () => ({ Deobfuscator: mockClass() }));
+vi.mock('@modules/detector/ObfuscationDetector', () => ({ ObfuscationDetector: mockClass() }));
+vi.mock('@modules/debugger/DebuggerManager', () => ({ DebuggerManager: mockClass() }));
+vi.mock('@modules/debugger/RuntimeInspector', () => ({ RuntimeInspector: mockClass() }));
+vi.mock('@modules/debugger/ScriptManager', () => ({ ScriptManager: mockClass() }));
+vi.mock('@modules/debugger/BlackboxManager', () => ({ BlackboxManager: mockClass() }));
+vi.mock('@modules/external/ExternalToolRunner', () => ({ ExternalToolRunner: mockClass() }));
+vi.mock('@modules/external/ToolRegistry', () => ({ ToolRegistry: mockClass() }));
+vi.mock('@modules/hook/HookManager', () => ({ HookManager: mockClass() }));
+vi.mock('@modules/monitor/PerformanceMonitor', () => ({ PerformanceMonitor: mockClass() }));
+vi.mock('@modules/stealth/StealthScripts', () => ({ StealthScripts: mockClass() }));
 
 vi.mock('@server/domains/shared/response', () => ({
   asJsonResponse: vi.fn(),
@@ -143,7 +136,7 @@ vi.mock('@utils/UnifiedCacheManager', () => ({
   UnifiedCacheManager: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock('@utils/artifactRetention', () => ({ cleanupArtifacts: vi.fn() }));
-vi.mock('@utils/environmentDoctor', () => ({ runEnvironmentDoctor: vi.fn() }));
+vi.mock('@server/domains/maintenance/environmentDoctor', () => ({ runEnvironmentDoctor: vi.fn() }));
 vi.mock('@utils/DetailedDataManager', () => ({
   DetailedDataManager: vi.fn().mockImplementation(() => ({})),
 }));

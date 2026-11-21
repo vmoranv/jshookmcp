@@ -11,7 +11,7 @@ import {
 } from '@modules/collector/CodeCollectorLaunchOptions';
 import type { PuppeteerConfig } from '@internal-types/index';
 import { BROWSER_IDLE_TIMEOUT_MS, BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
-import { beginStderrCapture, installLaunchSignals } from '@server/observability/launchSignals';
+import { beginStderrCapture, installLaunchSignals } from '@utils/launchSignals';
 
 export interface CodeCollectorLaunchResult {
   action: 'launched' | 'relaunched' | 'reused';

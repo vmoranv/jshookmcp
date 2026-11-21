@@ -9,7 +9,6 @@ import {
   readOptionalString,
   readStringArray,
   isRecord,
-  textResponse,
   jsonResponse,
   getUnidbgAvailability,
   execFileUtf8,
@@ -53,7 +52,7 @@ export class UnidbgHandlers {
     const availability = await getUnidbgAvailability();
 
     if (!availability.available) {
-      return {
+      return jsonResponse({
         success: false,
         available: false,
         capability: 'unidbg_jar',
@@ -62,7 +61,7 @@ export class UnidbgHandlers {
         functionName,
         args: invokeArgs,
         reason: availability.reason,
-      };
+      });
     }
 
     const result = await execFileUtf8(
@@ -72,7 +71,7 @@ export class UnidbgHandlers {
     );
     const returnValue = parseUnidbgReturnValue(result.stdout);
 
-    return {
+    return jsonResponse({
       success: true,
       available: true,
       binaryPath,
@@ -84,25 +83,28 @@ export class UnidbgHandlers {
         stderr: result.stderr.trim(),
         trace: [],
       },
-    };
+    });
   }
 
   async handleUnidbgLaunch(args: Record<string, unknown>): Promise<unknown> {
     const soPath = readOptionalString(args, 'soPath');
-    if (!soPath) return textResponse('Missing required string argument: soPath');
+    if (!soPath)
+      return jsonResponse({ success: false, error: 'Missing required string argument: soPath' });
     const arch = readOptionalString(args, 'arch') ?? 'arm';
 
     try {
       const result = await this.state.unidbgRunner.launch(soPath, arch);
-      return {
+      return jsonResponse({
+        success: true,
         available: true,
         sessionId: result.sessionId,
         soPath: result.soPath,
         arch: result.arch,
         sessions: this.state.unidbgRunner.listSessions(),
-      };
+      });
     } catch (error) {
-      return {
+      return jsonResponse({
+        success: false,
         available: false,
         capability: 'unidbg_jar',
         fix: 'Set UNIDBG_JAR to a reachable Unidbg JAR path and retry.',
@@ -110,15 +112,20 @@ export class UnidbgHandlers {
         arch,
         reason: error instanceof Error ? error.message : String(error),
         sessions: this.state.unidbgRunner.listSessions(),
-      };
+      });
     }
   }
 
   async handleUnidbgCall(args: Record<string, unknown>): Promise<unknown> {
     const sessionId = readOptionalString(args, 'sessionId');
-    if (!sessionId) return textResponse('Missing required string argument: sessionId');
+    if (!sessionId)
+      return jsonResponse({ success: false, error: 'Missing required string argument: sessionId' });
     const functionName = readOptionalString(args, 'functionName');
-    if (!functionName) return textResponse('Missing required string argument: functionName');
+    if (!functionName)
+      return jsonResponse({
+        success: false,
+        error: 'Missing required string argument: functionName',
+      });
 
     const callArgs = isRecord(args['args']) ? (args['args'] as Record<string, unknown>) : {};
     try {
@@ -126,24 +133,27 @@ export class UnidbgHandlers {
       return jsonResponse(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return textResponse(
-        message.startsWith('No unidbg session found') ? `${message} (not found)` : message,
-      );
+      // Preserve the explicit not-found marker: an unknown session is a
+      // prerequisite failure, not an empty trace that looks like success.
+      const notFound = message.startsWith('No unidbg session found');
+      return jsonResponse({ success: false, error: notFound ? `${message} (not found)` : message });
     }
   }
 
   async handleUnidbgTrace(args: Record<string, unknown>): Promise<unknown> {
     const sessionId = readOptionalString(args, 'sessionId');
-    if (!sessionId) return textResponse('Missing required string argument: sessionId');
+    if (!sessionId)
+      return jsonResponse({ success: false, error: 'Missing required string argument: sessionId' });
 
     try {
       const result = await this.state.unidbgRunner.trace(sessionId);
       return jsonResponse(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return textResponse(
-        message.startsWith('No unidbg session found') ? `${message} (not found)` : message,
-      );
+      // Preserve the explicit not-found marker: an unknown session is a
+      // prerequisite failure, not an empty trace that looks like success.
+      const notFound = message.startsWith('No unidbg session found');
+      return jsonResponse({ success: false, error: notFound ? `${message} (not found)` : message });
     }
   }
 }

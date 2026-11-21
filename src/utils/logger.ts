@@ -1,4 +1,4 @@
-import { sensitiveJsonReplacer } from '@modules/security/RedactionService';
+import { sensitiveJsonReplacer } from '@utils/redaction';
 import { readEnvString } from '@src/config/environment';
 
 const ANSI = {

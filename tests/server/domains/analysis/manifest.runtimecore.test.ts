@@ -36,14 +36,12 @@ vi.mock('@server/domains/analysis/index', () => ({
 vi.mock('@modules/deobfuscator/LLMDeobfuscator', () => ({
   LLMDeobfuscator: vi.fn(() => ({ isAvailable: () => false })),
 }));
-vi.mock('@server/domains/shared/modules', () => ({
-  Deobfuscator: vi.fn(),
-  AdvancedDeobfuscator: vi.fn(),
-  ObfuscationDetector: vi.fn(),
-  CodeAnalyzer: vi.fn(),
-  CryptoDetector: vi.fn(),
-  HookManager: vi.fn(),
-}));
+vi.mock('@modules/deobfuscator/Deobfuscator', () => ({ Deobfuscator: vi.fn() }));
+vi.mock('@modules/deobfuscator/AdvancedDeobfuscator', () => ({ AdvancedDeobfuscator: vi.fn() }));
+vi.mock('@modules/detector/ObfuscationDetector', () => ({ ObfuscationDetector: vi.fn() }));
+vi.mock('@modules/analyzer/CodeAnalyzer', () => ({ CodeAnalyzer: vi.fn() }));
+vi.mock('@modules/crypto/CryptoDetector', () => ({ CryptoDetector: vi.fn() }));
+vi.mock('@modules/hook/HookManager', () => ({ HookManager: vi.fn() }));
 vi.mock('@modules/deobfuscator/JScramblerDeobfuscator', () => ({
   JScramberDeobfuscator: vi.fn(),
 }));

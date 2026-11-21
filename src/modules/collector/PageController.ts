@@ -9,12 +9,25 @@ import {
   PAGE_CDP_HEALTH_CHECK_TIMEOUT_MS,
 } from '@src/constants';
 import { writeFile } from 'node:fs/promises';
+import {
+  PageDialogController,
+  type DialogHandlerOptions,
+} from '@modules/collector/PageDialogController';
+import {
+  PageEmulationController,
+  type EmulatedDevice,
+} from '@modules/collector/PageEmulationController';
 import type { Page, Frame, NewDocumentScriptEvaluation } from 'rebrowser-puppeteer-core';
 import type { BrowserTargetInfo } from '@modules/browser/BrowserTargetSessionManager.shared';
 import {
   toChromeCompatibleWaitUntil,
   type PageNavigationWaitUntil,
 } from '@modules/browser/navigation-wait-until';
+import {
+  PageStorageController,
+  type CookieReadOptions,
+  type PageCookie,
+} from '@modules/collector/PageStorageController';
 
 export interface FrameResolveOptions {
   /** URL substring to match against frame URLs */
@@ -28,61 +41,9 @@ export interface NavigationOptions {
   timeout?: number;
 }
 
-export interface CookieReadOptions {
-  urls?: string[];
-}
+export type { CookieReadOptions, PageCookie } from '@modules/collector/PageStorageController';
 
-export interface DialogHandlerOptions {
-  accept?: boolean;
-  promptText?: string;
-  dismissAll?: boolean;
-}
-
-type PageCookie = Awaited<ReturnType<Page['cookies']>>[number];
-
-/** A cookie as CDP announces it (Network.getAllCookies). */
-interface RawCdpCookie {
-  name: string;
-  domain?: string;
-  path?: string;
-  partitionKey?: { topLevelSite?: string; hasCrossSiteAncestor?: boolean } | string;
-}
-
-/**
- * Turn read-back cookies into `page.deleteCookie` requests.
- *
- * The failure this exists for, seen in production on `page_cookies`:
- *
- * ```
- * Protocol error (Network.deleteCookies): Invalid parameters
- * Failed to deserialize params.partitionKey - BINDINGS: string value expected
- * ```
- *
- * `page.deleteCookie()` forwards each cookie OBJECT verbatim to CDP, and Chromium
- * accepts exactly `{ name, url?, domain?, path?, partitionKey? }` there. A cookie
- * from `Network.getAllCookies` carries far more (`value`, `secure`, `httpOnly`,
- * `expires`, ...), so its `partitionKey` arrives as
- * `{ topLevelSite, hasCrossSiteAncestor }` and Chromium rejects the whole call.
- *
- * A partition key with no `topLevelSite` (unpartitioned) must be omitted rather
- * than sent as `{}`, which deserializes to the same "string value expected".
- */
-function toDeleteCookieRequests(
-  cookies: readonly RawCdpCookie[],
-): Array<{ name: string; domain?: string; path?: string; partitionKey?: string }> {
-  return cookies.map((cookie) => {
-    const partitionSite =
-      typeof cookie.partitionKey === 'string'
-        ? cookie.partitionKey
-        : cookie.partitionKey?.topLevelSite;
-    return {
-      name: cookie.name,
-      ...(cookie.domain ? { domain: cookie.domain } : {}),
-      ...(cookie.path ? { path: cookie.path } : {}),
-      ...(partitionSite ? { partitionKey: partitionSite } : {}),
-    };
-  });
-}
+export type { DialogHandlerOptions } from '@modules/collector/PageDialogController';
 
 export interface ClickOptions {
   button?: 'left' | 'right' | 'middle';
@@ -132,30 +93,21 @@ interface UploadContextLike {
   $(selector: string): Promise<UploadableElementHandle | null>;
 }
 
-/** Auto-dismiss any dialog (dialog may already be closed). */
-async function dismissDialog(dialog: { dismiss: () => Promise<void> }): Promise<void> {
-  try {
-    await dialog.dismiss();
-  } catch {
-    // Dialog may already be closed
-  }
-}
-
 export class PageController {
   private collector: CodeCollector;
+  private readonly storage: PageStorageController;
+  private readonly dialog: PageDialogController;
+  private readonly emulation: PageEmulationController;
   private pagePersistentScripts = new WeakMap<
     Page,
     Map<string, { source: string; identifier: string }>
   >();
-  /** Installed auto-dismiss dialog handlers per page — re-registering the
-   *  same page must not stack listeners (page.on is never auto-removed). */
-  private dialogDismissHandlers = new WeakMap<
-    Page,
-    (dialog: { dismiss: () => Promise<void> }) => Promise<void>
-  >();
 
   constructor(collector: CodeCollector) {
     this.collector = collector;
+    this.storage = new PageStorageController(collector);
+    this.dialog = new PageDialogController(collector);
+    this.emulation = new PageEmulationController(collector);
   }
 
   private getChromeNavigationWaitUntil(
@@ -615,61 +567,22 @@ export class PageController {
       value: string;
       domain?: string;
       path?: string;
+      url?: string;
       expires?: number;
       httpOnly?: boolean;
       secure?: boolean;
       sameSite?: 'Strict' | 'Lax' | 'None';
     }>,
   ): Promise<void> {
-    const page = await this.collector.getActivePage();
-    await page.setCookie(...cookies);
-    logger.info(`Set ${cookies.length} cookies`);
+    return this.storage.setCookies(cookies);
   }
 
   async getCookies(options: CookieReadOptions = {}): Promise<PageCookie[]> {
-    const page = await this.collector.getActivePage();
-    const urls = options.urls?.filter((url) => url.length > 0);
-    if (urls && urls.length > 0) {
-      const cookies = await page.cookies(...urls);
-      logger.info(`Retrieved ${cookies.length} cookies for ${urls.length} URL(s)`);
-      return cookies;
-    }
-
-    let cdp: Awaited<ReturnType<Page['createCDPSession']>> | undefined;
-    try {
-      cdp = await page.createCDPSession();
-      const result = (await cdp.send('Network.getAllCookies')) as { cookies?: PageCookie[] };
-      if (Array.isArray(result.cookies)) {
-        logger.info(`Retrieved ${result.cookies.length} cookies across all origins`);
-        return result.cookies;
-      }
-    } catch (error) {
-      logger.warn(
-        `Falling back to page-scoped cookie read: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    } finally {
-      const detach = (cdp as { detach?: () => Promise<void> } | undefined)?.detach;
-      if (typeof detach === 'function') {
-        await detach.call(cdp).catch(() => undefined);
-      }
-    }
-
-    const cookies = await page.cookies();
-    logger.info(`Retrieved ${cookies.length} cookies`);
-    return cookies;
+    return this.storage.getCookies(options);
   }
 
   async clearCookies(): Promise<void> {
-    if (this.collector.isExistingBrowserConnection()) {
-      throw new Error(
-        'Cannot clear cookies on an attached browser. ' +
-          'This operation is restricted to browsers launched by jshook to prevent accidental modification of user data.',
-      );
-    }
-    const page = await this.collector.getActivePage();
-    const cookies = await this.getCookies();
-    await page.deleteCookie(...toDeleteCookieRequests(cookies as unknown as RawCdpCookie[]));
-    logger.info('All cookies cleared');
+    return this.storage.clearCookies();
   }
 
   async handleDialog(options: DialogHandlerOptions = {}): Promise<{
@@ -678,126 +591,15 @@ export class PageController {
     type?: string;
     dialogMessage?: string;
   }> {
-    const page = await this.collector.getActivePage();
-    const accept = options.accept !== false;
-    const dismissAll = options.dismissAll !== false;
-    const promptText = options.promptText;
-
-    const handleSingle = (dialog: {
-      type: () => string;
-      message: () => string;
-      accept: (promptText?: string) => Promise<void>;
-      dismiss: () => Promise<void>;
-    }): Promise<{ type: string; dialogMessage: string }> => {
-      const dialogType = dialog.type();
-      const dialogMessage = dialog.message();
-      if (accept) {
-        if (dialogType === 'prompt' && promptText !== undefined) {
-          return dialog.accept(promptText).then(() => ({ type: dialogType, dialogMessage }));
-        }
-        return dialog.accept().then(() => ({ type: dialogType, dialogMessage }));
-      }
-      return dialog.dismiss().then(() => ({ type: dialogType, dialogMessage }));
-    };
-
-    if (dismissAll) {
-      const existing = this.dialogDismissHandlers.get(page);
-      if (existing) {
-        page.off('dialog', existing);
-      }
-      this.dialogDismissHandlers.set(page, dismissDialog);
-      page.on('dialog', dismissDialog);
-      return {
-        handled: true,
-        message: 'Persistent dialog handler installed — all future dialogs will be auto-dismissed.',
-      };
-    }
-
-    try {
-      const result = await new Promise<{ type: string; dialogMessage: string }>(
-        (resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(
-              new Error(
-                `Timed out waiting for a dialog (${PAGE_OPERATION_TIMEOUT_MS / 1000}s). No dialog appeared.`,
-              ),
-            );
-          }, PAGE_OPERATION_TIMEOUT_MS);
-
-          page.once('dialog', async (dialog) => {
-            clearTimeout(timeout);
-            try {
-              resolve(await handleSingle(dialog));
-            } catch (err) {
-              reject(err);
-            }
-          });
-        },
-      );
-
-      const verb = accept ? 'accepted' : 'dismissed';
-      return {
-        handled: true,
-        message: `${verb} ${result.type} dialog${result.dialogMessage ? `: "${result.dialogMessage}"` : ''}`,
-        type: result.type,
-        dialogMessage: result.dialogMessage || undefined,
-      };
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      logger.warn(`Dialog handler: ${errMsg}`);
-      return { handled: false, message: errMsg };
-    }
+    return this.dialog.handleDialog(options);
   }
 
   async setViewport(width: number, height: number): Promise<void> {
-    const page = await this.collector.getActivePage();
-    await page.setViewport({ width, height });
-    logger.info(`Viewport set to ${width}x${height}`);
+    return this.emulation.setViewport(width, height);
   }
 
-  async emulateDevice(deviceName: string): Promise<'iPhone' | 'iPad' | 'Android'> {
-    const page = await this.collector.getActivePage();
-
-    const devices = {
-      iPhone: {
-        viewport: { width: 375, height: 812, isMobile: true },
-        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15',
-      },
-      iPad: {
-        viewport: { width: 768, height: 1024, isMobile: true },
-        userAgent: 'Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X) AppleWebKit/605.1.15',
-      },
-      Android: {
-        viewport: { width: 360, height: 640, isMobile: true },
-        userAgent: 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/91.0.4472.120',
-      },
-    };
-
-    const normalized = String(deviceName || '')
-      .trim()
-      .toLowerCase();
-    let resolvedDevice: 'iPhone' | 'iPad' | 'Android' | null = null;
-    if (normalized.includes('iphone')) {
-      resolvedDevice = 'iPhone';
-    } else if (normalized.includes('ipad')) {
-      resolvedDevice = 'iPad';
-    } else if (normalized.includes('android') || normalized.includes('pixel')) {
-      resolvedDevice = 'Android';
-    }
-
-    if (!resolvedDevice) {
-      throw new Error(
-        `Unsupported device "${deviceName}". Supported values include: iPhone, iPad, Android (aliases like "iPhone ` +
-          `13" are accepted).`,
-      );
-    }
-
-    const device = devices[resolvedDevice];
-    await page.setViewport(device.viewport);
-    await page.setUserAgent(device.userAgent);
-
-    logger.info(`Emulating ${resolvedDevice} (input: ${deviceName})`);
-    return resolvedDevice;
+  async emulateDevice(deviceName: string): Promise<EmulatedDevice> {
+    return this.emulation.emulateDevice(deviceName);
   }
 
   async waitForNetworkIdle(timeout = PAGE_NETWORK_IDLE_TIMEOUT_MS): Promise<void> {
@@ -807,93 +609,29 @@ export class PageController {
   }
 
   async getLocalStorage(): Promise<Record<string, string>> {
-    const page = await this.collector.getActivePage();
-
-    const storage = await page.evaluate(() => {
-      const items: Record<string, string> = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) {
-          items[key] = localStorage.getItem(key) || '';
-        }
-      }
-      return items;
-    });
-
-    logger.info(`Retrieved ${Object.keys(storage).length} localStorage items`);
-    return storage;
+    return this.storage.getLocalStorage();
   }
 
   async setLocalStorage(key: string, value: string): Promise<void> {
-    const page = await this.collector.getActivePage();
-
-    await page.evaluate(
-      (k, v) => {
-        localStorage.setItem(k, v);
-      },
-      key,
-      value,
-    );
-
-    logger.info(`Set localStorage: ${key}`);
+    return this.storage.setLocalStorage(key, value);
   }
 
   async clearLocalStorage(): Promise<void> {
-    if (this.collector.isExistingBrowserConnection()) {
-      throw new Error(
-        'Cannot clear localStorage on an attached browser. ' +
-          'This operation is restricted to browsers launched by jshook to prevent accidental modification of user data.',
-      );
-    }
-    const page = await this.collector.getActivePage();
-
-    await page.evaluate(() => {
-      localStorage.clear();
-    });
-
-    logger.info('LocalStorage cleared');
+    return this.storage.clearLocalStorage();
   }
 
   // ── sessionStorage ──
 
   async getSessionStorage(): Promise<Record<string, string>> {
-    const page = await this.collector.getActivePage();
-    const storage = await page.evaluate(() => {
-      const items: Record<string, string> = {};
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key) items[key] = sessionStorage.getItem(key) || '';
-      }
-      return items;
-    });
-    logger.info(`Retrieved ${Object.keys(storage).length} sessionStorage items`);
-    return storage;
+    return this.storage.getSessionStorage();
   }
 
   async setSessionStorage(key: string, value: string): Promise<void> {
-    const page = await this.collector.getActivePage();
-    await page.evaluate(
-      (k, v) => {
-        sessionStorage.setItem(k, v);
-      },
-      key,
-      value,
-    );
-    logger.info(`Set sessionStorage: ${key}`);
+    return this.storage.setSessionStorage(key, value);
   }
 
   async clearSessionStorage(): Promise<void> {
-    if (this.collector.isExistingBrowserConnection()) {
-      throw new Error(
-        'Cannot clear sessionStorage on an attached browser. ' +
-          'This operation is restricted to browsers launched by jshook to prevent accidental modification of user data.',
-      );
-    }
-    const page = await this.collector.getActivePage();
-    await page.evaluate(() => {
-      sessionStorage.clear();
-    });
-    logger.info('SessionStorage cleared');
+    return this.storage.clearSessionStorage();
   }
 
   // ── WebAuthn passkey seeding ──
@@ -906,38 +644,7 @@ export class PageController {
     publicKey?: string;
     userDisplayName?: string;
   }): Promise<{ authenticatorId: string; credentialId: string }> {
-    const page = await this.collector.getActivePage();
-    const cdp = await page.createCDPSession();
-    try {
-      await cdp.send('WebAuthn.enable', { enableUI: true });
-      const authResult = (await cdp.send('WebAuthn.addVirtualAuthenticator', {
-        options: {
-          protocol: 'ctap2',
-          transport: 'internal',
-          hasResidentKey: true,
-          hasUserVerification: true,
-          isUserVerified: true,
-          automaticPresenceSimulation: true,
-        },
-      })) as { authenticatorId: string };
-      await cdp.send('WebAuthn.addCredential', {
-        authenticatorId: authResult.authenticatorId,
-        credential: {
-          credentialId: options.credentialId,
-          isResidentCredential: true,
-          privateKey: options.privateKey,
-          signCount: 0,
-          rpId: options.relyingPartyId,
-          userHandle: options.userHandle,
-          userDisplayName: options.userDisplayName ?? 'jshook user',
-          ...(options.publicKey ? { publicKey: options.publicKey } : {}),
-        },
-      });
-      logger.info(`Seeded WebAuthn credential for ${options.relyingPartyId}`);
-      return { authenticatorId: authResult.authenticatorId, credentialId: options.credentialId };
-    } finally {
-      await cdp.detach().catch(() => {});
-    }
+    return this.emulation.seedWebAuthnCredential(options);
   }
 
   async pressKey(key: string): Promise<void> {

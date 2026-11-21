@@ -143,6 +143,26 @@ export interface ExtensionState {
 }
 
 /**
+ * Typed key → instance map for infrastructure services that are shared across
+ * domains. Domain handler slots stay on the dynamic map; this table removes the
+ * stringly-typed `getDomainInstance<WrongType>('key')` hazard on the hot paths
+ * that every tool call uses.
+ */
+export interface DomainMap {
+  serverRuntimeState: import('@server/runtime/ServerRuntimeState').ServerRuntimeState;
+  browserFleetRouter: import('@server/runtime/BrowserFleetRouter').BrowserFleetRouter;
+  browserSessionCoordinator: import('@server/runtime/BrowserSessionCoordinator').BrowserSessionCoordinator;
+  evidenceGraph: import('@server/evidence/ReverseEvidenceGraph').ReverseEvidenceGraph;
+  searchQualityTracker: import('@server/search/SearchQualityTracker').SearchQualityTracker;
+  searchEngine: import('@server/search/ToolSearchEngine').ToolSearchEngine;
+  instrumentationSessionManager: import('@server/instrumentation/InstrumentationSession').InstrumentationSessionManager;
+  snapshotScheduler: import('@server/persistence/RuntimeSnapshotScheduler').RuntimeSnapshotScheduler;
+  snapshotStateDir: string;
+  httpMultiplexTransport: import('@server/transport/MultiplexedStreamableHttpTransport').MultiplexedStreamableHttpTransport;
+  modernHttpHandler: { close: () => Promise<void> };
+}
+
+/**
  * Centralized domain instance store.
  *
  * Replaces the old 35-property typed interface. New domains no longer
@@ -159,6 +179,10 @@ export interface DomainInstances {
   getDomainInstance<T>(key: string): T | undefined;
   /** Typed write accessor. */
   setDomainInstance(key: string, value: unknown): void;
+  /** Key-checked accessor for shared infrastructure instances. */
+  getTypedDomainInstance?<K extends keyof DomainMap>(key: K): DomainMap[K] | undefined;
+  /** Key-checked write accessor for shared infrastructure instances. */
+  setTypedDomainInstance?<K extends keyof DomainMap>(key: K, value: DomainMap[K]): void;
 
   // ── Backward-compatible named accessors (STS2 P4) ──
 
@@ -243,3 +267,20 @@ export interface MCPServerContext
     ExtensionState,
     DomainInstances,
     ServerMethods {}
+
+/**
+ * Read a shared infrastructure instance with key/type checking.
+ *
+ * Falls back to `getDomainInstance` for partial test/recovery contexts that
+ * predate the typed accessor, so adopting the typed API never breaks a host
+ * that only implements the dynamic map.
+ */
+export function getTypedDomain<K extends keyof DomainMap>(
+  ctx: MCPServerContext,
+  key: K,
+): DomainMap[K] | undefined {
+  if (typeof ctx.getTypedDomainInstance === 'function') {
+    return ctx.getTypedDomainInstance(key);
+  }
+  return ctx.getDomainInstance<DomainMap[K]>(key);
+}

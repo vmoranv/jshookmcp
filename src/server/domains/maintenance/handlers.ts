@@ -14,7 +14,7 @@ import {
 import type { ArtifactCategory } from '@utils/artifacts';
 import { getProjectRoot, getSystemTempRoots } from '@utils/outputPaths';
 import { resolveSafeOutputPath } from '@utils/safeOutput';
-import { runEnvironmentDoctor } from '@utils/environmentDoctor';
+import { runEnvironmentDoctor } from './environmentDoctor';
 import { classifyGpuInputs } from '@server/domains/maintenance/gpu-detect';
 import { TOKEN_BUDGET_MAX_TOKENS } from '@src/constants/server';
 

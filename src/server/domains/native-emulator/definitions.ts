@@ -525,7 +525,8 @@ export const nativeEmulatorTools: Tool[] = [
       .number('address', 'Guest address to write to')
       .string('dataBase64', 'Data to write as a base64 string')
       .number('maxBytes', 'Optional per-call cap, bounded by server configuration.')
-      .required('sessionId', 'address', 'dataBase64'),
+      .required('sessionId', 'address', 'dataBase64')
+      .destructive(),
   ),
   tool('nemu_write_regions', (t) =>
     t
@@ -550,7 +551,8 @@ export const nativeEmulatorTools: Tool[] = [
         },
         'Array of {address, dataBase64, writeProtect?} objects to write',
       )
-      .required('sessionId', 'regions'),
+      .required('sessionId', 'regions')
+      .destructive(),
   ),
   tool('nemu_prepare_tls', (t) =>
     t
@@ -791,7 +793,8 @@ export const nativeEmulatorTools: Tool[] = [
       .boolean('codeProtect', 'Also write-protect the SO text segment after applying patches', {
         default: false,
       })
-      .required('sessionId', 'patches'),
+      .required('sessionId', 'patches')
+      .destructive(),
   ),
   // ── Register snapshot ──────────────────────────────────────────
   tool('nemu_regs_save', (t) =>

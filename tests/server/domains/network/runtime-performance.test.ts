@@ -12,9 +12,7 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
   },
 }));
 
-vi.mock('@src/server/domains/shared/modules', () => ({
-  PerformanceMonitor: vi.fn(),
-}));
+vi.mock('@modules/monitor/PerformanceMonitor', () => ({ PerformanceMonitor: vi.fn() }));
 
 vi.mock('node:fs/promises', () => ({
   writeFile: (...args: any[]) => writeFileMock(...args),

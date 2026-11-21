@@ -1,5 +1,5 @@
 import { parseExpression } from '@babel/parser';
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { argString, argNumber } from '@server/domains/shared/parse-args';
 

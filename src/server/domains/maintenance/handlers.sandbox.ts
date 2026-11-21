@@ -13,7 +13,7 @@ import {
   SANDBOX_MAX_TIMEOUT_MS,
   SANDBOX_MIN_MEMORY_LIMIT_BYTES,
 } from '@src/constants';
-import { redactSensitiveData, redactSensitiveString } from '@modules/security/RedactionService';
+import { redactSensitiveData, redactSensitiveString } from '@utils/redaction';
 import { cpuLimit } from '@utils/concurrency';
 
 const MAX_MEMORY_LIMIT_BYTES = SANDBOX_MAX_MEMORY_LIMIT_MB * 1024 * 1024;

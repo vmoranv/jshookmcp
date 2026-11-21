@@ -194,7 +194,8 @@ export const PROXY_TOOLS: Tool[] = [
         'Remove a single proxy interception rule by endpointId. Returns the removed rule record.',
       )
       .string('endpointId', 'The endpointId returned when the rule was added.')
-      .required('endpointId'),
+      .required('endpointId')
+      .destructive(),
   ),
   tool('proxy_list_rules', (t) =>
     t

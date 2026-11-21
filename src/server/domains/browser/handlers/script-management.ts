@@ -1,4 +1,4 @@
-import type { ScriptManager } from '@server/domains/shared/modules';
+import type { ScriptManager } from '@modules/debugger/ScriptManager';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 import { DETAILED_DATA_SMART_THRESHOLD_BYTES, SCRIPTS_MAX_CAP } from '@src/constants';

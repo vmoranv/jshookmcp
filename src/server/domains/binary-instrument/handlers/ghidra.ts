@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { GhidraAnalyzer } from '@modules/binary-instrument';
 import type { BinaryInstrumentState } from './shared';
-import { readRequiredString, readOptionalNumber } from './shared';
+import { jsonResponse, readRequiredString, readOptionalNumber } from './shared';
 
 export class GhidraHandlers {
   private state: BinaryInstrumentState;
@@ -25,7 +25,7 @@ export class GhidraHandlers {
     if (!availability.available) {
       const binaryBuffer = await readFile(binaryPath).catch(() => Buffer.alloc(0));
       const strings = this.extractPrintableStringsStatic(binaryBuffer);
-      return {
+      return jsonResponse({
         available: false,
         capability: 'ghidra_headless',
         fix: 'Install Ghidra and ensure analyzeHeadless is on PATH.',
@@ -35,14 +35,14 @@ export class GhidraHandlers {
         imports: [] as string[],
         exports: [] as string[],
         strings,
-      };
+      });
     }
 
     const analysis = await ghidra.analyze(
       binaryPath,
       timeout !== undefined ? { timeout } : undefined,
     );
-    return { available: true, binaryPath, analysis };
+    return jsonResponse({ available: true, binaryPath, analysis });
   }
 
   async handleGhidraDecompile(args: Record<string, unknown>): Promise<unknown> {
@@ -56,14 +56,14 @@ export class GhidraHandlers {
     // plugin_ghidra_bridge delegation expected an HTTP bridge server that
     // nothing in the ecosystem ships — this runs analyzeHeadless directly.
     if (!availability.available) {
-      return {
+      return jsonResponse({
         available: false,
         capability: 'ghidra_headless',
         fix: 'Install Ghidra and ensure analyzeHeadless is on PATH.',
         binaryPath,
         functionName,
         reason: availability.reason ?? 'Ghidra analyzeHeadless is not available',
-      };
+      });
     }
 
     const result = await ghidra.decompileFunction(
@@ -73,7 +73,7 @@ export class GhidraHandlers {
     );
 
     if (!result.found) {
-      return {
+      return jsonResponse({
         available: true,
         found: false,
         binaryPath,
@@ -82,17 +82,17 @@ export class GhidraHandlers {
           `No function named "${functionName}" in ${binaryPath} (or decompilation produced no output). ` +
           'Run ghidra_analyze first and pick the name from its function list.',
         ...(result.rawOutput ? { ghidraOutputTail: result.rawOutput } : {}),
-      };
+      });
     }
 
-    return {
+    return jsonResponse({
       available: true,
       found: true,
       binaryPath,
       functionName,
       count: result.functions.length,
       functions: result.functions,
-    };
+    });
   }
 
   private getGhidraAnalyzer(): GhidraAnalyzer {

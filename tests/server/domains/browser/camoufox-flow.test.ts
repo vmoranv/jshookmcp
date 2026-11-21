@@ -11,7 +11,7 @@ const mockManager = vi.hoisted(() => ({
   constructorArgs: [] as any[],
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/browser/CamoufoxBrowserManager', () => ({
   CamoufoxBrowserManager: class MockCamoufoxBrowserManager {
     constructor(config: any) {
       mockManager.constructorArgs.push(config);

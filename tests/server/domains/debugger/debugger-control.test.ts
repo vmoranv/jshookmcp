@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DebuggerControlHandlers } from '@server/domains/debugger/handlers/debugger-control';
-import type { DebuggerManager, RuntimeInspector } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
+import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 
 type ControlDebuggerManager = Pick<
   DebuggerManager,

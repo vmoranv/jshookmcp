@@ -1,4 +1,4 @@
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 import type { DebuggerSession } from '@internal-types/index';
 import { argString, argObject } from '@server/domains/shared/parse-args';
 

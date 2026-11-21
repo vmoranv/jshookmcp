@@ -1,5 +1,4 @@
-import type { MCPServerContext } from '@server/MCPServer.context';
-import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
+import { getTypedDomain, type MCPServerContext } from '@server/MCPServer.context';
 // Leaf module, not ToolRouter.policy: the policy import chain reaches
 // every domain manifest and would close the registry↔workflow cycle family.
 import { getEffectivePrerequisites } from '@server/ToolRouter.prerequisites';
@@ -32,7 +31,7 @@ export function getEvidenceState(ctx: MCPServerContext): {
   edgeCount: number;
 } {
   try {
-    const evidenceGraph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');
+    const evidenceGraph = getTypedDomain(ctx, 'evidenceGraph');
     return evidenceGraph
       ? { hasGraph: true, nodeCount: evidenceGraph.nodeCount, edgeCount: evidenceGraph.edgeCount }
       : { hasGraph: false, nodeCount: 0, edgeCount: 0 };

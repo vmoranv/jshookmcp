@@ -11,7 +11,7 @@
  *   4. every pinned value + predicate self-check matches the installed SDK.
  */
 import { describe, expect, it } from 'vitest';
-import { ProtocolError } from '@modelcontextprotocol/server';
+
 import { ToolError } from '@errors/ToolError';
 import {
   findMcp2ContractDrift,
@@ -33,7 +33,7 @@ describe('mcp2 runtime contract guard', () => {
 });
 
 describe('mcp2 barrel is wired into the tool error mapper', () => {
-  it('maps ToolError NOT_FOUND to the pinned ResourceNotFound code', async () => {
+  function registerProbe(thrower: () => never) {
     const registered: Array<(args: Record<string, unknown>) => Promise<unknown>> = [];
     const ctx = {
       server: {
@@ -45,9 +45,7 @@ describe('mcp2 barrel is wired into the tool error mapper', () => {
         registeredTools: {},
       },
       toolAutocompleteHandlers: new Map(),
-      executeToolWithTracking: async () => {
-        throw new ToolError('NOT_FOUND', 'gone');
-      },
+      executeToolWithTracking: async () => thrower(),
     } as unknown as Parameters<typeof registerSingleTool>[0];
 
     registerSingleTool(ctx, {
@@ -56,10 +54,35 @@ describe('mcp2 barrel is wired into the tool error mapper', () => {
       inputSchema: { type: 'object', properties: {} },
     } as never);
 
-    await expect(registered[0]!({})).rejects.toMatchObject({
-      code: ERROR_CODE_RESOURCE_NOT_FOUND,
+    return registered[0]!;
+  }
+
+  async function failedPayload(handler: (args: Record<string, unknown>) => Promise<unknown>) {
+    const result = (await handler({})) as {
+      isError?: boolean;
+      content: { type: string; text: string }[];
+    };
+    // SEP-1303: a failed call is a Tool Execution Error, not a JSON-RPC fault.
+    expect(result.isError).toBe(true);
+    return JSON.parse(result.content[0]!.text) as Record<string, unknown>;
+  }
+
+  it('returns ToolError NOT_FOUND as a tool execution error carrying its code', async () => {
+    const handler = registerProbe(() => {
+      throw new ToolError('NOT_FOUND', 'gone');
     });
-    // Guard the stronger claim too: it is a ProtocolError, not a soft response.
-    await expect(registered[0]!({})).rejects.toBeInstanceOf(ProtocolError);
+
+    const payload = await failedPayload(handler);
+    expect(payload.success).toBe(false);
+    expect(payload.code).toBe('NOT_FOUND');
+  });
+
+  it('classifies invalid arguments as VALIDATION, not a protocol error', async () => {
+    const handler = registerProbe(() => {
+      throw new ToolError('VALIDATION', 'bad arg');
+    });
+
+    const payload = await failedPayload(handler);
+    expect(payload.code).toBe('VALIDATION');
   });
 });

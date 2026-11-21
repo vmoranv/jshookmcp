@@ -1,5 +1,5 @@
 import { ResourceTemplate } from '@modelcontextprotocol/server';
-import type { MCPServerContext } from '@server/MCPServer.context';
+import { getTypedDomain, type MCPServerContext } from '@server/MCPServer.context';
 import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 import type { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
@@ -35,11 +35,11 @@ function asTextResource(uri: string, text: string, mimeType: string) {
 }
 
 function getEvidenceGraph(ctx: MCPServerContext): ReverseEvidenceGraph | undefined {
-  return ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');
+  return getTypedDomain(ctx, 'evidenceGraph');
 }
 
 function getSessionManager(ctx: MCPServerContext): InstrumentationSessionManager | undefined {
-  return ctx.getDomainInstance<InstrumentationSessionManager>('instrumentationSessionManager');
+  return getTypedDomain(ctx, 'instrumentationSessionManager');
 }
 
 export function registerServerResources(ctx: MCPServerContext): void {

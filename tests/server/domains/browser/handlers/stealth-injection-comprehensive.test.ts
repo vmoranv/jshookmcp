@@ -44,7 +44,7 @@ const { injectAllMock, setRealisticUserAgentMock } = vi.hoisted(() => ({
   setRealisticUserAgentMock: vi.fn(),
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/stealth/StealthScripts', () => ({
   StealthScripts: {
     injectAll: (page: unknown) => injectAllMock(page),
     setRealisticUserAgent: (page: unknown, platform: Platform) =>
@@ -448,7 +448,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
         },
       }));
 
-      vi.doMock('@server/domains/shared/modules', () => ({
+      vi.doMock('@modules/stealth/StealthScripts', () => ({
         StealthScripts: {
           injectAll: vi.fn().mockResolvedValue(undefined),
           setRealisticUserAgent: vi.fn(),
@@ -469,7 +469,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
       expect(body.fingerprintApplied).toBe(true);
 
       vi.doUnmock('@modules/stealth/FingerprintManager');
-      vi.doUnmock('@server/domains/shared/modules');
+      vi.doUnmock('@modules/stealth/StealthScripts');
     });
 
     it('generates fingerprint when no active profile exists', async () => {
@@ -489,7 +489,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
         },
       }));
 
-      vi.doMock('@server/domains/shared/modules', () => ({
+      vi.doMock('@modules/stealth/StealthScripts', () => ({
         StealthScripts: {
           injectAll: vi.fn().mockResolvedValue(undefined),
           setRealisticUserAgent: vi.fn(),
@@ -511,7 +511,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
       expect(injectFingerprintMock).toHaveBeenCalledWith(page, generatedProfile);
 
       vi.doUnmock('@modules/stealth/FingerprintManager');
-      vi.doUnmock('@server/domains/shared/modules');
+      vi.doUnmock('@modules/stealth/StealthScripts');
     });
 
     it('falls back to stealth scripts when fingerprint injection fails', async () => {
@@ -527,7 +527,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
         },
       }));
 
-      vi.doMock('@server/domains/shared/modules', () => ({
+      vi.doMock('@modules/stealth/StealthScripts', () => ({
         StealthScripts: {
           injectAll: vi.fn().mockResolvedValue(undefined),
           setRealisticUserAgent: vi.fn(),
@@ -549,7 +549,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
       expect(body.fingerprintApplied).toBe(false);
 
       vi.doUnmock('@modules/stealth/FingerprintManager');
-      vi.doUnmock('@server/domains/shared/modules');
+      vi.doUnmock('@modules/stealth/StealthScripts');
     });
 
     it('skips fingerprint when FingerprintManager is not available', async () => {
@@ -563,7 +563,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
         },
       }));
 
-      vi.doMock('@server/domains/shared/modules', () => ({
+      vi.doMock('@modules/stealth/StealthScripts', () => ({
         StealthScripts: {
           injectAll: vi.fn().mockResolvedValue(undefined),
           setRealisticUserAgent: vi.fn(),
@@ -584,7 +584,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
       expect(body.fingerprintApplied).toBe(false);
 
       vi.doUnmock('@modules/stealth/FingerprintManager');
-      vi.doUnmock('@server/domains/shared/modules');
+      vi.doUnmock('@modules/stealth/StealthScripts');
     });
   });
 

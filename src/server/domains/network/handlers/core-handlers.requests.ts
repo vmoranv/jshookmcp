@@ -64,22 +64,157 @@ function matchesStatusCode(status: number | undefined, filter: string): boolean 
   return status === exact;
 }
 
+export interface RequestFilterOptions {
+  url?: string;
+  urlRegex?: string;
+  method?: string;
+  sinceTimestamp?: number;
+  sinceRequestId?: string;
+  tail?: number;
+  limit: number;
+  offset: number;
+  autoEnabled: boolean;
+  fields?: string[];
+  statusCode?: string;
+  deduplicateUrls?: boolean;
+}
+
+function hasAnyRequestFilter(filters: RequestFilterOptions): boolean {
+  return !!(
+    filters.url ||
+    filters.urlRegex ||
+    (filters.method && filters.method.toUpperCase() !== 'ALL') ||
+    filters.sinceTimestamp ||
+    filters.sinceRequestId ||
+    filters.tail ||
+    filters.statusCode
+  );
+}
+
+/** Apply the ordered filter chain (type default, cursor/time, url, method, status, tail, sort). */
+function filterRequestList(
+  requests: NetworkRequestPayload[],
+  filters: RequestFilterOptions,
+  hasAnyFilter: boolean,
+): { filtered: NetworkRequestPayload[]; excludedStaticCount: number } {
+  let filtered = requests;
+  let excludedStaticCount = 0;
+
+  // Default type filtering: exclude static resources when no explicit filters are set
+  if (!hasAnyFilter) {
+    const beforeTypeFilter = filtered.length;
+    filtered = filtered.filter((r) => !r.type || !EXCLUDED_RESOURCE_TYPES.has(r.type));
+    excludedStaticCount = beforeTypeFilter - filtered.length;
+  }
+
+  // sinceRequestId filter
+  if (filters.sinceRequestId) {
+    const idx = filtered.findIndex((r) => r.requestId === filters.sinceRequestId);
+    if (idx >= 0) {
+      filtered = filtered.slice(idx + 1);
+    }
+  }
+
+  // sinceTimestamp filter
+  if (filters.sinceTimestamp !== undefined) {
+    filtered = filtered.filter((r) => (r.timestamp ?? 0) > filters.sinceTimestamp!);
+  }
+
+  // URL filter: regex takes precedence over substring
+  if (filters.urlRegex) {
+    if (filters.urlRegex.length > 500) {
+      throw new Error('urlRegex too long (max 500 characters)');
+    }
+    // User-supplied by design; length is capped and the first match is timed.
+    // eslint-disable-next-line security/detect-non-literal-regexp
+    const re = new RegExp(filters.urlRegex, 'i');
+    if (filtered.length > 0) {
+      const start = performance.now();
+      re.test(filtered[0]!.url);
+      const elapsed = performance.now() - start;
+      if (elapsed > 100) {
+        throw new Error(
+          `urlRegex pattern is too expensive (${elapsed.toFixed(0)}ms on first URL). Use a simpler pattern.`,
+        );
+      }
+    }
+    filtered = filtered.filter((req) => re.test(req.url));
+  } else if (filters.url) {
+    const urlLower = filters.url.toLowerCase();
+    filtered = filtered.filter((req) => req.url.toLowerCase().includes(urlLower));
+  }
+
+  if (filters.method && filters.method.toUpperCase() !== 'ALL') {
+    const method = filters.method.toUpperCase();
+    filtered = filtered.filter((req) => req.method.toUpperCase() === method);
+  }
+
+  // statusCode filter: exact ("404") or class ("4xx"/"5xx"). Requests without a
+  // captured response status are excluded when this filter is set.
+  if (filters.statusCode) {
+    const statusCode = filters.statusCode;
+    filtered = filtered.filter((req) => matchesStatusCode(getRequestStatus(req), statusCode));
+  }
+
+  // tail filter
+  if (filters.tail !== undefined && filtered.length > filters.tail) {
+    filtered = filtered.slice(-filters.tail);
+  }
+
+  // Smart sort
+  filtered.sort(
+    (a, b) =>
+      (TYPE_SORT_PRIORITY[a.type ?? ''] ?? DEFAULT_SORT_PRIORITY) -
+      (TYPE_SORT_PRIORITY[b.type ?? ''] ?? DEFAULT_SORT_PRIORITY),
+  );
+
+  return { filtered, excludedStaticCount };
+}
+
+/** Group paginated requests into endpoint patterns for the deduplicated view. */
+function deduplicateRequestUrls(
+  requests: NetworkRequestPayload[],
+): Array<{ pattern: string; method: string; count: number; example: string }> {
+  const patternMap = new Map<
+    string,
+    { pattern: string; method: string; count: number; example: string }
+  >();
+  for (const req of requests) {
+    const pattern = normalizeUrlToPattern(req.url);
+    const key = `${req.method.toUpperCase()} ${pattern}`;
+    const existing = patternMap.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      patternMap.set(key, {
+        pattern,
+        method: req.method.toUpperCase(),
+        count: 1,
+        example: req.url,
+      });
+    }
+  }
+  return [...patternMap.values()].toSorted((a, b) => b.count - a.count);
+}
+
+/** Strip every field not explicitly requested (used to shrink large payloads). */
+function pickRequestFields(
+  requests: NetworkRequestPayload[],
+  fields: string[] | undefined,
+): Array<NetworkRequestPayload | Record<string, unknown>> {
+  if (!fields) return requests;
+  return requests.map((r) => {
+    const picked: Record<string, unknown> = {};
+    for (const f of fields) {
+      if (f in r) picked[f] = r[f];
+    }
+    return picked;
+  });
+}
+
 export function applyRequestFilters(
   requests: NetworkRequestPayload[],
-  filters: {
-    url?: string;
-    urlRegex?: string;
-    method?: string;
-    sinceTimestamp?: number;
-    sinceRequestId?: string;
-    tail?: number;
-    limit: number;
-    offset: number;
-    autoEnabled: boolean;
-    fields?: string[];
-    statusCode?: string;
-    deduplicateUrls?: boolean;
-  },
+  filters: RequestFilterOptions,
 ) {
   const {
     url,
@@ -97,84 +232,12 @@ export function applyRequestFilters(
   } = filters;
   const originalCount = requests.length;
   const allUrls = requests.map((r) => r.url);
+  const hasAnyFilter = hasAnyRequestFilter(filters);
 
-  const hasAnyFilter = !!(
-    url ||
-    urlRegex ||
-    (method && method.toUpperCase() !== 'ALL') ||
-    sinceTimestamp ||
-    sinceRequestId ||
-    tail ||
-    statusCode
-  );
-
-  // Default type filtering: exclude static resources when no explicit filters are set
-  let excludedStaticCount = 0;
-  if (!hasAnyFilter) {
-    const beforeTypeFilter = requests.length;
-    requests = requests.filter((r) => !r.type || !EXCLUDED_RESOURCE_TYPES.has(r.type));
-    excludedStaticCount = beforeTypeFilter - requests.length;
-  }
-
-  // sinceRequestId filter
-  if (sinceRequestId) {
-    const idx = requests.findIndex((r) => r.requestId === sinceRequestId);
-    if (idx >= 0) {
-      requests = requests.slice(idx + 1);
-    }
-  }
-
-  // sinceTimestamp filter
-  if (sinceTimestamp !== undefined) {
-    requests = requests.filter((r) => (r.timestamp ?? 0) > sinceTimestamp);
-  }
-
-  // URL filter: regex takes precedence over substring
-  if (urlRegex) {
-    if (urlRegex.length > 500) {
-      throw new Error('urlRegex too long (max 500 characters)');
-    }
-    const re = new RegExp(urlRegex, 'i');
-    if (requests.length > 0) {
-      const start = performance.now();
-      re.test(requests[0]!.url);
-      const elapsed = performance.now() - start;
-      if (elapsed > 100) {
-        throw new Error(
-          `urlRegex pattern is too expensive (${elapsed.toFixed(0)}ms on first URL). Use a simpler pattern.`,
-        );
-      }
-    }
-    requests = requests.filter((req) => re.test(req.url));
-  } else if (url) {
-    const urlLower = url.toLowerCase();
-    requests = requests.filter((req) => req.url.toLowerCase().includes(urlLower));
-  }
-  if (method && method.toUpperCase() !== 'ALL') {
-    requests = requests.filter((req) => req.method.toUpperCase() === method.toUpperCase());
-  }
-
-  // statusCode filter: exact ("404") or class ("4xx"/"5xx"). Requests without a
-  // captured response status are excluded when this filter is set.
-  if (statusCode) {
-    requests = requests.filter((req) => matchesStatusCode(getRequestStatus(req), statusCode));
-  }
-
-  // tail filter
-  if (tail !== undefined && requests.length > tail) {
-    requests = requests.slice(-tail);
-  }
-
-  // Smart sort
-  requests.sort(
-    (a, b) =>
-      (TYPE_SORT_PRIORITY[a.type ?? ''] ?? DEFAULT_SORT_PRIORITY) -
-      (TYPE_SORT_PRIORITY[b.type ?? ''] ?? DEFAULT_SORT_PRIORITY),
-  );
-
-  const beforeLimit = requests.length;
-  requests = requests.slice(offset, offset + limit);
-  const hasMore = offset + requests.length < beforeLimit;
+  const { filtered, excludedStaticCount } = filterRequestList(requests, filters, hasAnyFilter);
+  const beforeLimit = filtered.length;
+  const paged = filtered.slice(offset, offset + limit);
+  const hasMore = offset + paged.length < beforeLimit;
 
   const filterMiss =
     beforeLimit === 0 && originalCount > 0 && !!(url || (method && method.toUpperCase() !== 'ALL'));
@@ -182,31 +245,12 @@ export function applyRequestFilters(
 
   // URL deduplication: normalize URLs to endpoint patterns
   if (deduplicateUrls) {
-    const patternMap = new Map<
-      string,
-      { pattern: string; method: string; count: number; example: string }
-    >();
-    for (const req of requests) {
-      const pattern = normalizeUrlToPattern(req.url);
-      const key = `${req.method.toUpperCase()} ${pattern}`;
-      const existing = patternMap.get(key);
-      if (existing) {
-        existing.count++;
-      } else {
-        patternMap.set(key, {
-          pattern,
-          method: req.method.toUpperCase(),
-          count: 1,
-          example: req.url,
-        });
-      }
-    }
-    const endpoints = [...patternMap.values()].toSorted((a, b) => b.count - a.count);
+    const endpoints = deduplicateRequestUrls(paged);
     return {
       finalPayload: {
-        message: ` Deduplicated ${requests.length} requests into ${endpoints.length} unique endpoint(s)`,
+        message: ` Deduplicated ${paged.length} requests into ${endpoints.length} unique endpoint(s)`,
         endpoints,
-        totalRequests: requests.length,
+        totalRequests: paged.length,
         uniqueEndpoints: endpoints.length,
         stats: {
           totalCaptured: originalCount,
@@ -218,34 +262,25 @@ export function applyRequestFilters(
     };
   }
 
-  // Field filtering: strip unwanted fields per request
-  const finalRequests = fields
-    ? requests.map((r) => {
-        const picked: Record<string, unknown> = {};
-        for (const f of fields) {
-          if (f in r) picked[f] = r[f];
-        }
-        return picked;
-      })
-    : requests;
+  const finalRequests = pickRequestFields(paged, fields);
 
   return {
     finalPayload: {
-      message: ` Retrieved ${requests.length} network request(s)`,
+      message: ` Retrieved ${paged.length} network request(s)`,
       requests: finalRequests,
-      total: requests.length,
+      total: paged.length,
       page: {
         offset,
         limit,
-        returned: requests.length,
+        returned: paged.length,
         totalAfterFilter: beforeLimit,
         hasMore,
-        nextOffset: hasMore ? offset + requests.length : null,
+        nextOffset: hasMore ? offset + paged.length : null,
       },
       stats: {
         totalCaptured: originalCount,
         afterFilter: beforeLimit,
-        returned: requests.length,
+        returned: paged.length,
         truncated: beforeLimit > offset + limit,
       },
       filtered: hasAnyFilter,
@@ -271,7 +306,7 @@ export function applyRequestFilters(
         urlSamples,
       }),
       tip:
-        requests.length > 0
+        paged.length > 0
           ? 'Use network_get_response_body(requestId) to get response content'
           : undefined,
       ...(excludedStaticCount > 0 && {

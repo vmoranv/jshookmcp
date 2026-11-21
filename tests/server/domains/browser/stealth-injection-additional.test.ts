@@ -21,7 +21,7 @@ const { injectAllMock, setRealisticUserAgentMock } = vi.hoisted(() => ({
   setRealisticUserAgentMock: vi.fn<SetRealisticUserAgentFn>(),
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/stealth/StealthScripts', () => ({
   StealthScripts: {
     injectAll: (page: any) => injectAllMock(page),
     setRealisticUserAgent: (page: any, platform: Platform) =>

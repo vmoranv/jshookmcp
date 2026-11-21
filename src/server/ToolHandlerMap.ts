@@ -3,7 +3,7 @@
  * Re-exports the registry-based builder for backward compatibility.
  */
 import type { ToolHandler } from '@server/types';
-import { buildHandlerMapFromRegistry } from '@server/registry/views';
+import { buildHandlerMapFromRegistry, type BuildHandlerMapOptions } from '@server/registry/views';
 import { getAllToolNames } from '@server/registry/index';
 import type { ToolHandlerDeps } from '@server/registry/contracts';
 
@@ -22,6 +22,7 @@ export function getHandledToolNames(): ReadonlySet<string> {
 export function createToolHandlerMap(
   deps: ToolHandlerDeps,
   selectedToolNames?: ReadonlySet<string>,
+  options?: BuildHandlerMapOptions,
 ): Record<string, ToolHandler> {
-  return buildHandlerMapFromRegistry(deps, selectedToolNames);
+  return buildHandlerMapFromRegistry(deps, selectedToolNames, options);
 }

@@ -80,8 +80,21 @@ describe('HttpMiddleware', () => {
       expect(res.statusCodeValue).toBe(403);
     });
 
-    it('allows non-localhost origin when auth token is set', () => {
+    it('rejects non-localhost origin on a local bind even when a token is set', () => {
+      // A bearer token proves the caller knows the secret, not that the browser
+      // origin is trusted. DNS rebinding targets loopback, so the allowlist must
+      // stay enforced. This case previously returned true.
       process.env.MCP_AUTH_TOKEN = 'secret';
+      process.env.MCP_HOST = '127.0.0.1';
+      const req = mockReq({ headers: { origin: 'http://remote.com' } });
+      const res = mockRes();
+      expect(checkOrigin(req, res)).toBe(false);
+      expect(res.statusCodeValue).toBe(403);
+    });
+
+    it('allows non-localhost origin on a remote bind when a token is set', () => {
+      process.env.MCP_AUTH_TOKEN = 'secret';
+      process.env.MCP_HOST = '0.0.0.0';
       const req = mockReq({ headers: { origin: 'http://remote.com' } });
       const res = mockRes();
       expect(checkOrigin(req, res)).toBe(true);

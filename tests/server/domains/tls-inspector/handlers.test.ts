@@ -858,6 +858,82 @@ describe('TlsInspectorHandlers', () => {
       expect(body.error).toBe('tcp failed');
       expect(body.message).toBe('tcp failed');
     });
+
+    it('reports ok:false handler records as success:false envelopes', async () => {
+      const body = parseJson<any>(await handlers.handleWebSocketOpenTool({}));
+
+      expect(body.success).toBe(false);
+      expect(body.ok).toBe(false);
+      expect(body.error).toBe('host or url is required');
+    });
+
+    it('does not claim a Frida injection when the runner returns bare-text validation failure', async () => {
+      handlers.setExtensionInvoke(async () => ({
+        content: [{ type: 'text', text: 'Missing required string argument: sessionId' }],
+      }));
+
+      const body = parseJson<any>(
+        await handlers.handleBypassCertPinningTool({ target: 'android' }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.strategy).toBe('frida-injection');
+      expect(body.error).toContain('sessionId');
+      expect(body.result).toBeUndefined();
+    });
+
+    it('does not claim a Frida injection when the runner reports success:false', async () => {
+      handlers.setExtensionInvoke(async () => ({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ success: false, error: 'Unknown Frida session: abc' }),
+          },
+        ],
+      }));
+
+      const body = parseJson<any>(
+        await handlers.handleBypassCertPinningTool({ target: 'android' }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('Unknown Frida session: abc');
+    });
+
+    it('reports a successful Frida injection when the runner succeeds', async () => {
+      handlers.setExtensionInvoke(async () => ({
+        content: [{ type: 'text', text: JSON.stringify({ success: true, output: 'hooked' }) }],
+      }));
+
+      const body = parseJson<any>(
+        await handlers.handleBypassCertPinningTool({ target: 'android' }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.strategy).toBe('frida-injection');
+      expect(body.result).toEqual({
+        content: [{ type: 'text', text: JSON.stringify({ success: true, output: 'hooked' }) }],
+      });
+    });
+
+    it('reports an invalid cert-pin target as success:false', async () => {
+      const body = parseJson<any>(await handlers.handleTlsCertPinBypassTool({ target: 'beos' }));
+
+      expect(body.success).toBe(false);
+      expect(body.ok).toBe(false);
+      expect(body.error).toContain('target must be one of');
+    });
+
+    it('falls back to manual guidance (not injection) when no runner is wired', async () => {
+      const body = parseJson<any>(
+        await handlers.handleBypassCertPinningTool({ target: 'android' }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.strategy).toBe('manual-bypass');
+      expect(body.available).toBe(false);
+      expect(Array.isArray(body.instructions.android)).toBe(true);
+    });
   });
 });
 

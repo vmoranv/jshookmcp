@@ -3,7 +3,7 @@
  */
 
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
-import { ScriptManager } from '@server/domains/shared/modules';
+import { ScriptManager } from '@modules/debugger/ScriptManager';
 import { asJsonResponse, serializeError } from '@server/domains/shared/response';
 import { WorkerPool } from '@utils/WorkerPool';
 import {

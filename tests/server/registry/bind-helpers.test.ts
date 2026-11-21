@@ -21,6 +21,14 @@ describe('registry/bind-helpers', () => {
     expect(() => getDep({}, 'missing')).toThrow('[registry] Missing dependency: "missing"');
   });
 
+  it('exposes eager validation without changing the lazy bind contract', async () => {
+    const bound = bindByDepKey<{ run: () => string }>('alpha', async (handler) => handler.run());
+    const handler = bound({});
+    expect(bound.validate).toBeTypeOf('function');
+    expect(() => bound.validate!({})).toThrow('[registry] Missing dependency: "alpha"');
+    expect(() => handler({})).toThrow('[registry] Missing dependency: "alpha"');
+  });
+
   it('binds a dependency lookup into an executable handler', async () => {
     const invoke = vi.fn(async (handler: { run: () => string }, args: Record<string, unknown>) => ({
       value: handler.run(),

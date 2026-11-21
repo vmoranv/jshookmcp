@@ -455,7 +455,7 @@ function staticString(argument) {
  */
 const NAME_CONST_SOURCES = [
   {
-    file: 'src/server/observability/InstrumentationContract.ts',
+    file: 'src/utils/instrumentation.ts',
     consts: ['SpanNames', 'MetricNames'],
   },
   {

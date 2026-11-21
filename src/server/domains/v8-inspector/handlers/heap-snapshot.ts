@@ -157,12 +157,23 @@ function extractUsedHeapSizeBytes(result: unknown): number {
 }
 
 interface CaptureReturn {
+  /**
+   * True only when a real CDP heap snapshot was captured. A degraded
+   * size-only fallback returns false so callers cannot mistake a few
+   * hundred bytes of `performance.memory` metadata for a heap dump.
+   */
   success: boolean;
   snapshotId: string;
   capturedAt: string;
   sizeBytes: number;
   chunks: string[];
   simulated: boolean;
+  /** True when the capture degraded to a size-only fallback (`success` is false). */
+  degraded: boolean;
+  /** Which capture path produced this result. */
+  captureMode: 'cdp' | 'simulated';
+  /** Failure reason; present exactly when `success` is false. */
+  error?: string;
   warnings: string[];
   persisted?: { displayPath: string; bytesWritten: number };
   evicted?: string[];
@@ -241,13 +252,27 @@ export async function handleHeapSnapshotCapture(
     target: TargetProvenance,
   ): Promise<CaptureReturn> => {
     options.setSnapshot(stored.id);
+    const captureMode = simulated ? 'simulated' : 'cdp';
     const base: CaptureReturn = {
-      success: true,
+      // Honest verdict: a simulated fallback did NOT capture a heap snapshot.
+      // The payload still carries the snapshot id/size so callers can inspect
+      // the degraded result, but `success:false` + `degraded:true` prevents a
+      // 0-byte placeholder from being treated as a usable dump.
+      success: !simulated,
+      ...(simulated
+        ? {
+            error:
+              'No real heap snapshot was captured; returned a degraded size-only fallback. ' +
+              'Attach or launch a browser page (browser_launch / browser_attach) and retry.',
+          }
+        : {}),
       snapshotId: stored.id,
       capturedAt: stored.capturedAt,
       sizeBytes: stored.sizeBytes,
       chunks: [],
       simulated,
+      degraded: simulated,
+      captureMode,
       warnings,
       target,
     };

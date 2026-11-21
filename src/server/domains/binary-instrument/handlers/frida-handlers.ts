@@ -14,7 +14,6 @@ import {
   readOptionalBoolean,
   resolveFridaDevice,
   jsonResponse,
-  textResponse,
   getLegacyPluginStatus,
   invokeLegacyPlugin,
 } from './shared';
@@ -93,7 +92,10 @@ export class FridaHandlers {
     const explicitTarget = readOptionalString(args, 'target');
     const pid = readOptionalNumber(args, 'pid');
     if (!explicitTarget && pid === undefined) {
-      return textResponse('Either target or pid is required for frida_attach');
+      return jsonResponse({
+        success: false,
+        error: 'Either target or pid is required for frida_attach',
+      });
     }
 
     // pid wins over target: on remote Android the frida process name is the
@@ -288,7 +290,8 @@ export class FridaHandlers {
 
   async handleFridaRunScript(args: Record<string, unknown>): Promise<unknown> {
     const sessionId = readOptionalString(args, 'sessionId');
-    if (!sessionId) return textResponse('Missing required string argument: sessionId');
+    if (!sessionId)
+      return jsonResponse({ success: false, error: 'Missing required string argument: sessionId' });
     const script = readRequiredString(args, 'script');
     const frida = this.getFridaSession();
     const availability = await frida.getAvailability();
@@ -452,7 +455,8 @@ export class FridaHandlers {
 
   async handleFridaDetach(args: Record<string, unknown>): Promise<unknown> {
     const sessionId = readOptionalString(args, 'sessionId');
-    if (!sessionId) return textResponse('Missing required string argument: sessionId');
+    if (!sessionId)
+      return jsonResponse({ success: false, error: 'Missing required string argument: sessionId' });
 
     const frida = this.getFridaSession();
     const availability = await frida.getAvailability();
@@ -607,7 +611,7 @@ export class FridaHandlers {
     }
 
     if (!sessionId) {
-      return textResponse('Missing required string argument: sessionId');
+      return jsonResponse({ success: false, error: 'Missing required string argument: sessionId' });
     }
 
     const frida = this.getFridaSession();

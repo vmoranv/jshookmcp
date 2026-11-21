@@ -1,15 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
-import type {
-  Deobfuscator,
-  AdvancedDeobfuscator,
-  ObfuscationDetector,
-  CodeAnalyzer,
-  CryptoDetector,
-  HookManager,
-} from '@server/domains/shared/modules';
+import type { Deobfuscator } from '@modules/deobfuscator/Deobfuscator';
+import type { AdvancedDeobfuscator } from '@modules/deobfuscator/AdvancedDeobfuscator';
+import type { ObfuscationDetector } from '@modules/detector/ObfuscationDetector';
+import type { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
+import type { CryptoDetector } from '@modules/crypto/CryptoDetector';
+import type { HookManager } from '@modules/hook/HookManager';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
-import type { ScriptManager } from '@server/domains/shared/modules';
+import type { ScriptManager } from '@modules/debugger/ScriptManager';
 import type { LLMSamplingBridge } from '@server/LLMSamplingBridge';
 import type { JScramberDeobfuscator } from '@modules/deobfuscator/JScramblerDeobfuscator';
 import type { UniversalUnpacker } from '@modules/deobfuscator/PackerDeobfuscator';

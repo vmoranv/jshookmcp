@@ -112,12 +112,9 @@ vi.mock('@server/domains/workflow/index', () => ({
   WorkflowHandlers: vi.fn(),
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
-  AdvancedDeobfuscator: vi.fn(),
-  CodeAnalyzer: vi.fn(),
-  CodeCollector: vi.fn(),
-  CryptoDetector: vi.fn(),
-  Deobfuscator: vi.fn(),
-  HookManager: vi.fn(),
-  ObfuscationDetector: vi.fn(),
-}));
+vi.mock('@modules/deobfuscator/AdvancedDeobfuscator', () => ({ AdvancedDeobfuscator: vi.fn() }));
+vi.mock('@modules/analyzer/CodeAnalyzer', () => ({ CodeAnalyzer: vi.fn() }));
+vi.mock('@modules/crypto/CryptoDetector', () => ({ CryptoDetector: vi.fn() }));
+vi.mock('@modules/deobfuscator/Deobfuscator', () => ({ Deobfuscator: vi.fn() }));
+vi.mock('@modules/hook/HookManager', () => ({ HookManager: vi.fn() }));
+vi.mock('@modules/detector/ObfuscationDetector', () => ({ ObfuscationDetector: vi.fn() }));

@@ -83,4 +83,31 @@ describe('search-tier lazy activation pipeline (in-process, no registry mocks)',
     expect(getRegistrationByName('network_get_status')?.tool.name).toBe('network_get_status');
     expect(ctx.registered.map((t) => t.name)).toEqual(['network_get_status', 'network_get_stats']);
   });
+
+  it('lazily activates a full-only domain (wasm) from the search profile', async () => {
+    // `wasm` is declared `profiles: ['full']`, so initRegistry('search') loads
+    // no part of it. Activation must still be able to pull it in on demand:
+    // the startup profile decides what is preloaded, not what call_tool may
+    // reach. This is the regression guard for the audit's
+    // "Unknown tool: wasm_capabilities" finding — if lazy load stops landing
+    // in the shared registration cache, the name lands in notFound again.
+    vi.resetModules();
+    const registry = await import('@server/registry/index');
+    const { activateToolNames } = await import('@server/MCPServer.search.handlers.activate');
+    const { getRegistrationByName } = await import('@server/registry/views');
+
+    await registry.initRegistry('search');
+    expect([...registry.getAllDomains()]).toEqual([]);
+
+    const ctx = makeCtx();
+    const result = await activateToolNames(ctx as never, ['wasm_capabilities', 'wasm_inspect']);
+
+    expect(result.notFound).toEqual([]);
+    expect(result.activated).toEqual(expect.arrayContaining(['wasm_capabilities', 'wasm_inspect']));
+    expect([...registry.getAllDomains()]).toContain('wasm');
+    expect(getRegistrationByName('wasm_inspect')?.tool.name).toBe('wasm_inspect');
+    expect(ctx.registered.map((t) => t.name)).toEqual(
+      expect.arrayContaining(['wasm_capabilities', 'wasm_inspect']),
+    );
+  });
 });

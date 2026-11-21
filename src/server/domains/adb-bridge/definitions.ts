@@ -44,7 +44,8 @@ export const adbBridgeTools = [
       .string('serial', 'Android device serial or emulator id')
       .string('packageName', 'Android package name to uninstall')
       .boolean('keepData', 'Pass -k to keep app data and cache directories.', { default: false })
-      .requiredOpenWorld('serial', 'packageName'),
+      .requiredOpenWorld('serial', 'packageName')
+      .destructive(),
   ),
 
   tool('adb_input_tap', (t) =>

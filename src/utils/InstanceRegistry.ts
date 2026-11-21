@@ -4,7 +4,7 @@ import { mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'n
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { JSHOOK_INSTANCE_WARN_AT, JSHOOK_MAX_INSTANCES } from '@src/constants';
-import { getStateDir } from '@server/persistence/RuntimeSnapshotScheduler';
+import { getStateDir } from '@utils/stateDir';
 import { logger } from '@utils/logger';
 import { readEnvString } from '@src/config/environment';
 

@@ -5,35 +5,23 @@ import {
   DETAILED_DATA_MAX_TTL_MS,
   DETAILED_DATA_SMART_THRESHOLD_BYTES,
 } from '@src/constants';
-import { readFileSync } from 'node:fs';
-import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { getArtifactDir } from '@utils/artifacts';
-import { gzip, gunzip, gunzipSync } from 'node:zlib';
-import { promisify } from 'node:util';
 import { randomUUID, createHash } from 'node:crypto';
-import { ioLimit } from '@utils/concurrency';
-
-const gzipAsync = promisify(gzip);
-const gunzipAsync = promisify(gunzip);
+import { generateSummaryFromJson, getByPath, type DataSummary } from '@utils/DetailedDataSummary';
+import {
+  createPersistenceMetrics,
+  DetailedDataPersistence,
+  type PersistedMetadata,
+  type PersistenceMetrics,
+} from '@utils/DetailedDataPersistence';
 
 /** Whether to compress persisted entries with gzip (saves ~70-90% disk). */
 const ENABLE_GZIP = true;
 /** Compress entries larger than this many bytes. */
 const GZIP_THRESHOLD_BYTES = 1024;
 
-export interface DataSummary {
-  type: string;
-  size: number;
-  sizeKB: string;
-  preview: string;
-  structure?: {
-    keys?: string[];
-    methods?: string[];
-    properties?: string[];
-    length?: number;
-  };
-}
+export type { DataSummary } from '@utils/DetailedDataSummary';
 
 export interface DetailedDataResponse {
   summary: DataSummary;
@@ -70,32 +58,6 @@ interface CacheEntry {
   contentHash?: string; // 16-hex content-addressed digest for CAS deduplication
 }
 
-interface PersistedMetadata {
-  detailId: string;
-  expiresAt: number;
-  createdAt: number;
-  size: number;
-  compressed?: boolean;
-  contentHash?: string;
-}
-
-/** Monitoring counters emitted via getStats(). */
-interface PersistenceMetrics {
-  diskWriteCount: number;
-  diskWriteFailCount: number;
-  diskReadCount: number;
-  diskReadFailCount: number;
-  diskReadLazyCount: number;
-  gzipCompressCount: number;
-  gzipDecompressCount: number;
-  evictedBySizeCount: number;
-  evictedByLRUCount: number;
-  totalBytesWritten: number;
-  totalBytesRead: number;
-  persistDeferredCount: number;
-  dedupHitCount: number;
-}
-
 /**
  * Snapshot returned by getStats(). All numeric metrics are plain numbers —
  * consumers must not need to parse formatted strings.
@@ -126,14 +88,12 @@ export class DetailedDataManager {
   private static instance: DetailedDataManager | undefined;
   private cache = new Map<string, CacheEntry>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
-  private persistDir: string;
-  private metadataPath: string;
+  private readonly persistence: DetailedDataPersistence;
   private persistenceEnabled = true;
   private disposed = false;
 
   /** Max in-flight disk writes before new persists degrade to memory-only (a3-06). */
   private static readonly MAX_PENDING_PERSISTS = 8;
-  private pendingPersistCount = 0;
   /** Serializes whole-file metadata rewrites so concurrent rebuilds cannot interleave. */
   private metadataRebuildChain: Promise<void> = Promise.resolve();
   /** Set when a rebuild is requested but not yet flushed (coalesces same-tick bursts). */
@@ -152,22 +112,8 @@ export class DetailedDataManager {
 
   private contentHashIndex = new Map<string, string>();
 
-  /** Monitoring metrics for observability. */
-  private metrics: PersistenceMetrics = {
-    diskWriteCount: 0,
-    diskWriteFailCount: 0,
-    diskReadCount: 0,
-    diskReadFailCount: 0,
-    diskReadLazyCount: 0,
-    gzipCompressCount: 0,
-    gzipDecompressCount: 0,
-    evictedBySizeCount: 0,
-    evictedByLRUCount: 0,
-    totalBytesWritten: 0,
-    totalBytesRead: 0,
-    persistDeferredCount: 0,
-    dedupHitCount: 0,
-  };
+  /** Monitoring metrics for observability (shared with the persistence layer). */
+  private readonly metrics: PersistenceMetrics = createPersistenceMetrics();
 
   /**
    * Handle for the constructor's background initialisation.
@@ -183,8 +129,12 @@ export class DetailedDataManager {
   private initialization: Promise<void> = Promise.resolve();
 
   constructor() {
-    this.persistDir = join(getArtifactDir('tmp'), 'detailed-data');
-    this.metadataPath = join(this.persistDir, '.metadata.jsonl');
+    const persistDir = join(getArtifactDir('tmp'), 'detailed-data');
+    this.persistence = new DetailedDataPersistence(
+      persistDir,
+      join(persistDir, '.metadata.jsonl'),
+      this.metrics,
+    );
     this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
     if (typeof this.cleanupInterval === 'object' && 'unref' in this.cleanupInterval) {
       this.cleanupInterval.unref();
@@ -243,7 +193,7 @@ export class DetailedDataManager {
 
   private async init(): Promise<void> {
     try {
-      await fs.mkdir(this.persistDir, { recursive: true });
+      await this.persistence.ensureDirectory();
       if (this.disposed) return;
       await this.loadPersistedEntries();
       if (this.disposed) return;
@@ -257,14 +207,12 @@ export class DetailedDataManager {
 
   private async loadPersistedEntries(): Promise<void> {
     try {
-      const content = await fs.readFile(this.metadataPath, 'utf-8');
+      const metadata = await this.persistence.readMetadata();
       if (this.disposed) return;
-      const lines = content.trim().split('\n').filter(Boolean);
       const now = Date.now();
 
-      for (const line of lines) {
+      for (const meta of metadata) {
         if (this.disposed) return;
-        const meta: PersistedMetadata = JSON.parse(line);
         if (meta.expiresAt > now) {
           this.cache.set(meta.detailId, {
             data: null, // Lazy load on retrieve
@@ -274,7 +222,7 @@ export class DetailedDataManager {
             accessCount: 0,
             size: meta.size,
             persistPath: join(
-              this.persistDir,
+              this.persistence.directory,
               `${meta.detailId}${meta.compressed ? '.gz' : '.json'}`,
             ),
             compressed: meta.compressed,
@@ -287,7 +235,7 @@ export class DetailedDataManager {
       }
       if (!this.disposed) logger.info(`Loaded ${this.cache.size} persisted detail entries`);
     } catch (error) {
-      if (!this.disposed && (error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      if (!this.disposed) {
         logger.warn('Failed to load persisted metadata', error);
       }
     }
@@ -336,7 +284,7 @@ export class DetailedDataManager {
     }
 
     if (!this.disposed) {
-      await fs.writeFile(this.metadataPath, lines.join('\n') + '\n').catch(() => {});
+      await this.persistence.writeMetadata(lines);
     }
   }
 
@@ -385,9 +333,11 @@ export class DetailedDataManager {
     }
     if (this.disposed || !this.persistenceEnabled) return;
 
-    const toUnlink = entries.filter((entry) => entry.persistPath);
+    const toUnlink = entries
+      .map((entry) => entry.persistPath)
+      .filter((path): path is string => path !== undefined);
     if (toUnlink.length > 0) {
-      await Promise.all(toUnlink.map((entry) => fs.unlink(entry.persistPath!).catch(() => {})));
+      await this.persistence.unlink(toUnlink);
       if (this.disposed) return;
     }
     await this.queueRebuildMetadata();
@@ -404,14 +354,6 @@ export class DetailedDataManager {
   private serializeWithMemo(data: unknown): { json: string; size: number } {
     const json = JSON.stringify(data);
     return { json, size: json.length };
-  }
-
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return value !== null && typeof value === 'object';
-  }
-
-  private readPathSegment(value: unknown, key: string): unknown {
-    return (Object(value) as Record<string, unknown>)[key];
   }
 
   async smartHandle<T>(
@@ -443,7 +385,7 @@ export class DetailedDataManager {
     size: number,
   ): Promise<DetailedDataResponse> {
     const detailId = await this.storeWithSize(data, size, undefined, jsonStr);
-    const summary = this.generateSummaryFromJson(data, jsonStr, size);
+    const summary = generateSummaryFromJson(data, jsonStr, size);
     const cached = this.cache.get(detailId);
 
     return {
@@ -533,7 +475,7 @@ export class DetailedDataManager {
     const shouldCompress = ENABLE_GZIP && effectiveSize > GZIP_THRESHOLD_BYTES;
     const persistPath =
       this.persistenceEnabled && jsonForDisk !== undefined
-        ? join(this.persistDir, `${detailId}${shouldCompress ? '.gz' : '.json'}`)
+        ? join(this.persistence.directory, `${detailId}${shouldCompress ? '.gz' : '.json'}`)
         : undefined;
 
     const entry: CacheEntry = {
@@ -557,15 +499,16 @@ export class DetailedDataManager {
     // bounded concurrency gate: when too many writes are already in flight the
     // entry degrades to memory-only instead of queueing unboundedly (a3-06).
     if (persistPath && jsonForDisk !== undefined) {
-      if (this.pendingPersistCount >= DetailedDataManager.MAX_PENDING_PERSISTS) {
+      if (this.persistence.pendingCount >= DetailedDataManager.MAX_PENDING_PERSISTS) {
         this.metrics.persistDeferredCount++;
         entry.persistPath = undefined;
         entry.compressed = false;
         logger.debug(
-          `Persist queue saturated (${this.pendingPersistCount} in flight); kept ${detailId} in memory only`,
+          `Persist queue saturated (${this.persistence.pendingCount} in flight); kept ${detailId} in memory only`,
         );
       } else {
-        void this.persistBounded(persistPath, jsonForDisk, shouldCompress)
+        void this.persistence
+          .persistBounded(persistPath, jsonForDisk, shouldCompress)
           .then((bytesWritten) => {
             this.metrics.diskWriteCount++;
             this.metrics.totalBytesWritten += bytesWritten;
@@ -619,7 +562,7 @@ export class DetailedDataManager {
 
   private async appendMetadata(meta: PersistedMetadata): Promise<void> {
     try {
-      await fs.appendFile(this.metadataPath, JSON.stringify(meta) + '\n');
+      await this.persistence.appendMetadata(meta);
     } catch (error) {
       logger.warn('Failed to append metadata', error);
     }
@@ -654,7 +597,7 @@ export class DetailedDataManager {
     this.touchEntry(detailId, cached, now);
 
     if (path) {
-      return this.getByPath(cached.data, path) as T;
+      return getByPath(cached.data, path) as T;
     }
 
     return cached.data as T;
@@ -692,7 +635,7 @@ export class DetailedDataManager {
     this.touchEntry(detailId, cached, now);
 
     if (path) {
-      return this.getByPath(cached.data, path) as T;
+      return getByPath(cached.data, path) as T;
     }
 
     return cached.data as T;
@@ -772,44 +715,32 @@ export class DetailedDataManager {
 
   private async loadPersistedData(detailId: string, cached: CacheEntry): Promise<void> {
     try {
-      const raw = await fs.readFile(cached.persistPath!);
-      if (cached.compressed) {
-        const decompressed = (await gunzipAsync(raw)) as Buffer;
-        cached.data = JSON.parse(decompressed.toString('utf-8'));
-        this.metrics.gzipDecompressCount++;
-        this.metrics.totalBytesRead += decompressed.length;
-      } else {
-        cached.data = JSON.parse(raw.toString('utf-8'));
-        this.metrics.totalBytesRead += raw.length;
-      }
-      this.metrics.diskReadCount++;
-      this.metrics.diskReadLazyCount++;
+      const loaded = await this.persistence.readData(
+        detailId,
+        cached.persistPath!,
+        cached.compressed === true,
+      );
+      cached.data = loaded.data;
+      this.metrics.totalBytesRead += loaded.bytes;
     } catch (error) {
-      this.metrics.diskReadFailCount++;
       logger.warn(`Failed to load persisted data for ${detailId}`, error);
-      throw new Error(`DetailId not found or expired: ${detailId}`, { cause: error });
+      throw error;
     }
   }
 
   /** Legacy synchronous lazy-load used only by the retrieve() compat path. */
   private loadPersistedDataSync(detailId: string, cached: CacheEntry): void {
     try {
-      const raw = readFileSync(cached.persistPath!);
-      if (cached.compressed) {
-        const decompressed = gunzipSync(raw);
-        cached.data = JSON.parse(decompressed.toString('utf-8'));
-        this.metrics.gzipDecompressCount++;
-        this.metrics.totalBytesRead += decompressed.length;
-      } else {
-        cached.data = JSON.parse(raw.toString('utf-8'));
-        this.metrics.totalBytesRead += raw.length;
-      }
-      this.metrics.diskReadCount++;
-      this.metrics.diskReadLazyCount++;
+      const loaded = this.persistence.readDataSync(
+        detailId,
+        cached.persistPath!,
+        cached.compressed === true,
+      );
+      cached.data = loaded.data;
+      this.metrics.totalBytesRead += loaded.bytes;
     } catch (error) {
-      this.metrics.diskReadFailCount++;
       logger.warn(`Failed to load persisted data for ${detailId}`, error);
-      throw new Error(`DetailId not found or expired: ${detailId}`, { cause: error });
+      throw error;
     }
   }
 
@@ -826,50 +757,6 @@ export class DetailedDataManager {
         );
       }
     }
-  }
-
-  private getByPath(obj: unknown, path: string): unknown {
-    const keys = path.split('.');
-    let current: unknown = obj;
-
-    for (const key of keys) {
-      if (current === null || current === undefined) {
-        throw new Error(`Path not found: ${path} (stopped at ${key})`);
-      }
-      current = this.readPathSegment(current, key);
-    }
-
-    return current;
-  }
-
-  private generateSummaryFromJson(data: unknown, jsonStr: string, size: number): DataSummary {
-    const type = Array.isArray(data) ? 'array' : typeof data;
-
-    const summary: DataSummary = {
-      type,
-      size,
-      sizeKB: (size / 1024).toFixed(1) + 'KB',
-      preview: jsonStr.substring(0, 200) + (size > 200 ? '...' : ''),
-    };
-
-    if (this.isRecord(data)) {
-      const keys = Object.keys(data);
-      summary.structure = {
-        keys: keys.slice(0, 50),
-      };
-
-      if (!Array.isArray(data)) {
-        const methods = keys.filter((k) => typeof data[k] === 'function');
-        const properties = keys.filter((k) => typeof data[k] !== 'function');
-
-        summary.structure.methods = methods.slice(0, 30);
-        summary.structure.properties = properties.slice(0, 50);
-      } else {
-        summary.structure.length = data.length;
-      }
-    }
-
-    return summary;
   }
 
   private cleanup(): void {
@@ -955,34 +842,6 @@ export class DetailedDataManager {
       total += entry.size;
     }
     return total;
-  }
-
-  /**
-   * Persist data to disk, optionally gzip-compressed, bounded by the global
-   * I/O limiter and the pending-write gate. `json` is the caller's existing
-   * serialization — persistToDisk must not stringify again (a2-07).
-   * Returns the number of bytes written.
-   */
-  private persistBounded(filePath: string, json: string, compress: boolean): Promise<number> {
-    this.pendingPersistCount++;
-    return ioLimit(() => this.persistToDisk(filePath, json, compress)).finally(() => {
-      this.pendingPersistCount--;
-    });
-  }
-
-  /**
-   * Write the pre-serialized payload to disk, optionally gzip-compressed.
-   * Returns the number of bytes written.
-   */
-  private async persistToDisk(filePath: string, json: string, compress: boolean): Promise<number> {
-    if (compress) {
-      const compressed = (await gzipAsync(Buffer.from(json, 'utf-8'))) as Buffer;
-      await fs.writeFile(filePath, compressed);
-      this.metrics.gzipCompressCount++;
-      return compressed.length;
-    }
-    await fs.writeFile(filePath, json, 'utf-8');
-    return json.length;
   }
 
   extend(detailId: string, additionalTime?: number): void {
