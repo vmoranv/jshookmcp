@@ -21,18 +21,18 @@ export interface BrowserSessionSchedulerOptions {
   maxLagMs?: number;
 }
 
-export const DEFAULT_SCHEDULER_OPTIONS: BrowserSessionSchedulerOptions = {
+export const DEFAULT_SCHEDULER_OPTIONS: Readonly<BrowserSessionSchedulerOptions> = Object.freeze({
   policy: 'eevdf',
   maxPending: 256,
   maxPendingPerSession: 16,
   waitTimeoutMs: 180_000,
   quantumMs: 250,
-  agingMs: 2_000,
-  expectedConcurrency: 4,
-  reservedPendingPerSession: 2,
+  agingMs: 15_000,
+  expectedConcurrency: 10,
+  reservedPendingPerSession: 1,
   costEwmaAlpha: 0.2,
   maxLagMs: 500,
-};
+});
 
 export interface SchedulerTask {
   readonly sessionId: string;
