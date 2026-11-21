@@ -133,13 +133,11 @@ vi.mock('@server/domains/shared/registry', async (importOriginal) => {
 
 // ── Mock DebuggerManager from shared modules ───────────────────────────────────
 
-vi.mock('@server/domains/shared/modules', () => {
-  return {
-    DebuggerManager: function () {
-      return createDebuggerManagerMock();
-    },
-  };
-});
+vi.mock('@modules/debugger/DebuggerManager', () => ({
+  DebuggerManager: function () {
+    return createDebuggerManagerMock();
+  },
+}));
 
 // ── Mock TraceRecorder ────────────────────────────────────────────────────────
 

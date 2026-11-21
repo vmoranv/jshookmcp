@@ -9,7 +9,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock('dotenv', () => ({ config: state.dotenvConfig }));
-vi.mock('@utils/environmentDoctor', () => ({
+vi.mock('@server/domains/maintenance/environmentDoctor', () => ({
   runEnvironmentDoctor: state.runEnvironmentDoctor,
   formatEnvironmentDoctorReport: state.formatEnvironmentDoctorReport,
 }));

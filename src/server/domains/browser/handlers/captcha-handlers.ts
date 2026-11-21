@@ -1,5 +1,5 @@
 import type { PageController } from '@server/domains/shared/modules/collector';
-import type { AICaptchaDetector } from '@server/domains/shared/modules';
+import type { AICaptchaDetector } from '@modules/captcha/AICaptchaDetector';
 import { argNumber, argBool } from '@server/domains/shared/parse-args';
 import { logger } from '@utils/logger';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';

@@ -14,7 +14,7 @@
  *  - opaque predicate solving
  */
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
-import { ObfuscationDetector } from '@server/domains/shared/modules';
+import { ObfuscationDetector } from '@modules/detector/ObfuscationDetector';
 import { CryptoDetector } from '@modules/crypto/CryptoDetector';
 import { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
 import { UniversalUnpacker } from '@modules/deobfuscator/PackerDeobfuscator';

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BreakpointExceptionHandlers } from '@server/domains/debugger/handlers/breakpoint-exception';
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 
 type ExceptionDebuggerManager = Pick<DebuggerManager, 'setPauseOnExceptions'>;
 

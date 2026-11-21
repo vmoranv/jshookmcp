@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { PerformanceMonitor } from '@server/domains/shared/modules';
+import type { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
 import * as testUrls from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
@@ -26,9 +26,7 @@ const mocks = vi.hoisted(() => {
   return { consoleMonitorMock, performanceMonitorMock, collectorMock };
 });
 
-vi.mock('@server/domains/shared/modules', () => ({
-  PerformanceMonitor: vi.fn(),
-}));
+vi.mock('@modules/monitor/PerformanceMonitor', () => ({ PerformanceMonitor: vi.fn() }));
 
 vi.mock('@utils/DetailedDataManager', () => ({
   DetailedDataManager: {

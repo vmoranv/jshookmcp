@@ -44,7 +44,7 @@ import {
   runEnvironmentDoctor,
   formatEnvironmentDoctorReport,
   type EnvironmentDoctorReport,
-} from '@utils/environmentDoctor';
+} from '@server/domains/maintenance/environmentDoctor';
 // ToolRegistry is mocked as a real class in vi.mock above
 
 // ---------------------------------------------------------------------------

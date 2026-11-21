@@ -1,5 +1,5 @@
 import type { PageController } from '@server/domains/shared/modules/collector';
-import { StealthScripts } from '@server/domains/shared/modules';
+import { StealthScripts } from '@modules/stealth/StealthScripts';
 import { argString, argBool, argNumber } from '@server/domains/shared/parse-args';
 import { FONT_FALLBACK_PROBE_LIST, FONT_LOCAL_ENUMERATE_MAX } from '@src/constants/browser';
 import { createStub } from '@server/domains/shared/capabilities';

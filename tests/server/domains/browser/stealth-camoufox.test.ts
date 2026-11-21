@@ -5,7 +5,7 @@ const { injectAllMock } = vi.hoisted(() => ({
   injectAllMock: vi.fn(),
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/stealth/StealthScripts', () => ({
   StealthScripts: {
     injectAll: (...args: any[]) => injectAllMock(...args),
   },

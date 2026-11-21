@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 
 const loggerState = vi.hoisted(() => ({
   error: vi.fn<(message: string) => void>(),

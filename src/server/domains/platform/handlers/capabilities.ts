@@ -1,4 +1,4 @@
-import type { ExternalToolRunner } from '@server/domains/shared/modules';
+import type { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
 import { capabilityReport } from '@server/domains/shared/capabilities';
 import { toTextResponse } from '@server/domains/platform/handlers/platform-utils';
 import { getElectronIPCSniffRuntimeCapability } from '@server/domains/platform/handlers/electron-ipc-sniffer';

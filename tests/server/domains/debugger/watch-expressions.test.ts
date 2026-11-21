@@ -1,6 +1,6 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 import { WatchExpressionsHandlers } from '@server/domains/debugger/handlers/watch-expressions';
 
 describe('WatchExpressionsHandlers', () => {

@@ -5,7 +5,8 @@
  * Browser operations in ./handlers/browser-handlers.ts.
  */
 
-import { ExternalToolRunner, ToolRegistry } from '@server/domains/shared/modules';
+import { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
+import { ToolRegistry } from '@modules/external/ToolRegistry';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import type { WasmSharedState } from './handlers/shared';

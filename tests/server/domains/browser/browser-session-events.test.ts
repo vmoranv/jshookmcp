@@ -30,7 +30,7 @@ const mockCamoufox = vi.hoisted(() => ({
   connectToServer: vi.fn(),
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/browser/CamoufoxBrowserManager', () => ({
   CamoufoxBrowserManager: class MockCamoufoxBrowserManager {
     launch = mockCamoufox.launch;
     connectToServer = mockCamoufox.connectToServer;

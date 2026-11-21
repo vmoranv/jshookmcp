@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
   mockGetBrowserServerEndpoint: vi.fn(),
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/browser/CamoufoxBrowserManager', () => ({
   CamoufoxBrowserManager: function CamoufoxBrowserManagerMock() {
     return {
       launchAsServer: mocks.mockLaunchAsServer,

@@ -11,7 +11,7 @@ import {
 } from '@server/domains/shared/parse-args';
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
-import type { ScriptManager } from '@server/domains/shared/modules';
+import type { ScriptManager } from '@modules/debugger/ScriptManager';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import {
   ANALYSIS_MAX_SUMMARY_FILES,

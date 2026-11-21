@@ -41,14 +41,12 @@ function bindWithProgress(
 const b = bindWithProgress;
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
-  const {
-    Deobfuscator,
-    AdvancedDeobfuscator,
-    ObfuscationDetector,
-    CodeAnalyzer,
-    CryptoDetector,
-    HookManager,
-  } = await import('@server/domains/shared/modules');
+  const { Deobfuscator } = await import('@modules/deobfuscator/Deobfuscator');
+  const { AdvancedDeobfuscator } = await import('@modules/deobfuscator/AdvancedDeobfuscator');
+  const { ObfuscationDetector } = await import('@modules/detector/ObfuscationDetector');
+  const { CodeAnalyzer } = await import('@modules/analyzer/CodeAnalyzer');
+  const { CryptoDetector } = await import('@modules/crypto/CryptoDetector');
+  const { HookManager } = await import('@modules/hook/HookManager');
   const { CoreAnalysisHandlers } = await import('@server/domains/analysis/index');
   const { JScramberDeobfuscator } = await import('@modules/deobfuscator/JScramblerDeobfuscator');
   const { UniversalUnpacker } = await import('@modules/deobfuscator/PackerDeobfuscator');

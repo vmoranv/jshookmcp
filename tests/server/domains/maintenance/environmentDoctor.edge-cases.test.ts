@@ -140,7 +140,7 @@ vi.mock('node:module', async (importOriginal) => {
 
 vi.stubGlobal('fetch', mockFetch);
 
-import { runEnvironmentDoctor } from '@utils/environmentDoctor';
+import { runEnvironmentDoctor } from '@server/domains/maintenance/environmentDoctor';
 
 // ---------------------------------------------------------------------------
 // Tests

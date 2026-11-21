@@ -1,14 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock all handler classes and modules
-vi.mock('@server/domains/shared/modules', () => ({
-  AICaptchaDetector: vi.fn(),
-  CamoufoxBrowserManager: vi.fn(),
-  CodeCollector: vi.fn(),
-  PageController: vi.fn(),
-  ScriptManager: vi.fn(),
-  ConsoleMonitor: vi.fn(),
-}));
+vi.mock('@modules/captcha/AICaptchaDetector', () => ({ AICaptchaDetector: vi.fn() }));
+vi.mock('@modules/browser/CamoufoxBrowserManager', () => ({ CamoufoxBrowserManager: vi.fn() }));
+vi.mock('@modules/debugger/ScriptManager', () => ({ ScriptManager: vi.fn() }));
 
 vi.mock('@utils/DetailedDataManager', () => ({
   DetailedDataManager: vi.fn(),

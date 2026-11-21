@@ -8,45 +8,49 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── vi.mock declarations (hoisted) ──────────────────────────────────────────
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/deobfuscator/AdvancedDeobfuscator', () => ({
   AdvancedDeobfuscator: function () {
     return { _mock: 'AdvancedDeobfuscator' };
   },
+}));
+vi.mock('@modules/analyzer/CodeAnalyzer', () => ({
   CodeAnalyzer: function () {
     return { _mock: 'CodeAnalyzer' };
   },
-  CodeCollector: function () {
-    return { _mock: 'CodeCollector', on: vi.fn() };
-  },
+}));
+vi.mock('@modules/crypto/CryptoDetector', () => ({
   CryptoDetector: function () {
     return { _mock: 'CryptoDetector' };
   },
+}));
+vi.mock('@modules/deobfuscator/Deobfuscator', () => ({
   Deobfuscator: function () {
     return { _mock: 'Deobfuscator' };
   },
+}));
+vi.mock('@modules/hook/HookManager', () => ({
   HookManager: function () {
     return { _mock: 'HookManager' };
   },
+}));
+vi.mock('@modules/detector/ObfuscationDetector', () => ({
   ObfuscationDetector: function () {
     return { _mock: 'ObfuscationDetector' };
   },
+}));
+vi.mock('@modules/debugger/DebuggerManager', () => ({
   DebuggerManager: function () {
     return { _mock: 'DebuggerManager' };
   },
+}));
+vi.mock('@modules/debugger/RuntimeInspector', () => ({
   RuntimeInspector: function () {
     return { _mock: 'RuntimeInspector' };
   },
+}));
+vi.mock('@modules/debugger/ScriptManager', () => ({
   ScriptManager: function () {
     return { _mock: 'ScriptManager' };
-  },
-  ConsoleMonitor: function () {
-    return { _mock: 'ConsoleMonitor' };
-  },
-  PageController: function () {
-    return { _mock: 'PageController' };
-  },
-  DOMInspector: function () {
-    return { _mock: 'DOMInspector' };
   },
 }));
 

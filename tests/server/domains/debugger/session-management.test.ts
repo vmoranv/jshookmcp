@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SessionManagementHandlers } from '@server/domains/debugger/handlers/session-management';
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 
 type SessionManagementDebuggerManager = Pick<
   DebuggerManager,

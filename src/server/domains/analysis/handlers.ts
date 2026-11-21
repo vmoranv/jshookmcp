@@ -3,15 +3,13 @@
  * Re-exports all handler modules (10 files → single entry point).
  */
 
-import type {
-  AdvancedDeobfuscator,
-  CodeAnalyzer,
-  CryptoDetector,
-  Deobfuscator,
-  HookManager,
-  ObfuscationDetector,
-  ScriptManager,
-} from '@server/domains/shared/modules';
+import type { AdvancedDeobfuscator } from '@modules/deobfuscator/AdvancedDeobfuscator';
+import type { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
+import type { CryptoDetector } from '@modules/crypto/CryptoDetector';
+import type { Deobfuscator } from '@modules/deobfuscator/Deobfuscator';
+import type { HookManager } from '@modules/hook/HookManager';
+import type { ObfuscationDetector } from '@modules/detector/ObfuscationDetector';
+import type { ScriptManager } from '@modules/debugger/ScriptManager';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import type { ToolArgs, ToolResponse } from '@server/types';
 

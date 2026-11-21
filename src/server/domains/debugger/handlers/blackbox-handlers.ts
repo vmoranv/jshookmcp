@@ -1,5 +1,5 @@
-import type { DebuggerManager } from '@server/domains/shared/modules';
-import type { BlackboxManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
+import type { BlackboxManager } from '@modules/debugger/BlackboxManager';
 import { argString } from '@server/domains/shared/parse-args';
 
 interface BlackboxHandlersDeps {

@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 import { bootstrapRuntimeEnv } from '@src/config/env-bootstrap';
-import { formatEnvironmentDoctorReport, runEnvironmentDoctor } from '@utils/environmentDoctor';
+import {
+  formatEnvironmentDoctorReport,
+  runEnvironmentDoctor,
+} from '@server/domains/maintenance/environmentDoctor';
 
 bootstrapRuntimeEnv();
 
