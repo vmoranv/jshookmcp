@@ -2,7 +2,6 @@ import { logger } from '@utils/logger';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { TabRegistry } from '@modules/browser/TabRegistry';
-import { IndexedMinHeap } from '@server/runtime/IndexedMinHeap';
 import {
   BrowserSessionCostModel,
   DEFAULT_COST_MS,
@@ -30,6 +29,7 @@ import {
   type BrowserSessionSchedulerOptions,
   type SelectedExecution,
 } from './BrowserSessionScheduler';
+import { BrowserSessionQueue, type PendingExecution } from './BrowserSessionQueue';
 export type { BrowserSessionSchedulerOptions } from './BrowserSessionScheduler';
 
 export { BrowserSessionQueueError } from './BrowserSessionErrors';
@@ -69,32 +69,6 @@ export interface BrowserSessionExecutionOptions {
 }
 
 type SelectedPendingExecution = Omit<SelectedExecution, 'task'> & { task: PendingExecution };
-
-interface PendingExecution {
-  sessionId: string;
-  run: () => Promise<unknown>;
-  resolve: (value: unknown) => void;
-  reject: (reason: unknown) => void;
-  toolName: string | null;
-  estimatedCostMs: number;
-  weight: number;
-  enqueuedAt: number;
-  deadlineAt: number;
-  sequence: number;
-  state: 'pending' | 'running' | 'settled';
-  previous: PendingExecution | null;
-  next: PendingExecution | null;
-  deadlineHeapIndex: number;
-  agingHeapIndex: number;
-  signal: AbortSignal | null;
-  abortHandler: (() => void) | null;
-}
-
-interface SessionPendingQueue {
-  head: PendingExecution | null;
-  tail: PendingExecution | null;
-  length: number;
-}
 
 function positiveInteger(value: number | undefined, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 1
@@ -181,23 +155,12 @@ export class BrowserSessionCoordinator {
   private readonly executionContext = new AsyncLocalStorage<{ sessionId: string }>();
   private readonly registry: BrowserSessionRegistry;
   private readonly browserOwners = new Set<string>();
-  private readonly pendingBySession = new Map<string, SessionPendingQueue>();
   private readonly costModel = new BrowserSessionCostModel();
-  private readonly deadlineHeap = new IndexedMinHeap<PendingExecution>({
-    compare: (left, right) => left.deadlineAt - right.deadlineAt || left.sequence - right.sequence,
-    getIndex: (task) => task.deadlineHeapIndex,
-    setIndex: (task, index) => {
-      task.deadlineHeapIndex = index;
-    },
-  });
   private readonly schedulerOptions: BrowserSessionSchedulerOptions;
   private readonly scheduler: BrowserSessionScheduler;
-  private deadlineTimer: NodeJS.Timeout | null = null;
-  private deadlineTimerDueAt: number | null = null;
+  private readonly queue: BrowserSessionQueue;
   private activeExecutionSessionId: string | null = null;
-  private pendingExecutionCount = 0;
   private draining = false;
-  private nextSequence = 0;
   private dispatchCount = 0;
   private agedDispatchCount = 0;
   private queueTimeoutCount = 0;
@@ -252,9 +215,14 @@ export class BrowserSessionCoordinator {
       ),
       maxLagMs: positiveInteger(options.maxLagMs, DEFAULT_SCHEDULER_OPTIONS.maxLagMs ?? 500),
     };
+    this.queue = new BrowserSessionQueue(
+      this.now,
+      () => this.expirePendingTasks(),
+      (task) => this.cancelPendingTask(task),
+    );
     this.scheduler = new BrowserSessionScheduler({
       options: this.schedulerOptions,
-      getQueueHead: (sessionId) => this.pendingBySession.get(sessionId)?.head ?? null,
+      getQueueHead: (sessionId) => this.queue.head(sessionId),
       getActiveSessionId: () => this.activeExecutionSessionId,
       now: this.now,
     });
@@ -267,7 +235,7 @@ export class BrowserSessionCoordinator {
       lifecycle,
       now: this.now,
       isBusy: (sessionId) =>
-        this.pendingBySession.has(sessionId) || this.activeExecutionSessionId === sessionId,
+        this.queue.has(sessionId) || this.activeExecutionSessionId === sessionId,
       retryAfterMs: () => this.estimateSessionRetryAfterMs(),
       onEvict: (sessionId) => this.dropSession(sessionId),
     });
@@ -389,7 +357,7 @@ export class BrowserSessionCoordinator {
 
   getQueueStats(): BrowserSessionQueueStats {
     const now = this.now();
-    const oldestPending = this.deadlineHeap.peek();
+    const oldestPending = this.queue.peekDeadline();
     const oldestPendingWaitMs = oldestPending ? now - oldestPending.enqueuedAt : 0;
     return {
       ...this.schedulerOptions,
@@ -398,8 +366,8 @@ export class BrowserSessionCoordinator {
         this.schedulerOptions.policy === 'eevdf'
           ? roundMetric(this.scheduler.virtualTimeMs)
           : undefined,
-      pending: this.pendingExecutionCount,
-      pendingSessions: this.pendingBySession.size,
+      pending: this.queue.size,
+      pendingSessions: this.queue.sessionCount,
       readySessions: this.scheduler.readyCount,
       activeSessionId: this.activeExecutionSessionId,
       admissionLimit: this.getAdmissionLimit(),
@@ -414,7 +382,7 @@ export class BrowserSessionCoordinator {
         this.dispatchCount === 0 ? 0 : roundMetric(this.totalServiceMs / this.dispatchCount),
       maxQueueWaitMs: roundMetric(this.maxQueueWaitMs),
       trackedToolCosts: this.costModel.size,
-      deadlineTimerActive: this.deadlineTimer !== null,
+      deadlineTimerActive: this.queue.peekDeadline() !== null,
       trackedSessions: this.registry.size,
       sessionLimit: this.registry.maxSessions,
     };
@@ -525,8 +493,7 @@ export class BrowserSessionCoordinator {
 
     this.getOrCreateSession(normalized);
 
-    const sessionQueue = this.pendingBySession.get(normalized);
-    const sessionPending = sessionQueue?.length ?? 0;
+    const sessionPending = this.queue.length(normalized);
     if (sessionPending >= this.schedulerOptions.maxPendingPerSession) {
       this.queueRejectedCount += 1;
       const retryAfterMs = this.estimateRetryAfterMs();
@@ -540,16 +507,16 @@ export class BrowserSessionCoordinator {
       );
     }
     const admissionLimit = this.getAdmissionLimit(normalized);
-    if (this.pendingExecutionCount >= admissionLimit) {
+    if (this.queue.size >= admissionLimit) {
       this.queueRejectedCount += 1;
       const retryAfterMs = this.estimateRetryAfterMs();
       throw new BrowserSessionQueueError(
         `Browser session queue is full ` +
-          `(${this.pendingExecutionCount}/${admissionLimit} currently admissible, ` +
+          `(${this.queue.size}/${admissionLimit} currently admissible, ` +
           `${this.schedulerOptions.maxPending} absolute maximum)`,
         'BROWSER_SESSION_QUEUE_FULL',
         retryAfterMs,
-        this.pendingExecutionCount,
+        this.queue.size,
         admissionLimit,
       );
     }
@@ -565,7 +532,7 @@ export class BrowserSessionCoordinator {
 
     return await new Promise<T>((resolve, reject) => {
       const enqueuedAt = this.now();
-      const task: PendingExecution = {
+      this.queue.enqueue({
         sessionId: normalized,
         run: fn,
         resolve: (value) => resolve(value as T),
@@ -575,29 +542,9 @@ export class BrowserSessionCoordinator {
         weight,
         enqueuedAt,
         deadlineAt: enqueuedAt + this.schedulerOptions.waitTimeoutMs,
-        sequence: this.nextSequence++,
-        state: 'pending',
-        previous: null,
-        next: null,
-        deadlineHeapIndex: -1,
-        agingHeapIndex: -1,
         signal: options.signal ?? null,
-        abortHandler: null,
-      };
-      let queue = sessionQueue;
-      if (!queue) {
-        queue = { head: null, tail: null, length: 0 };
-        this.pendingBySession.set(normalized, queue);
-      }
-      this.appendPendingTask(queue, task);
-      this.deadlineHeap.push(task);
-      if (task.signal) {
-        task.abortHandler = () => this.cancelPendingTask(task);
-        task.signal.addEventListener('abort', task.abortHandler, { once: true });
-      }
-      this.pendingExecutionCount += 1;
+      });
       this.scheduler.enqueue(normalized);
-      this.refreshDeadlineTimer();
       void this.drainQueue();
     });
   }
@@ -606,7 +553,7 @@ export class BrowserSessionCoordinator {
     if (this.draining) return;
     this.draining = true;
     try {
-      while (this.pendingExecutionCount > 0) {
+      while (this.queue.size > 0) {
         const selected = this.takeNextExecution();
         if (!selected) break;
         const { sessionId, task, scheduleState, aged } = selected;
@@ -634,8 +581,7 @@ export class BrowserSessionCoordinator {
           if (task.toolName) this.updateToolCost(task.toolName, chargedMs);
           task.state = 'settled';
           this.activeExecutionSessionId = null;
-          const remaining = this.pendingBySession.get(sessionId);
-          if (remaining && remaining.length > 0) {
+          if (this.queue.length(sessionId) > 0) {
             this.scheduler.enqueue(sessionId);
           } else {
             this.scheduler.finalizeService(scheduleState);
@@ -647,7 +593,7 @@ export class BrowserSessionCoordinator {
       }
     } finally {
       this.draining = false;
-      if (this.pendingExecutionCount > 0) void this.drainQueue();
+      if (this.queue.size > 0) void this.drainQueue();
     }
   }
 
@@ -655,20 +601,8 @@ export class BrowserSessionCoordinator {
     const selectedSession = this.scheduler.select() as SelectedPendingExecution | null;
     if (!selectedSession) return null;
     const { sessionId, aged } = selectedSession;
-    const queue = this.pendingBySession.get(sessionId);
-    const task = queue?.head;
-    if (!queue || !task) {
-      this.pendingBySession.delete(sessionId);
-      return this.takeNextExecution();
-    }
-
-    this.unlinkPendingTask(queue, task);
-    this.deadlineHeap.remove(task);
-    this.detachAbortListener(task);
-    task.state = 'running';
-    this.pendingExecutionCount -= 1;
-    if (queue.length === 0) this.pendingBySession.delete(sessionId);
-    this.refreshDeadlineTimer();
+    const task = this.queue.takeHead(sessionId);
+    if (!task) return this.takeNextExecution();
     return {
       sessionId,
       task,
@@ -689,15 +623,15 @@ export class BrowserSessionCoordinator {
     const reserved = this.schedulerOptions.reservedPendingPerSession;
     if (reserved === 0) return this.schedulerOptions.maxPending;
 
-    let demandSessionCount = this.pendingBySession.size;
+    let demandSessionCount = this.queue.sessionCount;
     const activeHasPending = this.activeExecutionSessionId
-      ? this.pendingBySession.has(this.activeExecutionSessionId)
+      ? this.queue.has(this.activeExecutionSessionId)
       : false;
     if (this.activeExecutionSessionId && !activeHasPending) demandSessionCount += 1;
     if (
       incomingSessionId &&
       incomingSessionId !== this.activeExecutionSessionId &&
-      !this.pendingBySession.has(incomingSessionId)
+      !this.queue.has(incomingSessionId)
     ) {
       demandSessionCount += 1;
     }
@@ -705,89 +639,32 @@ export class BrowserSessionCoordinator {
     return computeAdmissionLimit(this.schedulerOptions, demandSessionCount);
   }
 
-  private appendPendingTask(queue: SessionPendingQueue, task: PendingExecution): void {
-    task.previous = queue.tail;
-    task.next = null;
-    if (queue.tail) queue.tail.next = task;
-    else queue.head = task;
-    queue.tail = task;
-    queue.length += 1;
-  }
-
-  private unlinkPendingTask(queue: SessionPendingQueue, task: PendingExecution): void {
-    if (task.previous) task.previous.next = task.next;
-    else queue.head = task.next;
-    if (task.next) task.next.previous = task.previous;
-    else queue.tail = task.previous;
-    task.previous = null;
-    task.next = null;
-    queue.length -= 1;
-  }
-
   private removePendingTask(task: PendingExecution): boolean {
     if (task.state !== 'pending') return false;
-    const queue = this.pendingBySession.get(task.sessionId);
-    if (!queue) return false;
-
     const state = this.scheduler.peekState(task.sessionId);
-    const wasHead = queue.head === task;
-    if (wasHead && state?.ready) this.scheduler.removeTask(task);
-    this.unlinkPendingTask(queue, task);
-    this.deadlineHeap.remove(task);
-    this.detachAbortListener(task);
-    task.state = 'settled';
-    this.pendingExecutionCount -= 1;
-    if (queue.length === 0) {
-      this.pendingBySession.delete(task.sessionId);
+    if (this.queue.head(task.sessionId) === task && state?.ready) {
+      this.scheduler.removeTask(task);
+    }
+    const info = this.queue.removeTask(task);
+    if (!info) return false;
+    if (info.queueEmpty) {
       if (state?.ready) this.scheduler.removeReady(state);
-    } else if (wasHead && state?.ready && queue.head) {
-      this.scheduler.pushHead(queue.head);
+    } else if (info.wasHead && state?.ready) {
+      const head = this.queue.head(task.sessionId);
+      if (head) this.scheduler.pushHead(head);
     }
     return true;
   }
 
   private rejectPendingSession(sessionId: string, error: BrowserSessionQueueError): void {
-    const queue = this.pendingBySession.get(sessionId);
-    if (!queue) return;
-
+    if (!this.queue.has(sessionId)) return;
     const state = this.scheduler.peekState(sessionId);
     if (state?.ready) this.scheduler.removeReady(state);
-    this.pendingBySession.delete(sessionId);
-    this.pendingExecutionCount -= queue.length;
-    let task = queue.head;
-    while (task) {
-      const next = task.next;
-      this.deadlineHeap.remove(task);
-      this.scheduler.removeTask(task);
-      this.detachAbortListener(task);
-      task.state = 'settled';
-      task.previous = null;
-      task.next = null;
-      task.reject(error);
-      task = next;
-    }
-    queue.head = null;
-    queue.tail = null;
-    queue.length = 0;
-    this.refreshDeadlineTimer();
-  }
-
-  private refreshDeadlineTimer(): void {
-    const nextDueAt = this.deadlineHeap.peek()?.deadlineAt ?? null;
-    if (nextDueAt === this.deadlineTimerDueAt && this.deadlineTimer) return;
-    if (this.deadlineTimer) clearTimeout(this.deadlineTimer);
-    this.deadlineTimer = null;
-    this.deadlineTimerDueAt = nextDueAt;
-    if (nextDueAt === null) return;
-
-    const delay = Math.min(2_147_483_647, Math.max(0, nextDueAt - this.now()));
-    this.deadlineTimer = setTimeout(() => this.expirePendingTasks(), delay);
-    this.deadlineTimer.unref();
+    this.queue.rejectSession(sessionId, error);
   }
 
   private cancelPendingTask(task: PendingExecution): void {
     if (!this.removePendingTask(task)) return;
-    this.refreshDeadlineTimer();
     task.reject(
       new BrowserSessionQueueError(
         `Browser session request was cancelled while queued for ${task.sessionId}`,
@@ -796,22 +673,13 @@ export class BrowserSessionCoordinator {
     );
   }
 
-  private detachAbortListener(task: PendingExecution): void {
-    if (task.signal && task.abortHandler) {
-      task.signal.removeEventListener('abort', task.abortHandler);
-    }
-    task.abortHandler = null;
-  }
-
   private expirePendingTasks(): void {
-    this.deadlineTimer = null;
-    this.deadlineTimerDueAt = null;
-    const now = this.now();
-    while (true) {
-      const task = this.deadlineHeap.peek();
-      if (!task || task.deadlineAt > now) break;
-      this.deadlineHeap.pop();
-      if (!this.removePendingTask(task)) continue;
+    for (const task of this.queue.popExpired()) {
+      const state = this.scheduler.peekState(task.sessionId);
+      if (state?.ready) {
+        this.scheduler.removeTask(task);
+        this.scheduler.removeReady(state);
+      }
       this.queueTimeoutCount += 1;
       task.reject(
         new BrowserSessionQueueError(
@@ -819,12 +687,11 @@ export class BrowserSessionCoordinator {
             `${this.schedulerOptions.waitTimeoutMs}ms in the queue`,
           'BROWSER_SESSION_QUEUE_TIMEOUT',
           this.estimateRetryAfterMs(),
-          this.pendingExecutionCount,
+          this.queue.size,
           this.getAdmissionLimit(),
         ),
       );
     }
-    this.refreshDeadlineTimer();
   }
 
   private estimateRetryAfterMs(): number {
