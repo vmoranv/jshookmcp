@@ -35,6 +35,8 @@ export interface BrowserSessionRegistryOptions {
   readonly isBusy: (sessionId: string) => boolean;
   /** Retry hint for the session-limit error. */
   readonly retryAfterMs: () => number;
+  /** Called after an idle session is evicted, so owners/scheduler can drop it. */
+  readonly onEvict?: (sessionId: string) => void;
 }
 
 const DEFAULT_SESSION_ID = 'default';
@@ -45,6 +47,7 @@ export class BrowserSessionRegistry {
   private readonly now: () => number;
   private readonly isBusy: (sessionId: string) => boolean;
   private readonly retryAfterMs: () => number;
+  private readonly onEvict?: (sessionId: string) => void;
   private sweepTimer: ReturnType<typeof setInterval> | null = null;
   private activeSessionId: string | null = null;
 
@@ -53,6 +56,7 @@ export class BrowserSessionRegistry {
     this.now = options.now;
     this.isBusy = options.isBusy;
     this.retryAfterMs = options.retryAfterMs;
+    this.onEvict = options.onEvict;
     this.sweepTimer = setInterval(() => this.sweepIdleSessions(), this.lifecycle.sweepIntervalMs);
     this.sweepTimer.unref();
   }
@@ -146,6 +150,7 @@ export class BrowserSessionRegistry {
       if (this.isBusy(sessionId)) continue;
       this.sessions.delete(sessionId);
       if (this.activeSessionId === sessionId) this.activeSessionId = null;
+      this.onEvict?.(sessionId);
     }
   }
 }
