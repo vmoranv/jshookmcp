@@ -27,6 +27,27 @@ describe('shared response helpers', () => {
     expect((res.content[0] as any)?.text).toBe('{\n  "a": 1,\n  "b": "x"\n}');
   });
 
+  it('asJsonResponse mirrors a boolean success onto the envelope', async () => {
+    const ok = asJsonResponse({ success: true, value: 1 });
+    expect((ok as any).success).toBe(true);
+    expect((ok.content[0] as any)?.text).toBe('{\n  "success": true,\n  "value": 1\n}');
+
+    const failed = asJsonResponse({ success: false, error: 'nope' });
+    expect((failed as any).success).toBe(false);
+  });
+
+  it('asJsonResponse leaves the envelope success undefined when payload has no boolean', async () => {
+    const res = asJsonResponse({ messages: [] });
+    expect((res as any).success).toBeUndefined();
+  });
+
+  it('asErrorResponse marks the envelope as failed without changing the message', async () => {
+    const res = asErrorResponse(new Error('boom'));
+    expect((res as any).success).toBe(false);
+    expect((res as any).isError).toBe(true);
+    expect((res.content[0] as any)?.text).toBe('Error: boom');
+  });
+
   it('isToolResponse detects MCP envelopes', async () => {
     expect(isToolResponse({ content: [{ type: 'text', text: 'ok' }] })).toBe(true);
     expect(isToolResponse({ text: 'nope' })).toBe(false);
