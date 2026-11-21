@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
+import { generateSummaryFromJson, isRecord, readPathSegment } from '@utils/DetailedDataSummary';
 
 /**
  * Coverage tests for DetailedDataManager the v8 ignore branches and
@@ -48,23 +49,23 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
   // ── isRecord ──────────────────────────────────────────────────────────────
 
   it('isRecord correctly identifies records', () => {
-    const isRecord = (v: unknown) => (manager as any).isRecord(v);
-    expect(isRecord({})).toBe(true);
-    expect(isRecord({ a: 1 })).toBe(true);
-    expect(isRecord([])).toBe(true);
-    expect(isRecord([1, 2])).toBe(true);
-    expect(isRecord(null)).toBe(false);
-    expect(isRecord(undefined)).toBe(false);
-    expect(isRecord(42)).toBe(false);
-    expect(isRecord('string')).toBe(false);
-    expect(isRecord(true)).toBe(false);
-    expect(isRecord(() => {})).toBe(false);
+    const isRecordFn = (v: unknown) => isRecord(v);
+    expect(isRecordFn({})).toBe(true);
+    expect(isRecordFn({ a: 1 })).toBe(true);
+    expect(isRecordFn([])).toBe(true);
+    expect(isRecordFn([1, 2])).toBe(true);
+    expect(isRecordFn(null)).toBe(false);
+    expect(isRecordFn(undefined)).toBe(false);
+    expect(isRecordFn(42)).toBe(false);
+    expect(isRecordFn('string')).toBe(false);
+    expect(isRecordFn(true)).toBe(false);
+    expect(isRecordFn(() => {})).toBe(false);
   });
 
   // ── readPathSegment ──────────────────────────────────────────────────────
 
   it('readPathSegment reads nested keys via Object() coercion', () => {
-    const read = (v: unknown, k: string) => (manager as any).readPathSegment(v, k);
+    const read = (v: unknown, k: string) => readPathSegment(v, k);
     expect(read({ a: 1 }, 'a')).toBe(1);
     expect(read({ a: { b: 2 } }, 'a')).toEqual({ b: 2 });
     expect(read([1, 2, 3], '1')).toBe(2);
@@ -105,14 +106,14 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
   it('generateSummaryFromJson handles arrays with structure info', () => {
     const arr = [1, 2, 3, 4, 5];
     const { json: jsonStr, size } = (manager as any).serializeWithMemo(arr);
-    const summary = (manager as any).generateSummaryFromJson(arr, jsonStr, size);
+    const summary = generateSummaryFromJson(arr, jsonStr, size);
     expect(summary.type).toBe('array');
     expect(summary.structure?.length).toBe(5);
   });
 
   it('generateSummaryFromJson handles primitives', () => {
     const { json: jsonStr, size } = (manager as any).serializeWithMemo(42);
-    const summary = (manager as any).generateSummaryFromJson(42, jsonStr, size);
+    const summary = generateSummaryFromJson(42, jsonStr, size);
     expect(summary.type).toBe('number');
     expect(summary.structure).toBeUndefined();
   });
@@ -128,7 +129,7 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
       }
     }
     const { json: jsonStr, size } = (manager as any).serializeWithMemo(obj);
-    const summary = (manager as any).generateSummaryFromJson(obj, jsonStr, size);
+    const summary = generateSummaryFromJson(obj, jsonStr, size);
     expect(summary.structure?.keys?.length).toBe(50); // sliced to 50
     expect(summary.structure?.methods?.length).toBe(5);
     expect(summary.structure?.properties?.length).toBe(50); // sliced to 50
