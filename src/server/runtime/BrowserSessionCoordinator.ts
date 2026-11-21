@@ -24,6 +24,13 @@ import {
   type BrowserSessionLifecycleOptions,
   type BrowserSessionSnapshot,
 } from './BrowserSessionRegistry';
+import {
+  BrowserSessionScheduler,
+  DEFAULT_SCHEDULER_OPTIONS,
+  type BrowserSessionSchedulerOptions,
+  type SelectedExecution,
+} from './BrowserSessionScheduler';
+export type { BrowserSessionSchedulerOptions } from './BrowserSessionScheduler';
 
 export { BrowserSessionQueueError } from './BrowserSessionErrors';
 export type {
@@ -31,19 +38,6 @@ export type {
   BrowserSessionLifecycleOptions,
   BrowserSessionSnapshot,
 } from './BrowserSessionRegistry';
-
-export interface BrowserSessionSchedulerOptions {
-  policy?: 'drr-aging' | 'eevdf';
-  maxPending: number;
-  maxPendingPerSession: number;
-  waitTimeoutMs: number;
-  quantumMs: number;
-  agingMs: number;
-  expectedConcurrency: number;
-  reservedPendingPerSession: number;
-  costEwmaAlpha: number;
-  maxLagMs?: number;
-}
 
 export interface BrowserSessionQueueStats extends BrowserSessionSchedulerOptions {
   policy: 'drr-aging' | 'eevdf';
@@ -74,6 +68,8 @@ export interface BrowserSessionExecutionOptions {
   signal?: AbortSignal;
 }
 
+type SelectedPendingExecution = Omit<SelectedExecution, 'task'> & { task: PendingExecution };
+
 interface PendingExecution {
   sessionId: string;
   run: () => Promise<unknown>;
@@ -99,37 +95,6 @@ interface SessionPendingQueue {
   tail: PendingExecution | null;
   length: number;
 }
-
-interface SessionScheduleState {
-  sessionId: string;
-  deficitMs: number;
-  globalCreditBaseMs: number;
-  vruntimeMs: number;
-  weight: number;
-  ready: boolean;
-  previousReady: SessionScheduleState | null;
-  nextReady: SessionScheduleState | null;
-}
-
-interface SelectedExecution {
-  sessionId: string;
-  task: PendingExecution;
-  scheduleState: SessionScheduleState;
-  aged: boolean;
-}
-
-const DEFAULT_SCHEDULER_OPTIONS: BrowserSessionSchedulerOptions = {
-  policy: 'eevdf',
-  maxPending: 256,
-  maxPendingPerSession: 16,
-  waitTimeoutMs: 180_000,
-  quantumMs: 250,
-  agingMs: 15_000,
-  expectedConcurrency: 10,
-  reservedPendingPerSession: 1,
-  costEwmaAlpha: 0.2,
-  maxLagMs: 500,
-};
 
 function positiveInteger(value: number | undefined, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 1
@@ -217,7 +182,6 @@ export class BrowserSessionCoordinator {
   private readonly registry: BrowserSessionRegistry;
   private readonly browserOwners = new Set<string>();
   private readonly pendingBySession = new Map<string, SessionPendingQueue>();
-  private readonly scheduleBySession = new Map<string, SessionScheduleState>();
   private readonly costModel = new BrowserSessionCostModel();
   private readonly deadlineHeap = new IndexedMinHeap<PendingExecution>({
     compare: (left, right) => left.deadlineAt - right.deadlineAt || left.sequence - right.sequence,
@@ -226,19 +190,8 @@ export class BrowserSessionCoordinator {
       task.deadlineHeapIndex = index;
     },
   });
-  private readonly agingHeap = new IndexedMinHeap<PendingExecution>({
-    compare: (left, right) => left.enqueuedAt - right.enqueuedAt || left.sequence - right.sequence,
-    getIndex: (task) => task.agingHeapIndex,
-    setIndex: (task, index) => {
-      task.agingHeapIndex = index;
-    },
-  });
   private readonly schedulerOptions: BrowserSessionSchedulerOptions;
-  private readyHead: SessionScheduleState | null = null;
-  private readyTail: SessionScheduleState | null = null;
-  private readySessionCount = 0;
-  private globalCreditMs = 0;
-  private systemVirtualTimeMs = 0;
+  private readonly scheduler: BrowserSessionScheduler;
   private deadlineTimer: NodeJS.Timeout | null = null;
   private deadlineTimerDueAt: number | null = null;
   private activeExecutionSessionId: string | null = null;
@@ -299,6 +252,12 @@ export class BrowserSessionCoordinator {
       ),
       maxLagMs: positiveInteger(options.maxLagMs, DEFAULT_SCHEDULER_OPTIONS.maxLagMs ?? 500),
     };
+    this.scheduler = new BrowserSessionScheduler({
+      options: this.schedulerOptions,
+      getQueueHead: (sessionId) => this.pendingBySession.get(sessionId)?.head ?? null,
+      getActiveSessionId: () => this.activeExecutionSessionId,
+      now: this.now,
+    });
     const lifecycle: BrowserSessionLifecycleOptions = {
       maxSessions: positiveInteger(options.maxSessions, BROWSER_SESSION_MAX_SESSIONS),
       idleTtlMs: positiveInteger(options.idleTtlMs, BROWSER_SESSION_IDLE_TTL_MS),
@@ -419,7 +378,7 @@ export class BrowserSessionCoordinator {
         'BROWSER_SESSION_CLOSED',
       ),
     );
-    this.scheduleBySession.delete(normalized);
+    this.scheduler.removeSession(normalized);
     return this.registry.delete(normalized);
   }
 
@@ -437,11 +396,11 @@ export class BrowserSessionCoordinator {
       policy: this.schedulerOptions.policy ?? 'drr-aging',
       systemVirtualTimeMs:
         this.schedulerOptions.policy === 'eevdf'
-          ? roundMetric(this.systemVirtualTimeMs)
+          ? roundMetric(this.scheduler.virtualTimeMs)
           : undefined,
       pending: this.pendingExecutionCount,
       pendingSessions: this.pendingBySession.size,
-      readySessions: this.readySessionCount,
+      readySessions: this.scheduler.readyCount,
       activeSessionId: this.activeExecutionSessionId,
       admissionLimit: this.getAdmissionLimit(),
       oldestPendingWaitMs: roundMetric(Math.max(0, oldestPendingWaitMs)),
@@ -599,7 +558,7 @@ export class BrowserSessionCoordinator {
       typeof options.weight === 'number' && Number.isFinite(options.weight) && options.weight > 0
         ? options.weight
         : 1.0;
-    const scheduleState = this.getScheduleState(normalized);
+    const scheduleState = this.scheduler.getState(normalized);
     if (weight !== scheduleState.weight) {
       scheduleState.weight = weight;
     }
@@ -637,7 +596,7 @@ export class BrowserSessionCoordinator {
         task.signal.addEventListener('abort', task.abortHandler, { once: true });
       }
       this.pendingExecutionCount += 1;
-      this.enqueueReadySession(normalized);
+      this.scheduler.enqueue(normalized);
       this.refreshDeadlineTimer();
       void this.drainQueue();
     });
@@ -670,28 +629,16 @@ export class BrowserSessionCoordinator {
         } finally {
           const serviceMs = Math.max(0, this.now() - serviceStartedAt);
           const chargedMs = clamp(serviceMs, MIN_COST_MS, MAX_COST_MS);
-          if (this.schedulerOptions.policy === 'eevdf') {
-            scheduleState.vruntimeMs += chargedMs / (scheduleState.weight || 1.0);
-            this.systemVirtualTimeMs = Math.max(this.systemVirtualTimeMs, scheduleState.vruntimeMs);
-          } else {
-            this.materializeGlobalCredit(scheduleState);
-            scheduleState.deficitMs = clamp(
-              scheduleState.deficitMs - chargedMs,
-              -MAX_COST_MS,
-              MAX_COST_MS + this.schedulerOptions.quantumMs,
-            );
-          }
+          this.scheduler.recordService(scheduleState, chargedMs);
           this.totalServiceMs += serviceMs;
           if (task.toolName) this.updateToolCost(task.toolName, chargedMs);
           task.state = 'settled';
           this.activeExecutionSessionId = null;
           const remaining = this.pendingBySession.get(sessionId);
           if (remaining && remaining.length > 0) {
-            this.enqueueReadySession(sessionId);
+            this.scheduler.enqueue(sessionId);
           } else {
-            if (this.schedulerOptions.policy !== 'eevdf') {
-              scheduleState.deficitMs = Math.min(0, scheduleState.deficitMs);
-            }
+            this.scheduler.finalizeService(scheduleState);
           }
         }
 
@@ -704,8 +651,8 @@ export class BrowserSessionCoordinator {
     }
   }
 
-  private takeNextExecution(): SelectedExecution | null {
-    const selectedSession = this.selectReadySession();
+  private takeNextExecution(): SelectedPendingExecution | null {
+    const selectedSession = this.scheduler.select() as SelectedPendingExecution | null;
     if (!selectedSession) return null;
     const { sessionId, aged } = selectedSession;
     const queue = this.pendingBySession.get(sessionId);
@@ -725,192 +672,9 @@ export class BrowserSessionCoordinator {
     return {
       sessionId,
       task,
-      scheduleState: this.getScheduleState(sessionId),
+      scheduleState: selectedSession.scheduleState,
       aged,
     };
-  }
-
-  private selectReadySession(): { sessionId: string; aged: boolean } | null {
-    if (this.readySessionCount === 0) return null;
-
-    const now = this.now();
-    // Aging is an absolute starvation guard. It deliberately overrides deficit
-    // or deadline accounting only at safe tool boundaries; active CDP work is never preempted.
-    const oldest = this.agingHeap.peek();
-    if (oldest && now - oldest.enqueuedAt >= this.schedulerOptions.agingMs) {
-      const state = this.scheduleBySession.get(oldest.sessionId);
-      if (state?.ready) {
-        this.removeReadyState(state);
-        return { sessionId: state.sessionId, aged: true };
-      }
-    }
-
-    if (this.schedulerOptions.policy === 'eevdf') {
-      return this.selectReadySessionEevdf();
-    }
-    return this.selectReadySessionDrr();
-  }
-
-  private selectReadySessionEevdf(): { sessionId: string; aged: boolean } | null {
-    const activeSessions: { state: SessionScheduleState; task: PendingExecution }[] = [];
-    let curr = this.readyHead;
-    while (curr) {
-      const next = curr.nextReady;
-      const task = this.pendingBySession.get(curr.sessionId)?.head;
-      if (!task) {
-        this.removeReadyState(curr);
-      } else {
-        activeSessions.push({ state: curr, task });
-      }
-      curr = next;
-    }
-
-    if (activeSessions.length === 0) return null;
-
-    const minActiveVruntime = Math.min(...activeSessions.map((s) => s.state.vruntimeMs));
-    this.systemVirtualTimeMs = Math.max(this.systemVirtualTimeMs, minActiveVruntime);
-
-    const eligible = activeSessions.filter((s) => s.state.vruntimeMs <= this.systemVirtualTimeMs);
-    const candidatePool = eligible.length > 0 ? eligible : activeSessions;
-
-    let bestCandidate = candidatePool[0]!;
-    let bestDeadline =
-      bestCandidate.state.vruntimeMs +
-      bestCandidate.task.estimatedCostMs / (bestCandidate.state.weight || 1.0);
-
-    for (let i = 1; i < candidatePool.length; i++) {
-      const c = candidatePool[i]!;
-      const d = c.state.vruntimeMs + c.task.estimatedCostMs / (c.state.weight || 1.0);
-      if (
-        d < bestDeadline ||
-        (d === bestDeadline && c.task.sequence < bestCandidate.task.sequence)
-      ) {
-        bestCandidate = c;
-        bestDeadline = d;
-      }
-    }
-
-    this.removeReadyState(bestCandidate.state);
-    return { sessionId: bestCandidate.state.sessionId, aged: false };
-  }
-
-  private selectReadySessionDrr(): { sessionId: string; aged: boolean } | null {
-    // DRR accounts in milliseconds rather than request count. Bulk-crediting
-    // advances a shared virtual credit instead of touching every flow twice.
-    while (this.readySessionCount > 0) {
-      const cycleLength = this.readySessionCount;
-      let additionalRounds = Number.POSITIVE_INFINITY;
-      for (let index = 0; index < cycleLength; index += 1) {
-        const state = this.readyHead;
-        if (!state) break;
-        const task = this.pendingBySession.get(state.sessionId)?.head;
-        if (!task) {
-          this.removeReadyState(state);
-          continue;
-        }
-
-        this.materializeGlobalCredit(state);
-        state.deficitMs = Math.min(
-          MAX_COST_MS + this.schedulerOptions.quantumMs,
-          state.deficitMs + this.schedulerOptions.quantumMs,
-        );
-        if (task.estimatedCostMs <= state.deficitMs) {
-          this.removeReadyState(state);
-          return { sessionId: state.sessionId, aged: false };
-        }
-        additionalRounds = Math.min(
-          additionalRounds,
-          Math.max(
-            0,
-            Math.ceil((task.estimatedCostMs - state.deficitMs) / this.schedulerOptions.quantumMs) -
-              1,
-          ),
-        );
-        this.rotateReadyHeadToTail();
-      }
-      if (!Number.isFinite(additionalRounds)) return null;
-      if (additionalRounds > 0) {
-        this.globalCreditMs += additionalRounds * this.schedulerOptions.quantumMs;
-      }
-    }
-    return null;
-  }
-
-  private enqueueReadySession(sessionId: string): void {
-    if (this.activeExecutionSessionId === sessionId) return;
-    const queue = this.pendingBySession.get(sessionId);
-    if (!queue?.head) return;
-    const state = this.getScheduleState(sessionId);
-    if (state.ready) return;
-
-    if (this.schedulerOptions.policy === 'eevdf') {
-      const maxLag = this.schedulerOptions.maxLagMs ?? 500;
-      if (this.systemVirtualTimeMs - state.vruntimeMs > maxLag) {
-        state.vruntimeMs = this.systemVirtualTimeMs - maxLag;
-      }
-    }
-
-    state.ready = true;
-    state.globalCreditBaseMs = this.globalCreditMs;
-    state.previousReady = this.readyTail;
-    state.nextReady = null;
-    if (this.readyTail) this.readyTail.nextReady = state;
-    else this.readyHead = state;
-    this.readyTail = state;
-    this.readySessionCount += 1;
-    this.agingHeap.push(queue.head);
-  }
-
-  private removeReadyState(state: SessionScheduleState): void {
-    if (!state.ready) return;
-    if (state.previousReady) state.previousReady.nextReady = state.nextReady;
-    else this.readyHead = state.nextReady;
-    if (state.nextReady) state.nextReady.previousReady = state.previousReady;
-    else this.readyTail = state.previousReady;
-    state.ready = false;
-    state.previousReady = null;
-    state.nextReady = null;
-    this.readySessionCount -= 1;
-
-    const head = this.pendingBySession.get(state.sessionId)?.head;
-    if (head) this.agingHeap.remove(head);
-  }
-
-  private rotateReadyHeadToTail(): void {
-    const state = this.readyHead;
-    if (!state || state === this.readyTail) return;
-    this.readyHead = state.nextReady;
-    this.readyHead!.previousReady = null;
-    state.previousReady = this.readyTail;
-    state.nextReady = null;
-    this.readyTail!.nextReady = state;
-    this.readyTail = state;
-  }
-
-  private getScheduleState(sessionId: string): SessionScheduleState {
-    let state = this.scheduleBySession.get(sessionId);
-    if (!state) {
-      state = {
-        sessionId,
-        deficitMs: 0,
-        globalCreditBaseMs: this.globalCreditMs,
-        vruntimeMs: this.systemVirtualTimeMs,
-        weight: 1.0,
-        ready: false,
-        previousReady: null,
-        nextReady: null,
-      };
-      this.scheduleBySession.set(sessionId, state);
-    }
-    return state;
-  }
-
-  private materializeGlobalCredit(state: SessionScheduleState): void {
-    const credit = this.globalCreditMs - state.globalCreditBaseMs;
-    if (credit > 0) {
-      state.deficitMs = Math.min(MAX_COST_MS, state.deficitMs + credit);
-    }
-    state.globalCreditBaseMs = this.globalCreditMs;
   }
 
   private estimateCost(toolName: string | undefined, costHintMs: number | undefined): number {
@@ -965,9 +729,9 @@ export class BrowserSessionCoordinator {
     const queue = this.pendingBySession.get(task.sessionId);
     if (!queue) return false;
 
-    const state = this.scheduleBySession.get(task.sessionId);
+    const state = this.scheduler.peekState(task.sessionId);
     const wasHead = queue.head === task;
-    if (wasHead && state?.ready) this.agingHeap.remove(task);
+    if (wasHead && state?.ready) this.scheduler.removeTask(task);
     this.unlinkPendingTask(queue, task);
     this.deadlineHeap.remove(task);
     this.detachAbortListener(task);
@@ -975,9 +739,9 @@ export class BrowserSessionCoordinator {
     this.pendingExecutionCount -= 1;
     if (queue.length === 0) {
       this.pendingBySession.delete(task.sessionId);
-      if (state?.ready) this.removeReadyState(state);
+      if (state?.ready) this.scheduler.removeReady(state);
     } else if (wasHead && state?.ready && queue.head) {
-      this.agingHeap.push(queue.head);
+      this.scheduler.pushHead(queue.head);
     }
     return true;
   }
@@ -986,15 +750,15 @@ export class BrowserSessionCoordinator {
     const queue = this.pendingBySession.get(sessionId);
     if (!queue) return;
 
-    const state = this.scheduleBySession.get(sessionId);
-    if (state?.ready) this.removeReadyState(state);
+    const state = this.scheduler.peekState(sessionId);
+    if (state?.ready) this.scheduler.removeReady(state);
     this.pendingBySession.delete(sessionId);
     this.pendingExecutionCount -= queue.length;
     let task = queue.head;
     while (task) {
       const next = task.next;
       this.deadlineHeap.remove(task);
-      this.agingHeap.remove(task);
+      this.scheduler.removeTask(task);
       this.detachAbortListener(task);
       task.state = 'settled';
       task.previous = null;
@@ -1068,7 +832,7 @@ export class BrowserSessionCoordinator {
       this.dispatchCount > 0 && this.totalServiceMs > 0
         ? this.totalServiceMs / this.dispatchCount
         : DEFAULT_COST_MS;
-    const competingSessions = this.readySessionCount + (this.activeExecutionSessionId ? 1 : 0);
+    const competingSessions = this.scheduler.readyCount + (this.activeExecutionSessionId ? 1 : 0);
     return computeRetryAfterMs(
       averageServiceMs,
       competingSessions,
