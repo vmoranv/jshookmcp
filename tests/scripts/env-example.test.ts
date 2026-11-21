@@ -102,6 +102,8 @@ const allowedRawProcessEnvironment = new Set([
   'src/modules/binary-instrument/UnidbgRunner.ts:JAVA_HOME',
   'src/modules/tls-inspector/TLSKeyLogExtractor.ts:SSLKEYLOGFILE',
   'src/modules/collector/CodeCollectorConnectionInternal.ts:LOCALAPPDATA',
+  'src/server/domains/platform/handlers/electron-userdata-handler.ts:APPDATA',
+  'src/server/domains/platform/handlers/electron-userdata-handler.ts:LOCALAPPDATA',
   'src/modules/collector/CodeCollectorConnectionInternal.ts:XDG_CONFIG_HOME',
   'src/modules/external/ExternalToolRunner.ts:<dynamic>',
   'src/utils/artifact-snapshot.ts:<all>',
