@@ -38,6 +38,7 @@ import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
 import { applyIntentBonusBandToScores } from './SearchIntentBonus';
 import { SearchFusion } from './SearchFusion';
+import { VectorScorer } from './VectorScorer';
 import { SearchResultCache, type CachedSearchEntry } from './SearchResultCache';
 import { FeedbackTracker } from './FeedbackTracker';
 import {
@@ -202,6 +203,7 @@ export class ToolSearchEngine {
   private readonly reRanker: ReRanker;
   private readonly qualityTracker = new SearchQualityTracker();
   private readonly fusion: SearchFusion;
+  private readonly vectorScorer: VectorScorer;
 
   // ── Lookup tables & Cryptographic State (Mina / PLONK inspired) ──
   private readonly idfLookupTable: Float64Array;
@@ -392,11 +394,16 @@ export class ToolSearchEngine {
 
     // ── Trigram fuzzy index over tool names ──
     this.trigramIndex = new TrigramIndex(this.docs.map((d) => d.name));
+    this.vectorScorer = new VectorScorer({
+      embeddingEngine: this.embeddingEngine,
+      getEmbeddings: () => this.toolEmbeddings,
+      ensureEmbeddings: () => this.ensureToolEmbeddings(),
+    });
     this.fusion = new SearchFusion({
       docs: this.docs,
       trigramIndex: this.trigramIndex,
       feedbackTracker: this.feedbackTracker,
-      computeVectorCosineScores: (query) => this.computeVectorCosineScores(query),
+      computeVectorCosineScores: (query) => this.vectorScorer.score(query),
     });
 
     // ── Query result cache (§4.3 CSAPC) ──
@@ -1453,70 +1460,6 @@ export class ToolSearchEngine {
    * this query; subsequent queries pick up the vector signal once prewarm
    * lands.
    */
-  /**
-   * Minimum cosine similarity required to enter the dense vector candidate set.
-   * Prevents high-dimensional dot-product noise from qualifying as an RRF signal.
-   */
-  private static readonly VECTOR_MIN_SIMILARITY = 0.25;
-
-  private async computeVectorCosineScores(query: string): Promise<Map<number, number> | null> {
-    if (!this.embeddingEngine) return null;
-
-    if (!this.toolEmbeddings) {
-      // NEVER block a user query on the model bootstrap. The bootstrap is a
-      // one-time HF download + full-catalog embed; on a blocked or slow
-      // network that attempt costs seconds and, worse, the failure path
-      // re-entered it on the query path after every retry-cooldown expiry
-      // (measured in production telemetry: ~10.6s queries, all with
-      // vector_participated=false, clustered on fresh installs). Kick the
-      // bootstrap in the background — it is idempotent and shared via
-      // prewarmPromise/embeddingRetryAfterMs — and serve THIS query from
-      // BM25 + trigram. A later query picks up the vector signal once the
-      // background run lands.
-      void this.ensureToolEmbeddings();
-      return null;
-    }
-
-    // Only skip on an AFFIRMATIVE "not ready". An engine that exposes no
-    // readiness signal (a test double, an alternative implementation) gives us
-    // nothing to block on, and inventing a stall there would be worse than the
-    // cost this guard exists to avoid.
-    if (this.embeddingEngine.isReady?.() === false) {
-      // Cached catalog embeddings + a cold worker (post-restart is the common
-      // case): the tool vectors are on disk but the model is not loaded, so
-      // awaiting embed() here would pay the full model-initialization cost on
-      // the query path — exactly what the branch above exists to avoid.
-      // Warming is kicked and this query stays lexical.
-      void this.embeddingEngine.embed(query).catch(() => undefined);
-      return null;
-    }
-
-    let queryEmbedding: Float32Array;
-    try {
-      queryEmbedding = await this.embeddingEngine.embed(query);
-    } catch (error) {
-      logger.warn(
-        `[search] query embedding unavailable; using lexical ranking: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return null;
-    }
-
-    const results = new Map<number, number>();
-    for (let i = 0; i < this.toolEmbeddings.length; i++) {
-      const toolEmb = this.toolEmbeddings[i]!;
-      if (toolEmb.length !== queryEmbedding.length) continue;
-      // Dot product (embeddings are already normalised → cosine similarity)
-      let dot = 0;
-      for (let j = 0; j < queryEmbedding.length; j++) {
-        dot += queryEmbedding[j]! * toolEmb[j]!;
-      }
-      if (dot >= ToolSearchEngine.VECTOR_MIN_SIMILARITY) {
-        results.set(i, dot);
-      }
-    }
-    return results;
-  }
-
   /**
    * Record feedback from a tool call.
    *
