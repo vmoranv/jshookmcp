@@ -26,6 +26,11 @@ vi.mock('@server/MCPServer.schema', () => ({
 vi.mock('@server/domains/shared/response', () => ({
   toolErrorToResponse: mocks.toolErrorToResponse,
   asErrorResponse: mocks.asErrorResponse,
+  asToolResponse: (payload: unknown) => {
+    const record = payload as { content?: unknown } | null;
+    if (record && Array.isArray(record.content)) return record;
+    return { content: [{ type: 'text', text: JSON.stringify(payload) }] };
+  },
 }));
 
 vi.mock('@utils/logger', () => ({

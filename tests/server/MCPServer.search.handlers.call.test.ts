@@ -44,6 +44,11 @@ vi.mock('@server/domains/shared/response', () => ({
     ],
     isError: true,
   }),
+  asToolResponse: (payload: unknown) => {
+    const record = payload as { content?: unknown } | null;
+    if (record && Array.isArray(record.content)) return record;
+    return { content: [{ type: 'text', text: JSON.stringify(payload) }] };
+  },
 }));
 
 vi.mock('@server/MCPServer.search.validation', () => ({
@@ -181,6 +186,22 @@ describe('MCPServer.search.handlers.call', () => {
 
     expect(result.result).toBe('ok');
     expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', { key: 'value' });
+    expect(result.wasAutoActivated).toBe(false);
+  });
+
+  it('wraps a content-less handler result instead of returning an empty response', async () => {
+    const ctx = createCtx({
+      executeToolWithTracking: vi.fn(async () => ({
+        available: true,
+        binaryPath: 'D:/bin/target.exe',
+      })),
+    });
+
+    const response = await handleCallTool(ctx, { name: 'test_tool' }, { getMetaToolHandler });
+    const result = parseResponse(response);
+
+    expect(result.available).toBe(true);
+    expect(result.binaryPath).toBe('D:/bin/target.exe');
     expect(result.wasAutoActivated).toBe(false);
   });
 

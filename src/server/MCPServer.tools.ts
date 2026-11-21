@@ -12,6 +12,7 @@ import {
   runWithToolRequestContext,
   type ToolRequestExtra,
 } from '@server/runtime/ToolRequestContext';
+import { asToolResponse } from '@server/domains/shared/response';
 
 function mapErrorCode(code: ToolErrorCode): number {
   switch (code) {
@@ -201,7 +202,7 @@ export function registerSingleTool(
             try {
               const augmentedArgs = attachToolRequestMeta(args, extra);
               // If taskStore is provided (SDK handles polling), we can use it internally if needed
-              return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
+              return asToolResponse(await ctx.executeToolWithTracking(toolDef.name, augmentedArgs));
             } catch (error) {
               return handleToolError(toolDef.name, error);
             }
@@ -232,7 +233,7 @@ export function registerSingleTool(
         async () => {
           try {
             const augmentedArgs = attachToolRequestMeta({}, extra);
-            return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
+            return asToolResponse(await ctx.executeToolWithTracking(toolDef.name, augmentedArgs));
           } catch (error) {
             return handleToolError(toolDef.name, error);
           }

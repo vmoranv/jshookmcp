@@ -28,7 +28,15 @@ export function isToolResponse(value: unknown): value is ToolResponse {
 }
 
 export function asToolResponse(payload: unknown): ToolResponse {
-  return isToolResponse(payload) ? payload : asJsonResponse(payload);
+  if (isToolResponse(payload)) return payload;
+  if (payload === undefined) {
+    return asTextResponse(JSON.stringify({ success: false, error: 'Tool returned no result' }));
+  }
+  const isError =
+    payload !== null &&
+    typeof payload === 'object' &&
+    (payload as { isError?: unknown }).isError === true;
+  return asTextResponse(JSON.stringify(payload, null, 2), isError);
 }
 
 export function asErrorResponse(error: unknown): ToolResponse {

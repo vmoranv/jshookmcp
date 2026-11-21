@@ -12,7 +12,7 @@
  * call_tool dispatches them directly to their registered handlers.
  */
 import { logger } from '@utils/logger';
-import { asTextResponse, asErrorResponse } from '@server/domains/shared/response';
+import { asTextResponse, asErrorResponse, asToolResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
 import { normalizeToolName } from '@server/MCPServer.search.validation';
@@ -531,7 +531,7 @@ export async function handleCallTool(
     // records them manually (that would double-count the learning signal).
     // Snapshot-source registration moved into getSearchEngine.
 
-    return attachCallToolMetadata(response, callMetadata);
+    return attachCallToolMetadata(asToolResponse(response), callMetadata);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(`call_tool: execution of "${name}" failed`, error);

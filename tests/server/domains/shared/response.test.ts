@@ -42,6 +42,17 @@ describe('shared response helpers', () => {
     expect((res.content[0] as any)?.text).toBe('{\n  "success": true\n}');
   });
 
+  it('asToolResponse preserves a plain isError flag', async () => {
+    const res = asToolResponse({ success: false, isError: true });
+    expect((res as any).isError).toBe(true);
+    expect((res.content[0] as any)?.text).toContain('"success": false');
+  });
+
+  it('asToolResponse reports an undefined payload instead of an empty response', async () => {
+    const res = asToolResponse(undefined);
+    expect((res.content[0] as any)?.text).toContain('Tool returned no result');
+  });
+
   it('asErrorResponse uses message from Error instances', async () => {
     const res = asErrorResponse(new Error('boom'));
     expect((res as any).isError).toBe(true);
