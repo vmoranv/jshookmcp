@@ -77,6 +77,10 @@ const dynamicReaderContracts = new Map<string, readonly string[]>([
   // Plugin-owned settings intentionally form an open namespace rather than a
   // finite .env.example inventory: PLUGIN_<ID>_* and PLUGINS_<ID>_*.
   ['src/server/extensions/plugin-config.ts:readEnvNullableString:candidate', []],
+  [
+    'src/server/security/dangerousCapabilities.ts:readEnvBoolean:ALLOW_DANGEROUS_CAPABILITIES_ENV',
+    ['JSHOOK_ALLOW_DANGEROUS_CAPABILITIES'],
+  ],
 ]);
 
 const contextualTypedDefaults = new Map<string, string>([

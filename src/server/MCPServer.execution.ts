@@ -17,6 +17,11 @@ import { logger } from '@utils/logger';
 import { asErrorResponse, asTextResponse } from '@server/domains/shared/response';
 import { getToolDomain } from '@server/ToolCatalog';
 import {
+  areDangerousCapabilitiesAllowed,
+  buildDangerousCapabilityDenyResponse,
+  classifyDangerousCapability,
+} from '@server/security/dangerousCapabilities';
+import {
   classifyErrorKind,
   classifyFailureCause,
   type ToolCallErrorKind,
@@ -230,6 +235,13 @@ function checkToolExecutionGate(
   name: string,
   args: ToolArgs,
 ): { content: Array<{ type: 'text'; text: string }>; isError: true } | null {
+  // Host-level capabilities are independent of the profile tier. Deny before
+  // any rule evaluation so an allow rule cannot re-open them by accident.
+  const dangerousCapability = classifyDangerousCapability(name);
+  if (dangerousCapability !== null && !areDangerousCapabilitiesAllowed()) {
+    return buildDangerousCapabilityDenyResponse(name, dangerousCapability);
+  }
+
   const argsJson = stableSerializeArgs(args);
   const toolExecution = ctx.config?.toolExecution;
   const compiledRules = compileToolRules(
@@ -971,10 +983,20 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
             spanErrorMessage = extractResponseErrorMessage(enrichedResponse);
             if (spanErrorMessage !== null) {
               const softFail = readSoftFailResponse(enrichedResponse);
-              spanFailureKind = classifyFailureCause(classifyErrorKind({ successFlag: false }), {
-                errorCode: softFail.code ?? undefined,
-                platformError: softFail.message ?? undefined,
-              });
+              // Mirror the metric path exactly (see `stageKind` above): `isError`
+              // is what separates "the handler returned a failure" from an
+              // unattributable one. Omitting it made the span say `unknown`
+              // while the paired counter said `handler`.
+              spanFailureKind = classifyFailureCause(
+                classifyErrorKind({
+                  isError: (enrichedResponse as { isError?: boolean }).isError === true,
+                  successFlag: false,
+                }),
+                {
+                  errorCode: softFail.code ?? undefined,
+                  platformError: softFail.message ?? undefined,
+                },
+              );
             }
             return enrichedResponse;
           } catch (error) {

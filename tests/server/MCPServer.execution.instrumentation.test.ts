@@ -241,7 +241,7 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     expect(execute[0]!.events).toEqual(['error']);
   });
 
-  it('records the failure reason of a SOFT-fail response (R.fail, no throw) on the span', async () => {
+  it('classifies a returned R.fail as a handler failure, same as a throw', async () => {
     const ctx = createCtx(
       async () => R.fail('Executable not found at D:/chrome/chrome.exe').json(),
       instrumentation,
@@ -250,19 +250,20 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     const response = await executeToolWithTracking(ctx, 'browser_launch', {});
     expect(response).toMatchObject({ success: false });
 
-    // Soft-fail = one call + one error in metrics, same as a throw. The span
-    // says WHY via error_class + fingerprint — never the message itself, which
-    // would carry the caller's executable path into the telemetry database.
+    // A returned failure and a thrown one describe the same event, so they must
+    // land in the same telemetry bucket: `handler`. The span says WHY via
+    // error_class + fingerprint — never the message itself, which would carry
+    // the caller's executable path into the telemetry database.
     expect(instrumentation.metricsNamed(MetricNames.toolCallsTotal)[0]!.attrs).toEqual({
       tool: 'browser_launch',
       success: false,
-      outcome: 'unknown',
+      outcome: 'handler',
       entrypoint: 'bin',
     });
     const execute = instrumentation.spansNamed(SpanNames.toolExecute);
     expect(execute).toHaveLength(1);
     expect(execute[0]!.endAttrs).toMatchObject({ ok: false });
-    expect(execute[0]!.endAttrs).toMatchObject({ ok: false, error_class: 'unknown' });
+    expect(execute[0]!.endAttrs).toMatchObject({ ok: false, error_class: 'handler' });
     expect(execute[0]!.endAttrs).not.toHaveProperty('error');
     expect(typeof (execute[0]!.endAttrs as Record<string, unknown>)['error_fingerprint']).toBe(
       'string',
@@ -315,9 +316,10 @@ describe('executeToolWithTracking — instrumentation wiring', () => {
     // the same failure, and neither may carry the caller's data downstream.
     expect(endAttrs['ok']).toBe(false);
     expect(endAttrs).not.toHaveProperty('error');
-    // A soft-fail `R.fail('prose')` carries no structural cause -> `unknown`,
-    // which is what the metric's `outcome` says above.
-    expect(endAttrs['error_class']).toBe('unknown');
+    // A failed call is a Tool Execution Error (SEP-1303), so the reason is the
+    // handler itself. The counter's `outcome` says the same; a divergence here
+    // would mean the two sinks disagree about one failure.
+    expect(endAttrs['error_class']).toBe('handler');
     expect(endAttrs['error_fingerprint']).toMatch(/^[0-9a-f]{8}$/);
   });
 
