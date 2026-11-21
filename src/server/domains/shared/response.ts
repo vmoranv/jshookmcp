@@ -38,14 +38,29 @@ export function isToolResponse(value: unknown): value is ToolResponse {
   return (
     value !== null &&
     typeof value === 'object' &&
-    Array.isArray((value as { content?: unknown }).content)
+    Array.isArray((value as { content?: unknown }).content) &&
+    (value as { content: unknown[] }).content.length > 0
   );
 }
 
 export function asToolResponse(payload: unknown): ToolResponse {
   if (isToolResponse(payload)) return payload;
   if (payload === undefined) {
-    return asTextResponse(JSON.stringify({ success: false, error: 'Tool returned no result' }));
+    return asTextResponse(
+      JSON.stringify({ success: false, error: 'Tool returned no result' }),
+      true,
+    );
+  }
+  if (
+    payload !== null &&
+    typeof payload === 'object' &&
+    Array.isArray((payload as { content?: unknown }).content) &&
+    (payload as { content: unknown[] }).content.length === 0
+  ) {
+    return asTextResponse(
+      JSON.stringify({ success: false, error: 'Tool returned an empty response' }),
+      true,
+    );
   }
   const isError =
     payload !== null &&

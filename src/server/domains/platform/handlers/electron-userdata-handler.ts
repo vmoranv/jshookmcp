@@ -25,6 +25,8 @@ import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 function allowedUserdataRoots(): string[] {
   const configured = readEnvString('JSHOOK_USERDATA_ROOTS', '').trim();
   if (configured.length > 0) {
+    // Explicit configuration is an allowlist, not an addition: operators who
+    // set JSHOOK_USERDATA_ROOTS intentionally narrow the readable surface.
     return configured
       .split(delimiter)
       .map((root) => root.trim())
@@ -131,7 +133,14 @@ export async function handleElectronScanUserdata(
     for (const fileName of jsonFiles) {
       const filePath = join(safeDirPath, fileName);
       try {
-        const fileStat = await stat(filePath);
+        // Resolve the file itself: a symlink inside an allowed directory can
+        // point at any JSON file on disk. Reject targets that escape the root.
+        const realFilePath = await realpath(filePath);
+        if (!isInside(safeDirPath, realFilePath)) {
+          skipped.push({ name: fileName, reason: 'symlink escapes allowed root' });
+          continue;
+        }
+        const fileStat = await stat(realFilePath);
         if (!fileStat.isFile()) {
           skipped.push({ name: fileName, reason: 'not a file' });
           continue;
@@ -140,7 +149,7 @@ export async function handleElectronScanUserdata(
           skipped.push({ name: fileName, reason: 'exceeds maxFileSizeKB' });
           continue;
         }
-        const raw = await readFile(filePath, 'utf-8');
+        const raw = await readFile(realFilePath, 'utf-8');
         const parsed = JSON.parse(raw) as unknown;
         files.push({
           name: fileName,
