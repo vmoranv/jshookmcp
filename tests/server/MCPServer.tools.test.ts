@@ -182,7 +182,7 @@ describe('MCPServer.tools', () => {
     expect(config.outputSchema).toBeDefined();
   });
 
-  it('throws McpError on ToolError failures', async () => {
+  it('returns ToolError failures as isError tool results', async () => {
     mocks.buildZodShape.mockReturnValue({});
     const ctx = createCtx({
       executeToolWithTracking: vi.fn(async () => {
@@ -195,11 +195,21 @@ describe('MCPServer.tools', () => {
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
     } as any);
-    await expect(ctx.registrationsForTest[0].handler()).rejects.toThrow(/missing prerequisite/);
+
+    // SEP-1303: a failed call is a Tool Execution Error. The model must be able
+    // to see the failure in-band, so this is a result, not a JSON-RPC fault.
+    const result = (await ctx.registrationsForTest[0].handler()) as {
+      isError?: boolean;
+      success?: boolean;
+      content: { type: string; text: string }[];
+    };
+    expect(result.isError).toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.content[0]!.text).toContain('missing prerequisite');
     expect(mocks.logger.error).toHaveBeenCalled();
   });
 
-  it('throws McpError for unknown failures and logs them', async () => {
+  it('returns unknown failures as RUNTIME isError results and logs them', async () => {
     mocks.buildZodShape.mockReturnValue({});
     const ctx = createCtx({
       executeToolWithTracking: vi.fn(async () => {
@@ -211,7 +221,12 @@ describe('MCPServer.tools', () => {
     registerSingleTool(ctx, mockTool);
     const handler = (ctx.server.registerTool as Mock).mock.calls[0]![2];
 
-    await expect(handler({})).rejects.toThrowError(/Execution Failed in page_navigate: boom/);
+    const result = (await handler({})) as {
+      isError?: boolean;
+      content: { type: string; text: string }[];
+    };
+    expect(result.isError).toBe(true);
+    expect(result.content[0]!.text).toContain('Execution Failed in page_navigate: boom');
     expect(mocks.logger.error).toHaveBeenCalledWith(
       'Tool execution failed: page_navigate',
       expect.any(Error),

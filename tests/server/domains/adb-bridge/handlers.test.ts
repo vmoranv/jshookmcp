@@ -584,6 +584,7 @@ describe('ADBBridgeHandlers', () => {
       error: 'adb not found in PATH',
       message: 'adb not found in PATH',
     });
-    expect(result.isError).toBeUndefined();
+    // SEP-1303: the model must see the failure to self-correct.
+    expect(result.isError).toBe(true);
   });
 });
