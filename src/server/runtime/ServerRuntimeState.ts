@@ -1,4 +1,4 @@
-import type { MCPServerContext } from '@server/MCPServer.context';
+import { getTypedDomain, type MCPServerContext } from '@server/MCPServer.context';
 
 export interface BrowserAttachRuntimeSnapshot {
   endpoint: string | null;
@@ -301,5 +301,5 @@ export function getRuntimeState(ctx: MCPServerContext): ServerRuntimeState | nul
   if (!ctx || typeof ctx.getDomainInstance !== 'function') {
     return null;
   }
-  return ctx.getDomainInstance<ServerRuntimeState>('serverRuntimeState') ?? null;
+  return getTypedDomain(ctx, 'serverRuntimeState') ?? null;
 }

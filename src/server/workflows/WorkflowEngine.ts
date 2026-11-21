@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { MCPServerContext } from '@server/MCPServer.context';
-import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
+import { getTypedDomain, type MCPServerContext } from '@server/MCPServer.context';
 import { getRoutingState } from '@server/ToolRouter.probe';
 import {
   MetricNames,
@@ -453,7 +452,7 @@ export async function executeExtensionWorkflow(
     try {
       const evidenceGraph =
         typeof ctx.getDomainInstance === 'function'
-          ? ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph')
+          ? getTypedDomain(ctx, 'evidenceGraph')
           : undefined;
       if (evidenceGraph && evidenceGraph.nodeCount > 0) {
         stepResults.set('__evidenceSnapshot', evidenceGraph.exportJson());

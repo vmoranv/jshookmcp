@@ -46,7 +46,7 @@ import { registerSingleTool as registerSingleToolImpl } from '@server/MCPServer.
 import { registerSearchMetaTools } from '@server/MCPServer.search';
 import { registerServerResources } from '@server/MCPServer.resources';
 import { registerServerPrompts } from '@server/MCPServer.prompts';
-import type { MCPServerContext } from '@server/MCPServer.context';
+import type { DomainMap, MCPServerContext } from '@server/MCPServer.context';
 import { createServerEventBus, type EventBus, type ServerEventMap } from '@server/EventBus';
 import { createInstrumentation } from '@server/observability/createInstrumentation';
 import {
@@ -204,6 +204,14 @@ export class MCPServer implements MCPServerContext {
   }
 
   public setDomainInstance(key: string, value: unknown): void {
+    this.domainInstanceMap.set(key, value);
+  }
+
+  public getTypedDomainInstance<K extends keyof DomainMap>(key: K): DomainMap[K] | undefined {
+    return this.domainInstanceMap.get(key) as DomainMap[K] | undefined;
+  }
+
+  public setTypedDomainInstance<K extends keyof DomainMap>(key: K, value: DomainMap[K]): void {
     this.domainInstanceMap.set(key, value);
   }
 

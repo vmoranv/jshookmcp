@@ -46,8 +46,8 @@ import {
   evaluateToolRules,
   stableSerializeArgs,
 } from '@server/ToolCallContextGuard';
-import type { MCPServerContext } from '@server/MCPServer.context';
-import type { ToolArgs } from '@server/types';
+import { getTypedDomain, type MCPServerContext } from '@server/MCPServer.context';
+import type { ToolArgs, ToolResponse } from '@server/types';
 import {
   ARGS_PREVIEW_MAX_CHARS,
   COST_HINT_DEFAULT,
@@ -63,14 +63,8 @@ import {
 import {
   BrowserSessionQueueError,
   parseBrowserSessionSnapshot,
-  type BrowserSessionCoordinator,
 } from '@server/runtime/BrowserSessionCoordinator';
-import {
-  BrowserFleetLeaseError,
-  type BrowserFleetRoute,
-  type BrowserFleetRouter,
-} from '@server/runtime/BrowserFleetRouter';
-import type { ServerRuntimeState } from '@server/runtime/ServerRuntimeState';
+import { BrowserFleetLeaseError, type BrowserFleetRoute } from '@server/runtime/BrowserFleetRouter';
 import { getToolRequestContext } from '@server/runtime/ToolRequestContext';
 import { SessionScopedResourcePoolCapacityError } from '@server/runtime/SessionScopedResourcePool';
 import {
@@ -349,7 +343,7 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
       timestamp: new Date().toISOString(),
     });
 
-    let enriched = await executeWithSessionScope(ctx, {
+    const enriched = await executeWithSessionScope(ctx, {
       name,
       args,
       timeoutMs,
@@ -362,81 +356,140 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
       failureStage,
     });
 
-    ctx.getDomainInstance<ServerRuntimeState>('serverRuntimeState')?.recordToolCall(name, args);
-    if (
-      collectExecutionMetrics &&
-      executionStartedAt &&
-      executionCpuStart &&
-      executionMemoryBefore
-    ) {
-      enriched = appendExecutionMetrics(
-        enriched,
-        buildExecutionMetrics(
-          executionStartedAt,
-          executionStartTime,
-          timeoutMs,
-          executionCpuStart,
-          executionMemoryBefore,
-        ),
-      );
-    }
-    try {
-      ctx.tokenBudget.recordToolCall(name, args, enriched);
-    } catch (trackingError) {
-      logger.warn('Token tracking failed, continuing without tracking this call:', trackingError);
-    }
-    // Refresh domain TTL when an activated tool is used
-    if (ctx.activatedToolNames.has(name)) {
-      refreshDomainTtlForTool(ctx, name);
-    }
-    const toolResultSuccess = computeToolResultSuccess(enriched);
-    const toolDurationMs = Number((performance.now() - executionStartTime).toFixed(2));
-    emitToolCallTelemetry(ctx, instrumentation, name, args, enriched, {
-      toolResultSuccess,
-      toolDurationMs,
+    return finalizeSuccessfulToolCall(ctx, name, args, enriched, {
+      collectMetrics: collectExecutionMetrics,
+      startedAt: executionStartedAt,
+      startTime: executionStartTime,
+      timeoutMs,
+      cpuStart: executionCpuStart,
+      memoryBefore: executionMemoryBefore,
+      instrumentation,
     });
-    // Commit pending resource updates to prevent stream flooding
-    ctx
-      .getDomainInstance<import('@server/evidence/ReverseEvidenceGraph').ReverseEvidenceGraph>(
-        'evidenceGraph',
-      )
-      ?.commit();
-    return enriched;
   } catch (thrown) {
-    // The session scope wraps whatever escaped it in StagedToolCallError so the
-    // failing stage can reach this handler. Unwrap it HERE and nowhere else:
-    // callers above see the original value (constructor unchanged, `instanceof`
-    // intact, rejection identity preserved), and everything below — error
-    // envelope, admission checks, rethrow — works on the real error.
-    const staged = thrown instanceof StagedToolCallError ? thrown : null;
-    const error: unknown = staged ? staged.original : thrown;
-    const failureDurationMs = Number((performance.now() - executionStartTime).toFixed(2));
-    const errorResponse = buildThrownFailure(
+    const outcome = finalizeFailedToolCall(
       ctx,
       instrumentation,
       name,
       args,
-      error,
-      failureDurationMs,
-      staged,
+      thrown,
+      executionStartTime,
     );
-    try {
-      ctx.tokenBudget.recordToolCall(name, args, errorResponse);
-    } catch (trackingError) {
-      logger.warn('Token tracking failed on error path:', trackingError);
-    }
-    ctx
-      .getDomainInstance<import('@server/evidence/ReverseEvidenceGraph').ReverseEvidenceGraph>(
-        'evidenceGraph',
-      )
-      ?.commit();
-    if (isAdmissionError(error)) return errorResponse;
-    // Log the original error (including its stack) before re-throwing — the
-    // error response above only carries the message, and the throw would
-    // otherwise be the last trace of the failure.
-    logger.error(`Tool execution failed for '${name}':`, error);
-    throw error;
+    if (outcome.rethrow) throw outcome.error;
+    return outcome.response;
   }
+}
+
+interface ExecutionAccounting {
+  readonly collectMetrics: boolean;
+  readonly startedAt: string | null;
+  readonly startTime: number;
+  readonly timeoutMs: number;
+  readonly cpuStart: NodeJS.CpuUsage | null;
+  readonly memoryBefore: ReturnType<typeof captureExecutionMetricMemory> | null;
+  readonly instrumentation: ReturnType<typeof resolveInstrumentation>;
+}
+
+/**
+ * Success-path accounting: runtime tool-use state, optional metrics, token
+ * budget, TTL refresh, telemetry, and evidence commit. Extracted from the
+ * execution pipeline so the pipeline reads as admission → execute → finalize.
+ */
+function finalizeSuccessfulToolCall(
+  ctx: MCPServerContext,
+  name: string,
+  args: ToolArgs,
+  enriched: ToolResponse,
+  accounting: ExecutionAccounting,
+): ToolResponse {
+  getTypedDomain(ctx, 'serverRuntimeState')?.recordToolCall(name, args);
+  let response = enriched;
+  if (
+    accounting.collectMetrics &&
+    accounting.startedAt &&
+    accounting.cpuStart &&
+    accounting.memoryBefore
+  ) {
+    response = appendExecutionMetrics(
+      response,
+      buildExecutionMetrics(
+        accounting.startedAt,
+        accounting.startTime,
+        accounting.timeoutMs,
+        accounting.cpuStart,
+        accounting.memoryBefore,
+      ),
+    );
+  }
+  try {
+    ctx.tokenBudget.recordToolCall(name, args, response);
+  } catch (trackingError) {
+    logger.warn('Token tracking failed, continuing without tracking this call:', trackingError);
+  }
+  // Refresh domain TTL when an activated tool is used
+  if (ctx.activatedToolNames.has(name)) {
+    refreshDomainTtlForTool(ctx, name);
+  }
+  const toolResultSuccess = computeToolResultSuccess(response);
+  const toolDurationMs = Number((performance.now() - accounting.startTime).toFixed(2));
+  emitToolCallTelemetry(ctx, accounting.instrumentation, name, args, response, {
+    toolResultSuccess,
+    toolDurationMs,
+  });
+  // Commit pending resource updates to prevent stream flooding
+  getTypedDomain(ctx, 'evidenceGraph')?.commit();
+  return response;
+}
+
+interface FailureOutcome {
+  readonly response: ToolResponse;
+  readonly error: unknown;
+  readonly rethrow: boolean;
+}
+
+/**
+ * Failure-path accounting: unwrap the staged error once, build the response,
+ * record tokens/metrics, commit evidence, and decide whether to return an
+ * admission error or rethrow.
+ */
+function finalizeFailedToolCall(
+  ctx: MCPServerContext,
+  instrumentation: ReturnType<typeof resolveInstrumentation>,
+  name: string,
+  args: ToolArgs,
+  thrown: unknown,
+  executionStartTime: number,
+): FailureOutcome {
+  // The session scope wraps whatever escaped it in StagedToolCallError so the
+  // failing stage can reach this handler. Unwrap it HERE and nowhere else:
+  // callers above see the original value (constructor unchanged, `instanceof`
+  // intact, rejection identity preserved), and everything below — error
+  // envelope, admission checks, rethrow — works on the real error.
+  const staged = thrown instanceof StagedToolCallError ? thrown : null;
+  const error: unknown = staged ? staged.original : thrown;
+  const failureDurationMs = Number((performance.now() - executionStartTime).toFixed(2));
+  const errorResponse = buildThrownFailure(
+    ctx,
+    instrumentation,
+    name,
+    args,
+    error,
+    failureDurationMs,
+    staged,
+  );
+  try {
+    ctx.tokenBudget.recordToolCall(name, args, errorResponse);
+  } catch (trackingError) {
+    logger.warn('Token tracking failed on error path:', trackingError);
+  }
+  getTypedDomain(ctx, 'evidenceGraph')?.commit();
+  if (isAdmissionError(error)) {
+    return { response: errorResponse, error, rethrow: false };
+  }
+  // Log the original error (including its stack) before re-throwing — the
+  // error response above only carries the message, and the throw would
+  // otherwise be the last trace of the failure.
+  logger.error(`Tool execution failed for '${name}':`, error);
+  return { response: errorResponse, error, rethrow: true };
 }
 
 /**
@@ -813,10 +866,7 @@ function emitToolCallTelemetry(
     ...(errorKind !== undefined ? { outcome: errorKind } : {}),
     ...callSignals,
   });
-  const searchQualityTracker =
-    ctx.getDomainInstance<import('@server/search/SearchQualityTracker').SearchQualityTracker>(
-      'searchQualityTracker',
-    );
+  const searchQualityTracker = getTypedDomain(ctx, 'searchQualityTracker');
   searchQualityTracker?.associateLastSearch(name);
   // Learning signal for the search engine (adaptive vector weight +
   // recency boost) fires on the direct-call path too, not just the
@@ -824,10 +874,7 @@ function emitToolCallTelemetry(
   // already-active tool. Registered by getSearchEngine; absent until the
   // first search builds the engine (no signal to learn from before that).
   try {
-    const searchEngine =
-      ctx.getDomainInstance<import('@server/search/ToolSearchEngine').ToolSearchEngine>(
-        'searchEngine',
-      );
+    const searchEngine = getTypedDomain(ctx, 'searchEngine');
     searchEngine?.recordToolCallFeedback(name, '');
   } catch {
     /* non-critical — feedback must never fail a tool call */
@@ -864,16 +911,14 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
     const toolDomain = getToolDomain(name);
     const browserCoordinator =
       toolDomain === 'browser' || ctx.contextGuard.isContextSensitive(name)
-        ? ctx.getDomainInstance<BrowserSessionCoordinator>('browserSessionCoordinator')
+        ? getTypedDomain(ctx, 'browserSessionCoordinator')
         : null;
     const explicitSessionId = (args['_meta'] as { sessionId?: unknown } | undefined)?.sessionId;
     const sessionId =
       typeof explicitSessionId === 'string' && explicitSessionId.trim().length > 0
         ? explicitSessionId.trim()
         : (getToolRequestContext()?.sessionId ?? null);
-    const fleetRouter = browserCoordinator
-      ? ctx.getDomainInstance<BrowserFleetRouter>('browserFleetRouter')
-      : null;
+    const fleetRouter = browserCoordinator ? getTypedDomain(ctx, 'browserFleetRouter') : null;
     // MCP 2.0 modern requests are stateless by design. Stateful browser
     // resources are admitted into a shared fleet keyed by session; silently
     // collapsing a missing identity to 'default' would leak leases/pools
