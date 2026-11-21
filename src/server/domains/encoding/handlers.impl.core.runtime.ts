@@ -207,7 +207,7 @@ function encodePayload(
 }
 
 export class EncodingToolHandlers {
-  protected collector: CodeCollector;
+  protected collector: Pick<CodeCollector, 'getActivePage'>;
   protected responseBodyResolver?: ResponseBodyResolver;
 
   constructor(port: BrowserAccessPort);
@@ -218,7 +218,7 @@ export class EncodingToolHandlers {
   ) {
     if (typeof (collectorOrPort as BrowserAccessPort).getResponseBody === 'function') {
       const port = collectorOrPort as BrowserAccessPort;
-      this.collector = port.collector;
+      this.collector = port;
       this.responseBodyResolver = (requestId) => port.getResponseBody(requestId);
       return;
     }
