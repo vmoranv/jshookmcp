@@ -1,6 +1,6 @@
 import { EventEmitter, once } from 'node:events';
 import type { AddressInfo } from 'node:net';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebhookServerImpl } from '@server/webhook/WebhookServer.impl';
 
 async function startServer(server: WebhookServerImpl): Promise<number> {
@@ -30,6 +30,10 @@ function isFetchBlockedPort(port: number): boolean {
 }
 
 describe('WebhookServerImpl coverage', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('uses default port when not specified', () => {
     const server = new WebhookServerImpl();
     expect(server.getPort()).toBe(18789);
@@ -157,6 +161,7 @@ describe('WebhookServerImpl coverage', () => {
   });
 
   it('handles empty request bodies with default method and url fallbacks', async () => {
+    vi.stubEnv('WEBHOOK_ALLOW_UNAUTHENTICATED', '1');
     const server = new WebhookServerImpl({ port: 8080 });
     server.registerEndpoint({ path: '/', method: 'GET' });
 
@@ -182,6 +187,7 @@ describe('WebhookServerImpl coverage', () => {
   });
 
   it('rejects when request streaming fails before completion', async () => {
+    vi.stubEnv('WEBHOOK_ALLOW_UNAUTHENTICATED', '1');
     const server = new WebhookServerImpl({ port: 8080 });
     server.registerEndpoint({ path: '/hook' });
 
@@ -329,7 +335,28 @@ describe('WebhookServerImpl coverage', () => {
     }
   });
 
-  it('skips HMAC verification when endpoint has no secret', async () => {
+  it('fails closed when an endpoint has no secret', async () => {
+    const queue = { enqueue: vi.fn() };
+    const server = new WebhookServerImpl({ port: 0, commandQueue: queue as any });
+    server.registerEndpoint({ path: '/open' });
+    const port = await startServer(server);
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/open`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{"event":"tool_called"}',
+      });
+      // An endpoint that cannot authenticate its caller must not be reachable.
+      expect(response.status).toBe(401);
+      expect(queue.enqueue).not.toHaveBeenCalled();
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('allows a secretless endpoint only with an explicit opt-out', async () => {
+    vi.stubEnv('WEBHOOK_ALLOW_UNAUTHENTICATED', '1');
     const queue = { enqueue: vi.fn() };
     const server = new WebhookServerImpl({ port: 0, commandQueue: queue as any });
     server.registerEndpoint({ path: '/open' });
@@ -348,6 +375,7 @@ describe('WebhookServerImpl coverage', () => {
   });
 
   it('queues raw payloads and ignores unknown event names', async () => {
+    vi.stubEnv('WEBHOOK_ALLOW_UNAUTHENTICATED', '1');
     const queue = { enqueue: vi.fn() };
     const handler = vi.fn();
     const server = new WebhookServerImpl({ port: 0, commandQueue: queue as any });
