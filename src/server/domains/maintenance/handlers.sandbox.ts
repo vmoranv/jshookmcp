@@ -6,7 +6,7 @@ import { QuickJSSandbox } from '@server/sandbox/QuickJSSandbox';
 import { MCPBridge } from '@server/sandbox/MCPBridge';
 import { SessionScratchpad } from '@server/sandbox/SessionScratchpad';
 import { executeWithRetry } from '@server/sandbox/AutoCorrectionLoop';
-import type { MCPServerContext } from '@server/MCPServer.context';
+import type { SandboxDomainPort } from '@server/domains/shared/ports';
 import type { SandboxOptions, SandboxResult } from '@server/sandbox/types';
 import {
   SANDBOX_MAX_MEMORY_LIMIT_MB,
@@ -47,10 +47,10 @@ function parseAllowedTools(value: unknown): readonly string[] | undefined | stri
 }
 
 export class SandboxToolHandlers {
-  private readonly ctx: MCPServerContext;
+  private readonly ctx: SandboxDomainPort;
   private readonly scratchpad = new SessionScratchpad();
 
-  constructor(ctx: MCPServerContext) {
+  constructor(ctx: SandboxDomainPort) {
     this.ctx = ctx;
   }
 

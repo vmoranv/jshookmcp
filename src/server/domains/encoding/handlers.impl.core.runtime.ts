@@ -16,6 +16,7 @@ import {
   inflateSync,
 } from 'node:zlib';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
+import type { BrowserAccessPort } from '@server/domains/shared/ports';
 import { parseProtobufMessage } from '@server/domains/encoding/encoding-protobuf';
 import { decodeMsgPack } from '@server/domains/encoding/encoding-msgpack';
 import { argString, argNumber, argEnum } from '@server/domains/shared/parse-args';
@@ -206,11 +207,22 @@ function encodePayload(
 }
 
 export class EncodingToolHandlers {
-  protected collector: CodeCollector;
+  protected collector: Pick<CodeCollector, 'getActivePage'>;
   protected responseBodyResolver?: ResponseBodyResolver;
 
-  constructor(collector: CodeCollector, responseBodyResolver?: ResponseBodyResolver) {
-    this.collector = collector;
+  constructor(port: BrowserAccessPort);
+  constructor(collector: CodeCollector, responseBodyResolver?: ResponseBodyResolver);
+  constructor(
+    collectorOrPort: CodeCollector | BrowserAccessPort,
+    responseBodyResolver?: ResponseBodyResolver,
+  ) {
+    if (typeof (collectorOrPort as BrowserAccessPort).getResponseBody === 'function') {
+      const port = collectorOrPort as BrowserAccessPort;
+      this.collector = port;
+      this.responseBodyResolver = (requestId) => port.getResponseBody(requestId);
+      return;
+    }
+    this.collector = collectorOrPort as CodeCollector;
     this.responseBodyResolver = responseBodyResolver;
   }
 
