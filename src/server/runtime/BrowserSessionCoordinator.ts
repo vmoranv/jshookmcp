@@ -310,6 +310,7 @@ export class BrowserSessionCoordinator {
       isBusy: (sessionId) =>
         this.pendingBySession.has(sessionId) || this.activeExecutionSessionId === sessionId,
       retryAfterMs: () => this.estimateSessionRetryAfterMs(),
+      onEvict: (sessionId) => this.dropSession(sessionId),
     });
   }
 
