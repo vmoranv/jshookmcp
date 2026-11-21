@@ -270,6 +270,7 @@ export class TabContextEnricher {
     };
 
     // Detect pretty-print: if the closing brace is on its own line, match style
+    // eslint-disable-next-line security/detect-unsafe-regex
     if (/\n\}\s*$/.test(raw)) {
       const prettyJson = JSON.stringify(tabContext, null, 2).replace(/\n/g, '\n  ');
       return raw.replace(/\n\}\s*$/, `,\n  "_tabContext": ${prettyJson}\n}`);
@@ -277,6 +278,7 @@ export class TabContextEnricher {
 
     // Compact style
     const compactJson = JSON.stringify(tabContext);
+    // eslint-disable-next-line security/detect-unsafe-regex
     if (/^\{\s*\}\s*$/.test(raw)) {
       return raw.replace(/\{\s*\}\s*$/, `{"_tabContext":${compactJson}}`);
     }

@@ -125,6 +125,8 @@ function filterRequestList(
     if (filters.urlRegex.length > 500) {
       throw new Error('urlRegex too long (max 500 characters)');
     }
+    // User-supplied by design; length is capped and the first match is timed.
+    // eslint-disable-next-line security/detect-non-literal-regexp
     const re = new RegExp(filters.urlRegex, 'i');
     if (filtered.length > 0) {
       const start = performance.now();

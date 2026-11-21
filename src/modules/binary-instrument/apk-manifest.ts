@@ -47,10 +47,12 @@ const DEFAULT_FEATURE_LIMIT = 200;
 
 function readXmlAttr(tag: string, attr: string): string | undefined {
   const escaped = attr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return (
-    tag.match(new RegExp(`\\b${escaped}\\s*=\\s*"([^"]*)"`, 'i'))?.[1] ??
-    tag.match(new RegExp(`\\bandroid:${escaped}\\s*=\\s*"([^"]*)"`, 'i'))?.[1]
-  );
+  // attr is a compile-time literal from the parser below, never caller input.
+  // eslint-disable-next-line security/detect-non-literal-regexp
+  const plain = new RegExp(`\\b${escaped}\\s*=\\s*"([^"]*)"`, 'i');
+  // eslint-disable-next-line security/detect-non-literal-regexp
+  const androidNamespaced = new RegExp(`\\bandroid:${escaped}\\s*=\\s*"([^"]*)"`, 'i');
+  return tag.match(plain)?.[1] ?? tag.match(androidNamespaced)?.[1];
 }
 
 export function listTags(xml: string, tagName: string): string[] {
@@ -59,6 +61,8 @@ export function listTags(xml: string, tagName: string): string[] {
   // `-` is a non-word char), so collecting `<activity>` would swallow alias
   // tags and truncate the activity list. The lookahead requires a real tag
   // boundary — whitespace, `/` (self-closing), or `>`.
+  // tagName comes from the parser's fixed literal list (activity, service, ...).
+  // eslint-disable-next-line security/detect-non-literal-regexp
   const re = new RegExp(
     `<${tagName}(?=[\\s/>])[^>]*(?:/>|>[\\s\\S]*?<\\/${tagName}(?=[\\s/>])>)`,
     'gi',
