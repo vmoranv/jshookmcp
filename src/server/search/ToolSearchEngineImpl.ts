@@ -17,7 +17,6 @@ import {
   SEARCH_RECENCY_MAX_BOOST,
   SEARCH_RECENCY_TRACKER_MAX,
   SEARCH_RECENCY_WINDOW_MS,
-  SEARCH_RRF_K,
   SEARCH_SCENE_KEYWORD_WEIGHT,
   SEARCH_MIN_CONTENT_TOKENS,
   SEARCH_SELF_RAG_ENABLED,
@@ -28,7 +27,6 @@ import {
   SEARCH_TRIGRAM_THRESHOLD,
   SEARCH_TRIGRAM_WEIGHT,
   SEARCH_VECTOR_ENABLED,
-  SEARCH_VECTOR_BM25_SKIP_THRESHOLD,
   SEARCH_VECTOR_MODEL_ID,
   SEARCH_VECTOR_PREWARM,
   SEARCH_VECTOR_RETRY_COOLDOWN_MS,
@@ -39,6 +37,7 @@ import { loadToolEmbeddingsCachePartial, saveToolEmbeddingsCacheV2 } from './Emb
 import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
 import { applyIntentBonusBandToScores } from './SearchIntentBonus';
+import { SearchFusion } from './SearchFusion';
 import { FeedbackTracker } from './FeedbackTracker';
 import {
   QueryNormalizer,
@@ -61,11 +60,8 @@ import { logger } from '@utils/logger';
 import {
   applyGraphExpansionToScores,
   buildAffinityGraph,
-  blendRrfIntoScores,
   findDelimitedIndex,
   type AffinityEdge,
-  rankByMap,
-  rankByScores,
 } from './ToolSearchEngine.helpers';
 import {
   buildSearchCacheKey,
@@ -256,6 +252,7 @@ export class ToolSearchEngine {
   private readonly intentBoost: IntentBoostImpl;
   private readonly reRanker: ReRanker;
   private readonly qualityTracker = new SearchQualityTracker();
+  private readonly fusion: SearchFusion;
 
   // ── Lookup tables & Cryptographic State (Mina / PLONK inspired) ──
   private readonly idfLookupTable: Float64Array;
@@ -446,6 +443,12 @@ export class ToolSearchEngine {
 
     // ── Trigram fuzzy index over tool names ──
     this.trigramIndex = new TrigramIndex(this.docs.map((d) => d.name));
+    this.fusion = new SearchFusion({
+      docs: this.docs,
+      trigramIndex: this.trigramIndex,
+      feedbackTracker: this.feedbackTracker,
+      computeVectorCosineScores: (query) => this.computeVectorCosineScores(query),
+    });
 
     // ── Query result cache (§4.3 CSAPC) ──
     this.queryCache = new LRUCache<string, CachedSearchEntry>(SEARCH_QUERY_CACHE_CAPACITY);
@@ -997,8 +1000,10 @@ export class ToolSearchEngine {
     this.scoreLexicalQueryTokens(queryTokens, scores);
 
     // ── RRF multi-signal fusion (replaces multiplicative TF-IDF boost) ──
-    const { topBm25Score, vectorParticipated, vectorRanking, hasSignal } =
-      await this.applyRRFFusion(queryTokens, query, scores);
+    const { topBm25Score, vectorParticipated, vectorRanking, hasSignal } = await this.fusion.apply(
+      query,
+      scores,
+    );
 
     // ── Relevance Confidence Gate ──
     if (!hasSignal && intentToolBonuses.size === 0 && explicitToolMention === null) {
@@ -1401,113 +1406,6 @@ export class ToolSearchEngine {
       const tfNorm = (tf * k1Plus1) / (tf + k1 * norm);
       scores[docIndex]! += idf * tfNorm * weight * multiplier;
     }
-  }
-
-  /**
-   * RRF (Reciprocal Rank Fusion) multi-signal scoring.
-   *
-   * Combines three independent ranking signals:
-   *   1. BM25 scores (already computed in `scores`)
-   *   2. TF-IDF cosine similarity
-   *   3. Trigram Jaccard similarity (fuzzy name matching)
-   *
-   * RRF formula: finalScore(d) = Σ_signal  1 / (k + rank_signal(d))
-   *
-   * Unlike the old multiplicative TF-IDF boost, RRF allows each signal to
-   * independently contribute — a document with BM25=0 but high trigram
-   * similarity can still surface.
-   */
-  private async applyRRFFusion(
-    _queryTokens: string[],
-    query: string,
-    scores: Float64Array,
-  ): Promise<{
-    topBm25Score: number;
-    vectorParticipated: boolean;
-    vectorRanking: Map<string, number> | null;
-    hasSignal: boolean;
-  }> {
-    const k = SEARCH_RRF_K;
-    const trigramWeight = SEARCH_TRIGRAM_WEIGHT;
-
-    // ── Signal 1: BM25 ranking (already in scores) ──
-    const bm25Ranked = rankByScores(scores);
-
-    // ── Signal 2: Trigram fuzzy matching ──
-    const trigramScores = this.trigramIndex.search(query, SEARCH_TRIGRAM_THRESHOLD);
-    const trigramRanked = rankByMap(trigramScores);
-
-    // ── Signal 3: Dense vector cosine similarity ──
-    // Two-stage retrieval: skip vector scoring when BM25 top result is
-    // already strong enough that embeddings rarely change the ranking.
-    // `null` marks "vector signal did not participate" (skip threshold,
-    // engine disabled, or embeddings unavailable) — distinct from an empty
-    // map, which means it participated but matched nothing.
-    let vectorScores: Map<number, number> | null;
-    // Raw top BM25 score — returned to the caller so the quality tracker can
-    // measure the vector-eligible share of real traffic (a query is eligible
-    // when this stays below the skip threshold).
-    const topBm25Idx =
-      bm25Ranked.size > 0 ? [...bm25Ranked.entries()].find(([, r]) => r === 0)?.[0] : undefined;
-    const topBm25Score = topBm25Idx !== undefined ? scores[topBm25Idx]! : 0;
-    if (SEARCH_VECTOR_BM25_SKIP_THRESHOLD > 0 && bm25Ranked.size > 0) {
-      vectorScores =
-        topBm25Score >= SEARCH_VECTOR_BM25_SKIP_THRESHOLD
-          ? null
-          : await this.computeVectorCosineScores(query);
-    } else {
-      vectorScores = await this.computeVectorCosineScores(query);
-    }
-    const vectorRanked = vectorScores === null ? null : rankByMap(vectorScores);
-
-    // Store the latest vector ranking for feedback tracking. Passing `null`
-    // when the signal did not participate matters: previously a skipped query
-    // stored an EMPTY ranking, so the next tool-call feedback saw "tool not
-    // in ranking" and took a constant down-step, eroding the vector weight on
-    // strong-BM25 queries even though the vector signal never voted.
-    let vectorRanking: Map<string, number> | null = null;
-    if (vectorRanked === null) {
-      this.feedbackTracker.recordVectorRanking(null);
-    } else {
-      vectorRanking = new Map<string, number>();
-      for (const [docIdx, rank] of vectorRanked) {
-        vectorRanking.set(this.docs[docIdx]!.name, rank);
-      }
-      this.feedbackTracker.recordVectorRanking(vectorRanking);
-    }
-
-    const hasSignal =
-      topBm25Score > 0 ||
-      trigramScores.size > 0 ||
-      (vectorScores !== null && vectorScores.size > 0);
-
-    // ── Fuse via RRF only if at least one signal found candidates ──
-    if (hasSignal) {
-      const fusedRrfScores = new Float64Array(this.docCount);
-      for (let i = 0; i < this.docCount; i++) {
-        let rrfScore = 0;
-
-        const bm25Rank = bm25Ranked.get(i);
-        if (bm25Rank !== undefined) {
-          rrfScore += 1 / (k + bm25Rank);
-        }
-
-        const trigramRank = trigramRanked.get(i);
-        if (trigramRank !== undefined && trigramWeight > 0) {
-          rrfScore += trigramWeight * (1 / (k + trigramRank));
-        }
-
-        const vectorRank = vectorRanked?.get(i);
-        if (vectorRank !== undefined && this.feedbackTracker.getVectorWeight() > 0) {
-          rrfScore += this.feedbackTracker.getVectorWeight() * (1 / (k + vectorRank));
-        }
-
-        fusedRrfScores[i] = rrfScore;
-      }
-      blendRrfIntoScores(scores, fusedRrfScores);
-    }
-
-    return { topBm25Score, vectorParticipated: vectorScores !== null, vectorRanking, hasSignal };
   }
 
   // ── Dense vector search methods (Phase 8) ──
