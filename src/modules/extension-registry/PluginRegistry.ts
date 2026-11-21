@@ -4,24 +4,33 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { getExtensionRegistryDir, getProjectRoot } from '@utils/outputPaths';
-import {
-  getGlobalInstrumentation,
-  MetricNames,
-  SpanNames,
-} from '@server/observability/InstrumentationContract';
-import { emitBusEvent, type EventBus, type ServerEventMap } from '@server/EventBus';
+import { getGlobalInstrumentation, MetricNames, SpanNames } from '@utils/instrumentation';
+
+/** Payload for `extension:loaded` on the server event bus. */
+export interface PluginLoadedEvent {
+  pluginId: string;
+  toolCount: number;
+  source: string;
+  timestamp: string;
+}
+
+/** Payload for `extension:unloaded` on the server event bus. */
+export interface PluginUnloadedEvent {
+  pluginId: string;
+  timestamp: string;
+}
 
 /**
- * The server bus type this registry publishes its lifecycle events on, exposed
- * under the registry's own name so consumers (the extension-registry domain
- * handlers) can accept the dependency without pulling the bus contract into
- * their own source. That matters: `handlers.impl.ts` also emits on the separate
- * webhook channel (`this.emitEvent('extension.installed', ...)`), and the
- * event-contract audit classifies a file's emit-ish calls as bus emissions
- * whenever the file names the bus contract — which would misread those webhook
- * names as undeclared bus events.
+ * Minimal event-sink port for plugin lifecycle events.
+ *
+ * Declared structurally here so the module layer does not import the server
+ * `EventBus`/`ServerEventMap` contract. `EventBus<ServerEventMap>` satisfies it,
+ * so the extension-registry domain can still pass `ctx.eventBus` unchanged.
  */
-export type PluginEventBus = EventBus<ServerEventMap>;
+export interface PluginEventBus {
+  emit(event: 'extension:loaded', payload: PluginLoadedEvent): void | Promise<void>;
+  emit(event: 'extension:unloaded', payload: PluginUnloadedEvent): void | Promise<void>;
+}
 
 export interface RegisteredPluginManifest {
   id: string;
@@ -130,7 +139,7 @@ export class PluginRegistry {
    * lazy handler default — need no bus. Production threads the single server bus
    * in via the extension-registry domain manifest (`ctx.eventBus`).
    */
-  private readonly eventBus?: EventBus<ServerEventMap>;
+  private readonly eventBus?: PluginEventBus;
 
   /**
    * Per-key mutual-exclusion locks implemented as Promise chains.
@@ -161,7 +170,7 @@ export class PluginRegistry {
     return next;
   }
 
-  constructor(rootDir: string = getExtensionRegistryDir(), eventBus?: EventBus<ServerEventMap>) {
+  constructor(rootDir: string = getExtensionRegistryDir(), eventBus?: PluginEventBus) {
     this.rootDir = rootDir;
     this.eventBus = eventBus;
     this.registryFile = path.join(rootDir, 'plugins.json');
@@ -286,7 +295,7 @@ export class PluginRegistry {
         // Only the genuine first-load branch reaches here — the cached
         // `existing` branch above returns early, so a repeat loadPlugin() call
         // does not re-announce a load that already happened.
-        emitBusEvent(this.eventBus, 'extension:loaded', {
+        void this.eventBus?.emit('extension:loaded', {
           pluginId,
           toolCount: countPluginTools(exportsRecord),
           source: loaded.entry,
@@ -326,7 +335,7 @@ export class PluginRegistry {
         manifest.status = 'unloaded';
         await this.persist();
         if (wasLoaded) {
-          emitBusEvent(this.eventBus, 'extension:unloaded', {
+          void this.eventBus?.emit('extension:unloaded', {
             pluginId,
             timestamp: new Date().toISOString(),
           });
