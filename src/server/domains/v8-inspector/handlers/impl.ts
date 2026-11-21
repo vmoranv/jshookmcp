@@ -255,8 +255,9 @@ export class V8InspectorHandlers {
         }),
       );
 
-      // handleHeapSnapshotCapture always returns {success:true,…} (graceful
-      // degradation); reflect its success flag so handleSafe merge is honest.
+      // Only a real CDP capture emits the event: a degraded fallback reports
+      // success:false (see CaptureReturn), so downstream consumers never see a
+      // `v8:heap_captured` notification for a snapshot that was never taken.
       if (result.success && result.snapshotId) {
         void this.deps.ctx.eventBus.emit('v8:heap_captured', {
           snapshotId: result.snapshotId,

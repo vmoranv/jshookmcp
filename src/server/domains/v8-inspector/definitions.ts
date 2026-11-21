@@ -7,7 +7,9 @@ export const v8InspectorTools: Tool[] = [
       .desc(
         'Capture a V8 heap snapshot for offline analysis. The snapshot is persisted to ' +
           'artifacts/heap-snapshots/ (data + sidecar meta) so it survives a server restart; ' +
-          'set persist=false to keep it in-memory only.',
+          'set persist=false to keep it in-memory only. Requires an attached or launched ' +
+          'browser page: when no CDP target is reachable the call returns success:false with ' +
+          'degraded:true and a size-only placeholder instead of fabricating a snapshot.',
       )
       .boolean('persist', 'Persist to artifacts/heap-snapshots/ (default: true)', {
         default: true,

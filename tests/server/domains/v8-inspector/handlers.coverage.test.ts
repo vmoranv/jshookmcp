@@ -365,8 +365,11 @@ describe('v8-inspector handler coverage', () => {
 
       const result = await handleHeapSnapshotCapture({}, opts);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
       expect(result.simulated).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.captureMode).toBe('simulated');
+      expect(typeof result.error).toBe('string');
       expect(result.sizeBytes).toBeGreaterThanOrEqual(0);
     });
 
@@ -379,8 +382,11 @@ describe('v8-inspector handler coverage', () => {
 
       const result = await handleHeapSnapshotCapture({}, opts);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
       expect(result.simulated).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.captureMode).toBe('simulated');
+      expect(typeof result.error).toBe('string');
       expect(result.sizeBytes).toBe(0);
     });
 
@@ -389,8 +395,11 @@ describe('v8-inspector handler coverage', () => {
 
       const result = await handleHeapSnapshotCapture({}, opts);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
       expect(result.simulated).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.captureMode).toBe('simulated');
+      expect(typeof result.error).toBe('string');
       expect(result.sizeBytes).toBe(0);
     });
 
@@ -399,8 +408,11 @@ describe('v8-inspector handler coverage', () => {
 
       const result = await handleHeapSnapshotCapture({}, opts);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
       expect(result.simulated).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.captureMode).toBe('simulated');
+      expect(typeof result.error).toBe('string');
       expect(result.sizeBytes).toBe(0);
       expect(opts.setSnapshot).toHaveBeenCalled();
     });
@@ -418,8 +430,11 @@ describe('v8-inspector handler coverage', () => {
 
       const result = await handleHeapSnapshotCapture({}, opts);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
       expect(result.simulated).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.captureMode).toBe('simulated');
+      expect(typeof result.error).toBe('string');
       expect(result.sizeBytes).toBe(0);
     });
 
@@ -436,8 +451,11 @@ describe('v8-inspector handler coverage', () => {
 
       const result = await handleHeapSnapshotCapture({}, opts);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
       expect(result.simulated).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.captureMode).toBe('simulated');
+      expect(typeof result.error).toBe('string');
       expect(result.sizeBytes).toBe(0);
     });
   });
@@ -537,8 +555,10 @@ describe('v8-inspector handler coverage', () => {
 
         expect(result).toMatchObject({
           // verify minimum result shape; internal call counts may vary
-          success: true,
+          success: false,
           simulated: true,
+          degraded: true,
+          captureMode: 'simulated',
           sizeBytes: expect.any(Number),
         });
         // verify result shape
