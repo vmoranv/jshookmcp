@@ -18,7 +18,7 @@ engines:
       # enumeration over live framework objects, and the "unnecessary
       # conditional" reports come from the page-side type context being lost
       # in host-side analysis. No operator input reaches these as a key.
-      - "src/server/domains/browser/handlers/framework-state.template.ts"
+      - 'src/server/domains/browser/handlers/framework-state.template.ts'
 
       # Local native-bridge client. Bridge endpoints are operator-supplied BY
       # DESIGN (the tool connects to a loopback Ghidra/IDA/rizin helper) and
@@ -26,14 +26,14 @@ engines:
       # `obj[key]` sites read JSON-RPC envelopes whose shape the peer defines.
       # NOTE: ghidra-bridge-tcp.ts is deliberately NOT excluded — it evaluates
       # bridge payloads and must keep its findings visible.
-      - "src/server/domains/native-bridge/handlers.impl.ts"
-      - "src/server/domains/native-bridge/http-actions.ts"
+      - 'src/server/domains/native-bridge/handlers.impl.ts'
+      - 'src/server/domains/native-bridge/http-actions.ts'
 
       # Build helper: spawns the fixed package-manager binary (a module-level
       # constant, never interpolated from input). The other two scripts that
       # spawn commands (run-vitest-smart.mjs, verify-packed-install.mjs) are
       # NOT excluded.
-      - "scripts/run-check-parallel.mjs"
+      - 'scripts/run-check-parallel.mjs'
 
       # Script search primitives. Compiling a caller-supplied search term into
       # a RegExp IS this module's purpose, so the "RegExp constructor called
@@ -41,7 +41,7 @@ engines:
       # path escapes every metacharacter before compiling; the regex path is
       # the caller's explicit opt-in. Nothing else lives here — the manager
       # that consumes these primitives is deliberately NOT excluded, so any
-      - "src/modules/debugger/ScriptManager.impl.search.ts"
+      - 'src/modules/debugger/ScriptManager.impl.search.ts'
 
       # Custom-pattern scanner. Compiling a caller-supplied regex IS this
       # module's purpose (same class of exclusion as ScriptManager above), and
@@ -49,13 +49,19 @@ engines:
       # length cap and a scan-time timeout budget. The manager that consumes
       # these patterns (KeyExtractor.ts) is NOT excluded, so any other issue
       # there stays visible.
-      - "src/modules/binary-secrets/custom-pattern.ts"
+      - 'src/modules/binary-secrets/custom-pattern.ts'
 
       # Content-addressed decompile cache. Every fs path is derived from a
       # SHA256 digest + an env-configured root (resolvePath), never from raw
       # request data. The non-literal fs-argument findings are inherent to a
       # computed cache key; the consumer (handlers/jadx.ts) is NOT excluded.
-      - "src/modules/jadx-search/decompile-cache.ts"
+      - 'src/modules/jadx-search/decompile-cache.ts'
+
+      # Manual mutation-testing workflow. Codacy's workflow policy rejects
+      # workflow_dispatch inputs outright. Dispatch requires write access, the
+      # values are exported as env vars (never interpolated into shell), and
+      # actionlint validates the workflow in CI, so the finding is the feature.
+      - '.github/workflows/mutation.yml'
 
   # Security-pattern engine (Codacy's Semgrep fork) flags caller-supplied
   # RegExp / computed cache paths as "non-literal" hazards. Those are the

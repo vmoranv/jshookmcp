@@ -72,6 +72,12 @@ engines:
       # match, rejecting expensive patterns before scanning the request list.
       - 'src/server/domains/network/handlers/core-handlers.requests.ts'
 
+      # Manual mutation-testing workflow. Codacy's workflow policy rejects
+      # workflow_dispatch inputs outright. Dispatch requires write access, the
+      # values are exported as env vars (never interpolated into shell), and
+      # actionlint validates the workflow in CI, so the finding is the feature.
+      - '.github/workflows/mutation.yml'
+
   # Security-pattern engine (Codacy's Semgrep fork) flags caller-supplied
   # RegExp / computed cache paths as "non-literal" hazards. Those are the
   # features here, guarded by the mitigations documented above; exclude the
