@@ -1,4 +1,12 @@
 ---
+# Codacy's workflow security check rejects workflow_dispatch inputs outright.
+# The mutation workflow is maintainer-dispatched (write access required), passes
+# its inputs through env vars rather than shell interpolation, and is validated
+# by actionlint in CI. Exclude this one file globally instead of weakening the
+# check for every workflow.
+exclude_paths:
+  - '.github/workflows/mutation.yml'
+
 # Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
 #
 # Scope is deliberately narrow: exclude the FILE where the flagged pattern is
