@@ -21,6 +21,8 @@ import {
   checkOrigin,
   checkRateLimit,
   readBodyWithLimit,
+  type HttpAuthRuntimeConfig,
+  type HttpRateLimitRuntimeConfig,
 } from '@server/http/HttpMiddleware';
 import { createEventsEndpoint, type EventsEndpoint } from '@server/http/EventsEndpoint';
 import { logger } from '@utils/logger';
@@ -199,124 +201,43 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
   // request while delegating execution to the shared runtime context. Keeping
   // this on /mcp/v2 makes the migration opt-in and leaves existing /mcp
   // sessionful clients untouched.
-  let modernHandlerPromise:
-    | Promise<{ node: NodeMcpRequestHandler; mcp: { close: () => Promise<void> } }>
-    | undefined;
+  const modernHandler: ModernHandlerState = {};
 
   ctx.httpServer = createServer((req, res) => {
     const url = new URL(req.url ?? '/', `http://localhost:${port}`);
 
-    // Health check endpoint — no auth, no rate limit
     if (url.pathname === '/health' && req.method === 'GET') {
-      handleHealthCheck(ctx, res);
+      handleHealthRoute(req, res, { ctx, authConfig });
       return;
     }
 
     if (url.pathname === '/mcp/v2') {
-      if (!checkOrigin(req, res, authConfig)) return;
-      const authenticated = checkAuth(req, res, authConfig);
-      if (!authenticated) return;
-      if (!checkRateLimit(req, res, authenticated, rateLimitConfig)) return;
-      const dispatch = (parsedBody?: unknown) => {
-        modernHandlerPromise ??= (async () => {
-          const [
-            { createMcpHandler },
-            { toNodeHandler },
-            { createModernMcpServer },
-            { assertMcp2Contract },
-          ] = await Promise.all([
-            import('@modelcontextprotocol/server'),
-            import('@modelcontextprotocol/node'),
-            import('@server/MCPServer.modern'),
-            import('@server/mcp2/contract'),
-          ]);
-          // Verify the pinned 2026-07-28 spec vocabulary still matches the
-          // installed SDK before the modern leg serves its first request.
-          assertMcp2Contract();
-          const mcp = createMcpHandler(
-            (requestContext) => createModernMcpServer(ctx, requestContext),
-            {
-              legacy: 'reject',
-              onerror: (error) => logger.warn('[http/v2] MCP handler error:', error),
-            },
-          );
-          ctx.setDomainInstance?.('modernHttpHandler', mcp);
-          return { node: toNodeHandler(mcp), mcp };
-        })();
-        void modernHandlerPromise
-          .then(({ node }) => node(req, res, parsedBody))
-          .catch((error) => {
-            modernHandlerPromise = undefined;
-            logger.warn('[http/v2] failed to initialize MCP handler:', error);
-          });
-      };
-
-      // Parse every POST through the bounded streaming reader. This enforces
-      // maxBodyBytes for chunked requests as well as requests with a declared
-      // Content-Length; the parsed JSON is passed to toNodeHandler so the
-      // adapter does not need to consume the request stream a second time.
-      if (req.method === 'POST') {
-        const bodyPromise =
-          httpConfig?.maxBodyBytes === undefined
-            ? readBodyWithLimit(req, res)
-            : readBodyWithLimit(req, res, httpConfig.maxBodyBytes);
-        bodyPromise.then(dispatch).catch(() => undefined);
-      } else {
-        dispatch();
-      }
+      handleModernMcpRoute(req, res, {
+        ctx,
+        authConfig,
+        rateLimitConfig,
+        maxBodyBytes: httpConfig?.maxBodyBytes,
+        modernHandler,
+      });
       return;
     }
 
-    // Unified event stream — same auth chain as /mcp (origin → auth → rate
-    // limit), then handed to the SSE endpoint (see @server/http/EventsEndpoint).
     if (url.pathname === '/events') {
-      if (!eventsEndpoint) {
-        res.writeHead(503, { 'Content-Type': 'text/plain' });
-        res.end('Service Unavailable – event bus not initialized');
-        return;
-      }
-      if (!checkOrigin(req, res, authConfig)) return;
-      const authenticated = checkAuth(req, res, authConfig);
-      if (!authenticated) return;
-      if (!checkRateLimit(req, res, authenticated, rateLimitConfig)) return;
-      eventsEndpoint.handleRequest(req, res);
+      handleEventsRoute(req, res, { eventsEndpoint, authConfig, rateLimitConfig });
       return;
     }
 
     if (url.pathname !== '/mcp') {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not Found – use POST /mcp, GET /events or GET /health');
+      writeNotFound(res);
       return;
     }
 
-    if (!checkOrigin(req, res, authConfig)) return;
-    // Auth runs BEFORE rate limit so the verified result can be passed to the
-    // rate limiter. This prevents attackers from spoofing Authorization headers
-    // to obtain the higher (3x) rate limit without a valid token.
-    const authenticated = checkAuth(req, res, authConfig);
-    if (!authenticated) return;
-    if (!checkRateLimit(req, res, authenticated, rateLimitConfig)) return;
-
-    if (req.method === 'GET' || req.method === 'DELETE') {
-      void transport.handleRequest(req, res);
-      return;
-    }
-
-    if (req.method === 'POST') {
-      const bodyPromise =
-        httpConfig?.maxBodyBytes === undefined
-          ? readBodyWithLimit(req, res)
-          : readBodyWithLimit(req, res, httpConfig.maxBodyBytes);
-      bodyPromise
-        .then((body) => transport.handleRequest(req, res, body))
-        .catch(() => {
-          /* already responded by middleware */
-        });
-      return;
-    }
-
-    res.writeHead(405, { 'Content-Type': 'text/plain' });
-    res.end('Method Not Allowed');
+    handleLegacyMcpRoute(req, res, {
+      transport,
+      authConfig,
+      rateLimitConfig,
+      maxBodyBytes: httpConfig?.maxBodyBytes,
+    });
   });
 
   const httpServer = ctx.httpServer;
@@ -343,14 +264,180 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
   });
 }
 
+// ── HTTP route handlers ──
+
+interface HttpAuthRouteDeps {
+  readonly authConfig?: HttpAuthRuntimeConfig;
+}
+
+interface HttpRateLimitRouteDeps {
+  readonly rateLimitConfig?: HttpRateLimitRuntimeConfig;
+}
+
+interface ModernHandlerState {
+  promise?: Promise<ModernHttpHandler>;
+}
+
+interface ModernHttpHandler {
+  node: NodeMcpRequestHandler;
+  mcp: { close: () => Promise<void> };
+}
+
+interface HealthRouteDeps extends HttpAuthRouteDeps {
+  readonly ctx: MCPServerContext;
+}
+
+interface ModernRouteDeps extends HttpAuthRouteDeps, HttpRateLimitRouteDeps {
+  readonly ctx: MCPServerContext;
+  readonly maxBodyBytes?: number;
+  readonly modernHandler: ModernHandlerState;
+}
+
+interface EventsRouteDeps extends HttpAuthRouteDeps, HttpRateLimitRouteDeps {
+  readonly eventsEndpoint: EventsEndpoint | null;
+}
+
+interface LegacyRouteDeps extends HttpAuthRouteDeps, HttpRateLimitRouteDeps {
+  readonly transport: MultiplexedStreamableHttpTransport;
+  readonly maxBodyBytes?: number;
+}
+
+function handleHealthRoute(
+  req: Parameters<typeof checkOrigin>[0],
+  res: Parameters<typeof checkOrigin>[1],
+  deps: HealthRouteDeps,
+): void {
+  if (!checkOrigin(req, res, deps.authConfig)) return;
+  const healthVerbose = deps.ctx.config?.server?.healthVerbose ?? MCP_HEALTH_VERBOSE;
+  if (healthVerbose && !checkAuth(req, res, deps.authConfig)) return;
+  handleHealthCheck(deps.ctx, res);
+}
+
+function handleModernMcpRoute(
+  req: Parameters<typeof checkOrigin>[0],
+  res: Parameters<typeof checkOrigin>[1],
+  deps: ModernRouteDeps,
+): void {
+  if (!checkOrigin(req, res, deps.authConfig)) return;
+  const authenticated = checkAuth(req, res, deps.authConfig);
+  if (!authenticated) return;
+  if (!checkRateLimit(req, res, authenticated, deps.rateLimitConfig)) return;
+
+  const dispatch = (parsedBody?: unknown): void => {
+    deps.modernHandler.promise ??= createModernHandler(deps.ctx);
+    void deps.modernHandler.promise
+      .then(({ node }) => node(req, res, parsedBody))
+      .catch((error) => {
+        deps.modernHandler.promise = undefined;
+        logger.warn('[http/v2] failed to initialize MCP handler:', error);
+      });
+  };
+
+  // Parse every POST through the bounded streaming reader. This enforces
+  // maxBodyBytes for chunked requests as well as requests with a declared
+  // Content-Length; the parsed JSON is passed to toNodeHandler so the
+  // adapter does not need to consume the request stream a second time.
+  if (req.method === 'POST') {
+    const bodyPromise =
+      deps.maxBodyBytes === undefined
+        ? readBodyWithLimit(req, res)
+        : readBodyWithLimit(req, res, deps.maxBodyBytes);
+    bodyPromise.then(dispatch).catch(() => undefined);
+    return;
+  }
+
+  dispatch();
+}
+
+async function createModernHandler(ctx: MCPServerContext): Promise<ModernHttpHandler> {
+  const [
+    { createMcpHandler },
+    { toNodeHandler },
+    { createModernMcpServer },
+    { assertMcp2Contract },
+  ] = await Promise.all([
+    import('@modelcontextprotocol/server'),
+    import('@modelcontextprotocol/node'),
+    import('@server/MCPServer.modern'),
+    import('@server/mcp2/contract'),
+  ]);
+
+  // Verify the pinned 2026-07-28 spec vocabulary still matches the installed
+  // SDK before the modern leg serves its first request.
+  assertMcp2Contract();
+  const mcp = createMcpHandler((requestContext) => createModernMcpServer(ctx, requestContext), {
+    legacy: 'reject',
+    onerror: (error) => logger.warn('[http/v2] MCP handler error:', error),
+  });
+  ctx.setDomainInstance?.('modernHttpHandler', mcp);
+  return { node: toNodeHandler(mcp), mcp };
+}
+
+function handleEventsRoute(
+  req: Parameters<typeof checkOrigin>[0],
+  res: Parameters<typeof checkOrigin>[1],
+  deps: EventsRouteDeps,
+): void {
+  if (!deps.eventsEndpoint) {
+    res.writeHead(503, { 'Content-Type': 'text/plain' });
+    res.end('Service Unavailable – event bus not initialized');
+    return;
+  }
+  if (!checkOrigin(req, res, deps.authConfig)) return;
+  const authenticated = checkAuth(req, res, deps.authConfig);
+  if (!authenticated) return;
+  if (!checkRateLimit(req, res, authenticated, deps.rateLimitConfig)) return;
+  deps.eventsEndpoint.handleRequest(req, res);
+}
+
+function handleLegacyMcpRoute(
+  req: Parameters<typeof checkOrigin>[0],
+  res: Parameters<typeof checkOrigin>[1],
+  deps: LegacyRouteDeps,
+): void {
+  if (!checkOrigin(req, res, deps.authConfig)) return;
+  // Auth runs BEFORE rate limit so the verified result can be passed to the
+  // rate limiter. This prevents attackers from spoofing Authorization headers
+  // to obtain the higher (3x) rate limit without a valid token.
+  const authenticated = checkAuth(req, res, deps.authConfig);
+  if (!authenticated) return;
+  if (!checkRateLimit(req, res, authenticated, deps.rateLimitConfig)) return;
+
+  if (req.method === 'GET' || req.method === 'DELETE') {
+    void deps.transport.handleRequest(req, res);
+    return;
+  }
+
+  if (req.method === 'POST') {
+    const bodyPromise =
+      deps.maxBodyBytes === undefined
+        ? readBodyWithLimit(req, res)
+        : readBodyWithLimit(req, res, deps.maxBodyBytes);
+    bodyPromise
+      .then((body) => deps.transport.handleRequest(req, res, body))
+      .catch(() => {
+        /* already responded by middleware */
+      });
+    return;
+  }
+
+  res.writeHead(405, { 'Content-Type': 'text/plain' });
+  res.end('Method Not Allowed');
+}
+
+function writeNotFound(res: Parameters<typeof checkOrigin>[1]): void {
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not Found – use POST /mcp, GET /events or GET /health');
+}
+
 // ── Health check ──
 
 import type { ServerResponse as HttpServerResponse } from 'node:http';
 
 function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void {
   // Minimal output by default to avoid exposing internal state (domains, tool
-  // counts, token budget). Full details are gated behind MCP_AUTH_TOKEN or
-  // MCP_HEALTH_VERBOSE=true for trusted environments.
+  // counts, token budget). Verbose output is gated by checkAuth in the router
+  // above; MCP_HEALTH_VERBOSE selects the payload, it does not grant access.
   const verbose = ctx.config?.server?.healthVerbose ?? MCP_HEALTH_VERBOSE;
 
   const body: Record<string, unknown> = {

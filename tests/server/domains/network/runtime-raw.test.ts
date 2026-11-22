@@ -21,11 +21,7 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
   },
 }));
 
-vi.mock('@src/server/domains/shared/modules', () => ({
-  PerformanceMonitor: vi.fn(),
-  ConsoleMonitor: vi.fn(),
-  CodeCollector: vi.fn(),
-}));
+vi.mock('@modules/monitor/PerformanceMonitor', () => ({ PerformanceMonitor: vi.fn() }));
 
 vi.mock('node:dns/promises', async () => {
   const actual = await vi.importActual<typeof import('node:dns/promises')>('node:dns/promises');

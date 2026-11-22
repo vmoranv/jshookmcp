@@ -1,12 +1,12 @@
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import type { PageController } from '@server/domains/shared/modules/collector';
 
-import type { ScriptManager } from '@server/domains/shared/modules';
+import type { ScriptManager } from '@modules/debugger/ScriptManager';
 import type { ConsoleMonitor } from '@server/domains/shared/modules/collector';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
-import { type AICaptchaDetector } from '@server/domains/shared/modules';
+import type { AICaptchaDetector } from '@modules/captcha/AICaptchaDetector';
 import { type DetailedDataManager } from '@utils/DetailedDataManager';
-import { type CamoufoxBrowserManager } from '@server/domains/shared/modules';
+import type { CamoufoxBrowserManager } from '@modules/browser/CamoufoxBrowserManager';
 import { BrowserControlHandlers } from '@server/domains/browser/handlers/browser-control';
 import { CamoufoxBrowserHandlers } from '@server/domains/browser/handlers/camoufox-browser';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';

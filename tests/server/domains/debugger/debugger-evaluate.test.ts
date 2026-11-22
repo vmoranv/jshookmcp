@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DebuggerEvaluateHandlers } from '@server/domains/debugger/handlers/debugger-evaluate';
-import type { RuntimeInspector } from '@server/domains/shared/modules';
+import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 
 type EvaluateRuntimeInspector = Pick<RuntimeInspector, 'evaluate' | 'evaluateGlobal'>;
 

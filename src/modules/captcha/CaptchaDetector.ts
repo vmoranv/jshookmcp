@@ -1,6 +1,6 @@
 import { type Page } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
-import { getGlobalInstrumentation, SpanNames } from '@server/observability/InstrumentationContract';
+import { getGlobalInstrumentation, SpanNames } from '@utils/instrumentation';
 import {
   CAPTCHA_MATCH_RULES,
   DOM_MATCH_RULES,

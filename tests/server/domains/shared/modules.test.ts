@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import * as Modules from '@server/domains/shared/modules';
+import { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
+import { DebuggerManager } from '@modules/debugger/DebuggerManager';
 import * as CollectorModules from '@server/domains/shared/modules/collector';
 import * as NativeModules from '@server/domains/shared/modules/native';
 
-describe('shared/modules', () => {
-  it('should export core shared modules', () => {
-    expect(Modules.CodeAnalyzer).toBeDefined();
-    expect(Modules.DebuggerManager).toBeDefined();
+describe('shared modules', () => {
+  it('should export core modules from their concrete paths', () => {
+    expect(CodeAnalyzer).toBeDefined();
+    expect(DebuggerManager).toBeDefined();
   });
 
   it('should export collector modules via sub-barrel', () => {

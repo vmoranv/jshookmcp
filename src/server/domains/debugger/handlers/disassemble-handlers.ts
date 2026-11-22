@@ -1,5 +1,5 @@
 import { BytecodeExtractor } from '@modules/v8-inspector';
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 /**

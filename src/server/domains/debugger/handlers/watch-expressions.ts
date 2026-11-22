@@ -1,4 +1,4 @@
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 import { argString } from '@server/domains/shared/parse-args';
 
 interface WatchExpressionsHandlersDeps {

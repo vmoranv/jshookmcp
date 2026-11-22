@@ -21,7 +21,8 @@ describe('ResponseBuilder', () => {
 
     it('should build a failure response', async () => {
       const res = new ResponseBuilder().fail(new Error('test err')).json();
-      expect(res.isError).toBeUndefined();
+      // SEP-1303: a failed call must be visible in-band.
+      expect(res.isError).toBe(true);
       expect((res.content[0] as { text: string }).text).toContain('"success": false');
       expect((res.content[0] as { text: string }).text).toContain('"error": "test err"');
     });
@@ -66,6 +67,12 @@ describe('ResponseBuilder', () => {
         >;
         expect(payload).not.toHaveProperty('code');
       }
+    });
+
+    it('build() is the documented alias of json()', async () => {
+      const built = new ResponseBuilder().ok().set('value', 7).build();
+      const serialized = new ResponseBuilder().ok().set('value', 7).json();
+      expect(built).toEqual(serialized);
     });
 
     it('should merge objects', async () => {

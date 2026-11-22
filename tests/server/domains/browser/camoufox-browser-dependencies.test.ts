@@ -22,7 +22,7 @@ vi.mock('@utils/betterSqlite3', () => ({
   formatBetterSqlite3Error: vi.fn(() => 'SQLite error formatted'),
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/browser/CamoufoxBrowserManager', () => ({
   CamoufoxBrowserManager: CamoufoxBrowserManagerMock,
 }));
 

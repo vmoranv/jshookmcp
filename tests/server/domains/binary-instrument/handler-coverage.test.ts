@@ -558,7 +558,7 @@ describe('binary-instrument analysis coverage branches', () => {
     expect(parse(await handlers.handleUnidbgTrace({ sessionId: 'unidbg-1' }))).toMatchObject({
       trace: ['mov x0, x0'],
     });
-    expect(await handlers.handleUnidbgLaunch({ soPath: '/tmp/bad.so' })).toMatchObject({
+    expect(parse(await handlers.handleUnidbgLaunch({ soPath: '/tmp/bad.so' }))).toMatchObject({
       available: false,
       reason: 'launch failed',
     });

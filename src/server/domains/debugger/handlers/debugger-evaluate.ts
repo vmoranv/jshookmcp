@@ -1,4 +1,4 @@
-import type { RuntimeInspector } from '@server/domains/shared/modules';
+import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 import { argString } from '@server/domains/shared/parse-args';
 
 interface DebuggerEvaluateHandlersDeps {

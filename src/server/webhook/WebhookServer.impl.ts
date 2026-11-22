@@ -8,6 +8,7 @@ import {
   WEBHOOK_QUEUE_MAX_SIZE,
   WEBHOOK_QUEUE_RETRY_DELAY_MS,
 } from '@src/constants';
+import { readEnvBoolean, readEnvString } from '@src/config/environment';
 import { CommandQueueImpl } from './CommandQueue.impl.js';
 
 export type WebhookEvent =
@@ -28,6 +29,13 @@ interface RegisteredEndpoint extends RegisteredEndpointInput {
 
 interface WebhookServerOptions {
   port?: number;
+  /**
+   * Interface to bind. Defaults to 127.0.0.1: this endpoint is an inbound
+   * command surface, and binding it to a wildcard address exposes an
+   * unauthenticated-by-default listener to the network (DNS rebinding reaches
+   * loopback too, so the secret check below still applies).
+   */
+  host?: string;
   commandQueue?: CommandQueueImpl;
 }
 
@@ -109,6 +117,7 @@ export class WebhookServerImpl extends EventEmitter {
   private readonly endpoints = new Map<string, RegisteredEndpoint>();
   private readonly eventHandlers = new Map<WebhookEvent, WebhookHandler[]>();
   private readonly port: number;
+  private readonly host: string;
   private readonly commandQueue: CommandQueueImpl;
   private readonly stats: WebhookStats = {
     eventsRegistered: 0,
@@ -121,6 +130,7 @@ export class WebhookServerImpl extends EventEmitter {
   constructor(options: WebhookServerOptions = {}) {
     super();
     this.port = typeof options.port === 'number' ? options.port : WEBHOOK_PORT;
+    this.host = options.host ?? readEnvString('WEBHOOK_HOST', '127.0.0.1', { trim: true });
     // The queue is owned by the server (created here when not injected), so
     // its lifecycle always matches the server's: stopping the server releases
     // the queue, and any code that enqueues through getCommandQueue() talks to
@@ -187,7 +197,7 @@ export class WebhookServerImpl extends EventEmitter {
     this.server = http.createServer((request, response) => {
       void this.handleRequest(request, response);
     });
-    this.server.listen(this.port);
+    this.server.listen(this.port, this.host);
     this.emit('started', this.port);
   }
 
@@ -198,14 +208,33 @@ export class WebhookServerImpl extends EventEmitter {
 
     const server = this.server;
     this.server = undefined;
+
+    // `listen()` is asynchronous, so stop() can legitimately race a bind that
+    // has been issued but not completed (start(); stop() in the same tick).
+    // Closing a not-yet-listening server yields ERR_SERVER_NOT_RUNNING and
+    // leaves the pending socket alive, so wait for the bind to settle first.
     await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (error) {
+      let settled = false;
+      const finish = (error?: Error | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(guard);
+        if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
           reject(error);
           return;
         }
         resolve();
+      };
+      const guard = setTimeout(() => finish(), 2_000);
+      guard.unref();
+      if (server.listening || typeof server.once !== 'function') {
+        server.close(finish);
+        return;
+      }
+      server.once('listening', () => {
+        server.close(finish);
       });
+      server.once('error', () => finish());
     });
     this.emit('stopped');
   }
@@ -243,6 +272,21 @@ export class WebhookServerImpl extends EventEmitter {
     if (!endpoint) {
       response.statusCode = 404;
       response.end('not found');
+      return;
+    }
+
+    // Fail closed. An endpoint without a declared secret cannot authenticate
+    // its caller, so it must not be reachable unless the operator explicitly
+    // opts out for local experiments.
+    if (!endpoint.secret && !readEnvBoolean('WEBHOOK_ALLOW_UNAUTHENTICATED', false)) {
+      response.statusCode = 401;
+      response.setHeader('content-type', 'application/json');
+      response.end(
+        JSON.stringify({
+          error:
+            'endpoint has no secret; set WEBHOOK_ALLOW_UNAUTHENTICATED=1 only for local testing',
+        }),
+      );
       return;
     }
 

@@ -3,94 +3,129 @@
  */
 
 import { TlsInspectorRawSocketHandlers } from './raw-socket-handlers';
-import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
+import {
+  handleSafe,
+  ResponseBuilder,
+  type ToolResponse,
+} from '@server/domains/shared/ResponseBuilder';
+
+/**
+ * Run a TLS-inspector handler and normalise its outcome onto the shared
+ * envelope.
+ *
+ * The TCP/TLS/WebSocket/session handlers report "operation attempted and
+ * failed" as a `{ ok: false, error }` record instead of throwing. Passing that
+ * through `handleSafe` stamped `success: true` on it (handleSafe's builder
+ * starts from `.ok()`), so a failed `websocket_open` looked successful to every
+ * caller that keys off `success`. Hoist the domain-local `ok:false` marker and
+ * surface the same fields with `success:false`.
+ */
+function runTlsTool(fn: () => Promise<unknown>): Promise<ToolResponse> {
+  return handleSafe(async () => {
+    const result = await fn();
+    if (
+      typeof result === 'object' &&
+      result !== null &&
+      !Array.isArray(result) &&
+      (result as { ok?: unknown }).ok === false
+    ) {
+      const record = result as Record<string, unknown>;
+      const message =
+        typeof record.error === 'string' && record.error.length > 0
+          ? record.error
+          : 'TLS inspector operation failed';
+      return new ResponseBuilder().merge(record).fail(new Error(message)).json();
+    }
+    return result;
+  });
+}
 
 export class TlsInspectorHandlers extends TlsInspectorRawSocketHandlers {
   handleTlsKeylogEnableTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsKeylogEnable(args));
+    return runTlsTool(() => this.handleTlsKeylogEnable(args));
   }
   handleTlsKeylogParseTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsKeylogParse(args));
+    return runTlsTool(() => this.handleTlsKeylogParse(args));
   }
   handleTlsKeylogDisableTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsKeylogDisable(args));
+    return runTlsTool(() => this.handleTlsKeylogDisable(args));
   }
   handleTlsKeylogSealTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsKeylogSeal(args));
+    return runTlsTool(() => this.handleTlsKeylogSeal(args));
   }
   handleTlsDecryptPayloadTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsDecryptPayload(args));
+    return runTlsTool(() => this.handleTlsDecryptPayload(args));
   }
   handleTlsKeylogSummarizeTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsKeylogSummarize(args));
+    return runTlsTool(() => this.handleTlsKeylogSummarize(args));
   }
   handleTlsKeylogLookupSecretTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsKeylogLookupSecret(args));
+    return runTlsTool(() => this.handleTlsKeylogLookupSecret(args));
   }
   handleTlsCertPinBypassTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsCertPinBypass(args));
+    return runTlsTool(() => this.handleTlsCertPinBypass(args));
   }
   handleParseHandshakeTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleParseHandshake(args));
+    return runTlsTool(() => this.handleParseHandshake(args));
   }
   handleCipherSuitesTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleCipherSuites(args));
+    return runTlsTool(() => this.handleCipherSuites(args));
   }
   handleParseCertificateTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleParseCertificate(args));
+    return runTlsTool(() => this.handleParseCertificate(args));
   }
   handleTlsProbeEndpointTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsProbeEndpoint(args));
+    return runTlsTool(() => this.handleTlsProbeEndpoint(args));
   }
   handleTcpOpenTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTcpOpen(args));
+    return runTlsTool(() => this.handleTcpOpen(args));
   }
   handleTcpWriteTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTcpWrite(args));
+    return runTlsTool(() => this.handleTcpWrite(args));
   }
   handleTcpReadUntilTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTcpReadUntil(args));
+    return runTlsTool(() => this.handleTcpReadUntil(args));
   }
   handleTcpCloseTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTcpClose(args));
+    return runTlsTool(() => this.handleTcpClose(args));
   }
   handleTlsOpenTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsOpen(args));
+    return runTlsTool(() => this.handleTlsOpen(args));
   }
   handleTlsWriteTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsWrite(args));
+    return runTlsTool(() => this.handleTlsWrite(args));
   }
   handleTlsReadUntilTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsReadUntil(args));
+    return runTlsTool(() => this.handleTlsReadUntil(args));
   }
   handleTlsCloseTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleTlsClose(args));
+    return runTlsTool(() => this.handleTlsClose(args));
   }
   handleWebSocketOpenTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleWebSocketOpen(args));
+    return runTlsTool(() => this.handleWebSocketOpen(args));
   }
   handleWebSocketSendFrameTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleWebSocketSendFrame(args));
+    return runTlsTool(() => this.handleWebSocketSendFrame(args));
   }
   handleWebSocketReadFrameTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleWebSocketReadFrame(args));
+    return runTlsTool(() => this.handleWebSocketReadFrame(args));
   }
   handleWebSocketCloseTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleWebSocketClose(args));
+    return runTlsTool(() => this.handleWebSocketClose(args));
   }
   handleBypassCertPinningTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleBypassCertPinning(args));
+    return runTlsTool(() => this.handleBypassCertPinning(args));
   }
   handleRawTcpSendTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleRawTcpSend(args));
+    return runTlsTool(() => this.handleRawTcpSend(args));
   }
   handleRawTcpListenTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleRawTcpListen(args));
+    return runTlsTool(() => this.handleRawTcpListen(args));
   }
   handleRawUdpSendTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleRawUdpSend(args));
+    return runTlsTool(() => this.handleRawUdpSend(args));
   }
   handleRawUdpListenTool(args: Record<string, unknown>): Promise<ToolResponse> {
-    return handleSafe(async () => await this.handleRawUdpListen(args));
+    return runTlsTool(() => this.handleRawUdpListen(args));
   }
 }

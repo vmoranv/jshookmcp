@@ -1,5 +1,5 @@
-import type { DebuggerManager } from '@server/domains/shared/modules';
-import type { RuntimeInspector } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
+import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 import { ToolError } from '@errors/ToolError';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 

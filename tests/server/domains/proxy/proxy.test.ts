@@ -1062,7 +1062,7 @@ describe('ProxyHandlers (Integration)', () => {
     await handlers.handleProxyStart({ port: testPort + 4, useHttps: true });
 
     const res = await handlers.handleProxySetupAdbDevice({ deviceSerial: 'test-device' });
-    const data = parseResponse(res);
+    const data = parseAnyResponse(res);
     expect(data.success).toBe(false);
     expect(data.available).toBe(false);
     expect(data.capability).toBe('adb_binary');
@@ -1116,7 +1116,7 @@ describe('ProxyHandlers (Integration)', () => {
     try {
       const res = await handlers.handleProxyStopTool({});
       const data = parseAnyResponse(res);
-      expect(res.isError).toBeUndefined();
+      expect(res.isError).toBe(true);
       expect(data).toMatchObject({
         success: false,
         error: 'stop failed',

@@ -2,7 +2,7 @@ import { readFile, mkdir, writeFile, stat } from 'node:fs/promises';
 import { basename, dirname, extname, relative, resolve } from 'node:path';
 import { MINIAPP_UNPACK_TIMEOUT_MS } from '@src/constants';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
-import { type ExternalToolRunner } from '@server/domains/shared/modules';
+import type { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
 import { logger } from '@utils/logger';
 import {
   toTextResponse,

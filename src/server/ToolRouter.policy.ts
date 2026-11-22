@@ -240,6 +240,80 @@ export function buildRouteMatchMetadata(
 
 // ── Reranking ──
 
+const STATELESS_INTERACTIVE_DOMAINS: ReadonlySet<string> = new Set([
+  'browser',
+  'network',
+  'debugger',
+  'instrumentation',
+  'maintenance',
+]);
+
+const STATELESS_CORE_DOMAINS: ReadonlySet<string> = new Set(['core', 'streaming', 'workflow']);
+
+const STATELESS_COMPUTE_DOMAINS: ReadonlySet<string> = new Set([
+  'encoding',
+  'transform',
+  'protocol-analysis',
+  'sourcemap',
+  'core',
+]);
+
+const STATELESS_SPECIFIC_TOOLS: ReadonlySet<string> = new Set([
+  'binary_detect_format',
+  'binary_decode',
+  'crypto_test_harness',
+  'ast_transform_apply',
+  'proto_auto_detect',
+  'proto_infer_fields',
+  'proto_infer_state_machine',
+  'proto_fingerprint',
+]);
+
+/**
+ * Multiplier for the "offline compute" query class. Applied in the same order
+ * as the historical if-chain (interactive penalty → core penalty → compute
+ * boost) so ranking stays byte-for-byte stable.
+ */
+function statelessDomainMultiplier(domain: string | null): number {
+  if (domain === null) return 1;
+  let multiplier = 1;
+  if (STATELESS_INTERACTIVE_DOMAINS.has(domain)) {
+    multiplier *= RERANK_STATELESS_INTERACTIVE_PENALTY;
+  }
+  if (STATELESS_CORE_DOMAINS.has(domain)) {
+    multiplier *= RERANK_STATELESS_CORE_PENALTY;
+  }
+  if (STATELESS_COMPUTE_DOMAINS.has(domain)) {
+    multiplier *= RERANK_STATELESS_COMPUTE_BOOST;
+  }
+  return multiplier;
+}
+
+/**
+ * State-aware boosts for browser/network tasks. Kept as one function so the
+ * table stays readable and the four conditions remain mutually explicit.
+ */
+function browserNetworkMultiplier(toolName: string, state: RoutingState): number {
+  if (!state.hasActivePage && toolName === 'browser_launch') {
+    return RERANK_BROWSER_LAUNCH_BOOST;
+  }
+  if (!state.hasActivePage && toolName === 'browser_attach') {
+    return RERANK_BROWSER_ATTACH_BOOST;
+  }
+  if (state.hasActivePage && !state.networkEnabled && toolName === 'network_monitor') {
+    return RERANK_NETWORK_MONITOR_BOOST;
+  }
+  if (
+    state.hasActivePage &&
+    state.networkEnabled &&
+    state.capturedRequestCount > 0 &&
+    toolName === 'network_get_requests'
+  ) {
+    return RERANK_NETWORK_GET_REQUESTS_BOOST;
+  }
+  return 1;
+}
+
 export function rerankResultsForContext(
   results: ToolSearchResult[],
   task: string,
@@ -258,66 +332,14 @@ export function rerankResultsForContext(
     }
 
     if (statelessComputeTask) {
-      if (
-        result.domain === 'browser' ||
-        result.domain === 'network' ||
-        result.domain === 'debugger' ||
-        result.domain === 'instrumentation' ||
-        result.domain === 'maintenance'
-      ) {
-        score *= RERANK_STATELESS_INTERACTIVE_PENALTY;
-      }
-
-      if (
-        result.domain === 'core' ||
-        result.domain === 'streaming' ||
-        result.domain === 'workflow'
-      ) {
-        score *= RERANK_STATELESS_CORE_PENALTY;
-      }
-
-      if (
-        result.domain === 'encoding' ||
-        result.domain === 'transform' ||
-        result.domain === 'protocol-analysis' ||
-        result.domain === 'sourcemap' ||
-        result.domain === 'core'
-      ) {
-        score *= RERANK_STATELESS_COMPUTE_BOOST;
-      }
-
-      if (
-        result.name === 'binary_detect_format' ||
-        result.name === 'binary_decode' ||
-        result.name === 'crypto_test_harness' ||
-        result.name === 'ast_transform_apply' ||
-        result.name === 'proto_auto_detect' ||
-        result.name === 'proto_infer_fields' ||
-        result.name === 'proto_infer_state_machine' ||
-        result.name === 'proto_fingerprint'
-      ) {
+      score *= statelessDomainMultiplier(result.domain);
+      if (STATELESS_SPECIFIC_TOOLS.has(result.name)) {
         score *= RERANK_STATELESS_SPECIFIC_TOOL_BOOST;
       }
     }
 
     if (browserOrNetworkTask) {
-      if (!state.hasActivePage && result.name === 'browser_launch') {
-        score *= RERANK_BROWSER_LAUNCH_BOOST;
-      }
-      if (!state.hasActivePage && result.name === 'browser_attach') {
-        score *= RERANK_BROWSER_ATTACH_BOOST;
-      }
-      if (state.hasActivePage && !state.networkEnabled && result.name === 'network_monitor') {
-        score *= RERANK_NETWORK_MONITOR_BOOST;
-      }
-      if (
-        state.hasActivePage &&
-        state.networkEnabled &&
-        state.capturedRequestCount > 0 &&
-        result.name === 'network_get_requests'
-      ) {
-        score *= RERANK_NETWORK_GET_REQUESTS_BOOST;
-      }
+      score *= browserNetworkMultiplier(result.name, state);
     }
 
     return {

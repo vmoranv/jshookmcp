@@ -7,7 +7,7 @@
 
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import type { ConsoleMonitor } from '@server/domains/shared/modules/collector';
-import type { PerformanceMonitor } from '@server/domains/shared/modules';
+import type { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 

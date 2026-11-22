@@ -1,5 +1,5 @@
-import type { DebuggerManager } from '@server/domains/shared/modules';
-import type { RuntimeInspector } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
+import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 import { ToolError } from '@errors/ToolError';
 import { DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS } from '@src/constants';
 import { argBool, argNumber } from '@server/domains/shared/parse-args';

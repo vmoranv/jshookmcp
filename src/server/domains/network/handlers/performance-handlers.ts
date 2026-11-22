@@ -6,7 +6,7 @@
  * page_coverage_*, v8_heap_snapshot_capture, v8_heap_sampling).
  */
 
-import { PerformanceMonitor } from '@server/domains/shared/modules';
+import { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import {
   asOptionalBoolean,

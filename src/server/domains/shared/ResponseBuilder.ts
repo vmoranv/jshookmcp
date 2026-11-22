@@ -52,6 +52,7 @@ export class ResponseBuilder {
    */
   fail(error: unknown): this {
     this.payload.success = false;
+    this.hasMcpError = true;
     const msg = error instanceof Error ? error.message : String(error);
     this.payload.error = msg;
     this.payload.message = msg;

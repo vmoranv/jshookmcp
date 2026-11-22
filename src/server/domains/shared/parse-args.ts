@@ -5,6 +5,8 @@
  * with type-guarded functions that eliminate `as` assertions.
  */
 
+import { ToolError } from '@errors/ToolError';
+
 type Args = Record<string, unknown>;
 
 // ── Primitives ──
@@ -68,7 +70,10 @@ export function argEnum<T extends string>(
   if (v === undefined || v === null) return fallback;
   if (typeof v !== 'string') return fallback;
   if (!allowed.has(v as T)) {
-    throw new Error(`Invalid ${key}: "${v}". Expected one of: ${[...allowed].join(', ')}`);
+    throw new ToolError(
+      'VALIDATION',
+      `Invalid ${key}: "${v}". Expected one of: ${[...allowed].join(', ')}`,
+    );
   }
   return v as T;
 }
@@ -79,7 +84,7 @@ export function argEnum<T extends string>(
 export function argStringRequired(args: Args, key: string): string {
   const v = args[key];
   if (typeof v !== 'string') {
-    throw new Error(`Missing required string argument: "${key}"`);
+    throw new ToolError('VALIDATION', `Missing required string argument: "${key}"`);
   }
   return v;
 }
@@ -88,7 +93,7 @@ export function argStringRequired(args: Args, key: string): string {
 export function argNumberRequired(args: Args, key: string): number {
   const v = args[key];
   if (typeof v !== 'number') {
-    throw new Error(`Missing required number argument: "${key}"`);
+    throw new ToolError('VALIDATION', `Missing required number argument: "${key}"`);
   }
   return v;
 }

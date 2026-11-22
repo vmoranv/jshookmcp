@@ -1,7 +1,7 @@
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
-import { ExternalToolRunner } from '@server/domains/shared/modules';
-import { ToolRegistry } from '@server/domains/shared/modules';
+import { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
+import { ToolRegistry } from '@modules/external/ToolRegistry';
 import { MiniappHandlers } from '@server/domains/platform/handlers/miniapp-handlers';
 import { ElectronHandlers } from '@server/domains/platform/handlers/electron-handlers';
 import { handleElectronScanUserdata } from '@server/domains/platform/handlers/electron-userdata-handler';

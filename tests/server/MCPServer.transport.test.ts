@@ -346,9 +346,11 @@ describe('MCPServer.transport', () => {
     expect(pool.dropSession).toHaveBeenCalledWith(sessionId);
   });
 
-  it('serves /health without invoking auth middleware and includes verbose details when enabled', async () => {
+  it('validates Origin and requires auth for verbose /health output', async () => {
     const constantsMod = await import('@src/constants');
     (constantsMod as any).MCP_HEALTH_VERBOSE = true;
+    mocks.checkOrigin.mockReturnValue(true);
+    mocks.checkAuth.mockReturnValue(true);
     const ctx = createCtx();
     await startHttpTransport(ctx);
 
@@ -358,8 +360,10 @@ describe('MCPServer.transport', () => {
 
     server.requestHandlerForTest(req, res);
 
-    expect(mocks.checkOrigin).not.toHaveBeenCalled();
-    expect(mocks.checkAuth).not.toHaveBeenCalled();
+    // MCP requires Origin validation on every incoming connection; the verbose
+    // body exposes topology, so it additionally requires auth.
+    expect(mocks.checkOrigin).toHaveBeenCalled();
+    expect(mocks.checkAuth).toHaveBeenCalled();
     expect(mocks.checkRateLimit).not.toHaveBeenCalled();
     expect(res.status).toBe(200);
     expect(JSON.parse(res.body)).toEqual({

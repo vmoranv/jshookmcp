@@ -44,6 +44,10 @@ vi.mock('@server/domains/shared/response', () => ({
     ],
     isError: true,
   }),
+  // call_tool normalises handler results through asToolResponse; this file's
+  // mocks already return ToolResponse-shaped objects, so identity keeps the
+  // assertions about content/metadata meaningful.
+  asToolResponse: (payload: unknown) => payload,
 }));
 
 vi.mock('@server/MCPServer.search.validation', () => ({

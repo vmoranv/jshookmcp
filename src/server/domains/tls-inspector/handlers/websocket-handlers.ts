@@ -12,7 +12,7 @@ import {
   argString,
   argStringArray,
 } from '@server/domains/shared/parse-args';
-import { asJsonResponse } from '@server/domains/shared/response';
+import { asJsonResponse, isToolResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
 import type {
   ProbeTlsVersion,
@@ -390,20 +390,45 @@ export class TlsInspectorWebSocketHandlers extends TlsInspectorWebSocketFrameHan
       try {
         const result = await this.extensionInvoke(args);
         if (result) {
+          const failure = describeExtensionFailure(result);
+          if (failure !== null) {
+            return asJsonResponse({
+              success: false,
+              strategy: 'frida-injection',
+              available: true,
+              error: failure,
+              reason:
+                'The Frida script runner rejected the request, so no certificate-pinning bypass was injected.',
+              hint:
+                'Attach first with frida_attach and pass its sessionId, then retry. ' +
+                'Use tls_cert_pin_bypass for manual platform-specific guidance.',
+            });
+          }
           return asJsonResponse({
             success: true,
             strategy: 'frida-injection',
             result,
           });
         }
-      } catch {
-        // Extension invoke failed, fall through to instructions
+      } catch (error) {
+        return asJsonResponse({
+          success: false,
+          strategy: 'frida-injection',
+          available: true,
+          error: errorMessage(error),
+          reason: 'Frida injection failed, so no certificate-pinning bypass was applied.',
+          hint:
+            'Verify the Frida session and target, then retry. ' +
+            'Use tls_cert_pin_bypass for manual platform-specific guidance.',
+        });
       }
     }
 
     return asJsonResponse({
       success: true,
       strategy: 'manual-bypass',
+      available: false,
+      reason: 'No Frida script runner is available; returning manual pinning-bypass guidance.',
       instructions: {
         android: [
           'Use Frida to hook X509TrustManager.checkServerTrusted and return without throwing.',
@@ -421,6 +446,60 @@ export class TlsInspectorWebSocketHandlers extends TlsInspectorWebSocketFrameHan
       args,
     });
   }
+}
+
+/**
+ * Classify a Frida script-runner result.
+ *
+ * Returns a non-null message when the runner did not apply a bypass. The
+ * runner reports validation failures as bare text (`textResponse(...)`) and
+ * capability failures as `{ success: false }`; both are truthy, so treating a
+ * truthy result as "injected" made this tool claim a bypass that never ran.
+ * Successful runs come back as a ToolResponse whose JSON payload has
+ * `success: true`.
+ */
+function describeExtensionFailure(result: unknown): string | null {
+  if (isToolResponse(result)) {
+    if (result.isError === true) {
+      return 'The Frida script runner reported an error (isError: true).';
+    }
+    const first = result.content.find(
+      (item) => item.type === 'text' && typeof (item as { text?: unknown }).text === 'string',
+    ) as { text?: string } | undefined;
+    const text = first?.text?.trim();
+    if (!text) return null;
+    if (text.startsWith('Error:')) return text.slice('Error:'.length).trim() || text;
+    try {
+      const parsed = JSON.parse(text) as unknown;
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        const record = parsed as Record<string, unknown>;
+        if (record['success'] === false) {
+          const reason = record['error'] ?? record['reason'] ?? record['message'];
+          return typeof reason === 'string' && reason.length > 0
+            ? reason
+            : 'The Frida script runner reported success:false.';
+        }
+        return null;
+      }
+    } catch {
+      // Bare-text result: the runner uses this for validation failures.
+    }
+    return text;
+  }
+
+  if (typeof result === 'object' && result !== null && !Array.isArray(result)) {
+    const record = result as Record<string, unknown>;
+    if (record['isError'] === true) {
+      return 'The Frida script runner reported an error (isError: true).';
+    }
+    if (record['success'] === false) {
+      const reason = record['error'] ?? record['reason'] ?? record['message'];
+      return typeof reason === 'string' && reason.length > 0
+        ? reason
+        : 'The Frida script runner reported success:false.';
+    }
+  }
+  return null;
 }
 
 type WsArgsResult<T> = T | { error: string };

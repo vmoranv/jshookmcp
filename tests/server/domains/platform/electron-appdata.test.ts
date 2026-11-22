@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -9,9 +9,11 @@ describe('electron_scan_userdata', () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'appdata-test-'));
+    vi.stubEnv('JSHOOK_USERDATA_ROOTS', tempDir);
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await rm(tempDir, { recursive: true, force: true });
   });
 

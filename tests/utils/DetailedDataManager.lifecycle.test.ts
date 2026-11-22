@@ -157,7 +157,7 @@ describe('DetailedDataManager disk lifecycle', () => {
 
   it('defers persistence to memory-only when the write queue is saturated (a3-06)', async () => {
     // Simulate a saturated queue: MAX_PENDING_PERSISTS writes in flight.
-    (manager as any).pendingPersistCount = 8;
+    (manager as any).persistence.pendingPersistCount = 8;
 
     const id = await manager.store({ big: 'x'.repeat(500) }, 60_000);
 
@@ -170,7 +170,7 @@ describe('DetailedDataManager disk lifecycle', () => {
   it('pendingPersistCount drains back to zero after writes complete', async () => {
     const id = await manager.store({ drain: true });
     await waitFor(() => existsSync(join(PERSIST_DIR, `${id}.json`)));
-    await waitFor(() => (manager as any).pendingPersistCount === 0);
+    await waitFor(() => (manager as any).persistence.pendingPersistCount === 0);
     expect(manager.getStats().metrics.diskWriteCount).toBe(1);
     expect(manager.getStats().metrics.persistDeferredCount).toBe(0);
   });
@@ -209,8 +209,10 @@ describe('DetailedDataManager disk lifecycle', () => {
       releaseWrite = resolve;
     });
 
-    const realPersistToDisk = (manager as any).persistToDisk.bind(manager);
-    vi.spyOn(manager as any, 'persistToDisk').mockImplementation(
+    const realPersistToDisk = (manager as any).persistence.persist.bind(
+      (manager as any).persistence,
+    );
+    vi.spyOn((manager as any).persistence, 'persist').mockImplementation(
       async (filePath: unknown, json: unknown, compress: unknown) => {
         await writeGate;
         return realPersistToDisk(filePath as string, json as string, compress as boolean);
@@ -227,7 +229,7 @@ describe('DetailedDataManager disk lifecycle', () => {
     // Release the write; the persist .then() must observe the entry is gone
     // and skip appendMetadata instead of appending a ghost metadata line.
     releaseWrite();
-    await waitFor(() => (manager as any).pendingPersistCount === 0);
+    await waitFor(() => (manager as any).persistence.pendingPersistCount === 0);
     await sleep(100); // let the persist .then() (append or skip) settle
 
     const meta = existsSync(METADATA_PATH) ? readFileSync(METADATA_PATH, 'utf-8') : '';

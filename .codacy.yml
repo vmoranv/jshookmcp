@@ -1,0 +1,83 @@
+---
+# Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
+#
+# Scope is deliberately narrow: exclude the FILE where the flagged pattern is
+# the feature, never the rule, and never a directory that also holds
+# security-sensitive code. A genuinely new hazard inside an excluded file will
+# not be caught by Codacy — it is caught by the independent review pass.
+#
+# Both ESLint engine names are listed because the repository ships no
+# .eslintrc* / eslint.config.* file, so Codacy may run either engine against
+# its own default pattern set.
+
+engines:
+  eslint-8:
+    exclude_paths: &codacy_domain_excludes
+      # Page-context reflector. Runs inside page.evaluate() to walk Vue/React
+      # fiber trees at runtime; every reported `obj[key]` is dynamic property
+      # enumeration over live framework objects, and the "unnecessary
+      # conditional" reports come from the page-side type context being lost
+      # in host-side analysis. No operator input reaches these as a key.
+      - 'src/server/domains/browser/handlers/framework-state.template.ts'
+
+      # Local native-bridge client. Bridge endpoints are operator-supplied BY
+      # DESIGN (the tool connects to a loopback Ghidra/IDA/rizin helper) and
+      # are validated by validateLoopbackEndpoint before any fetch. The flagged
+      # `obj[key]` sites read JSON-RPC envelopes whose shape the peer defines.
+      # NOTE: ghidra-bridge-tcp.ts is deliberately NOT excluded — it evaluates
+      # bridge payloads and must keep its findings visible.
+      - 'src/server/domains/native-bridge/handlers.impl.ts'
+      - 'src/server/domains/native-bridge/http-actions.ts'
+
+      # Build helper: spawns the fixed package-manager binary (a module-level
+      # constant, never interpolated from input). The other two scripts that
+      # spawn commands (run-vitest-smart.mjs, verify-packed-install.mjs) are
+      # NOT excluded.
+      - 'scripts/run-check-parallel.mjs'
+
+      # Script search primitives. Compiling a caller-supplied search term into
+      # a RegExp IS this module's purpose, so the "RegExp constructor called
+      # with a non-literal value" rule flags the feature itself. The literal
+      # path escapes every metacharacter before compiling; the regex path is
+      # the caller's explicit opt-in. Nothing else lives here — the manager
+      # that consumes these primitives is deliberately NOT excluded.
+      - 'src/modules/debugger/ScriptManager.impl.search.ts'
+
+      # Custom-pattern scanner. Compiling a caller-supplied regex IS this
+      # module's purpose (same class of exclusion as ScriptManager above), and
+      # it is guarded by flag-wrapper rejection, ReDoS-shape heuristics, a
+      # length cap and a scan-time timeout budget. The manager that consumes
+      # these patterns (KeyExtractor.ts) is NOT excluded, so any other issue
+      # there stays visible.
+      - 'src/modules/binary-secrets/custom-pattern.ts'
+
+      # Content-addressed decompile cache. Every fs path is derived from a
+      # SHA256 digest + an env-configured root (resolvePath), never from raw
+      # request data. The non-literal fs-argument findings are inherent to a
+      # computed cache key; the consumer (handlers/jadx.ts) is NOT excluded.
+      - 'src/modules/jadx-search/decompile-cache.ts'
+
+      # APK manifest parser. The dynamic RegExp arguments are compile-time
+      # literals from readXmlAttr/listTags (`activity`, `versionCode`, ...),
+      # never request data. The parser is otherwise plain string handling.
+      - 'src/modules/binary-instrument/apk-manifest.ts'
+
+      # Tool-response context injector. The flagged patterns are end-anchored
+      # JSON-shape probes (`\n}\s*$`, `^{\s*}$`) over model output; comparison
+      # is bounded by the response size cap and cannot backtrack across input.
+      - 'src/server/context/TabContextEnricher.ts'
+
+      # Network request filter. Compiling the caller's `urlRegex` IS the
+      # feature; the filter caps the pattern at 500 chars and times the first
+      # match, rejecting expensive patterns before scanning the request list.
+      - 'src/server/domains/network/handlers/core-handlers.requests.ts'
+
+  # Security-pattern engine (Codacy's Semgrep fork) flags caller-supplied
+  # RegExp / computed cache paths as "non-literal" hazards. Those are the
+  # features here, guarded by the mitigations documented above; exclude the
+  # same files from this engine too (PR-diff analysis honors this anchor).
+  opengrep:
+    exclude_paths: *codacy_domain_excludes
+
+  eslint-9:
+    exclude_paths: *codacy_domain_excludes

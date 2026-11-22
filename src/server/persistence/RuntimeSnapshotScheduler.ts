@@ -1,8 +1,9 @@
 import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { homedir } from 'node:os';
+import { dirname } from 'node:path';
 import { logger } from '@utils/logger';
-import { readEnvNullableString } from '@src/config/environment';
+import { getStateDir } from '@utils/stateDir';
+
+export { getStateDir };
 
 /**
  * Counts reported by a snapshot restore — the number of records dropped or
@@ -187,14 +188,6 @@ export class RuntimeSnapshotScheduler {
     await rename(tmpPath, entry.filePath);
     entry.source.markPersisted();
   }
-}
-
-export function getStateDir(): string {
-  const overridden = readEnvNullableString('JSHOOK_STATE_DIR', { trim: true });
-  if (overridden) {
-    return resolve(homedir(), overridden);
-  }
-  return resolve(homedir(), '.jshookmcp', 'state');
 }
 
 /** Renders restore summary counts as a compact ` (key=value, ...)` log suffix. */

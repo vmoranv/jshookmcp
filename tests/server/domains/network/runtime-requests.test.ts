@@ -28,11 +28,7 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
   },
 }));
 
-vi.mock('@src/server/domains/shared/modules', () => ({
-  PerformanceMonitor: vi.fn(),
-  ConsoleMonitor: vi.fn(),
-  CodeCollector: vi.fn(),
-}));
+vi.mock('@modules/monitor/PerformanceMonitor', () => ({ PerformanceMonitor: vi.fn() }));
 
 import { NETWORK_SMART_HANDLE_THRESHOLD_BYTES } from '@src/constants';
 import { CoreHandlers } from '@server/domains/network/handlers/core-handlers';

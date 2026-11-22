@@ -1,10 +1,9 @@
-import { ProtocolError, ProtocolErrorCode, fromJsonSchema } from '@modelcontextprotocol/server';
+import { ProtocolError, fromJsonSchema } from '@modelcontextprotocol/server';
 import type { McpServer, RegisteredTool, Tool } from '@modelcontextprotocol/server';
 import { ZodError, z } from 'zod';
 import { logger } from '@utils/logger';
-import { ToolError, type ToolErrorCode } from '@errors/ToolError';
-import type { ToolArgs } from '@server/types';
-import { ERROR_CODE_RESOURCE_NOT_FOUND } from '@server/mcp2/error-codes';
+import { ToolError } from '@errors/ToolError';
+import type { ToolArgs, ToolResponse } from '@server/types';
 import { buildZodShape } from '@server/MCPServer.schema';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { attachToolRequestMeta } from '@server/runtime/tool-request-meta';
@@ -12,57 +11,51 @@ import {
   runWithToolRequestContext,
   type ToolRequestExtra,
 } from '@server/runtime/ToolRequestContext';
-
-function mapErrorCode(code: ToolErrorCode): number {
-  switch (code) {
-    case 'VALIDATION':
-      return ProtocolErrorCode.InvalidParams; // -32602
-    case 'NOT_FOUND':
-      return ERROR_CODE_RESOURCE_NOT_FOUND; // Custom ResourceNotFound, standard is -32601 but we use -32002 as requested
-    case 'TIMEOUT':
-      // Implementation-defined wire codes (-32000..-32019 grandfathered by the spec).
-      // v2 moved the SDK-local RequestTimeout/ConnectionClosed to string SdkErrorCode.
-      return -32001;
-    case 'CONNECTION':
-      return -32000;
-    case 'PREREQUISITE':
-    case 'PERMISSION':
-      return ProtocolErrorCode.InvalidRequest; // -32600
-    case 'RUNTIME':
-    default:
-      return ProtocolErrorCode.InternalError; // -32603
-  }
-}
+import { asToolResponse } from '@server/domains/shared/response';
+import { R } from '@server/domains/shared/ResponseBuilder';
 
 /**
- * Unified error handler for tool execution.
- * Standardizes errors into proper MCP JSON-RPC protocol errors (-326xx, -320xx)
- * rather than intercepting into custom `isError: true` soft responses.
+ * Convert a thrown handler error into a tool result.
+ *
+ * MCP separates two failure planes (Tools spec, "Error Handling"):
+ *  - Protocol errors — unknown method, malformed request — stay JSON-RPC errors.
+ *  - Tool execution errors — including invalid arguments — are returned as a
+ *    result with `isError: true`, so the model can see the failure and
+ *    self-correct. 2025-11-25 (SEP-1303) made the invalid-argument case
+ *    explicit.
+ *
+ * Only `ProtocolError` is protocol-level here. Everything else is a failed
+ * call and must not be dressed up as a protocol fault.
  */
-function handleToolError(toolName: string, error: unknown): never {
-  if (error instanceof ZodError) {
-    logger.error(`Tool validation failed: ${toolName}`, error);
-    throw new ProtocolError(
-      ProtocolErrorCode.InvalidParams,
-      `Validation Error in ${toolName}: ${error.message}`,
-    );
-  }
-
+function toToolErrorResponse(toolName: string, error: unknown): ToolResponse {
   if (error instanceof ProtocolError) {
     throw error;
   }
 
+  if (error instanceof ZodError) {
+    logger.error(`Tool validation failed: ${toolName}`, error);
+    // Attach the code to a plain Error: `R.fail` only reads `.code`, and this
+    // keeps the mapper independent of the ToolError constructor signature.
+    const validationError = Object.assign(
+      new Error(`Validation Error in ${toolName}: ${error.message}`),
+      { code: 'VALIDATION' as const },
+    );
+    return R.fail(validationError).json();
+  }
+
   if (error instanceof ToolError) {
     logger.error(`Tool execution failed [${error.code}]: ${toolName} - ${error.message}`);
-    const details = error.details ? `\nDetails: ${JSON.stringify(error.details)}` : '';
-    throw new ProtocolError(mapErrorCode(error.code), `[${error.code}] ${error.message}${details}`);
+    const builder = R.fail(error);
+    if (error.details) builder.set('details', error.details);
+    return builder.json();
   }
 
   logger.error(`Tool execution failed: ${toolName}`, error);
-  throw new ProtocolError(
-    ProtocolErrorCode.InternalError,
-    `Execution Failed in ${toolName}: ${error instanceof Error ? error.message : String(error)}`,
-  );
+  const message = error instanceof Error ? error.message : String(error);
+  const runtimeError = Object.assign(new Error(`Execution Failed in ${toolName}: ${message}`), {
+    code: 'RUNTIME' as const,
+  });
+  return R.fail(runtimeError).json();
 }
 
 import type { BuiltTool } from '@server/registry/tool-builder';
@@ -201,9 +194,9 @@ export function registerSingleTool(
             try {
               const augmentedArgs = attachToolRequestMeta(args, extra);
               // If taskStore is provided (SDK handles polling), we can use it internally if needed
-              return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
+              return asToolResponse(await ctx.executeToolWithTracking(toolDef.name, augmentedArgs));
             } catch (error) {
-              return handleToolError(toolDef.name, error);
+              return toToolErrorResponse(toolDef.name, error);
             }
           },
           options,
@@ -232,9 +225,9 @@ export function registerSingleTool(
         async () => {
           try {
             const augmentedArgs = attachToolRequestMeta({}, extra);
-            return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
+            return asToolResponse(await ctx.executeToolWithTracking(toolDef.name, augmentedArgs));
           } catch (error) {
-            return handleToolError(toolDef.name, error);
+            return toToolErrorResponse(toolDef.name, error);
           }
         },
         options,

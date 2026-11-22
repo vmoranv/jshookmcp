@@ -11,6 +11,7 @@ import {
   type ApkSurfaceHintRule,
 } from './apk-surface-hints';
 import { isDexArtifactPath, summarizeDexBuffer, type DexFileArtifact } from './dex-artifacts';
+import { summarizeManifestXml, type ManifestSummary } from './apk-manifest';
 
 export interface ApkDexIntakeOptions {
   apkPath: string;
@@ -47,7 +48,7 @@ export interface ApkDexIntakeResult {
       | {
           format: 'xml';
           decodedBy: 'zip-entry';
-          summary: Record<string, unknown>;
+          summary: ManifestSummary;
           rawManifest?: string;
         }
       | {
@@ -201,10 +202,14 @@ function buildManifestArtifact(
       error: 'Manifest is binary AXML; run apk_manifest_dump for base64 or JADX XML decode.',
     };
   }
+  const apkConfig = getReverseEngineeringConfig().apk;
   return {
     format: 'xml',
     decodedBy: 'zip-entry',
-    summary: summarizeManifestXml(manifestText),
+    summary: summarizeManifestXml(manifestText, {
+      componentLimit: apkConfig.dexIntakeComponentLimit,
+      featureLimit: apkConfig.dexIntakeFeatureLimit,
+    }),
     ...(includeRawManifest ? { rawManifest: manifestText } : {}),
   };
 }
@@ -228,97 +233,6 @@ function decodeTextEntry(buffer: Buffer): string | null {
   }
   const text = buffer.toString('utf8');
   return text.trimStart().startsWith('<') ? text : null;
-}
-
-function readXmlAttr(tag: string, attr: string): string | undefined {
-  const escaped = attr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return (
-    tag.match(new RegExp(`\\b${escaped}\\s*=\\s*"([^"]*)"`, 'i'))?.[1] ??
-    tag.match(new RegExp(`\\bandroid:${escaped}\\s*=\\s*"([^"]*)"`, 'i'))?.[1]
-  );
-}
-
-function listTags(xml: string, tagName: string): string[] {
-  const tags: string[] = [];
-  const re = new RegExp(`<${tagName}\\b[^>]*(?:/>|>[\\s\\S]*?<\\/${tagName}>)`, 'gi');
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(xml)) !== null) {
-    if (match[0]) tags.push(match[0]);
-  }
-  return tags;
-}
-
-function summarizeManifestXml(xml: string): Record<string, unknown> {
-  const config = getReverseEngineeringConfig().apk;
-  const manifestOpen = xml.match(/<manifest\b[^>]*>/i)?.[0] ?? '';
-  const applicationOpen = xml.match(/<application\b[^>]*>/i)?.[0] ?? '';
-  const activities = listTags(xml, 'activity');
-  const activityAliases = listTags(xml, 'activity-alias');
-  const services = listTags(xml, 'service');
-  const receivers = listTags(xml, 'receiver');
-  const providers = listTags(xml, 'provider');
-  const permissions = uniqueStrings(
-    [...xml.matchAll(/<uses-permission\b[^>]*\bandroid:name="([^"]+)"/gi)].map(
-      (match) => match[1] ?? '',
-    ),
-    config.dexIntakeComponentLimit,
-  );
-  const usesFeatures = uniqueStrings(
-    [...xml.matchAll(/<uses-feature\b[^>]*\bandroid:name="([^"]+)"/gi)].map(
-      (match) => match[1] ?? '',
-    ),
-    config.dexIntakeFeatureLimit,
-  );
-  const launcherTag =
-    [...activities, ...activityAliases].find(
-      (tag) =>
-        /android\.intent\.action\.MAIN/i.test(tag) &&
-        /android\.intent\.category\.LAUNCHER/i.test(tag),
-    ) ?? '';
-  const components = {
-    activities: uniqueStrings(
-      activities.map((tag) => readXmlAttr(tag, 'name') ?? ''),
-      config.dexIntakeComponentLimit,
-    ),
-    activityAliases: uniqueStrings(
-      activityAliases.map((tag) => readXmlAttr(tag, 'name') ?? ''),
-      config.dexIntakeFeatureLimit,
-    ),
-    services: uniqueStrings(
-      services.map((tag) => readXmlAttr(tag, 'name') ?? ''),
-      config.dexIntakeComponentLimit,
-    ),
-    receivers: uniqueStrings(
-      receivers.map((tag) => readXmlAttr(tag, 'name') ?? ''),
-      config.dexIntakeComponentLimit,
-    ),
-    providers: uniqueStrings(
-      providers.map((tag) => readXmlAttr(tag, 'name') ?? ''),
-      config.dexIntakeComponentLimit,
-    ),
-  };
-
-  return {
-    packageName: readXmlAttr(manifestOpen, 'package'),
-    versionCode: readXmlAttr(manifestOpen, 'versionCode'),
-    versionName: readXmlAttr(manifestOpen, 'versionName'),
-    minSdk: xml.match(/<uses-sdk\b[^>]*\bandroid:minSdkVersion="([^"]+)"/i)?.[1],
-    targetSdk: xml.match(/<uses-sdk\b[^>]*\bandroid:targetSdkVersion="([^"]+)"/i)?.[1],
-    applicationClass: readXmlAttr(applicationOpen, 'name'),
-    applicationLabel: readXmlAttr(applicationOpen, 'label'),
-    debuggable: readXmlAttr(applicationOpen, 'debuggable'),
-    launcherActivity: launcherTag ? readXmlAttr(launcherTag, 'name') : undefined,
-    permissions,
-    usesFeatures,
-    components,
-    counts: {
-      permissions: permissions.length,
-      activities: components.activities.length,
-      services: components.services.length,
-      receivers: components.receivers.length,
-      providers: components.providers.length,
-    },
-  };
 }
 
 function recommendedNextSteps(protectorCount: number, nativeLibCount: number): string[] {

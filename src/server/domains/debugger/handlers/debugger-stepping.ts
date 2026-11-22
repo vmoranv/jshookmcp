@@ -1,4 +1,4 @@
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 import { logger } from '@utils/logger';
 
 interface DebuggerSteppingHandlersDeps {

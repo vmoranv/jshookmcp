@@ -27,10 +27,12 @@ const mocks = vi.hoisted(() => ({
   externalRunnerCtor: vi.fn(),
 }));
 
-vi.mock('@server/domains/shared/modules', () => ({
+vi.mock('@modules/external/ToolRegistry', () => ({
   ToolRegistry: function ToolRegistryMock() {
     mocks.toolRegistryCtor();
   },
+}));
+vi.mock('@modules/external/ExternalToolRunner', () => ({
   ExternalToolRunner: function ExternalToolRunnerMock(registry: any) {
     mocks.externalRunnerCtor(registry);
   },

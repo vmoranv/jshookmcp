@@ -1,7 +1,8 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToolError } from '@errors/ToolError';
-import type { DebuggerManager, RuntimeInspector } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
+import type { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 import { ScopeInspectionHandlers } from '@server/domains/debugger/handlers/scope-inspection';
 
 describe('ScopeInspectionHandlers', () => {

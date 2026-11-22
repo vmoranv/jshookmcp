@@ -11,7 +11,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { DebuggerManager } from '@modules/debugger/DebuggerManager';
 import { EventBreakpointHandlers } from '@server/domains/debugger/handlers/event-breakpoint';
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 

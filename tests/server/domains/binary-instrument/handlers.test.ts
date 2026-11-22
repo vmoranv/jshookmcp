@@ -35,6 +35,15 @@ vi.mock('node:child_process', () => ({
   execFile: vi.fn(),
 }));
 
+function parseToolResponse(response: unknown): Record<string, unknown> {
+  const record = response as { content?: Array<{ text?: string }> };
+  const text = record.content?.[0]?.text;
+  if (typeof text !== 'string') {
+    throw new Error('expected ghidra response to contain text content');
+  }
+  return JSON.parse(text) as Record<string, unknown>;
+}
+
 describe('BinaryInstrumentHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -279,8 +288,11 @@ describe('BinaryInstrumentHandlers', () => {
       const handlers = createHandlers();
 
       const neither = await handlers.handleFridaAttach({ device: 'remote', host: 'h:1' });
-      const neitherText = (neither as { content: Array<{ text: string }> }).content[0]?.text ?? '';
-      expect(neitherText).toContain('Either target or pid is required');
+      const neitherBody = JSON.parse(
+        (neither as { content: Array<{ text: string }> }).content[0]?.text ?? '{}',
+      );
+      expect(neitherBody.success).toBe(false);
+      expect(neitherBody.error).toContain('Either target or pid is required');
 
       const noHost = await handlers.handleFridaAttach({ target: 'x', device: 'remote' });
       const noHostBody = JSON.parse(
@@ -520,7 +532,7 @@ describe('BinaryInstrumentHandlers', () => {
       const handlers = createHandlers(
         new StubGhidraAnalyzer({ available: false, reason: 'mock unavailable' }),
       );
-      const result = await handlers.handleGhidraAnalyze({ binaryPath });
+      const result = parseToolResponse(await handlers.handleGhidraAnalyze({ binaryPath }));
 
       try {
         expect(result).toMatchObject({
@@ -559,7 +571,9 @@ describe('BinaryInstrumentHandlers', () => {
       const handlers = createHandlers(ghidra);
 
       try {
-        const result = await handlers.handleGhidraAnalyze({ binaryPath, timeout: 1234 });
+        const result = parseToolResponse(
+          await handlers.handleGhidraAnalyze({ binaryPath, timeout: 1234 }),
+        );
         expect(result).toMatchObject({
           available: true,
           binaryPath,
@@ -578,10 +592,12 @@ describe('BinaryInstrumentHandlers', () => {
       const ghidra = new StubGhidraAnalyzer({ available: false, reason: 'not on PATH' });
       const handlers = createHandlers(ghidra);
 
-      const result = (await handlers.handleGhidraDecompile({
-        binaryPath: 'D:/bin/target.exe',
-        functionName: 'main',
-      })) as Record<string, unknown>;
+      const result = parseToolResponse(
+        await handlers.handleGhidraDecompile({
+          binaryPath: 'D:/bin/target.exe',
+          functionName: 'main',
+        }),
+      );
 
       expect(result.available).toBe(false);
       expect(result.capability).toBe('ghidra_headless');
@@ -596,10 +612,12 @@ describe('BinaryInstrumentHandlers', () => {
       });
       const handlers = createHandlers(ghidra);
 
-      const result = (await handlers.handleGhidraDecompile({
-        binaryPath: 'D:/bin/target.exe',
-        functionName: 'definitely_missing',
-      })) as Record<string, unknown>;
+      const result = parseToolResponse(
+        await handlers.handleGhidraDecompile({
+          binaryPath: 'D:/bin/target.exe',
+          functionName: 'definitely_missing',
+        }),
+      );
 
       expect(result.found).toBe(false);
       expect(String(result.reason)).toContain('definitely_missing');
@@ -622,11 +640,13 @@ describe('BinaryInstrumentHandlers', () => {
       });
       const handlers = createHandlers(ghidra);
 
-      const result = (await handlers.handleGhidraDecompile({
-        binaryPath: 'D:/bin/target.exe',
-        functionName: 'main',
-        timeout: 600_000,
-      })) as Record<string, unknown>;
+      const result = parseToolResponse(
+        await handlers.handleGhidraDecompile({
+          binaryPath: 'D:/bin/target.exe',
+          functionName: 'main',
+          timeout: 600_000,
+        }),
+      );
 
       expect(result.available).toBe(true);
       expect(result.found).toBe(true);
@@ -1286,11 +1306,13 @@ describe('BinaryInstrumentHandlers', () => {
 
       try {
         const handlers = createHandlers();
-        const result = (await handlers.handleUnidbgEmulate({
-          binaryPath: '/tmp/libtarget.so',
-          functionName: 'JNI_OnLoad',
-          args: ['env'],
-        })) as { result?: { returnValue?: string; stdout?: string } };
+        const result = parseToolResponse(
+          await handlers.handleUnidbgEmulate({
+            binaryPath: '/tmp/libtarget.so',
+            functionName: 'JNI_OnLoad',
+            args: ['env'],
+          }),
+        ) as { result?: { returnValue?: string; stdout?: string } };
 
         expect(result.result?.returnValue).toBe('0x2a');
         expect(result.result?.stdout).toContain('return=0x2a');
@@ -1304,20 +1326,26 @@ describe('BinaryInstrumentHandlers', () => {
       }
     });
 
-    it('handleUnidbgLaunch returns error when soPath missing', async () => {
+    it('handleUnidbgLaunch returns a JSON success:false when soPath is missing', async () => {
       const handlers = createHandlers();
       const result = await handlers.handleUnidbgLaunch({});
 
-      const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
-      expect(text).toContain('Missing required string argument');
+      const body = JSON.parse(
+        (result as { content: Array<{ text: string }> }).content[0]?.text ?? '{}',
+      );
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('soPath');
     });
 
-    it('handleUnidbgCall returns error when sessionId missing', async () => {
+    it('handleUnidbgCall returns a JSON success:false when sessionId is missing', async () => {
       const handlers = createHandlers();
       const result = await handlers.handleUnidbgCall({});
 
-      const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
-      expect(text).toContain('Missing required string argument');
+      const body = JSON.parse(
+        (result as { content: Array<{ text: string }> }).content[0]?.text ?? '{}',
+      );
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('sessionId');
     });
 
     it('handleUnidbgCall returns error when session not found', async () => {

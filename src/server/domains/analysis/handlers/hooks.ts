@@ -4,7 +4,7 @@
 
 import { argEnum, argString, argStringRequired } from '@server/domains/shared/parse-args';
 import { asJsonResponse } from '@server/domains/shared/response';
-import type { HookManager } from '@server/domains/shared/modules';
+import type { HookManager } from '@modules/hook/HookManager';
 import type { ToolArgs, ToolResponse } from '@server/types';
 
 const HOOK_TYPES = new Set([

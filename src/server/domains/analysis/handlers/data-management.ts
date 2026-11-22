@@ -4,7 +4,7 @@
 
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
-import type { ScriptManager } from '@server/domains/shared/modules';
+import type { ScriptManager } from '@modules/debugger/ScriptManager';
 import type { ToolResponse } from '@server/types';
 
 interface DataManagementDeps {

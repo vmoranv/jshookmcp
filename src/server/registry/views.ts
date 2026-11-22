@@ -9,6 +9,7 @@
  * family (the largest cluster in the cycle audit this module closed).
  */
 import type { Tool } from '@modelcontextprotocol/server';
+import { ToolError } from '@errors/ToolError';
 import type { ToolHandlerDeps, ToolRegistration } from '@server/registry/contracts';
 import type { ToolHandler } from '@server/types';
 import { getLoadedManifests, getLoadedRegistrations } from '@server/registry/state';
@@ -85,20 +86,76 @@ export function buildAllTools(): Tool[] {
   return getLoadedRegistrations().map((r) => r.tool);
 }
 
+export interface HandlerBindingFailure {
+  readonly toolName: string;
+  readonly domain: string;
+  readonly error: unknown;
+}
+
+export interface BuildHandlerMapOptions {
+  /**
+   * When true, a failed `bind()` throws instead of returning a partial map.
+   *
+   * Defaults to `selectedToolNames !== undefined`: every production caller
+   * (startup registration, activation, domain activation) passes an explicit
+   * selection, and a selected tool whose dependency is missing is a wiring bug,
+   * not an optional tool. Unfiltered introspection stays lenient so tests and
+   * diagnostics can build a best-effort map from partial deps.
+   */
+  readonly strict?: boolean;
+  /** Optional observer for lenient mode (or for collecting diagnostics before a throw). */
+  readonly onBindingFailure?: (failure: HandlerBindingFailure) => void;
+}
+
+function describeBindingFailure(failure: HandlerBindingFailure): string {
+  const message = failure.error instanceof Error ? failure.error.message : String(failure.error);
+  return `${failure.toolName} (${failure.domain}): ${message}`;
+}
+
 export function buildHandlerMapFromRegistry(
   deps: ToolHandlerDeps,
   selectedToolNames?: ReadonlySet<string>,
+  options: BuildHandlerMapOptions = {},
 ): Record<string, ToolHandler> {
   const regs = selectedToolNames
     ? getLoadedRegistrations().filter((r) => selectedToolNames.has(r.tool.name))
     : [...getLoadedRegistrations()];
+  const strict = options.strict ?? selectedToolNames !== undefined;
   const entries: [string, ToolHandler][] = [];
+  const failures: HandlerBindingFailure[] = [];
   for (const r of regs) {
     try {
-      entries.push([r.tool.name, r.bind(deps) as ToolHandler]);
-    } catch {
-      // Tool's handler is unavailable (missing dependencies) — skip it
+      const bind = r.bind;
+      (bind as { validate?: (dependencies: ToolHandlerDeps) => void }).validate?.(deps);
+      entries.push([r.tool.name, bind(deps) as ToolHandler]);
+    } catch (error) {
+      const failure: HandlerBindingFailure = {
+        toolName: r.tool.name,
+        domain: r.domain ?? 'unknown',
+        error,
+      };
+      failures.push(failure);
+      options.onBindingFailure?.(failure);
     }
   }
+
+  if (strict && failures.length > 0) {
+    const preview = failures.slice(0, 5).map(describeBindingFailure).join('; ');
+    const suffix = failures.length > 5 ? `; +${failures.length - 5} more` : '';
+    throw new ToolError(
+      'PREREQUISITE',
+      `[registry] ${failures.length} tool handler(s) failed to bind: ${preview}${suffix}`,
+      {
+        details: {
+          failures: failures.map((failure) => ({
+            toolName: failure.toolName,
+            domain: failure.domain,
+            message: failure.error instanceof Error ? failure.error.message : String(failure.error),
+          })),
+        },
+      },
+    );
+  }
+
   return Object.fromEntries(entries);
 }
