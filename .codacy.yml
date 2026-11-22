@@ -1,4 +1,12 @@
 ---
+# Codacy's workflow security check rejects workflow_dispatch inputs outright.
+# The mutation workflow is maintainer-dispatched (write access required), passes
+# its inputs through env vars rather than shell interpolation, and is validated
+# by actionlint in CI. Exclude this one file globally instead of weakening the
+# check for every workflow.
+exclude_paths:
+  - '.github/workflows/mutation.yml'
+
 # Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
 #
 # Scope is deliberately narrow: exclude the FILE where the flagged pattern is
@@ -71,12 +79,6 @@ engines:
       # feature; the filter caps the pattern at 500 chars and times the first
       # match, rejecting expensive patterns before scanning the request list.
       - 'src/server/domains/network/handlers/core-handlers.requests.ts'
-
-      # Manual mutation-testing workflow. Codacy's workflow policy rejects
-      # workflow_dispatch inputs outright. Dispatch requires write access, the
-      # values are exported as env vars (never interpolated into shell), and
-      # actionlint validates the workflow in CI, so the finding is the feature.
-      - '.github/workflows/mutation.yml'
 
   # Security-pattern engine (Codacy's Semgrep fork) flags caller-supplied
   # RegExp / computed cache paths as "non-literal" hazards. Those are the
