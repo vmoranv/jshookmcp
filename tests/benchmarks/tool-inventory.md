@@ -1,5 +1,5 @@
 
-## adb-bridge (26)
+## adb-bridge (29)
 - adb_apk_analyze: Analyze an installed APK: package, permissions, activities, and security info.
 - adb_apk_pull: Pull an APK from a device to the local filesystem.
 - adb_app_cold_start_trace: High-level Android startup trace: force-stop, clear logcat, start activity with -W, wait, collect PID-filtered logs, and parse launch/Looper timing.
@@ -18,12 +18,15 @@
 - adb_port_forward: Manage ADB forward/reverse port mappings for device-host bridge workflows.
 - adb_proc_maps: Read and parse /proc/PID/maps from a device, resolving PID from packageName when needed.
 - adb_pull_native_libs: Pull native shared libraries (.so) for an installed app from a device.
+- adb_reboot: Reboot an Android device, optionally into bootloader, recovery, sideload, or fastboot. The timeout bounds devices that reject the target and never return.
 - adb_root_check: Probe root indicators such as su, Magisk, test-keys, SELinux, and shell uid.
 - adb_screenrecord: Record a short MP4 screen capture through adb shell screenrecord and pull it locally.
 - adb_screenshot: Capture a PNG screenshot through adb exec-out screencap -p.
 - adb_shell: Execute an ADB shell command on a specific device.
+- adb_tcpip: Restart adbd on a device in TCP mode so adb connect can reach it over Wi-Fi (default port 5555).
 - adb_ui_dump: Capture Android UI hierarchy via uiautomator dump. Runs uiautomator dump on-device, pulls the XML, and returns parsed UI tree. Useful for UI automation verification, layout inspection, and accessibility tree analysis.
 - adb_uninstall: Uninstall a package from a device, optionally keeping app data.
+- adb_usb: Return adbd to USB mode after adb_tcpip.
 - adb_webview_attach: Attach to a WebView via ADB; returns WebSocket debugger URL for CDP.
 - adb_webview_list: List debuggable WebView targets connected via ADB.
 
@@ -833,4 +836,4 @@ Actions:
 - workflow_run_inspect: Inspect the global workflow run store: list recent run_extension_workflow / run_macro runs, get a run entry by runId, or fetch the last successful run summary (runId, status, durationMs, stepResultKeys) for a workflow or macro id.
 - workflow_suggest: Suggest the next extension workflow to run from the chainsWith / prerequisites chain metadata declared by loaded workflows. Pass the workflow ids already executed in this session; the server stays stateless. Candidates chained from an executed workflow rank first (the reason names the chain), workflows with all prerequisites satisfied rank before those with missing ones, already-executed workflows are never suggested, and executed ids that match no loaded workflow are returned in unmatched. Workflows without chain metadata are never suggested, so an empty catalog of metadata yields empty suggestions.
 
-TOTAL: 736 tools in 36 domains
+TOTAL: 739 tools in 36 domains

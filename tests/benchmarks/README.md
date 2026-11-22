@@ -1,14 +1,14 @@
 # Tool Benchmarks
 
-Quantifiable benchmark evaluation for the 736 MCP tools (36 domains).
+Quantifiable benchmark evaluation for the 739 MCP tools (36 domains).
 
 - **[CATALOG.md](./CATALOG.md)** — every domain → external benchmark (RFC/spec/official vectors) or homemade suite, with integration status.
 - **[existing-tests-coverage.suite.ts](./existing-tests-coverage.suite.ts)** — the audit/test-asset benchmark layer (breadth).
-- **[tool-inventory.md](./tool-inventory.md)** — the full 736-tool inventory grouped by domain, generated from `src/server/registry/generated-tool-catalog.ts`.
+- **[tool-inventory.md](./tool-inventory.md)** — the full 739-tool inventory grouped by domain, generated from `src/server/registry/generated-tool-catalog.ts`.
 - **[harness.ts](./harness.ts)** — case runner + scorecard renderer (per-case pass/fail/skip with references).
 - **[suites/](./suites/)** — runnable suites; live case/pass/skip counts are in `artifacts/benchmarks/scorecard.json` (`generatedAt`), never hand-copied here.
 - **existing-tests-coverage** — converts the existing handler-test + e2e asset into a per-tool breadth matrix; live counts are in `artifacts/benchmarks/existing-test-coverage.json`.
-- **per-tool-scorecard** — per-tool NATIVE metrics for every one of the 736 tools; no composite score, no letter grades. A-phase splits correctness into `semantic` / `contract` / `adv` columns plus `holdout-MRR` (E-phase); `correctness` remains a backward-compat JSON field only.
+- **per-tool-scorecard** — per-tool NATIVE metrics for every one of the 739 tools; no composite score, no letter grades. A-phase splits correctness into `semantic` / `contract` / `adv` columns plus `holdout-MRR` (E-phase); `correctness` remains a backward-compat JSON field only.
 
 ## Commands
 
