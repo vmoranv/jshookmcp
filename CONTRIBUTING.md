@@ -57,6 +57,22 @@ pnpm run audit:tools
 pnpm run doctor
 ```
 
+可选的质量深挖（不进入默认门禁）：
+
+```bash
+# 审查“每个可见调用都传同一个值/从未传某个可选参数”的候选
+pnpm run audit:constant-params
+
+# 预览当前改动会生成哪些 mutant（不执行测试）
+pnpm run mutation:plan
+
+# 实际运行 mutation testing（耗时较长；默认只跑 server 项目、10 分钟预算）
+pnpm run mutation:changed
+
+# 查看上次运行留下的待处理 mutant
+pnpm run mutation:tasks
+```
+
 ### PR 质量门禁
 
 - 仓库会对新 PR 运行自动质量门禁（`.github/workflows/pr-quality-gate.yml`），明显的低质量、灌水或批量化 AI slop PR 会被直接关闭。

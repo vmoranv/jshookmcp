@@ -34,5 +34,8 @@
   },
   "audit": {
     "gate": "new-only"
+  },
+  "mutation": {
+    "mutantsPerLine": 2
   }
 }

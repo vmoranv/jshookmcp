@@ -2,14 +2,14 @@
  * OtlpInstrumentation degradation path — separate file on purpose.
  *
  * vi.mock only intercepts modules that are not yet in the module registry at
- * hoist time. Mocking '@opentelemetry/sdk-trace-base' from inside the shared
+ * hoist time. Mocking '@opentelemetry/sdk-trace' from inside the shared
  * OtlpInstrumentation test file would be too late (earlier tests there load
  * the real SDK), so this scenario lives in its own file where the top-level
  * mock applies before anything imports the SDK.
  */
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@opentelemetry/sdk-trace-base', () => {
+vi.mock('@opentelemetry/sdk-trace', () => {
   throw new Error('optional dependency missing');
 });
 

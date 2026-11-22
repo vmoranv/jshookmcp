@@ -1,0 +1,93 @@
+name: Mutation Testing
+
+# Manual, opt-in. Mutation testing runs the test suite once per mutant, so it
+# never runs on pull requests. Use it to check whether a change is actually
+# protected by tests, not just covered by them.
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Git ref to diff against
+        required: true
+        default: origin/master
+        type: string
+      runner_project:
+        description: Vitest project to run
+        required: true
+        default: server
+        type: choice
+        options: [server, native, pure, all]
+      max_mutants:
+        description: Maximum covered mutants to run
+        required: true
+        default: "40"
+        type: string
+      time_budget:
+        description: Wall-clock budget, for example 10m
+        required: true
+        default: 10m
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      INPUT_BASE: ${{ inputs.base }}
+      INPUT_RUNNER_PROJECT: ${{ inputs.runner_project }}
+      INPUT_MAX_MUTANTS: ${{ inputs.max_mutants }}
+      INPUT_TIME_BUDGET: ${{ inputs.time_budget }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Enable Corepack pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.0 --activate
+
+      - name: Install Dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Plan mutants
+        shell: bash
+        run: |
+          if [ "$INPUT_RUNNER_PROJECT" = "all" ]; then
+            corepack pnpm exec fallow mutation --plan --base "$INPUT_BASE"
+          else
+            corepack pnpm exec fallow mutation --plan --base "$INPUT_BASE" --runner-project "$INPUT_RUNNER_PROJECT"
+          fi
+
+      - name: Run mutation testing
+        shell: bash
+        run: |
+          if [ "$INPUT_RUNNER_PROJECT" = "all" ]; then
+            corepack pnpm exec fallow mutation --base "$INPUT_BASE" --max-mutants "$INPUT_MAX_MUTANTS" --time-budget "$INPUT_TIME_BUDGET"
+          else
+            corepack pnpm exec fallow mutation --base "$INPUT_BASE" --runner-project "$INPUT_RUNNER_PROJECT" --max-mutants "$INPUT_MAX_MUTANTS" --time-budget "$INPUT_TIME_BUDGET"
+          fi
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-report
+          path: .fallow/mutation/
+          if-no-files-found: ignore
+          retention-days: 14
