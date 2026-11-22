@@ -1,4 +1,5 @@
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import traverse from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import { generate } from '@babel/generator';
@@ -22,7 +23,7 @@ export class ASTOptimizer {
     try {
       const ast = parser.parse(code, {
         sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
+        plugins: BABEL_PARSE_PLUGINS,
       });
 
       const totalSteps = AST_OPT_PASSES * AST_OPT_STEPS_PER_PASS;

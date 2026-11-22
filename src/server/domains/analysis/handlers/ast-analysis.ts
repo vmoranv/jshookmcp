@@ -84,7 +84,7 @@ export async function handleAnalysisAstMatch(args: ToolArgs): Promise<ToolRespon
   return cpuLimit(async (): Promise<ToolResponse> => {
     let ast: ReturnType<typeof parseCode>;
     try {
-      ast = parseCode(code, { plugins: ['jsx', 'typescript'] });
+      ast = parseCode(code);
     } catch (err) {
       return asJsonResponse({
         success: false,

@@ -102,6 +102,31 @@ describe('OtlpInstrumentation', () => {
     expect(defaulted.metricExportInterval()).toBe(120_000);
   });
 
+  it('lets OTEL_SERVICE_NAME and OTEL_RESOURCE_ATTRIBUTES override the default resource', async () => {
+    const previousName = process.env.OTEL_SERVICE_NAME;
+    const previousAttrs = process.env.OTEL_RESOURCE_ATTRIBUTES;
+    process.env.OTEL_SERVICE_NAME = 'jshook-renamed';
+    process.env.OTEL_RESOURCE_ATTRIBUTES = 'deployment.environment=ci';
+    try {
+      const { exporter, otlp } = makeLive();
+      const span = otlp.startSpan('probe.resource');
+      span.end();
+      await otlp.flush();
+      const finished = exporter.getFinishedSpans().find((s) => s.name === 'probe.resource');
+      expect(finished?.resource.attributes['service.name']).toBe('jshook-renamed');
+      expect(finished?.resource.attributes['deployment.environment']).toBe('ci');
+      // The pid+timestamp correlation id must survive; the service-instance
+      // detector is intentionally not wired in because it mints a random UUID.
+      expect(finished?.resource.attributes['service.instance.id']).toBeDefined();
+      expect(finished?.resource.attributes['install.id']).toBeDefined();
+    } finally {
+      if (previousName === undefined) delete process.env.OTEL_SERVICE_NAME;
+      else process.env.OTEL_SERVICE_NAME = previousName;
+      if (previousAttrs === undefined) delete process.env.OTEL_RESOURCE_ATTRIBUTES;
+      else process.env.OTEL_RESOURCE_ATTRIBUTES = previousAttrs;
+    }
+  });
+
   it('buffers spans emitted before init and replays them with their attributes', async () => {
     const { exporter, otlp } = makeLive();
 

@@ -1,5 +1,6 @@
 import { logger } from '@utils/logger';
 import type { ParseResult } from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import type { NodePath } from '@babel/traverse';
 import type {
   CallExpression as BabelCallExpression,
@@ -112,7 +113,7 @@ export async function extractFunctionTreeCore(
   try {
     ast = parser.parse(script.source, {
       sourceType: 'unambiguous',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
   } catch (error: unknown) {
     throw new Error(`Failed to parse script ${scriptId}: ${getErrorMessage(error)}`, {

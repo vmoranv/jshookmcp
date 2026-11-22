@@ -1,4 +1,5 @@
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import traverse, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import { replaceOutsideProtectedRanges } from './ast-safe-replace';
@@ -73,7 +74,7 @@ function applyRenameVarsWithAst(code: string, renameMap: Map<string, string>): s
   try {
     const ast = parser.parse(code, {
       sourceType: 'unambiguous',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
       errorRecovery: true,
     });
     const replacements = new Map<string, TextReplacement>();
@@ -194,7 +195,7 @@ function applyConstantFoldWithAst(code: string): string | null {
   try {
     const ast = parser.parse(code, {
       sourceType: 'unambiguous',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
     const replacements = new Map<string, TextReplacement>();
     const record = (
@@ -347,7 +348,7 @@ function applyDeadCodeRemoveWithAst(code: string): string | null {
   try {
     const ast = parser.parse(code, {
       sourceType: 'unambiguous',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
     const replacements = new Map<string, TextReplacement>();
     const record = (

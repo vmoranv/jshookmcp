@@ -308,11 +308,18 @@ export class ADBConnector {
     const deviceClient = client.getDevice(serial);
     const transfer = await deviceClient.pull(apkPath);
     const writeStream = createWriteStream(outputPath);
-    (transfer as unknown as Readable).pipe(writeStream);
-
+    // adbkit 4.1+ emits "error" (then "close") on a failed pull instead of
+    // "end". Without a source error listener the process crashed on the
+    // unhandled event and this promise never settled.
     await new Promise<void>((resolve, reject) => {
+      const fail = (error: unknown) => {
+        writeStream.destroy();
+        reject(error);
+      };
+      transfer.on('error', fail);
+      writeStream.on('error', fail);
       writeStream.on('finish', resolve);
-      writeStream.on('error', reject);
+      (transfer as unknown as Readable).pipe(writeStream);
     });
 
     return outputPath;

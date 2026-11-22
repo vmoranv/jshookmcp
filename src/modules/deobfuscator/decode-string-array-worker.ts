@@ -96,7 +96,7 @@ const __bootstrap = async () => {
 
   function derotateStringArray(code) {
     try {
-      const ast = parser.parse(code, { sourceType: 'module', plugins: ['jsx', 'typescript'] });
+      const ast = parser.parse(code, { sourceType: 'module', plugins: ['jsx', 'typescript', 'decorators'] });
       let derotated = 0;
       traverse(ast, {
         CallExpression(path) {
@@ -134,7 +134,7 @@ const __bootstrap = async () => {
     const stringArrays = new Map();
     let ast;
     try {
-      ast = parser.parse(preparedCode, { sourceType: 'unambiguous', plugins: ['jsx', 'typescript'] });
+      ast = parser.parse(preparedCode, { sourceType: 'unambiguous', plugins: ['jsx', 'typescript', 'decorators'] });
     } catch (err) {
       return {
         success: false,

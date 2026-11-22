@@ -1,4 +1,5 @@
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import { generate } from '@babel/generator';
 import traverse, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
@@ -10,7 +11,7 @@ export function derotateStringArray(code: string): string {
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     let derotated = 0;
@@ -60,7 +61,7 @@ export function removeDeadCode(code: string): string {
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     let removed = 0;
@@ -140,7 +141,7 @@ export function removeOpaquePredicates(code: string): string {
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     let removed = 0;
@@ -234,7 +235,7 @@ export function decodeStrings(code: string): string {
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     let decoded = 0;
@@ -278,7 +279,7 @@ export function applyASTOptimizations(code: string): string {
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     let optimized = 0;
@@ -368,7 +369,7 @@ export function estimateCodeComplexity(code: string): number {
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     let complexity = 0;

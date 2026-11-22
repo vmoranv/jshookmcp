@@ -1,4 +1,5 @@
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 import type { CodeStructure, SecurityRisk } from '@internal-types/index';
@@ -128,7 +129,7 @@ export function detectCodePatterns(code: string): {
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     traverse(ast, {
@@ -292,7 +293,7 @@ export function analyzeComplexityMetrics(code: string): {
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     let nestingLevel = 0;

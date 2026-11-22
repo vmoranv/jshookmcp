@@ -739,7 +739,9 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
     try {
       const ast = parser.parse(currentCode, {
         sourceType: 'unambiguous',
-        plugins: ['jsx', 'typescript'],
+        // Keep in sync with BABEL_PARSE_PLUGINS: this module is imported by
+        // an eval worker, so it cannot resolve the @utils alias.
+        plugins: ['jsx', 'typescript', 'decorators'],
         errorRecovery: true,
       });
 

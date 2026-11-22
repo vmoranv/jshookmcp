@@ -1,4 +1,5 @@
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 import type { DataFlow } from '@internal-types/index';
@@ -165,7 +166,7 @@ export async function analyzeDataFlowWithTaint(code: string): Promise<DataFlow> 
   try {
     const ast = parser.parse(code, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
     });
 
     traverse(ast, {

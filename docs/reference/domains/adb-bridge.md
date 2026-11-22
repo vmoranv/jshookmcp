@@ -19,7 +19,7 @@ Android Debug Bridge 集成域，用于设备管理、应用分析和远程调�
 - adb-bridge + process
 - adb-bridge + network
 
-## 工具清单（26）
+## 工具清单（29）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -38,6 +38,9 @@ Android Debug Bridge 集成域，用于设备管理、应用分析和远程调�
 | `adb_screenshot` | 通过 adb exec-out screencap -p 截取设备 PNG 截图 |
 | `adb_screenrecord` | 通过 adb shell screenrecord 录制短 MP4 屏幕视频并拉取到本地。 |
 | `adb_port_forward` | 管理 ADB forward/reverse 端口映射，用于设备与主机之间的调试桥接流程。 |
+| `adb_reboot` | 重启 Android 设备，可指定进入 bootloader、recovery、sideload 或 fastboot；省略 target 为普通重启。 |
+| `adb_tcpip` | 将设备上的 adbd 重启为 TCP 模式，使 adb connect 可以通过 Wi-Fi 连接设备。 |
+| `adb_usb` | 将 adbd 恢复为 USB 模式，撤销 adb_tcpip 的无线连接。 |
 | `adb_apk_analyze` | 分析已安装的 APK——包名、版本、权限、Activity、Service、Receiver。 |
 | `adb_package_summary` | 返回结构化的 Android 包元数据：启动器、uid、版本号、权限、组件以及 native 库目录。 |
 | `adb_logcat_query` | 在进程内抓取并过滤 Android logcat 输出，无需 shell grep 管道。 |

@@ -4,6 +4,8 @@
  */
 
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
+import type { ParserPlugin } from '@babel/parser';
 import _traverse from '@babel/traverse';
 import _generate from '@babel/generator';
 import type { NodePath } from '@babel/traverse';
@@ -14,7 +16,7 @@ const generate = (_generate as unknown as { default: typeof _generate }).default
 
 export interface ParseOptions {
   sourceType?: 'module' | 'script' | 'unambiguous';
-  plugins?: Array<'jsx' | 'typescript'>;
+  plugins?: ParserPlugin[];
 }
 
 export function parseCode(
@@ -23,7 +25,7 @@ export function parseCode(
 ): ReturnType<typeof parser.parse> {
   return parser.parse(code, {
     sourceType: options.sourceType ?? 'unambiguous',
-    plugins: options.plugins ?? ['jsx', 'typescript'],
+    plugins: options.plugins ?? BABEL_PARSE_PLUGINS,
   });
 }
 

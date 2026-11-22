@@ -23,8 +23,8 @@ describe('adb-bridge tool definitions', () => {
       expect(adbBridgeTools.length).toBeGreaterThan(0);
     });
 
-    it('tool count matches expected (26 tools)', async () => {
-      expect(adbBridgeTools.length).toBe(26);
+    it('tool count matches expected (29 tools)', async () => {
+      expect(adbBridgeTools.length).toBe(29);
     });
 
     it('has unique tool names', async () => {
@@ -76,6 +76,9 @@ describe('adb-bridge tool definitions', () => {
       'adb_screenshot',
       'adb_screenrecord',
       'adb_port_forward',
+      'adb_reboot',
+      'adb_tcpip',
+      'adb_usb',
       'adb_logcat_query',
       'adb_app_cold_start_trace',
       'adb_file_pull',
@@ -163,6 +166,23 @@ describe('adb-bridge tool definitions', () => {
         'list',
       ]);
       expect(getToolProperty('adb_port_forward', 'direction').enum).toEqual(['forward', 'reverse']);
+    });
+  });
+
+  describe('adb power and transport tools', () => {
+    it('adb_reboot requires serial and exposes the standard targets', async () => {
+      expect(getTool('adb_reboot').inputSchema.required ?? []).toContain('serial');
+      expect(getToolProperty('adb_reboot', 'target').enum).toEqual([
+        'bootloader',
+        'recovery',
+        'sideload',
+        'fastboot',
+      ]);
+    });
+
+    it('adb_tcpip defaults to 5555 and adb_usb needs only a serial', async () => {
+      expect(getToolProperty('adb_tcpip', 'port').default).toBe(5555);
+      expect(getTool('adb_usb').inputSchema.required ?? []).toContain('serial');
     });
   });
 
