@@ -167,12 +167,12 @@ export class OtlpInstrumentation implements InstrumentationContract {
   // statically, or the no-OTel install path would fail at module load.
   private tracer: { startSpan: (name: string, opts: unknown) => SpanHandle } | null = null;
   private spanProvider: {
-    forceFlush: (t: number) => Promise<void>;
-    shutdown: (t: number) => Promise<void>;
+    forceFlush: (options?: { timeoutMillis?: number }) => Promise<void>;
+    shutdown: () => Promise<void>;
   } | null = null;
   private metricProvider: {
-    forceFlush: (t: number) => Promise<void>;
-    shutdown: (t: number) => Promise<void>;
+    forceFlush: (options?: { timeoutMillis?: number }) => Promise<void>;
+    shutdown: (options?: { timeoutMillis?: number }) => Promise<void>;
   } | null = null;
   private meter: MeterFacade | null = null;
 
@@ -198,7 +198,7 @@ export class OtlpInstrumentation implements InstrumentationContract {
   private async init(): Promise<void> {
     try {
       const [
-        { BasicTracerProvider, BatchSpanProcessor },
+        { TracerProvider, BatchSpanProcessor },
         {
           resourceFromAttributes,
           detectResources,
@@ -209,7 +209,7 @@ export class OtlpInstrumentation implements InstrumentationContract {
         { MeterProvider, PeriodicExportingMetricReader },
         metricExpModule,
       ] = await Promise.all([
-        import('@opentelemetry/sdk-trace-base'),
+        import('@opentelemetry/sdk-trace'),
         import('@opentelemetry/resources'),
         import('@opentelemetry/exporter-trace-otlp-http'),
         import('@opentelemetry/sdk-metrics'),
@@ -251,10 +251,11 @@ export class OtlpInstrumentation implements InstrumentationContract {
             ...(targets.headers ? { headers: targets.headers } : {}),
             ...agentOptions,
           });
-      const spanProvider = new BasicTracerProvider({
+      const spanProvider = new TracerProvider({
         resource,
         spanProcessors: [
-          new BatchSpanProcessor(traceExporter, {
+          new BatchSpanProcessor({
+            exporter: traceExporter,
             scheduledDelayMillis: this.options.spanScheduleDelayMs ?? 30_000,
           }),
         ],
@@ -427,8 +428,8 @@ export class OtlpInstrumentation implements InstrumentationContract {
     try {
       await Promise.race([
         Promise.all([
-          this.spanProvider!.forceFlush(FLUSH_TIMEOUT_MS),
-          this.metricProvider!.forceFlush(FLUSH_TIMEOUT_MS),
+          this.spanProvider!.forceFlush({ timeoutMillis: FLUSH_TIMEOUT_MS }),
+          this.metricProvider!.forceFlush({ timeoutMillis: FLUSH_TIMEOUT_MS }),
         ]),
         new Promise<void>((resolve) => setTimeout(resolve, FLUSH_TIMEOUT_MS).unref?.()),
       ]);
@@ -452,8 +453,8 @@ export class OtlpInstrumentation implements InstrumentationContract {
     try {
       await Promise.race([
         Promise.all([
-          this.spanProvider!.shutdown(FLUSH_TIMEOUT_MS),
-          this.metricProvider!.shutdown(FLUSH_TIMEOUT_MS),
+          this.spanProvider!.shutdown(),
+          this.metricProvider!.shutdown({ timeoutMillis: FLUSH_TIMEOUT_MS }),
         ]),
         new Promise<void>((resolve) => setTimeout(resolve, FLUSH_TIMEOUT_MS).unref?.()),
       ]);

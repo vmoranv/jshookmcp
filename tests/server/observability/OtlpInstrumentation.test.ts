@@ -8,7 +8,7 @@
  * block the caller, including flush()/shutdown() against a dead endpoint.
  */
 import { describe, expect, it } from 'vitest';
-import { InMemorySpanExporter } from '@opentelemetry/sdk-trace-base';
+import { InMemorySpanExporter } from '@opentelemetry/sdk-trace';
 import { AggregationTemporality, InMemoryMetricExporter } from '@opentelemetry/sdk-metrics';
 import {
   OtlpInstrumentation,

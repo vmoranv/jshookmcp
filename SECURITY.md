@@ -26,14 +26,13 @@ the only default background network egress is opt-out OTLP telemetry
 The runtime dependency graph is large (roughly 484 resolved runtime packages,
 most of them transitive through the MCP SDK, puppeteer/mockttp, Babel, and
 OpenTelemetry). Automated reports flag many outdated packages, single-maintainer
-packages, and a few unmet peers. These are tracked as maintenance debt, not as
+packages, and advisory noise. These are tracked as maintenance debt, not as
 package-level defects: `pnpm.overrides` pins security-sensitive transitive
 versions (e.g. `hono`, `qs`, `minimatch`, `ws`, `protobufjs`) and batch upgrades
-are evaluated against the full test / e2e gate before landing. One known upstream
-peer-range mismatch remains between `@opentelemetry/sdk-trace-base` (requires
-`@opentelemetry/api <1.10.0`) and `@opentelemetry/sdk-metrics` (requires
-`>=1.10.0 <1.11.0`); it originates in the OpenTelemetry packages' staggered
-release lines and is left intact to avoid breaking the telemetry stack.
+are evaluated against the full test / e2e gate before landing. The OpenTelemetry
+trace and metrics stacks are aligned on the 3.1.x SDK and 0.301.2 exporters, so
+the previously documented `@opentelemetry/sdk-trace-base` peer-range mismatch no
+longer applies.
 
 ## Reporting a Vulnerability
 
