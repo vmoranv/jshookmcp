@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,6 +36,25 @@ describe('electron_scan_userdata path containment', () => {
       { name: 'prefs.json', sizeBytes: expect.any(Number), content: { theme: 'dark' } },
     ]);
   });
+
+  it.skipIf(process.platform === 'win32')(
+    'skips a JSON symlink that escapes the root',
+    async () => {
+      const outside = await mkdtemp(join(tmpdir(), 'jshook-outside-'));
+      try {
+        await writeFile(join(outside, 'secret.json'), JSON.stringify({ token: 'nope' }), 'utf8');
+        await symlink(join(outside, 'secret.json'), join(root, 'linked.json'));
+
+        const payload = payloadOf(await handleElectronScanUserdata({ dirPath: root }));
+        expect(payload['files']).toEqual([]);
+        expect(payload['skipped']).toEqual([
+          expect.objectContaining({ name: 'linked.json', reason: 'symlink escapes allowed root' }),
+        ]);
+      } finally {
+        await rm(outside, { recursive: true, force: true });
+      }
+    },
+  );
 
   it('rejects a directory outside the allowed roots', async () => {
     const outside = await mkdtemp(join(tmpdir(), 'jshook-outside-'));

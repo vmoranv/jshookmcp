@@ -25,8 +25,13 @@ interface CapabilityRule {
 const RULES: readonly CapabilityRule[] = [
   {
     capability: 'arbitrary-js',
-    tool: /^nemu_(?:bind_host_fn|bind_all_imports|set_vtable_slot)$/,
-    why: 'evaluates caller-supplied JavaScript inside the server process',
+    tool: /^nemu_(?:bind_host_fn|bind_all_imports|set_vtable_slot|session_load)$/,
+    why: 'evaluates caller-supplied JavaScript inside the server process (session_load can dispatch these steps)',
+  },
+  {
+    capability: 'arbitrary-js',
+    tool: /^frida_run_script$/,
+    why: 'executes caller-supplied JavaScript in an attached target process',
   },
   {
     capability: 'remote-code',
@@ -35,7 +40,7 @@ const RULES: readonly CapabilityRule[] = [
   },
   {
     capability: 'process-injection',
-    tool: /^inject_(?:dll|shellcode)$/,
+    tool: /^(?:inject_|memory_inject_)(?:dll|shellcode)$/,
     why: 'writes executable code into another process',
   },
 ];

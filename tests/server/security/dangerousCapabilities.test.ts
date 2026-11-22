@@ -16,10 +16,14 @@ describe('dangerous capability gate', () => {
     ['nemu_bind_host_fn', 'arbitrary-js'],
     ['nemu_bind_all_imports', 'arbitrary-js'],
     ['nemu_set_vtable_slot', 'arbitrary-js'],
+    ['nemu_session_load', 'arbitrary-js'],
+    ['frida_run_script', 'arbitrary-js'],
     ['extension_install', 'remote-code'],
     ['extension_reload', 'remote-code'],
     ['inject_dll', 'process-injection'],
     ['inject_shellcode', 'process-injection'],
+    ['memory_inject_dll', 'process-injection'],
+    ['memory_inject_shellcode', 'process-injection'],
   ] as const)('classifies %s as %s', (toolName, capability) => {
     expect(classifyDangerousCapability(toolName)).toBe(capability);
   });
