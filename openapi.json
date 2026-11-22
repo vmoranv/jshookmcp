@@ -424,6 +424,25 @@
         "required": ["serial", "packageName"],
         "type": "object"
       },
+      "adb_bridge_adb_reboot": {
+        "properties": {
+          "serial": {
+            "description": "Android device serial or emulator id",
+            "type": "string"
+          },
+          "target": {
+            "description": "Optional reboot target; omit for a normal reboot",
+            "enum": ["bootloader", "recovery", "sideload", "fastboot"],
+            "type": "string"
+          },
+          "timeoutMs": {
+            "description": "Optional command timeout in milliseconds. Required in practice because a device that rejects the target may never return.",
+            "type": "number"
+          }
+        },
+        "required": ["serial"],
+        "type": "object"
+      },
       "adb_bridge_adb_root_check": {
         "properties": {
           "serial": {
@@ -505,6 +524,25 @@
         "required": ["serial", "command"],
         "type": "object"
       },
+      "adb_bridge_adb_tcpip": {
+        "properties": {
+          "port": {
+            "default": 5555,
+            "description": "TCP port adbd should listen on",
+            "type": "number"
+          },
+          "serial": {
+            "description": "Android device serial or emulator id",
+            "type": "string"
+          },
+          "timeoutMs": {
+            "description": "Optional command timeout in milliseconds.",
+            "type": "number"
+          }
+        },
+        "required": ["serial"],
+        "type": "object"
+      },
       "adb_bridge_adb_ui_dump": {
         "properties": {
           "includeRawXml": {
@@ -545,6 +583,20 @@
           }
         },
         "required": ["serial", "packageName"],
+        "type": "object"
+      },
+      "adb_bridge_adb_usb": {
+        "properties": {
+          "serial": {
+            "description": "Android device serial or emulator id",
+            "type": "string"
+          },
+          "timeoutMs": {
+            "description": "Optional command timeout in milliseconds.",
+            "type": "number"
+          }
+        },
+        "required": ["serial"],
         "type": "object"
       },
       "adb_bridge_adb_webview_attach": {
@@ -19770,6 +19822,37 @@
         "x-domain": "adb-bridge"
       }
     },
+    "/adb-bridge/adb_reboot": {
+      "post": {
+        "description": "Reboot an Android device, optionally into bootloader, recovery, sideload, or fastboot.",
+        "operationId": "adb_reboot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adb_bridge_adb_reboot"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool execution result returned as MCP tool result text content."
+          }
+        },
+        "summary": "Reboot an Android device, optionally into bootloader, recovery, sideload, or fastboot.",
+        "tags": ["adb-bridge"],
+        "x-domain": "adb-bridge"
+      }
+    },
     "/adb-bridge/adb_root_check": {
       "post": {
         "description": "Probe root indicators such as su, Magisk, test-keys, SELinux, and shell uid.",
@@ -19894,6 +19977,37 @@
         "x-domain": "adb-bridge"
       }
     },
+    "/adb-bridge/adb_tcpip": {
+      "post": {
+        "description": "Restart adbd on a device in TCP mode so adb connect can reach it over Wi-Fi.",
+        "operationId": "adb_tcpip",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adb_bridge_adb_tcpip"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool execution result returned as MCP tool result text content."
+          }
+        },
+        "summary": "Restart adbd on a device in TCP mode so adb connect can reach it over Wi-Fi.",
+        "tags": ["adb-bridge"],
+        "x-domain": "adb-bridge"
+      }
+    },
     "/adb-bridge/adb_ui_dump": {
       "post": {
         "description": "Capture Android UI hierarchy via uiautomator dump. Runs uiautomator dump on-device, pulls the XML, and returns parsed UI tree. Useful for UI automation verification, layout inspection, and accessibility tree analysis.",
@@ -19952,6 +20066,37 @@
           }
         },
         "summary": "Uninstall a package from a device, optionally keeping app data.",
+        "tags": ["adb-bridge"],
+        "x-domain": "adb-bridge"
+      }
+    },
+    "/adb-bridge/adb_usb": {
+      "post": {
+        "description": "Return adbd to USB mode after adb_tcpip.",
+        "operationId": "adb_usb",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adb_bridge_adb_usb"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool execution result returned as MCP tool result text content."
+          }
+        },
+        "summary": "Return adbd to USB mode after adb_tcpip.",
         "tags": ["adb-bridge"],
         "x-domain": "adb-bridge"
       }
@@ -31701,7 +31846,7 @@
     },
     "/meta/search_tools": {
       "post": {
-        "description": "Search 736 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. The engine combines token matching, fuzzy names, profile context, and optional static embeddings.",
+        "description": "Search 739 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. The engine combines token matching, fuzzy names, profile context, and optional static embeddings.",
         "operationId": "search_tools",
         "requestBody": {
           "content": {
@@ -31725,7 +31870,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Search 736 tools across 36 capability domains.",
+        "summary": "Search 739 tools across 36 capability domains.",
         "tags": ["meta"]
       }
     },

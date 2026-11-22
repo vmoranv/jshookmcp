@@ -247,7 +247,7 @@ export async function handleAnalysisDecodeStringArray(
     const stringArrays = new Map<string, string[]>();
     let ast: ReturnType<typeof parseCode>;
     try {
-      ast = parseCode(preparedCode, { plugins: ['jsx', 'typescript'] });
+      ast = parseCode(preparedCode);
     } catch (err) {
       return asJsonResponse({
         success: false,

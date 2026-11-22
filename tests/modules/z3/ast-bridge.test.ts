@@ -73,13 +73,14 @@ describe('ast-bridge (pure logic, mock Context)', () => {
     }
   });
 
-  it('translates arithmetic operators (+ - * / %)', () => {
+  it('translates arithmetic operators (+ - * / % **)', () => {
     const expected: [string, string][] = [
       ['+', 'add'],
       ['-', 'sub'],
       ['*', 'mul'],
       ['/', 'div'],
       ['%', 'mod'],
+      ['**', 'pow'],
     ];
     for (const [jsOp, z3Op] of expected) {
       const { ctx, calls } = makeMockCtx();

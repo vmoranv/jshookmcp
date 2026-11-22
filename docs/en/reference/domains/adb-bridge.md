@@ -19,7 +19,7 @@ Android Debug Bridge integration domain for device management, application analy
 - adb-bridge + process
 - adb-bridge + network
 
-## Full tool list (26)
+## Full tool list (29)
 
 | Tool | Description |
 | --- | --- |
@@ -38,6 +38,9 @@ Android Debug Bridge integration domain for device management, application analy
 | `adb_screenshot` | Capture a PNG screenshot through adb exec-out screencap -p. |
 | `adb_screenrecord` | Record a short MP4 screen capture through adb shell screenrecord and pull it locally. |
 | `adb_port_forward` | Manage ADB forward/reverse port mappings for device-host bridge workflows. |
+| `adb_reboot` | Reboot an Android device, optionally into bootloader, recovery, sideload, or fastboot. |
+| `adb_tcpip` | Restart adbd on a device in TCP mode so adb connect can reach it over Wi-Fi. |
+| `adb_usb` | Return adbd to USB mode after adb_tcpip. |
 | `adb_apk_analyze` | Analyze an installed APK: package, permissions, activities, and security info. |
 | `adb_package_summary` | Return structured Android package metadata: launcher, uid, versions, permissions, components, and native library dirs. |
 | `adb_logcat_query` | Capture and filter Android logcat output in-process without shell grep pipelines. |

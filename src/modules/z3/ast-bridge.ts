@@ -105,6 +105,29 @@ function lookupVar(env: VarEnv, name: string): unknown | null {
   );
 }
 
+/**
+ * JS binary operator → Z3 method. A table instead of a switch keeps `visit`
+ * under the repo's cyclomatic-complexity ratchet.
+ */
+const BINARY_METHODS: Readonly<Record<string, string>> = {
+  '+': 'add',
+  '-': 'sub',
+  '*': 'mul',
+  '/': 'div',
+  '%': 'mod',
+  // z3 5.4+ keeps Int ** Int in Int; with both operands Int the result no
+  // longer silently widens to Real.
+  '**': 'pow',
+  '<': 'lt',
+  '>': 'gt',
+  '<=': 'le',
+  '>=': 'ge',
+  '==': 'eq',
+  '===': 'eq',
+  '!=': 'neq',
+  '!==': 'neq',
+};
+
 // ---- AST visitor ----
 
 function visit(node: t.Node, ctx: Ctx, env: VarEnv): unknown {
@@ -132,34 +155,11 @@ function visit(node: t.Node, ctx: Ctx, env: VarEnv): unknown {
   if (t.isBinaryExpression(node)) {
     const left = visit(node.left, ctx, env);
     const right = visit(node.right, ctx, env);
-    switch (node.operator) {
-      case '+':
-        return call(left, 'add', right);
-      case '-':
-        return call(left, 'sub', right);
-      case '*':
-        return call(left, 'mul', right);
-      case '/':
-        return call(left, 'div', right);
-      case '%':
-        return call(left, 'mod', right);
-      case '<':
-        return call(left, 'lt', right);
-      case '>':
-        return call(left, 'gt', right);
-      case '<=':
-        return call(left, 'le', right);
-      case '>=':
-        return call(left, 'ge', right);
-      case '==':
-      case '===':
-        return call(left, 'eq', right);
-      case '!=':
-      case '!==':
-        return call(left, 'neq', right);
-      default:
-        throw new AstBridgeError(`Unsupported binary operator: ${node.operator}`, node.type);
+    const method = BINARY_METHODS[node.operator];
+    if (!method) {
+      throw new AstBridgeError(`Unsupported binary operator: ${node.operator}`, node.type);
     }
+    return call(left, method, right);
   }
   if (t.isLogicalExpression(node)) {
     const left = visit(node.left, ctx, env);

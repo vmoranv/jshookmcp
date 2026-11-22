@@ -15,6 +15,12 @@ export const ADB_DEFAULT_TIMEOUT_MS = int('ADB_DEFAULT_TIMEOUT_MS', 30_000);
 /** Timeout for `adb shell` commands (may run longer than generic adb calls). */
 export const ADB_SHELL_TIMEOUT_MS = int('ADB_SHELL_TIMEOUT_MS', 60_000);
 
+/**
+ * Timeout for `adb reboot [target]`. A device that rejects the target keeps
+ * adbd connected and never answers, so this call must be bounded.
+ */
+export const ADB_REBOOT_TIMEOUT_MS = int('ADB_REBOOT_TIMEOUT_MS', 15_000);
+
 /** Max stdout/stderr captured from a generic adb command. */
 export const ADB_MAX_BUFFER_BYTES = int('ADB_MAX_BUFFER_BYTES', 16 * 1024 * 1024);
 

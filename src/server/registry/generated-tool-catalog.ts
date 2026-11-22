@@ -762,6 +762,41 @@ export const GENERATED_TOOL_CATALOG = [
   },
   {
     tool: {
+      name: 'adb_reboot',
+      description:
+        'Reboot an Android device, optionally into bootloader, recovery, sideload, or fastboot.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          serial: {
+            type: 'string',
+            description: 'Android device serial or emulator id',
+          },
+          target: {
+            type: 'string',
+            enum: ['bootloader', 'recovery', 'sideload', 'fastboot'],
+            description: 'Optional reboot target; omit for a normal reboot',
+          },
+          timeoutMs: {
+            type: 'number',
+            description:
+              'Optional command timeout in milliseconds. Required in practice because a device that rejects the target may never return.',
+          },
+        },
+        required: ['serial'],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    domain: 'adb-bridge',
+    sceneKeywords: ['reboot the phone', 'restart the device', 'boot into bootloader or recovery'],
+  },
+  {
+    tool: {
       name: 'adb_root_check',
       description: 'Probe root indicators such as su, Magisk, test-keys, SELinux, and shell uid.',
       inputSchema: {
@@ -913,6 +948,39 @@ export const GENERATED_TOOL_CATALOG = [
   },
   {
     tool: {
+      name: 'adb_tcpip',
+      description: 'Restart adbd on a device in TCP mode so adb connect can reach it over Wi-Fi.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          serial: {
+            type: 'string',
+            description: 'Android device serial or emulator id',
+          },
+          port: {
+            type: 'number',
+            description: 'TCP port adbd should listen on',
+            default: 5555,
+          },
+          timeoutMs: {
+            type: 'number',
+            description: 'Optional command timeout in milliseconds.',
+          },
+        },
+        required: ['serial'],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    domain: 'adb-bridge',
+    sceneKeywords: ['connect adb over wifi', 'put the device in tcp mode', 'enable wireless adb'],
+  },
+  {
+    tool: {
       name: 'adb_ui_dump',
       description:
         'Capture Android UI hierarchy via uiautomator dump. Runs uiautomator dump on-device, pulls the XML, and returns parsed UI tree. Useful for UI automation verification, layout inspection, and accessibility tree analysis.',
@@ -989,6 +1057,34 @@ export const GENERATED_TOOL_CATALOG = [
       'uninstall package',
       'uninstall an app from the device',
     ],
+  },
+  {
+    tool: {
+      name: 'adb_usb',
+      description: 'Return adbd to USB mode after adb_tcpip.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          serial: {
+            type: 'string',
+            description: 'Android device serial or emulator id',
+          },
+          timeoutMs: {
+            type: 'number',
+            description: 'Optional command timeout in milliseconds.',
+          },
+        },
+        required: ['serial'],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    domain: 'adb-bridge',
+    sceneKeywords: ['return adb to usb', 'disable wireless adb', 'switch the device back to usb'],
   },
   {
     tool: {

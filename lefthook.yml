@@ -31,13 +31,13 @@ pre-commit:
     oxlint:
       glob: "*.{ts,tsx,js,mjs}"
       run: pnpm exec oxlint {staged_files}
-    # fallow audits the whole changeset against the upstream merge-base (new-only
-    # gate, see .fallowrc.json), so it is not scoped to staged files. `pnpm exec`
-    # resolves the binary on Windows, macOS, and Linux; a direct
+    # fallow audits the staged index against HEAD (new-only gate, see
+    # .fallowrc.json), so unstaged edits cannot fail a partial commit.
+    # `pnpm exec` resolves the binary on Windows, macOS, and Linux; a direct
     # ./node_modules/.bin path does not, because Windows shims are .cmd files.
-    # Override the base with FALLOW_BASE when it is not master.
+    # For a whole working-tree review use `fallow audit --base master`.
     fallow:
-      run: "corepack pnpm exec fallow audit --base ${FALLOW_BASE:-master} --quiet --gate-marker pre-commit"
+      run: "corepack pnpm exec fallow audit --staged --quiet --gate-marker pre-commit"
 
 pre-push:
   # Serial by necessity: coverage-gate and typecheck each allocate several GB

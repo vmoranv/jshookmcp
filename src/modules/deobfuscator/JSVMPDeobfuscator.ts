@@ -1,4 +1,5 @@
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import traverse from '@babel/traverse';
 import { generate } from '@babel/generator';
 import * as t from '@babel/types';
@@ -121,7 +122,7 @@ export class JSVMPDeobfuscator {
     try {
       const ast = parser.parse(code, {
         sourceType: 'unambiguous',
-        plugins: ['jsx', 'typescript'],
+        plugins: BABEL_PARSE_PLUGINS,
         errorRecovery: true,
       });
 
@@ -288,7 +289,7 @@ export class JSVMPDeobfuscator {
     try {
       const ast = parser.parse(code, {
         sourceType: 'unambiguous',
-        plugins: ['jsx', 'typescript'],
+        plugins: BABEL_PARSE_PLUGINS,
       });
 
       traverse(ast, {

@@ -158,6 +158,42 @@ export const adbBridgeTools = [
       .requiredOpenWorld('serial', 'action', 'direction'),
   ),
 
+  tool('adb_reboot', (t) =>
+    t
+      .desc(
+        'Reboot an Android device, optionally into bootloader, recovery, sideload, or fastboot.',
+      )
+      .string('serial', 'Android device serial or emulator id')
+      .enum(
+        'target',
+        ['bootloader', 'recovery', 'sideload', 'fastboot'],
+        'Optional reboot target; omit for a normal reboot',
+      )
+      .number(
+        'timeoutMs',
+        'Optional command timeout in milliseconds. Required in practice because a device that rejects the target may never return.',
+      )
+      .requiredOpenWorld('serial')
+      .destructive(),
+  ),
+
+  tool('adb_tcpip', (t) =>
+    t
+      .desc('Restart adbd on a device in TCP mode so adb connect can reach it over Wi-Fi.')
+      .string('serial', 'Android device serial or emulator id')
+      .number('port', 'TCP port adbd should listen on', { default: 5555 })
+      .number('timeoutMs', 'Optional command timeout in milliseconds.')
+      .requiredOpenWorld('serial'),
+  ),
+
+  tool('adb_usb', (t) =>
+    t
+      .desc('Return adbd to USB mode after adb_tcpip.')
+      .string('serial', 'Android device serial or emulator id')
+      .number('timeoutMs', 'Optional command timeout in milliseconds.')
+      .requiredOpenWorld('serial'),
+  ),
+
   tool('adb_apk_pull', (t) =>
     t
       .desc('Pull an APK from a device to the local filesystem.')

@@ -1,4 +1,5 @@
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import traverse from '@babel/traverse';
 import type {
   UnderstandCodeOptions,
@@ -112,7 +113,7 @@ export class CodeAnalyzer {
     try {
       const ast = parser.parse(code, {
         sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
+        plugins: BABEL_PARSE_PLUGINS,
       });
 
       traverse(ast, {
@@ -321,7 +322,7 @@ export class CodeAnalyzer {
     try {
       const ast = parser.parse(code, {
         sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
+        plugins: BABEL_PARSE_PLUGINS,
       });
 
       const imports: string[] = [];
@@ -367,7 +368,7 @@ export class CodeAnalyzer {
     try {
       const ast = parser.parse(code, {
         sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
+        plugins: BABEL_PARSE_PLUGINS,
       });
 
       let currentFunction = '';

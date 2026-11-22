@@ -1,4 +1,5 @@
 import * as parser from '@babel/parser';
+import { BABEL_PARSE_PLUGINS } from '@utils/babel-plugins';
 import traverse from '@babel/traverse';
 
 interface ProtectedRange {
@@ -57,7 +58,7 @@ function collectProtectedRangesWithAst(code: string): ProtectedRange[] | null {
   try {
     const ast = parser.parse(code, {
       sourceType: 'unambiguous',
-      plugins: ['jsx', 'typescript'],
+      plugins: BABEL_PARSE_PLUGINS,
       errorRecovery: true,
     });
     const ranges: ProtectedRange[] = [];

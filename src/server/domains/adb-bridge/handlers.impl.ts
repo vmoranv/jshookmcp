@@ -12,6 +12,7 @@ import {
   ADB_COLD_START_WAIT_MS_DEFAULT,
   ADB_COLD_START_WAIT_MS_MAX,
   ADB_DEFAULT_TIMEOUT_MS,
+  ADB_REBOOT_TIMEOUT_MS,
   ADB_DUMPSYS_SECTION_CAP,
   ADB_FILE_TRANSFER_TIMEOUT_MS,
   ADB_SCREENRECORD_DURATION_CLAMP_MAX,
@@ -130,7 +131,11 @@ async function execAdb(
           exitCode:
             typeof (err as { code?: unknown } | null)?.code === 'number'
               ? ((err as { code: number }).code ?? 1)
-              : 0,
+              : // A spawn error or signal (for example a timeout) has no
+                // numeric exit code; treating it as 0 reported success.
+                err
+                ? 1
+                : 0,
           signal:
             typeof (err as { signal?: unknown } | null)?.signal === 'string'
               ? ((err as { signal: string }).signal ?? undefined)
@@ -275,6 +280,7 @@ function encodeInputText(text: string): string {
 
 const PORT_MAPPING_ACTIONS = new Set(['add', 'remove', 'remove_all', 'list'] as const);
 const PORT_MAPPING_DIRECTIONS = new Set(['forward', 'reverse'] as const);
+const REBOOT_TARGETS = new Set(['bootloader', 'recovery', 'sideload', 'fastboot'] as const);
 
 type PortMappingDirection = typeof PORT_MAPPING_DIRECTIONS extends Set<infer T> ? T : never;
 type PortMappingAction = typeof PORT_MAPPING_ACTIONS extends Set<infer T> ? T : never;
@@ -403,6 +409,27 @@ export class ADBBridgeHandlers {
 
   async handlePortForwardTool(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => await this.handlePortForward(args));
+  }
+
+  // Bound by string name in manifest.ts defineMethodRegistrations — invisible
+  // to static analysis.
+  // fallow-ignore-next-line unused-class-member
+  async handleRebootTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleReboot(args));
+  }
+
+  // Bound by string name in manifest.ts defineMethodRegistrations — invisible
+  // to static analysis.
+  // fallow-ignore-next-line unused-class-member
+  async handleTcpipTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleTcpip(args));
+  }
+
+  // Bound by string name in manifest.ts defineMethodRegistrations — invisible
+  // to static analysis.
+  // fallow-ignore-next-line unused-class-member
+  async handleUsbTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleUsb(args));
   }
 
   async handleApkPullTool(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -1060,6 +1087,72 @@ export class ADBBridgeHandlers {
         stdout: result.stdout,
         stderr: result.stderr,
         exitCode: result.exitCode,
+      };
+    });
+  }
+
+  async handleReboot(args: Record<string, unknown>): Promise<ToolResponse> {
+    return this.run('adb_reboot', async () => {
+      const serial = argStringRequired(args, 'serial');
+      const target = argEnum(args, 'target', REBOOT_TARGETS);
+      const timeoutMs = argNumber(args, 'timeoutMs') ?? ADB_REBOOT_TIMEOUT_MS;
+      const adb = await this.resolveAdb();
+      const rebootArgs = target ? [target] : [];
+      const result = await execAdb(adb, [...serialArgs(serial), 'reboot', ...rebootArgs], {
+        allowNonZero: true,
+        timeoutMs,
+      });
+      return {
+        success: result.exitCode === 0 && !result.signal,
+        serial,
+        target: target ?? null,
+        command: ['reboot', ...rebootArgs].join(' '),
+        ...result,
+      };
+    });
+  }
+
+  async handleTcpip(args: Record<string, unknown>): Promise<ToolResponse> {
+    return this.run('adb_tcpip', async () => {
+      const serial = argStringRequired(args, 'serial');
+      const port = argNumber(args, 'port') ?? 5555;
+      if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+        throw new ToolError('VALIDATION', `Invalid port: ${port}. Expected 1-65535.`);
+      }
+      const timeoutMs = argNumber(args, 'timeoutMs') ?? ADB_SHELL_TIMEOUT_MS;
+      const adb = await this.resolveAdb();
+      const result = await execAdb(adb, [...serialArgs(serial), 'tcpip', String(port)], {
+        allowNonZero: true,
+        timeoutMs,
+      });
+      return {
+        success: result.exitCode === 0 && !result.signal,
+        serial,
+        port,
+        stdout: result.stdout.trim(),
+        stderr: result.stderr,
+        exitCode: result.exitCode,
+        signal: result.signal,
+      };
+    });
+  }
+
+  async handleUsb(args: Record<string, unknown>): Promise<ToolResponse> {
+    return this.run('adb_usb', async () => {
+      const serial = argStringRequired(args, 'serial');
+      const timeoutMs = argNumber(args, 'timeoutMs') ?? ADB_SHELL_TIMEOUT_MS;
+      const adb = await this.resolveAdb();
+      const result = await execAdb(adb, [...serialArgs(serial), 'usb'], {
+        allowNonZero: true,
+        timeoutMs,
+      });
+      return {
+        success: result.exitCode === 0 && !result.signal,
+        serial,
+        stdout: result.stdout.trim(),
+        stderr: result.stderr,
+        exitCode: result.exitCode,
+        signal: result.signal,
       };
     });
   }

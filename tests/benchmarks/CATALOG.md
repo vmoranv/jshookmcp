@@ -1,6 +1,6 @@
 # Tool Benchmark Catalog
 
-736 tools across 36 registry domains → their benchmark sources.
+739 tools across 36 registry domains → their benchmark sources.
 
 Legend: **[外部]** = public benchmark / spec / official test vectors that can quantifiably
 evaluate the tool category. **[自制]** = homemade fixture suite (ground truth designed by us).
@@ -10,7 +10,7 @@ evaluate the tool category. **[自制]** = homemade fixture suite (ground truth 
 
 Runnable suites and their live case/pass/skip counts: **see `artifacts/benchmarks/scorecard.json` (`generatedAt`)** — this catalog does not hand-copy counts. The 2026-11-12 evaluation campaign added contract cases for many browser/CDP/network/memory/process tools; the A-phase (2026-11-15) then split those into `semantic` / `contract` / `adversarial` buckets and made `debt` penalize only missing semantic coverage. **"99.3% measured" was a coverage figure, not a quality figure.** Current per-tool counts: `artifacts/benchmarks/per-tool-scorecard.json` → `stats.semanticCovered` / `stats.contractOnly`. The 5 Win32 memory gates still need a product decision.
 **Per-tool scorecard**: `artifacts/benchmarks/per-tool-scorecard.{md,json}` gives every one of the
-736 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
+739 tools NATIVE metrics — no composite score, no letter grades; each column keeps its own unit:
 
 | Column | Unit | Measured by |
 |---|---|---|

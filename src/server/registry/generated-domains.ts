@@ -298,7 +298,7 @@ export const DOMAIN_PROFILE_MAP: Readonly<Record<string, readonly string[]>> = {
 
 /** Built-in tool counts by domain, available without importing manifests. */
 export const DOMAIN_TOOL_COUNT_MAP: Readonly<Record<string, number>> = {
-  'adb-bridge': 26,
+  'adb-bridge': 29,
   'binary-instrument': 46,
   browser: 85,
   canvas: 11,

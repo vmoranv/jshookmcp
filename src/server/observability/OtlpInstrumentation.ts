@@ -199,7 +199,12 @@ export class OtlpInstrumentation implements InstrumentationContract {
     try {
       const [
         { BasicTracerProvider, BatchSpanProcessor },
-        { resourceFromAttributes },
+        {
+          resourceFromAttributes,
+          detectResources,
+          resourceAttributesEnvDetector,
+          serviceNameEnvDetector,
+        },
         traceExpModule,
         { MeterProvider, PeriodicExportingMetricReader },
         metricExpModule,
@@ -224,11 +229,20 @@ export class OtlpInstrumentation implements InstrumentationContract {
       const { getOrCreateInstallId } = await import('@utils/installId');
       const installId = await getOrCreateInstallId();
 
-      const resource = resourceFromAttributes({
+      const baseResource = resourceFromAttributes({
         'service.name': 'jshookmcp',
         'service.instance.id': `${process.pid}-${Date.now()}`,
         'install.id': installId,
       });
+      // Operator-facing resource attributes. `merge` gives the detected
+      // Resource precedence, so OTEL_SERVICE_NAME and OTEL_RESOURCE_ATTRIBUTES
+      // can relabel an install without a code change. The service-instance
+      // detector is deliberately omitted: it always mints a random UUID and
+      // would replace the pid+timestamp correlation id above.
+      const detectedResource = detectResources({
+        detectors: [resourceAttributesEnvDetector, serviceNameEnvDetector],
+      });
+      const resource = baseResource.merge(detectedResource);
 
       const traceExporter = this.options.makeTraceExporter
         ? (this.options.makeTraceExporter() as never)
