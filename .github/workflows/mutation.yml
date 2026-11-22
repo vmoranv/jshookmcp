@@ -3,37 +3,16 @@ name: Mutation Testing
 # Manual, opt-in. Mutation testing runs the test suite once per mutant, so it
 # never runs on pull requests. Use it to check whether a change is actually
 # protected by tests, not just covered by them.
+#
+# Fixed defaults keep the workflow free of user-controlled parameters (Codacy
+# rejects workflow_dispatch inputs). For a different base, project, or budget,
+# run the equivalent npm scripts locally:
+#   pnpm mutation:plan / pnpm mutation:changed
 on:
   workflow_dispatch:
-    inputs:
-      base:
-        description: Git ref to diff against
-        required: true
-        default: origin/master
-        type: string
-      runner_project:
-        description: Vitest project to run
-        required: true
-        default: server
-        type: choice
-        options: [server, native, pure, all]
-      max_mutants:
-        description: Maximum covered mutants to run
-        required: true
-        default: "40"
-        type: string
-      time_budget:
-        description: Wall-clock budget, for example 10m
-        required: true
-        default: 10m
-        type: string
 
 permissions:
   contents: read
-
-concurrency:
-  group: mutation-${{ github.ref }}
-  cancel-in-progress: false
 
 jobs:
   mutation:
@@ -41,10 +20,10 @@ jobs:
     timeout-minutes: 60
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      INPUT_BASE: ${{ inputs.base }}
-      INPUT_RUNNER_PROJECT: ${{ inputs.runner_project }}
-      INPUT_MAX_MUTANTS: ${{ inputs.max_mutants }}
-      INPUT_TIME_BUDGET: ${{ inputs.time_budget }}
+      INPUT_BASE: origin/master
+      INPUT_RUNNER_PROJECT: server
+      INPUT_MAX_MUTANTS: "40"
+      INPUT_TIME_BUDGET: 10m
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
