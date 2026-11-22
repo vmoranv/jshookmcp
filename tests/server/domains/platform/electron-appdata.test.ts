@@ -9,9 +9,11 @@ describe('electron_scan_userdata', () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'appdata-test-'));
+    vi.stubEnv('JSHOOK_USERDATA_ROOTS', tempDir);
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await rm(tempDir, { recursive: true, force: true });
   });
 
