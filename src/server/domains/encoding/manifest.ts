@@ -4,6 +4,7 @@ import {
   ensureBrowserCore,
   toolLookup,
 } from '@server/domains/shared/registry';
+import { createBrowserAccessPort } from '@server/domains/shared/ports';
 import { encodingTools } from '@server/domains/encoding/definitions';
 import type { EncodingToolHandlers } from '@server/domains/encoding/index';
 
@@ -28,10 +29,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   const { EncodingToolHandlers } = await import('@server/domains/encoding/index');
   await ensureBrowserCore(ctx);
   if (!ctx.encodingHandlers) {
-    ctx.encodingHandlers = new EncodingToolHandlers(
-      ctx.collector!,
-      async (requestId) => ctx.consoleMonitor?.getResponseBody(requestId) ?? null,
-    );
+    ctx.encodingHandlers = new EncodingToolHandlers(createBrowserAccessPort(ctx));
   }
   return ctx.encodingHandlers;
 }
