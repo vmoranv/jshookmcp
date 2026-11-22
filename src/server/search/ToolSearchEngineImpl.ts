@@ -38,6 +38,8 @@ import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
 import { applyIntentBonusBandToScores } from './SearchIntentBonus';
 import { SearchFusion } from './SearchFusion';
+import { VectorScorer } from './VectorScorer';
+import { SearchResultProjector } from './SearchResultProjector';
 import { SearchResultCache, type CachedSearchEntry } from './SearchResultCache';
 import { FeedbackTracker } from './FeedbackTracker';
 import {
@@ -46,7 +48,7 @@ import {
   foldTokenSetWithMode,
   type StemMode,
 } from './QueryNormalizer';
-import { ReRanker, type ReRankInput, type ToolMetadata } from './ReRanker';
+import { ReRanker, type ToolMetadata } from './ReRanker';
 import { ScoreCalibrator } from './ScoreCalibrator';
 import { WorkflowTransitionGraph } from './WorkflowTransitionGraph';
 import { SearchQualityTracker } from './SearchQualityTracker';
@@ -202,6 +204,8 @@ export class ToolSearchEngine {
   private readonly reRanker: ReRanker;
   private readonly qualityTracker = new SearchQualityTracker();
   private readonly fusion: SearchFusion;
+  private readonly vectorScorer: VectorScorer;
+  private readonly resultProjector: SearchResultProjector;
 
   // ── Lookup tables & Cryptographic State (Mina / PLONK inspired) ──
   private readonly idfLookupTable: Float64Array;
@@ -386,17 +390,28 @@ export class ToolSearchEngine {
         description: d.description,
       })),
     );
+    this.resultProjector = new SearchResultProjector({
+      docs: this.docs,
+      docNameIndex: this.docNameIndex,
+      reRanker: this.reRanker,
+      enableMMR: this.strategyFlags.enableMMR === true,
+    });
 
     // ── Tool affinity graph (§4.1.4 dependency hull expansion) ──
     this.affinityGraph = buildAffinityGraph(this.docs);
 
     // ── Trigram fuzzy index over tool names ──
     this.trigramIndex = new TrigramIndex(this.docs.map((d) => d.name));
+    this.vectorScorer = new VectorScorer({
+      embeddingEngine: this.embeddingEngine,
+      getEmbeddings: () => this.toolEmbeddings,
+      ensureEmbeddings: () => this.ensureToolEmbeddings(),
+    });
     this.fusion = new SearchFusion({
       docs: this.docs,
       trigramIndex: this.trigramIndex,
       feedbackTracker: this.feedbackTracker,
-      computeVectorCosineScores: (query) => this.computeVectorCosineScores(query),
+      computeVectorCosineScores: (query) => this.vectorScorer.score(query),
     });
 
     // ── Query result cache (§4.3 CSAPC) ──
@@ -609,29 +624,6 @@ export class ToolSearchEngine {
       if (scores[i]! > maxScore) maxScore = scores[i]!;
     }
     scores[explicitIdx]! += Math.max(1, maxScore + 1);
-  }
-
-  private collectRankedResults(
-    scores: Float64Array,
-    activeToolNames: ReadonlySet<string> | undefined,
-    topK: number,
-  ): ToolSearchResult[] {
-    const active = activeToolNames ?? new Set<string>();
-    const candidates: ToolSearchResult[] = [];
-    for (let i = 0; i < this.docCount; i++) {
-      if (scores[i]! > 0) {
-        const doc = this.docs[i]!;
-        candidates.push({
-          name: doc.name,
-          domain: doc.domain,
-          shortDescription: doc.shortDescription,
-          score: Math.round(scores[i]! * 1000) / 1000,
-          isActive: active.has(doc.name),
-        });
-      }
-    }
-    candidates.sort((a, b) => b.score - a.score);
-    return candidates.slice(0, topK);
   }
 
   /**
@@ -1115,46 +1107,8 @@ export class ToolSearchEngine {
     if (kind === 'full') this.applyRecencyBoost(scores);
     this.applyTierPenalty(scores, visibleDomains, profile);
     if (kind === 'full') this.promoteExplicitMention(scores, explicitToolMention);
-    const ranked = this.collectRankedResults(scores, activeToolNames, topK);
-    return kind === 'full' ? this.rerankResults(query, ranked, activeToolNames) : ranked;
-  }
-
-  private rerankResults(
-    query: string,
-    results: ToolSearchResult[],
-    activeToolNames?: ReadonlySet<string>,
-  ): ToolSearchResult[] {
-    if (results.length <= 1) return results;
-    const reRankInputs: ReRankInput[] = results.map((result) => {
-      const doc = this.docs[this.docNameIndex.get(result.name) ?? 0];
-      // The re-ranker's lexical features (keyword overlap, intent alignment)
-      // read a single description string. Fold the doc-expansion scene phrases
-      // into it so expansion text is visible to this layer too — otherwise a
-      // tool can win the BM25 stage on its expansion phrases and still be
-      // re-ranked away by a tool with a longer raw description.
-      const description =
-        doc && doc.scenePhrases.length > 0
-          ? `${doc.description} ${doc.scenePhrases.join(' ')}`
-          : (doc?.description ?? '');
-      return {
-        toolName: result.name,
-        score: result.score,
-        domain: result.domain ?? '',
-        description,
-      };
-    });
-    // If active session indicates a focused workflow, relax slot capping and boost relevance lambda
-    const isSessionFocused = Boolean(activeToolNames && activeToolNames.size > 0);
-    const reRanked = this.reRanker.reRank(query, reRankInputs, {
-      topK: results.length,
-      enableMMR: this.strategyFlags.enableMMR,
-      diversityLambda: isSessionFocused ? 0.95 : 0.85,
-      maxPerDomain: isSessionFocused ? 4 : 2,
-    });
-    const rankMap = new Map(reRanked.map((item, index) => [item.toolName, index]));
-    return results
-      .slice()
-      .toSorted((a, b) => (rankMap.get(a.name) ?? 0) - (rankMap.get(b.name) ?? 0));
+    const ranked = this.resultProjector.collect(scores, activeToolNames, topK);
+    return kind === 'full' ? this.resultProjector.rerank(query, ranked, activeToolNames) : ranked;
   }
 
   private writeCache(
@@ -1453,70 +1407,6 @@ export class ToolSearchEngine {
    * this query; subsequent queries pick up the vector signal once prewarm
    * lands.
    */
-  /**
-   * Minimum cosine similarity required to enter the dense vector candidate set.
-   * Prevents high-dimensional dot-product noise from qualifying as an RRF signal.
-   */
-  private static readonly VECTOR_MIN_SIMILARITY = 0.25;
-
-  private async computeVectorCosineScores(query: string): Promise<Map<number, number> | null> {
-    if (!this.embeddingEngine) return null;
-
-    if (!this.toolEmbeddings) {
-      // NEVER block a user query on the model bootstrap. The bootstrap is a
-      // one-time HF download + full-catalog embed; on a blocked or slow
-      // network that attempt costs seconds and, worse, the failure path
-      // re-entered it on the query path after every retry-cooldown expiry
-      // (measured in production telemetry: ~10.6s queries, all with
-      // vector_participated=false, clustered on fresh installs). Kick the
-      // bootstrap in the background — it is idempotent and shared via
-      // prewarmPromise/embeddingRetryAfterMs — and serve THIS query from
-      // BM25 + trigram. A later query picks up the vector signal once the
-      // background run lands.
-      void this.ensureToolEmbeddings();
-      return null;
-    }
-
-    // Only skip on an AFFIRMATIVE "not ready". An engine that exposes no
-    // readiness signal (a test double, an alternative implementation) gives us
-    // nothing to block on, and inventing a stall there would be worse than the
-    // cost this guard exists to avoid.
-    if (this.embeddingEngine.isReady?.() === false) {
-      // Cached catalog embeddings + a cold worker (post-restart is the common
-      // case): the tool vectors are on disk but the model is not loaded, so
-      // awaiting embed() here would pay the full model-initialization cost on
-      // the query path — exactly what the branch above exists to avoid.
-      // Warming is kicked and this query stays lexical.
-      void this.embeddingEngine.embed(query).catch(() => undefined);
-      return null;
-    }
-
-    let queryEmbedding: Float32Array;
-    try {
-      queryEmbedding = await this.embeddingEngine.embed(query);
-    } catch (error) {
-      logger.warn(
-        `[search] query embedding unavailable; using lexical ranking: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return null;
-    }
-
-    const results = new Map<number, number>();
-    for (let i = 0; i < this.toolEmbeddings.length; i++) {
-      const toolEmb = this.toolEmbeddings[i]!;
-      if (toolEmb.length !== queryEmbedding.length) continue;
-      // Dot product (embeddings are already normalised → cosine similarity)
-      let dot = 0;
-      for (let j = 0; j < queryEmbedding.length; j++) {
-        dot += queryEmbedding[j]! * toolEmb[j]!;
-      }
-      if (dot >= ToolSearchEngine.VECTOR_MIN_SIMILARITY) {
-        results.set(i, dot);
-      }
-    }
-    return results;
-  }
-
   /**
    * Record feedback from a tool call.
    *
