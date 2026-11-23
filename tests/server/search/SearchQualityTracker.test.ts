@@ -1,4 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  getGlobalInstrumentation,
+  MetricNames,
+} from '@server/observability/InstrumentationContract';
 import { SearchQualityTracker } from '@server/search/SearchQualityTracker';
 import { SEARCH_VECTOR_BM25_SKIP_THRESHOLD } from '@src/constants';
 
@@ -80,6 +84,20 @@ describe('SearchQualityTracker', () => {
       tracker.associateLastSearch('xhr_hook');
       const records = tracker.getRecentRecords();
       expect(records[0]!.usedTool).toBeUndefined();
+    });
+
+    it('emits search_feedback_used with the search id', () => {
+      const instrumentation = getGlobalInstrumentation();
+      const spy = vi.spyOn(instrumentation, 'emitMetric').mockImplementation(() => {});
+      const id = tracker.recordSearch('hook fetch', ['fetch_hook', 'xhr_hook'], [0.9, 0.8], 5);
+      tracker.associateLastSearch('xhr_hook');
+      expect(spy).toHaveBeenCalledWith(
+        MetricNames.searchFeedbackUsed,
+        1,
+        'counter',
+        expect.objectContaining({ search_id: id, tool: 'xhr_hook' }),
+      );
+      spy.mockRestore();
     });
 
     it('does nothing when no searches have been recorded', () => {

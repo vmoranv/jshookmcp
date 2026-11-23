@@ -14,7 +14,7 @@ import {
  * choke point BOTH the engine wrapper and the production execution path go
  * through.
  */
-function emitSearchFeedbackMetric(rank0Based: number, toolName: string): void {
+function emitSearchFeedbackMetric(rank0Based: number, toolName: string, searchId: string): void {
   const instrumentation = getGlobalInstrumentation();
   const bucket =
     rank0Based === 0
@@ -29,6 +29,7 @@ function emitSearchFeedbackMetric(rank0Based: number, toolName: string): void {
   instrumentation.emitMetric(MetricNames.searchFeedbackUsed, 1, 'counter', {
     rank_bucket: bucket,
     tool: toolName,
+    search_id: searchId,
   });
 }
 
@@ -104,9 +105,9 @@ export class SearchQualityTracker implements SnapshotSource {
     returnedTools: string[],
     returnedScores: number[],
     latencyMs: number,
-    options?: { bm25TopScore?: number; vectorParticipated?: boolean },
+    options?: { id?: string; bm25TopScore?: number; vectorParticipated?: boolean },
   ): string {
-    const id = generateId();
+    const id = options?.id ?? generateId();
     const record: SearchQueryRecord = {
       id,
       query,
@@ -165,7 +166,7 @@ export class SearchQualityTracker implements SnapshotSource {
           record.usedTool = toolName;
           record.usedToolRank = rank + 1;
           this.dirty = true;
-          emitSearchFeedbackMetric(rank, toolName);
+          emitSearchFeedbackMetric(rank, toolName, record.id);
           return rank;
         }
         return undefined;
@@ -321,7 +322,7 @@ export class SearchQualityTracker implements SnapshotSource {
 
     const restored: SearchQueryRecord[] = [];
     for (const item of snapshot.records) {
-      // Defensive: same shape validation level as FeedbackTracker — a
+      // Defensive: validate the snapshot shape — a
       // hand-edited or future-versioned file must not corrupt the buffer.
       if (!item || typeof item !== 'object') return;
       const record = item as Record<string, unknown>;

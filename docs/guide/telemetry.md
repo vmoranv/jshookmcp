@@ -21,8 +21,8 @@ JSHOOK_OBSERVABILITY_EXPORTER=none
 | 信号 | 内容 | 不包含 |
 |------|------|--------|
 | `tool.execute` span | 工具名、所属域、耗时、成功/失败 | **工具参数、响应内容一律不采集** |
-| `search.query` span | 查询文本（见下方策略）、top-K、结果数、延迟、BM25 置信分、向量是否参与 | 检索结果内容 |
-| `search_feedback_used` 指标 | 被调用工具的排名档位（top1/3/5/10）+ 工具名 | — |
+| `search.query` span | 查询文本（见下方策略）、top-K、结果数、延迟、BM25 置信分、向量是否参与、关联 id search.id | 检索结果内容 |
+| `search_feedback_used` 指标 | 被调用工具的排名档位（top1/3/5/10）+ 工具名 + search_id（与 search.query 精确关联） | — |
 | `tool.execute` span 的参数 | **默认仅参数键名**（`shape`——键名本就公开于工具 schema，值永不采集）；显式设 `JSHOOK_OTLP_TOOL_ARGS=truncated/full` 才采集值，且凭证类键（authorization/cookie/token/secret 等）一律脱敏为 `***` 并有总量上限 | 完整参数值默认不采集 |
 | 资源标识 | `service.name=jshookmcp`、每次进程的 `service.instance.id`、匿名随机安装 UUID `install.id` | **无主机名、无用户名、无 IP、无机器指纹**——install.id 是首次运行时本地生成的随机 UUID |
 
@@ -45,3 +45,4 @@ JSHOOK_OTLP_QUERY_TEXT=full        # 完整文本（仅在私有端点下使用�
 ## 其他后端
 
 `JSHOOK_OBSERVABILITY_EXPORTER=memory` 将 span/指标保存在进程内存中（诊断用）；`none` 完全关闭导出；`otlp`（出厂默认）把信号流式发送到配置的 OTLP 端点。
+
