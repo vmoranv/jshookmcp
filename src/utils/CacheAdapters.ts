@@ -7,9 +7,6 @@ export class DetailedDataManagerAdapter implements CacheInstance {
   private manager: DetailedDataManager;
   name = 'DetailedDataManager';
 
-  /** Rough per-entry byte estimate for in-memory entries (avg ~50KB each). */
-  private static readonly ESTIMATED_AVG_ENTRY_BYTES = 50 * 1024;
-
   constructor(manager: DetailedDataManager) {
     this.manager = manager;
   }
@@ -18,7 +15,10 @@ export class DetailedDataManagerAdapter implements CacheInstance {
     const stats = this.manager.getStats();
     return {
       entries: stats.cacheSize,
-      size: this.estimateSize(stats.cacheSize),
+      // Use the manager's real footprint (derived from per-entry sizes) so
+      // UnifiedCacheManager's global-size thresholds and eviction ordering are
+      // not driven by a fabricated per-entry estimate.
+      size: stats.totalSizeKB * 1024,
       hits: 0,
       misses: 0,
       ttl: stats.defaultTTLSeconds * 1000,
@@ -28,10 +28,6 @@ export class DetailedDataManagerAdapter implements CacheInstance {
 
   clear(): void {
     this.manager.clear();
-  }
-
-  private estimateSize(entries: number): number {
-    return entries * DetailedDataManagerAdapter.ESTIMATED_AVG_ENTRY_BYTES;
   }
 }
 

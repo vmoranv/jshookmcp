@@ -1,8 +1,8 @@
 import { readdir, rm, rmdir, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { getArtifactDir, getArtifactsRoot, type ArtifactCategory } from '@utils/artifacts';
 import { getConfig } from '@utils/config';
-import { getDebuggerSessionsDir, getProjectRoot } from '@utils/outputPaths';
+import { getDebuggerSessionsDir, getProjectRoot, getSafeOutputRoots } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { readEnvBoolean, readEnvInteger } from '@src/config/environment';
 
@@ -21,6 +21,8 @@ export interface ArtifactCleanupResult {
   removedBytes: number;
   removedByAge: number;
   removedBySize: number;
+  /** Candidates whose removal was vetoed/failed (changed since scan, I/O error). */
+  failedRemovals: number;
   remainingFiles: number;
   remainingBytes: number;
   dryRun: boolean;
@@ -129,11 +131,12 @@ async function performCleanup(options?: {
   const categories = normalizeCategories(options?.categories);
   const excludeCategories = normalizeCategories(options?.excludeCategories);
   const directories =
-    options?.directories ??
-    getManagedArtifactDirectories({
-      categories,
-      excludeCategories,
-    });
+    options?.directories !== undefined
+      ? resolveCallerDirectories(options.directories)
+      : getManagedArtifactDirectories({
+          categories,
+          excludeCategories,
+        });
 
   const cutoff = config.retentionDays > 0 ? now - config.retentionDays * DAY_MS : 0;
   let scannedFiles = 0;
@@ -142,6 +145,7 @@ async function performCleanup(options?: {
   let removedByAge = 0;
   let removedBySize = 0;
   const remaining: ArtifactFileEntry[] = [];
+  const failedRemovals: ArtifactFileEntry[] = [];
   const removedSample: string[] = [];
   const root = getProjectRoot();
   const pendingRemovals: Promise<void>[] = [];
@@ -162,8 +166,11 @@ async function performCleanup(options?: {
       removeFileIfUnchanged(entry.path, entry.mtimeMs, entry.size)
         .then((removed) => {
           if (removed) countRemoval(entry, reason);
+          else failedRemovals.push(entry);
         })
-        .catch(() => undefined),
+        .catch(() => {
+          failedRemovals.push(entry);
+        }),
     );
   }
 
@@ -205,6 +212,11 @@ async function performCleanup(options?: {
 
   if (!dryRun) {
     await Promise.all(pendingRemovals);
+    // A vetoed/failed removal means the file survived: put it back so the
+    // remaining counts (and the size accounting) describe what is actually on disk.
+    if (failedRemovals.length > 0) {
+      remaining.push(...failedRemovals);
+    }
     await Promise.all(directories.map((dir) => pruneEmptyDirectories(dir)));
   }
 
@@ -215,6 +227,7 @@ async function performCleanup(options?: {
     removedBytes,
     removedByAge,
     removedBySize,
+    failedRemovals: failedRemovals.length,
     remainingFiles: remaining.length,
     remainingBytes: remaining.reduce((sum, entry) => sum + entry.size, 0),
     dryRun,
@@ -270,6 +283,42 @@ export function startArtifactRetentionScheduler(): (() => void) | null {
   };
   activeSchedulerStop = stop;
   return stop;
+}
+
+/**
+ * Caller-supplied directories are deletion roots, so they are constrained to
+ * the same roots tool output may be written to (project root + system temp).
+ * Managed defaults come from config and are intentionally not subjected to this
+ * check: users may legitimately configure screenshot/debugger dirs elsewhere.
+ *
+ * Also drops duplicates and nested entries — walking a root and its
+ * subdirectory would scan every file in the subtree twice.
+ */
+function resolveCallerDirectories(input: string[]): string[] {
+  const safeRoots = getSafeOutputRoots().map((root) => resolve(root));
+  const resolved = input.map((dir) => resolve(dir));
+
+  for (const dir of resolved) {
+    if (!safeRoots.some((root) => isStrictlyInside(root, dir))) {
+      throw new Error(
+        `Refusing to clean directory outside the approved roots (project/temp): ${dir}`,
+      );
+    }
+  }
+
+  const kept: string[] = [];
+  for (const dir of [...new Set(resolved)].toSorted((a, b) => a.length - b.length)) {
+    if (!kept.some((parent) => isStrictlyInside(parent, dir))) {
+      kept.push(dir);
+    }
+  }
+  return kept;
+}
+
+/** True when `target` is inside `base` (the root itself does not count). */
+function isStrictlyInside(base: string, target: string): boolean {
+  const rel = relative(base, target);
+  return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
 }
 
 function getManagedArtifactDirectories(options?: {

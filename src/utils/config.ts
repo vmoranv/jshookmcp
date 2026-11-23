@@ -811,13 +811,25 @@ function parseCsvList(value: unknown): string[] {
 
 /**
  * Parse `MCP_TOOL_RULES_JSON` into ordered tool-execution permission rules.
- * Invalid entries are dropped individually (with a warning) so one malformed
- * rule cannot silently disable the whole gate.
+ *
+ * Malformed JSON / a non-array is a hard error (fail closed): silently turning
+ * a broken permission config into an empty rule set would disable the gate.
+ * Individual malformed entries are still dropped with a warning so one typo
+ * cannot reject an otherwise valid rule set.
  */
-function parseToolExecutionRules(raw: string | undefined): ToolExecutionRuleConfig[] | undefined {
-  const parsed = parseJsonArrayEnv(raw);
-  if (parsed === undefined) {
-    return undefined;
+function parseToolExecutionRules(raw: string | undefined): ToolExecutionRuleConfig[] {
+  if (!raw) {
+    return [];
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch (error) {
+    throw new Error('MCP_TOOL_RULES_JSON is not valid JSON', { cause: error });
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error('MCP_TOOL_RULES_JSON must be a JSON array of rules');
   }
 
   const rules: ToolExecutionRuleConfig[] = [];
@@ -1014,10 +1026,23 @@ export function getConfig(): Config {
     env.MCP_BROWSER_FLEET_WORKERS_JSON,
     browserFleetWorkerId,
   );
+  // Trust-boundary flags: `parseConfigEnvironment` deletes a malformed value so
+  // the field falls back to its default. For these two flags that would let
+  // `MCP_PLUGIN_SIGNATURE_REQUIRED=yes` silently disable signature enforcement
+  // outside production. If the variable was SUPPLIED but is invalid, fail
+  // closed (treat as enabled).
+  const signatureFlagSupplied =
+    typeof process.env.MCP_PLUGIN_SIGNATURE_REQUIRED === 'string' &&
+    process.env.MCP_PLUGIN_SIGNATURE_REQUIRED.trim().length > 0;
+  const strictFlagSupplied =
+    typeof process.env.MCP_PLUGIN_STRICT_LOAD === 'string' &&
+    process.env.MCP_PLUGIN_STRICT_LOAD.trim().length > 0;
   const pluginSignatureRequired =
-    env.MCP_PLUGIN_SIGNATURE_REQUIRED ?? env.NODE_ENV === 'production';
+    env.MCP_PLUGIN_SIGNATURE_REQUIRED ??
+    (signatureFlagSupplied ? true : env.NODE_ENV === 'production');
   const pluginStrictLoad =
-    (env.MCP_PLUGIN_STRICT_LOAD ?? pluginSignatureRequired) || pluginSignatureRequired;
+    (env.MCP_PLUGIN_STRICT_LOAD ?? (strictFlagSupplied ? true : pluginSignatureRequired)) ||
+    pluginSignatureRequired;
 
   return {
     puppeteer: {
@@ -1092,7 +1117,7 @@ export function getConfig(): Config {
     },
     toolExecution: {
       allowTools: parseCsvList(env.MCP_TOOL_ALLOW_TOOLS),
-      rules: parseToolExecutionRules(env.MCP_TOOL_RULES_JSON) ?? [],
+      rules: parseToolExecutionRules(env.MCP_TOOL_RULES_JSON),
     },
     reverseEngineering: buildReverseEngineeringConfig(env),
     search,

@@ -17,13 +17,49 @@
 
 // ── Core decode ──
 
-/** Decode a base64-encoded string. No-op on already-decoded input (idempotent). */
+/**
+ * Canonical standard base64 (padding required). Unpadded or URL-safe variants
+ * are treated as already-decoded input instead of being silently mangled.
+ */
+const CANONICAL_BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+/** Decoded API names/signatures are printable ASCII; anything else is mojibake. */
+const PRINTABLE_ASCII_RE = /^[\x20-\x7E\r\n\t]*$/;
+
+/** Successful decodes only, keyed by the encoded literal (hot-path memoization). */
+const DECODE_CACHE = new Map<string, string>();
+
+/**
+ * Decode a base64-encoded string. Input that is not canonical base64, or whose
+ * decoded bytes are not printable ASCII (i.e. an already-decoded API name such
+ * as `LoadLibraryA`), is returned unchanged. This makes repeated `ds()` calls
+ * safe to the extent the decoded plaintext is not itself canonical base64.
+ */
 export function ds(encoded: string): string {
-  if (encoded.length < 4 || encoded.includes('.') || encoded.includes(' ')) {
-    // Already decoded — pass through (backward-compatible for gradual migration)
+  const cached = DECODE_CACHE.get(encoded);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  if (
+    encoded.length < 4 ||
+    encoded.length % 4 !== 0 ||
+    encoded.includes('.') ||
+    encoded.includes(' ') ||
+    !CANONICAL_BASE64_RE.test(encoded)
+  ) {
+    // Already decoded (or not base64 at all) — pass through for gradual migration.
     return encoded;
   }
-  return Buffer.from(encoded, 'base64').toString('utf8');
+
+  const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+  if (!PRINTABLE_ASCII_RE.test(decoded)) {
+    // Re-decoding an already-decoded function name (`LoadLibraryA`, `NtClose`,
+    // ...) yields control bytes/non-ASCII mojibake; keep the plaintext instead.
+    return encoded;
+  }
+
+  DECODE_CACHE.set(encoded, decoded);
+  return decoded;
 }
 
 // ── DLL Names (base64-encoded) ──

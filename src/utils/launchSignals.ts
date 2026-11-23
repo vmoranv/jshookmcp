@@ -42,13 +42,21 @@ let entrypointKind: EntrypointKind = detectEntrypoint();
 /**
  * Install the live readers. Called once per launch.
  *
- * Both readers are expected to be cheap and non-throwing: they are consulted
- * on every tool call. Returning `null` means "not applicable" (no launch in
- * flight / no launch request yet) and the attribute is simply omitted, never
- * emitted as a spurious `false`.
+ * IMPORTANT — snapshot semantics: the readers are evaluated exactly once, at
+ * install time. `readLaunchSignalsForCwd`/`launchSignalAttrs` do not consult
+ * them again, so install AFTER the launch window has closed (the browser
+ * lifecycle manager installs right after `launch()` resolves). Installing
+ * before the browser has emitted its stderr would freeze `stderr_empty` to a
+ * stale value.
+ *
+ * Both readers are expected to be cheap and non-throwing. Returning `null`
+ * means "not applicable" (no launch in flight / no launch request yet) and the
+ * attribute is simply omitted, never emitted as a spurious `false`.
  *
  * The record is also filed under the process's current directory, which is the
- * key a tool call is attributed by (see `readLaunchSignalsForCwd`).
+ * key a tool call is attributed by (see `readLaunchSignalsForCwd`). A per-cwd
+ * snapshot is deliberate: a shared server with two agents must not attribute
+ * one agent's live counter to another agent's tool call.
  */
 export function installLaunchSignals(
   reads: {
@@ -75,6 +83,10 @@ export function resetLaunchSignals(): void {
   browserModeReader = readNothingMode;
   entrypointKind = detectEntrypoint();
   resetCwdAttribution();
+  // Release any capture left installed (a test/consumer that never stopped)
+  // so the refcounted shim cannot outlive the reset.
+  activeStderrCounters.clear();
+  releaseStderrShim();
 }
 
 /**
@@ -177,7 +189,11 @@ export function detectEntrypoint(argv: readonly string[] = process.argv): Entryp
 export interface StderrCapture {
   /** Bytes written by the browser since the launch started. */
   bytesSoFar(): number;
-  /** True when the launch failed before the counter was installed. */
+  /**
+   * Signal that the launch failed. The observed byte count is deliberately
+   * preserved: stderr produced before the failure is the signal that
+   * distinguishes "the binary ran and refused" from "nothing executed".
+   */
   markFailed(): void;
   /** Stop counting and restore the original `process.stderr.write`. */
   stop(): void;
@@ -198,30 +214,73 @@ export function noopStderrCapture(): StderrCapture {
 /**
  * Install a byte counter on `process.stderr.write` for the duration of one
  * launch. Text passes through unchanged; only the byte count survives.
+ *
+ * The shim is process-global, so overlapping captures are reference-counted:
+ * one shim is installed for the first capture and removed when the last one
+ * stops. Previously each `beginStderrCapture()` wrapped the current
+ * `stderr.write`, so a second capture bound the first shim as its "original";
+ * stopping out of order detached the inner counter and left a dead shim
+ * installed forever. Restoring is identity-checked so another module's patch
+ * is never clobbered.
  */
-export function beginStderrCapture(): StderrCapture {
-  let bytes = 0;
-  let stopped = false;
-  const originalWrite = process.stderr.write.bind(process.stderr);
-  process.stderr.write = ((
+const activeStderrCounters = new Set<(bytes: number) => void>();
+let installedStderrShim: typeof process.stderr.write | null = null;
+let originalStderrWrite: typeof process.stderr.write | null = null;
+
+function installStderrShim(): void {
+  if (installedStderrShim !== null) return;
+  originalStderrWrite = process.stderr.write.bind(process.stderr);
+  const shim = ((
     chunk: string | Uint8Array,
     encodingOrCallback?: BufferEncoding | ((err?: Error | null) => void),
     callback?: (err?: Error | null) => void,
   ) => {
-    if (!stopped) {
-      bytes += typeof chunk === 'string' ? Buffer.byteLength(chunk, 'utf8') : chunk.byteLength;
+    try {
+      const bytes = typeof chunk === 'string' ? Buffer.byteLength(chunk, 'utf8') : chunk.byteLength;
+      for (const counter of activeStderrCounters) counter(bytes);
+    } catch {
+      // A counting failure must never break the stderr stream.
     }
-    return originalWrite(chunk as never, encodingOrCallback as never, callback as never);
+    return originalStderrWrite!(chunk as never, encodingOrCallback as never, callback as never);
   }) as typeof process.stderr.write;
+  installedStderrShim = shim;
+  process.stderr.write = shim;
+}
+
+function releaseStderrShim(): void {
+  if (activeStderrCounters.size > 0) return;
+  // Only restore our own shim: another module may have patched over it.
+  if (
+    installedStderrShim !== null &&
+    process.stderr.write === installedStderrShim &&
+    originalStderrWrite !== null
+  ) {
+    process.stderr.write = originalStderrWrite;
+  }
+  installedStderrShim = null;
+  originalStderrWrite = null;
+}
+
+export function beginStderrCapture(): StderrCapture {
+  let bytes = 0;
+  let stopped = false;
+  const counter = (written: number) => {
+    if (!stopped) bytes += written;
+  };
+  activeStderrCounters.add(counter);
+  installStderrShim();
   return {
     bytesSoFar: () => bytes,
     markFailed: () => {
-      bytes = 0;
+      // Intentionally keep `bytes`: stderr observed before the failure is
+      // precisely the signal that distinguishes "binary refused" from
+      // "nothing executed".
     },
     stop: () => {
       if (stopped) return;
       stopped = true;
-      process.stderr.write = originalWrite;
+      activeStderrCounters.delete(counter);
+      releaseStderrShim();
     },
     isInstalled: () => true,
   };

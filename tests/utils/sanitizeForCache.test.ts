@@ -114,6 +114,48 @@ describe('sanitizeForCache', () => {
     expect(twice).toBe(once);
   });
 
+  it('does not treat a bare _offload marker as a placeholder', async () => {
+    const hostile = { _offload: {}, url: DATA_URI } as unknown as Record<string, unknown>;
+
+    const out = (await sanitizeForCache(hostile, { ...opts(), writeFile: false })) as {
+      url: unknown;
+    };
+
+    expect(isPlaceholder(out.url)).toBe(true);
+  });
+
+  it('does not pass through a placeholder-shaped marker with smuggled siblings', async () => {
+    const hostile = {
+      _offload: { type: 'file', path: 'x.bin', size: '1B', sample: 'x' },
+      url: DATA_URI,
+    } as unknown as Record<string, unknown>;
+
+    const out = (await sanitizeForCache(hostile, { ...opts(), writeFile: false })) as {
+      url: unknown;
+    };
+
+    expect(isPlaceholder(out.url)).toBe(true);
+    expect(out.url).not.toBe(hostile.url);
+  });
+
+  it('does not pass through a marker carrying unknown keys', async () => {
+    const hostile = {
+      _offload: {
+        type: 'file',
+        path: 'x.bin',
+        size: '1B',
+        sample: 'x',
+        payload: DATA_URI,
+      },
+    } as unknown as Record<string, unknown>;
+
+    const out = (await sanitizeForCache(hostile, { ...opts(), writeFile: false })) as {
+      _offload: { payload: unknown };
+    };
+
+    expect(isPlaceholder(out._offload.payload)).toBe(true);
+  });
+
   it('handles circular references without infinite recursion', async () => {
     const node: Record<string, unknown> = { name: 'root', big: 'y'.repeat(100 * 1024) };
     node.self = node;

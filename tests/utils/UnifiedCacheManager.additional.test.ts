@@ -257,6 +257,82 @@ describe('UnifiedCacheManager – additional coverage', () => {
 
       await expect(manager.smartCleanup(mb(100))).resolves.toBeDefined();
     });
+
+    it('stops clearing once the target is met instead of always clearing two caches', async () => {
+      const manager = new UnifiedCacheManager();
+      const firstState = { size: mb(300), entries: 10, hits: 70, misses: 30, hitRate: 0.7 };
+      const secondState = { size: mb(60), entries: 5, hits: 70, misses: 30, hitRate: 0.7 };
+
+      const firstClear = vi.fn(async () => {
+        firstState.size = 0;
+        firstState.entries = 0;
+      });
+      const secondClear = vi.fn(async () => {
+        secondState.size = 0;
+        secondState.entries = 0;
+      });
+
+      manager.registerCache({
+        name: 'first-cache',
+        getStats: vi.fn(async () => ({ ...firstState })),
+        cleanup: vi.fn(async () => undefined),
+        clear: firstClear,
+      });
+      manager.registerCache({
+        name: 'second-cache',
+        getStats: vi.fn(async () => ({ ...secondState })),
+        cleanup: vi.fn(async () => undefined),
+        clear: secondClear,
+      });
+
+      const result = await manager.smartCleanup(mb(100));
+
+      expect(firstClear).toHaveBeenCalledTimes(1);
+      expect(secondClear).not.toHaveBeenCalled();
+      expect(result.after).toBeLessThanOrEqual(mb(100));
+    });
+  });
+
+  describe('cleanupLowHitRate – stop once under target', () => {
+    it('does not clear every low hit-rate cache when one clear is enough', async () => {
+      const manager = new UnifiedCacheManager();
+      const highState = { size: mb(100), entries: 5, hits: 90, misses: 10, hitRate: 0.9 };
+      const lowOneState = { size: mb(100), entries: 5, hits: 1, misses: 99, hitRate: 0.01 };
+      const lowTwoState = { size: mb(100), entries: 5, hits: 1, misses: 99, hitRate: 0.01 };
+
+      const lowOneClear = vi.fn(async () => {
+        lowOneState.size = 0;
+        lowOneState.entries = 0;
+      });
+      const lowTwoClear = vi.fn(async () => {
+        lowTwoState.size = 0;
+        lowTwoState.entries = 0;
+      });
+
+      manager.registerCache({
+        name: 'high-rate',
+        getStats: vi.fn(async () => ({ ...highState })),
+        cleanup: vi.fn(async () => undefined),
+      });
+      manager.registerCache({
+        name: 'low-one',
+        getStats: vi.fn(async () => ({ ...lowOneState })),
+        cleanup: vi.fn(async () => undefined),
+        clear: lowOneClear,
+      });
+      manager.registerCache({
+        name: 'low-two',
+        getStats: vi.fn(async () => ({ ...lowTwoState })),
+        cleanup: vi.fn(async () => undefined),
+        clear: lowTwoClear,
+      });
+
+      const result = await manager.smartCleanup(mb(250));
+
+      expect(lowOneClear).toHaveBeenCalledTimes(1);
+      expect(lowTwoClear).not.toHaveBeenCalled();
+      expect(result.after).toBeLessThanOrEqual(mb(250));
+    });
   });
 
   describe('cleanupLowHitRate – clear error tolerance', () => {
