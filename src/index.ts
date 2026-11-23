@@ -75,6 +75,16 @@ function formatUnknownError(input: unknown): string {
   }
 }
 
+// Instance cleanup is best-effort: `unregisterServerInstance` can be absent
+// or non-promise in trimmed/test wiring, so normalize it before chaining.
+async function safeUnregister(context: string): Promise<void> {
+  try {
+    await Promise.resolve(unregisterServerInstance());
+  } catch (error) {
+    logger.error(`unregister failed during ${context}:`, error);
+  }
+}
+
 export async function main(): Promise<void> {
   try {
     const cliFastPath = resolveCliFastPath(process.argv.slice(2), import.meta.url);
@@ -147,12 +157,14 @@ export async function main(): Promise<void> {
       kind: 'uncaughtException' | 'unhandledRejection',
       reason: unknown,
     ) => {
-      // Fatal errors must exit immediately — no recovery possible
+      // Fatal errors must exit immediately — no recovery possible. Still clear
+      // the instance registry so the next start / health probe is not misled.
       if (isFatalError(reason)) {
         logger.error(
           `[${kind}] FATAL unrecoverable error — forcing exit: ${formatUnknownError(reason)}`,
         );
-        process.exit(1);
+        void safeUnregister('fatal exit').finally(() => process.exit(1));
+        return;
       }
 
       const now = Date.now();
@@ -177,8 +189,16 @@ export async function main(): Promise<void> {
       }
     };
 
-    process.on('SIGINT', async () => {
-      logger.info('Received SIGINT, shutting down...');
+    // Single-shot graceful teardown. Overlapping signals (or a signal plus
+    // stdin EOF) must not race each other into duplicate cleanup/exit.
+    let shuttingDown = false;
+    const shutdown = async (reason: string, exitCode = 0): Promise<void> => {
+      if (shuttingDown) {
+        logger.warn(`Shutdown already in progress, ignoring ${reason}`);
+        return;
+      }
+      shuttingDown = true;
+      logger.info(`Received ${reason}, shutting down...`);
       const forceExitTimer = setTimeout(() => {
         logger.error('Graceful shutdown timed out, forcing exit');
         process.exit(1);
@@ -189,32 +209,16 @@ export async function main(): Promise<void> {
         stopArtifactRetentionScheduler?.();
         await server.close();
       } catch (error) {
-        logger.error('Error during SIGINT shutdown:', error);
+        logger.error(`Error during ${reason} shutdown:`, error);
       } finally {
-        await unregisterServerInstance();
+        await safeUnregister('shutdown');
       }
       clearTimeout(forceExitTimer);
-      process.exit(0);
-    });
+      process.exit(exitCode);
+    };
 
-    process.on('SIGTERM', async () => {
-      logger.info('Received SIGTERM, shutting down...');
-      const forceExitTimer = setTimeout(() => {
-        logger.error('Graceful shutdown timed out, forcing exit');
-        process.exit(1);
-      }, SHUTDOWN_TIMEOUT_MS);
-      forceExitTimer.unref();
-      try {
-        stopArtifactRetentionScheduler?.();
-        await server.close();
-      } catch (error) {
-        logger.error('Error during SIGTERM shutdown:', error);
-      } finally {
-        await unregisterServerInstance();
-      }
-      clearTimeout(forceExitTimer);
-      process.exit(0);
-    });
+    process.on('SIGINT', () => void shutdown('SIGINT'));
+    process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
     process.on('uncaughtException', (error) => {
       handleRuntimeFailure('uncaughtException', error);
@@ -232,29 +236,14 @@ export async function main(): Promise<void> {
       // Safety net: detect parent disconnect for stdio mode only. HTTP mode may
       // intentionally run detached from a parent stdin stream.
       process.stdin.resume();
-      process.stdin.on('end', async () => {
-        logger.info('stdin EOF — parent disconnected, shutting down...');
-        const forceExitTimer = setTimeout(() => {
-          logger.error('Graceful shutdown timed out after stdin EOF, forcing exit');
-          process.exit(1);
-        }, SHUTDOWN_TIMEOUT_MS);
-        forceExitTimer.unref();
-        try {
-          stopArtifactRetentionScheduler?.();
-          await server.close();
-        } catch (error) {
-          logger.error('Error during stdin EOF shutdown:', error);
-        } finally {
-          await unregisterServerInstance();
-        }
-        clearTimeout(forceExitTimer);
-        process.exit(0);
+      process.stdin.on('end', () => {
+        void shutdown('stdin EOF — parent disconnected');
       });
     }
 
     logger.info('MCP server is running. Press Ctrl+C to stop.');
   } catch (error) {
-    await unregisterServerInstance();
+    await safeUnregister('startup failure');
     logger.error('Failed to start MCP server:');
 
     if (error instanceof Error) {

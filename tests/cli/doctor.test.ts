@@ -21,9 +21,11 @@ describe('cli/doctor', () => {
     vi.clearAllMocks();
     vi.resetModules();
     delete process.env.DOCTOR_BOOTSTRAP_SENTINEL;
+    process.exitCode = undefined;
   });
 
   afterEach(() => {
+    process.exitCode = undefined;
     if (originalBootstrapSentinel === undefined) {
       delete process.env.DOCTOR_BOOTSTRAP_SENTINEL;
     } else {
@@ -74,7 +76,23 @@ describe('cli/doctor', () => {
     expect(state.runEnvironmentDoctor).toHaveBeenCalledWith({ includeBridgeHealth: true });
     expect(state.formatEnvironmentDoctorReport).toHaveBeenCalledWith(report);
     expect(stdoutWrite).toHaveBeenCalledWith('formatted report\n');
-    expect(exit).toHaveBeenCalledWith(0);
+    expect(process.exitCode).toBe(0);
+    // Never force-exit right after a piped stdout write.
+    expect(exit).not.toHaveBeenCalled();
+  });
+
+  it('sets a non-zero exit code when the doctor reports failure', async () => {
+    state.runEnvironmentDoctor.mockResolvedValue({
+      success: false,
+      generatedAt: '2026-03-15T00:00:00.000Z',
+    });
+    state.formatEnvironmentDoctorReport.mockReturnValue('formatted report');
+
+    vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+
+    await import('@src/cli/doctor');
+
+    expect(process.exitCode).toBe(1);
   });
 
   it('propagates doctor failures without writing output or exiting', async () => {

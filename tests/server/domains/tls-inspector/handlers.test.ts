@@ -19,6 +19,7 @@ import { disableKeyLog } from '@modules/tls-inspector/TLSKeyLogExtractor';
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { TEST_HOSTS } from '@tests/shared/test-urls';
 import { TEST_CERT_PEM, TEST_KEY_PEM } from '@tests/fixtures/tls-self-signed';
+import { TLS_KEYLOG_PATH } from '@src/constants';
 
 describe('TlsInspectorHandlers', () => {
   let handlers: TlsInspectorHandlers;
@@ -230,7 +231,7 @@ describe('TlsInspectorHandlers', () => {
       const parsed = JSON.parse(content);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.filePath).toBe('/tmp/sslkeylog.log');
+      expect(parsed.filePath).toBe(TLS_KEYLOG_PATH);
     });
   });
 

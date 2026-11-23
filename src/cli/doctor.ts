@@ -10,4 +10,5 @@ bootstrapRuntimeEnv();
 
 const report = await runEnvironmentDoctor({ includeBridgeHealth: true });
 process.stdout.write(`${formatEnvironmentDoctorReport(report)}\n`);
-process.exit(0);
+// Let stdout drain; CI detects a failed doctor via the process exit code.
+process.exitCode = report.success ? 0 : 1;
