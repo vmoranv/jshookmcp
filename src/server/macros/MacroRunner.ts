@@ -223,10 +223,10 @@ export class MacroRunner {
     inputOverrides?: Record<string, Record<string, unknown>>,
     retryPolicy?: RetryPolicy,
   ): Promise<MacroResult> {
-    const workflow = this.buildWorkflowFromDefinition(def);
     const startMs = Date.now();
 
     try {
+      const workflow = this.buildWorkflowFromDefinition(def);
       const result = await executeExtensionWorkflow(this.ctx, workflow, {
         nodeInputOverrides: inputOverrides,
         retryPolicy,

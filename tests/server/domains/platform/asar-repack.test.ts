@@ -6,7 +6,7 @@ import {
   readFile as fsReadFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { handleAsarRepack } from '@server/domains/platform/handlers/asar-repack-handler';
 import {
@@ -147,6 +147,21 @@ describe('handleAsarRepack', () => {
 
     expect(json.success).toBe(true);
     expect(json.outputPath).toBeTruthy();
+  });
+
+  it('rejects an outputPath outside the project and temp roots', async () => {
+    const dir = await makeTempDir();
+    const srcDir = join(dir, 'src');
+    await mkdir(srcDir, { recursive: true });
+    await fsWriteFile(join(srcDir, 'x.js'), 'void 0;\n');
+
+    const outsidePath = join(dirname(tmpdir()), `jshook-asar-outside-${Date.now()}.asar`);
+    const result = await handleAsarRepack({ inputDir: srcDir, outputPath: outsidePath });
+    const json = parseJson(result);
+
+    expect(json.success).toBe(false);
+    expect(String(json.error)).toContain('within the project root');
+    await expect(fsReadFile(outsidePath)).rejects.toThrow();
   });
 
   it('returns a failure when inputDir does not exist', async () => {

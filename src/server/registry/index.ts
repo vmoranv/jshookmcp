@@ -72,7 +72,15 @@ async function init(profile?: ToolProfileId, eventBus?: EventBus<ServerEventMap>
     domainsView = new Set(discovered.map((m) => m.domain));
     toolNamesView = new Set(registrations.map((r) => r.tool.name));
   })();
-  await initPromise;
+  try {
+    await initPromise;
+  } catch (error) {
+    // A transient manifest-load failure must not poison the singleton: every
+    // later call would re-throw the same stale error with no retry path.
+    initPromise = null;
+    logger.error('[registry] Initialisation failed', error);
+    throw error;
+  }
 }
 
 // ── Public initialiser (call before first use) ──
