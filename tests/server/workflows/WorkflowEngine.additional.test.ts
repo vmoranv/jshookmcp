@@ -408,6 +408,54 @@ describe('WorkflowEngine additional coverage', () => {
     }
   });
 
+  it('does not retry a timed-out tool node (the first attempt may still be running)', async () => {
+    vi.useFakeTimers();
+    try {
+      const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+      const executeToolWithTracking = vi.fn(() => new Promise(() => undefined));
+      const ctx = mockCtx({ executeToolWithTracking });
+      const workflow = defineWorkflow('wf', 'Test', (w) =>
+        w.buildGraph(() =>
+          sequenceStep('root', (s) => {
+            s.tool('t', 'tool', {
+              timeoutMs: 50,
+              retry: { maxAttempts: 3, backoffMs: 10, multiplier: 1 },
+            });
+          }),
+        ),
+      );
+
+      const promise = executeExtensionWorkflow(ctx as never, workflow).catch((e: any) => e);
+      await vi.advanceTimersByTimeAsync(500);
+      const err = await promise;
+
+      expect((err as Error).message).toContain('timed out after 50ms');
+      expect(executeToolWithTracking).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rethrows the workflow error even when onError itself rejects', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const ctx = mockCtx({
+      executeToolWithTracking: vi.fn(async () => {
+        throw new Error('original failure');
+      }),
+    });
+    const workflow = defineWorkflow('wf', 'Test', (w) =>
+      w
+        .buildGraph(() => sequenceStep('root', (s) => s.tool('t', 'tool')))
+        .onError(() => {
+          throw new Error('hook failure');
+        }),
+    );
+
+    await expect(executeExtensionWorkflow(ctx as never, workflow)).rejects.toThrow(
+      'original failure',
+    );
+  });
+
   it('onStart and onFinish are called in order', async () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const calls: string[] = [];

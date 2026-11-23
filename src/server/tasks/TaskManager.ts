@@ -231,7 +231,13 @@ export class TaskManager {
     task.status = status;
     if (result !== undefined) task.result = result;
     if (error !== undefined) task.error = error;
+    if (status === 'completed') task.progress = task.total ?? 100;
     task.lastUpdatedAt = new Date().toISOString();
+    // Settlement must stop in-flight work too: an executor-backed task would
+    // otherwise keep running (and keep its OS children) while its result is
+    // silently discarded by the status guards in the executor wrapper.
+    this.abortControllers.get(taskId)?.abort();
+    this.abortControllers.delete(taskId);
     this.emitTaskUpdate(task);
     return true;
   }
@@ -312,6 +318,15 @@ export class TaskManager {
           task.status = 'failed';
           task.error = `task exceeded maxWorkingAgeMs (${this.maxWorkingAgeMs}ms)`;
           task.lastUpdatedAt = new Date().toISOString();
+          // cancelTask() rejects non-'working' records, so this is the last
+          // chance to stop a hung executor and the children it spawned.
+          this.abortControllers.get(id)?.abort();
+          this.abortControllers.delete(id);
+          if (task.cancelHandler) {
+            void Promise.resolve()
+              .then(() => task.cancelHandler!())
+              .catch((e: unknown) => logger.warn(`Error in cancelHandler for task ${id}:`, e));
+          }
           logger.warn(`Task ${id} (${task.name}) failed: exceeded maxWorkingAgeMs`);
           this.emitTaskUpdate(task);
         }

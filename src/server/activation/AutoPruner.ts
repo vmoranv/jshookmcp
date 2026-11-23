@@ -102,9 +102,19 @@ export class AutoPruner {
             `(threshold: ${Math.round(threshold / 1000)}s)`,
         );
 
-        this.onPrune(domain);
+        // Clear tracking before invoking the callback: a callback that
+        // re-activates the domain must not have its fresh timestamp deleted,
+        // and a throwing callback must not leave stale state behind.
         this.lastActivity.delete(domain);
         this.autoActivatedDomains.delete(domain);
+        try {
+          this.onPrune(domain);
+        } catch (error) {
+          logger.warn(
+            `[AutoPruner] onPrune handler failed for "${domain}": ` +
+              `${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
 
         // Emit pruned event
         void this.eventBus.emit('activation:domain_pruned', {

@@ -165,6 +165,18 @@ describe('WorkflowRunStore structured run history', () => {
       expect(entry!.errorMessage).toBe('flat failure');
     });
 
+    it('does not throw for undefined or symbol errors', () => {
+      const store = new WorkflowRunStore(10);
+      expect(() =>
+        store.recordError('wf', 'run-0', '2026-01-01T00:00:00.000Z', undefined),
+      ).not.toThrow();
+      expect(() =>
+        store.recordError('wf', 'run-1', '2026-01-01T00:00:00.000Z', Symbol('boom')),
+      ).not.toThrow();
+      expect(store.getRun('run-0')!.errorMessage).toBe('undefined');
+      expect(store.getRun('run-1')!.errorMessage).toBe('Symbol(boom)');
+    });
+
     it('truncates long error messages', () => {
       const store = new WorkflowRunStore(10);
       const long = 'x'.repeat(1000);
@@ -346,6 +358,22 @@ describe('WorkflowRunStore structured run history', () => {
       ]);
       // lastSuccess survives: run-0 is the latest successful run of wf.
       expect(target.getLastSuccess('wf')!.runId).toBe('run-0');
+    });
+
+    it('evicts malformed step outcomes instead of aborting the restore', () => {
+      const source = new WorkflowRunStore(10);
+      source.recordError('wf', 'run-1', '2026-01-01T00:00:00.000Z', new Error('boom'), [
+        { stepId: 's1', status: 'success' },
+      ]);
+      const snapshot = source.exportSnapshot();
+      (snapshot.runs[0] as { stepOutcomes?: unknown }).stepOutcomes = [
+        null,
+        { stepId: 's1', status: 'success' },
+      ];
+
+      const target = new WorkflowRunStore(10);
+      expect(() => target.restoreSnapshot(snapshot)).not.toThrow();
+      expect(target.getRun('run-1')!.stepOutcomes).toEqual([{ stepId: 's1', status: 'success' }]);
     });
 
     it('marks itself dirty on mutation and clean after markPersisted', () => {

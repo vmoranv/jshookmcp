@@ -30,9 +30,11 @@ const ListTasksParamsSchema = z.object({ cursor: z.string().optional() });
 import type { TaskManager, TaskRecord } from './TaskManager';
 
 const MAX_RESULT_WAIT_MS = 30_000;
-// Match the domain-side poll granularity (10ms) so SDK tasks/result also wakes
-// promptly after a task settles instead of sleeping up to 100ms.
+// Start at the domain-side poll granularity (10ms) so SDK tasks/result wakes
+// promptly after a task settles, then back off to bound the cost of a
+// never-settling task (a 10ms fixed interval spins ~3000 times per request).
 const RESULT_POLL_INTERVAL_MS = 10;
+const RESULT_POLL_MAX_INTERVAL_MS = 100;
 const TERMINAL_STATUSES = new Set<TaskRecord['status']>(['completed', 'failed', 'cancelled']);
 
 function sleep(ms: number): Promise<void> {
@@ -78,8 +80,10 @@ export class TaskStoreAdapter {
       async (params, ctx) => {
         const deadline = Date.now() + MAX_RESULT_WAIT_MS;
         let payload = this.taskManager.getTaskPayload(params.taskId, ctx?.sessionId);
+        let pollIntervalMs = RESULT_POLL_INTERVAL_MS;
         while (payload && !TERMINAL_STATUSES.has(payload.status) && Date.now() < deadline) {
-          await sleep(RESULT_POLL_INTERVAL_MS);
+          await sleep(pollIntervalMs);
+          pollIntervalMs = Math.min(RESULT_POLL_MAX_INTERVAL_MS, pollIntervalMs * 2);
           payload = this.taskManager.getTaskPayload(params.taskId, ctx?.sessionId);
         }
         if (!payload) {

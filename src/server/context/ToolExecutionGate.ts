@@ -154,6 +154,9 @@ export function getToolExecutionComplexity(toolName: string): number {
  */
 export function normalizeSemanticArgs(args: Record<string, unknown>): string {
   if (args === null || typeof args !== 'object') return '';
+  // Only ephemeral per-call metadata is ignored. `id` is often a structural
+  // argument (task/file/handle/rule id); dropping it would collapse genuinely
+  // different calls into the same signature and trip false isomorphic loops.
   const ignoredKeys = new Set([
     'comment',
     'description',
@@ -161,7 +164,6 @@ export function normalizeSemanticArgs(args: Record<string, unknown>): string {
     'nonce',
     '_meta',
     'requestId',
-    'id',
   ]);
   const sortedKeys = Object.keys(args)
     .filter((k) => !ignoredKeys.has(k))

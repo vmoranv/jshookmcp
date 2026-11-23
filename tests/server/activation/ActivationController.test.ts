@@ -48,18 +48,38 @@ describe('activation/ActivationController', () => {
     const controller = new ActivationController(eventBus, mockCtx as never);
 
     expect(eventBus.listenerCount('tool:called')).toBe(1);
-    expect(eventBus.listenerCount('debugger:breakpoint_hit')).toBe(1);
-    expect(eventBus.listenerCount('browser:navigated')).toBe(1);
-    expect(eventBus.listenerCount('memory:scan_completed')).toBe(1);
-    expect(eventBus.listenerCount('network:intercept_started')).toBe(1);
-    expect(eventBus.listenerCount('v8:heap_captured')).toBe(1);
-    expect(eventBus.listenerCount('tls:keylog_started')).toBe(1);
-    expect(eventBus.listenerCount('skia:scene_captured')).toBe(1);
-    expect(eventBus.listenerCount('frida:attached')).toBe(1);
-    expect(eventBus.listenerCount('adb:device_connected')).toBe(1);
-    expect(eventBus.listenerCount('mojo:message_captured')).toBe(1);
-    expect(eventBus.listenerCount('syscall:trace_started')).toBe(1);
-    expect(eventBus.listenerCount('protocol:pattern_detected')).toBe(1);
+    // Boost rules use prefix patterns, so they share one wildcard subscription
+    // instead of one per raw pattern (which would be inert for prefixes).
+    const wildcardCount = (): number =>
+      (eventBus as unknown as { wildcardListeners: unknown[] }).wildcardListeners.length;
+    expect(wildcardCount()).toBe(1);
+
+    controller.dispose();
+    expect(wildcardCount()).toBe(0);
+  });
+
+  it('evaluates a custom prefix boost rule', async () => {
+    const { ActivationController } = await import('@server/activation/ActivationController');
+    const bus = new EventBus<any>();
+    const controller = new ActivationController(bus, mockCtx as never, {
+      cooldownMs: 0,
+      boostRules: [
+        {
+          eventPattern: 'custom:',
+          targetDomains: ['network'],
+          threshold: 1,
+          windowMs: 1000,
+          priority: 50,
+        },
+      ],
+    });
+
+    await bus.emit('custom:signal', { timestamp: new Date().toISOString() });
+
+    expect(state.handleActivateDomain).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ domain: 'network' }),
+    );
 
     controller.dispose();
   });

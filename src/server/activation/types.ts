@@ -1,8 +1,7 @@
 /**
  * Types for the State-Driven Auto-Boost & Intelligence activation system.
  *
- * Supports event-pattern boost rules, inactivity-based prune rules,
- * and configurable controller options.
+ * Supports event-pattern boost rules and configurable controller options.
  */
 
 export interface BoostRule {
@@ -18,22 +17,15 @@ export interface BoostRule {
   priority: number;
 }
 
-export interface PruneRule {
-  /** Domain to prune */
-  domain: string;
-  /** Prune after this many ms of inactivity */
-  inactivityMs: number;
-}
-
 export interface ActivationControllerOptions {
   /** Boost cool-down period in ms (default 30000) */
   cooldownMs?: number;
-  /** Enable platform-based tool filtering (default true) */
-  platformFilter?: boolean;
-  /** Custom boost rules (extends defaults) */
+  /**
+   * Custom boost rules (extends defaults). `eventPattern` is a prefix: rules
+   * are evaluated against every emitted event, so `debugger:` matches
+   * `debugger:breakpoint_hit` as well as the exact name.
+   */
   boostRules?: BoostRule[];
-  /** Custom prune rules (extends defaults) */
-  pruneRules?: PruneRule[];
 }
 
 /** Record of an event occurrence for sliding-window evaluation. */

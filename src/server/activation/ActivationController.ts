@@ -249,7 +249,14 @@ export class ActivationController {
           (name) => getToolDomain(name) ?? null,
         );
         for (const domain of predictedDomains) {
-          void this.attemptBoost(domain, `predictive: ${payload.toolName} → ${domain}`);
+          void this.attemptBoost(domain, `predictive: ${payload.toolName} → ${domain}`).catch(
+            (err) => {
+              logger.error(
+                `[ActivationController] Predictive boost of domain "${domain}" failed:`,
+                err,
+              );
+            },
+          );
         }
 
         // Evaluate compound conditions every N tool calls (env-tunable)
@@ -260,22 +267,22 @@ export class ActivationController {
       }),
     );
 
-    // Subscribe every distinct boost-rule event so newly added auto-boost paths
-    // cannot go stale when domain handlers start emitting more signals.
-    const subscribedEvents = new Set<string>();
-    for (const rule of this.boostRules) {
-      if (!rule.eventPattern || subscribedEvents.has(rule.eventPattern)) {
-        continue;
-      }
-      subscribedEvents.add(rule.eventPattern);
-      const eventName = rule.eventPattern as keyof ServerEventMap;
-      this.unsubscribers.push(
-        this.eventBus.on(eventName, (payload) => {
-          this.recordEvent(rule.eventPattern, payload);
-          return this.evaluateBoostRules(rule.eventPattern);
-        }),
-      );
-    }
+    // Boost-rule patterns are prefixes (`debugger:` must react to
+    // `debugger:breakpoint_hit`), so subscribe to the wildcard channel and
+    // match there. Subscribing each raw pattern with `on()` made every prefix
+    // rule inert: it listened for an event name nothing ever emits.
+    this.unsubscribers.push(
+      this.eventBus.onAny(({ event, payload }) => {
+        const matches = this.boostRules.some(
+          (rule) => rule.eventPattern.length > 0 && event.startsWith(rule.eventPattern),
+        );
+        if (!matches) return;
+        this.recordEvent(event, payload);
+        return this.evaluateBoostRules(event).catch((err) => {
+          logger.error(`[ActivationController] Boost evaluation failed for "${event}":`, err);
+        });
+      }),
+    );
   }
 
   /** Record an event in the bounded sliding window (O(1) ring-buffer push). */
@@ -383,7 +390,12 @@ export class ActivationController {
 
     const domainsToBoost = this.compoundEngine.evaluate(state);
     for (const domain of domainsToBoost) {
-      void this.attemptBoost(domain, `compound condition`);
+      void this.attemptBoost(domain, `compound condition`).catch((err) => {
+        logger.error(
+          `[ActivationController] Compound-condition boost of domain "${domain}" failed:`,
+          err,
+        );
+      });
     }
   }
 

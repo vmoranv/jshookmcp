@@ -198,7 +198,10 @@ function evaluateSuccessRatePredicate(
   predicateId: string,
   ctx: InternalExecutionContext,
 ): boolean | null {
-  const successRateMatch = predicateId.match(/success_rate_gte_(\d+)/i);
+  // Anchored: ids that merely contain the phrase (e.g. `my_success_rate_gte_50`
+  // or `success_rate_gte_50_extra`) must fall through to "unknown predicate"
+  // instead of silently evaluating the aggregate success rate.
+  const successRateMatch = predicateId.match(/^success_rate_gte_(\d+)$/i);
   if (!successRateMatch?.[1]) return null;
   const threshold = Number(successRateMatch[1]);
   const aggregate = aggregateSuccessStats(ctx);

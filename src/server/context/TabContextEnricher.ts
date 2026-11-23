@@ -269,6 +269,15 @@ export class TabContextEnricher {
       pageId: meta.pageId,
     };
 
+    // Empty objects first: a pretty empty object (`{\n}`) also matches the
+    // pretty-print branch and would become `{,\n  "_tabContext": ...}` — a
+    // leading comma that yields invalid JSON.
+    const compactJson = JSON.stringify(tabContext);
+    // eslint-disable-next-line security/detect-unsafe-regex
+    if (/^\s*\{\s*\}\s*$/.test(raw)) {
+      return raw.replace(/\{\s*\}\s*$/, `{"_tabContext":${compactJson}}`);
+    }
+
     // Detect pretty-print: if the closing brace is on its own line, match style
     // eslint-disable-next-line security/detect-unsafe-regex
     if (/\n\}\s*$/.test(raw)) {
@@ -276,12 +285,6 @@ export class TabContextEnricher {
       return raw.replace(/\n\}\s*$/, `,\n  "_tabContext": ${prettyJson}\n}`);
     }
 
-    // Compact style
-    const compactJson = JSON.stringify(tabContext);
-    // eslint-disable-next-line security/detect-unsafe-regex
-    if (/^\{\s*\}\s*$/.test(raw)) {
-      return raw.replace(/\{\s*\}\s*$/, `{"_tabContext":${compactJson}}`);
-    }
     return raw.replace(/\}\s*$/, `,"_tabContext":${compactJson}}`);
   }
 
