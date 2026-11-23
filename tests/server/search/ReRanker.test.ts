@@ -446,6 +446,78 @@ describe('search/ReRanker', () => {
     expect(reRanked).toHaveLength(1);
   });
 
+  it('clamps duplicate-token description overlap to the [0,1] range', () => {
+    const reRanker = new ReRanker();
+    const results: ReRankInput[] = [
+      makeInput({
+        toolName: 'unrelated_thing',
+        score: 1,
+        domain: 'misc',
+        description: 'navigate navigate navigate navigate navigate',
+      }),
+      makeInput({
+        toolName: 'other_thing',
+        score: 1,
+        domain: 'misc',
+        description: 'nothing',
+      }),
+    ];
+
+    const reRanked = reRanker.reRank('navigate', results);
+    for (const result of reRanked) {
+      expect(result.reRankedScore).toBeGreaterThanOrEqual(0);
+      expect(result.reRankedScore).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('does not let repeated description tokens inflate the reRank score', () => {
+    const reRanker = new ReRanker();
+    const results: ReRankInput[] = [
+      makeInput({
+        toolName: 'tool_x',
+        score: 1,
+        domain: '',
+        description: 'intercept network traffic',
+      }),
+      makeInput({
+        toolName: 'tool_y',
+        score: 1,
+        domain: '',
+        // Same distinct terms as tool_x, just repeated.
+        description: 'intercept intercept network network traffic traffic',
+      }),
+    ];
+
+    const reRanked = reRanker.reRank('intercept network traffic', results, { enableMMR: false });
+    const first = reRanked.find((r) => r.toolName === 'tool_x');
+    const second = reRanked.find((r) => r.toolName === 'tool_y');
+
+    expect(second?.reRankedScore).toBe(first?.reRankedScore);
+  });
+
+  it('ranks broader query coverage above a description that repeats one term', () => {
+    const reRanker = new ReRanker();
+    const results: ReRankInput[] = [
+      makeInput({
+        toolName: 'tool_x',
+        score: 1,
+        domain: '',
+        description: 'intercept network',
+      }),
+      makeInput({
+        toolName: 'tool_y',
+        score: 1,
+        domain: '',
+        // Repeats a single query term instead of covering both.
+        description: 'intercept intercept intercept',
+      }),
+    ];
+
+    const reRanked = reRanker.reRank('intercept network', results, { enableMMR: false });
+
+    expect(reRanked.map((r) => r.toolName)).toEqual(['tool_x', 'tool_y']);
+  });
+
   describe('MMR category diversification', () => {
     it('diversifies top results across domains when relevance scores are close', () => {
       const reRanker = new ReRanker();
@@ -473,7 +545,10 @@ describe('search/ReRanker', () => {
           toolName: 'transform_workbench',
           score: 9.5,
           domain: 'transform',
-          description: 'Transform and deobfuscate payload',
+          // Shares the query terms so its lexical relevance stays close to the
+          // network tools; otherwise MMR (correctly) prefers the more relevant
+          // third network tool over an unrelated domain.
+          description: 'Intercept and transform traffic payload',
         }),
       ];
 
@@ -489,6 +564,52 @@ describe('search/ReRanker', () => {
       expect(topNames[0]).toBe('network_intercept_1');
       // transform_workbench should be selected in top-3 due to domain diversification
       expect(topNames).toContain('transform_workbench');
+    });
+
+    it('does not sacrifice relevance for an unrelated domain', () => {
+      const reRanker = new ReRanker();
+      const results: ReRankInput[] = [
+        makeInput({
+          toolName: 'network_intercept_1',
+          score: 10,
+          domain: 'network',
+          description: 'Intercept network traffic',
+        }),
+        makeInput({
+          toolName: 'network_intercept_2',
+          score: 9.8,
+          domain: 'network',
+          description: 'Intercept network packets',
+        }),
+        makeInput({
+          toolName: 'network_intercept_3',
+          score: 9.6,
+          domain: 'network',
+          description: 'Intercept network frames',
+        }),
+        makeInput({
+          toolName: 'transform_workbench',
+          score: 9.5,
+          domain: 'transform',
+          // No shared query terms: its re-ranked relevance is far below the
+          // third network tool even though the raw retrieval scores are close.
+          description: 'Transform and deobfuscate payload',
+        }),
+      ];
+
+      const diversified = reRanker.reRank('intercept traffic', results, {
+        topK: 3,
+        enableMMR: true,
+        maxPerDomain: 2,
+      });
+
+      // The per-domain quota is a soft preference: MMR must not promote a
+      // near-zero-relevance tool over a substantially more relevant one.
+      expect(diversified.map((d) => d.toolName)).toEqual([
+        'network_intercept_1',
+        'network_intercept_2',
+        'network_intercept_3',
+      ]);
     });
 
     it('can be disabled to restore pure greedy relevance sorting', () => {

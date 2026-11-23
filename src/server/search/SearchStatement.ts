@@ -15,12 +15,22 @@ export interface BakedStatement {
    * prior mode (index-time doc.tokenSet and query-time folding would disagree).
    */
   readonly stemMode: string;
+  /**
+   * Sorted fingerprint of the active tool set when session-dependent workflow
+   * transition boosts were baked into the captured scores. Without it, a later
+   * identical query from a different session replays another session's boosts.
+   */
+  readonly activeToolFingerprint?: string;
 }
 
 export function buildSearchCacheKey(statement: BakedStatement): string {
   const query = statement.query.toLowerCase().trim();
   const base = statement.extensionEtag.length > 0 ? `${query}\0${statement.extensionEtag}` : query;
-  return `${base}\0stem=${statement.stemMode}`;
+  const active =
+    statement.activeToolFingerprint && statement.activeToolFingerprint.length > 0
+      ? `\0active=${statement.activeToolFingerprint}`
+      : '';
+  return `${base}\0stem=${statement.stemMode}${active}`;
 }
 
 export function capturePositiveScores(scores: Float64Array): Array<[number, number]> {

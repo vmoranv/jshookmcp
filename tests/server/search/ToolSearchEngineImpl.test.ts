@@ -155,19 +155,38 @@ describe('search/ToolSearchEngineImpl', () => {
     expect(capitalised.map((r) => r.score)).toEqual(padded.map((r) => r.score));
   });
 
-  it('updates isActive from cache hits without changing scores', async () => {
+  it('replays cache hits without changing scores when the active set is unchanged', async () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     const engine = new ToolSearchEngine([
       makeTool('page_navigate', 'Navigate a page'),
       makeTool('page_click', 'Click a page element'),
     ]);
 
-    const first = await engine.search('page navigate', 5, new Set());
-    const second = await engine.search('page navigate', 5, new Set(['page_navigate']));
+    const first = await engine.search('page navigate', 5, new Set(['page_navigate']));
+    const replay = await engine.search('page navigate', 5, new Set(['page_navigate']));
 
-    expect(first.map((item) => item.score)).toEqual(second.map((item) => item.score));
-    expect(first.find((item) => item.name === 'page_navigate')?.isActive).toBe(false);
-    expect(second.find((item) => item.name === 'page_navigate')?.isActive).toBe(true);
+    expect(replay.map((item) => item.score)).toEqual(first.map((item) => item.score));
+    expect(first.find((item) => item.name === 'page_navigate')?.isActive).toBe(true);
+    expect(replay.find((item) => item.name === 'page_navigate')?.isActive).toBe(true);
+  });
+
+  it('does not replay another session workflow boosts from the cache', async () => {
+    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+    const engine = new ToolSearchEngine([
+      makeTool('page_navigate', 'Navigate a page'),
+      makeTool('page_click', 'Click a page element'),
+    ]);
+
+    const idle = await engine.search('page navigate', 5, new Set());
+    const focused = await engine.search('page navigate', 5, new Set(['page_navigate']));
+
+    expect(idle.find((item) => item.name === 'page_navigate')?.isActive).toBe(false);
+    expect(focused.find((item) => item.name === 'page_navigate')?.isActive).toBe(true);
+    // Workflow transition boosts and their drift-immunity effect are baked into
+    // the captured pre-adjust scores, so the active set is part of the cache
+    // key: a focused session must not be served the idle session's scores (or
+    // vice versa) just because the query text matches.
+    expect(focused.map((item) => item.score)).not.toEqual(idle.map((item) => item.score));
   });
 
   it('recomputes rankings when visible domains change between identical queries', async () => {
