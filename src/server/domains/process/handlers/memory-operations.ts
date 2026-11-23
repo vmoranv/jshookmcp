@@ -179,6 +179,7 @@ export class MemoryOperationHandlers {
           extra: {
             requestedPattern: pattern,
             patternType,
+            addresses: [],
           },
         });
       }
@@ -254,6 +255,12 @@ export class MemoryOperationHandlers {
       const pattern = requireString(args.pattern, 'pattern');
       const addresses = this.requireStringArray(args.addresses, 'addresses');
       const patternType = normalizePatternType(args.patternType);
+      if (addresses.length === 0) {
+        return this.jsonResponse({
+          success: false,
+          error: 'addresses must contain at least one address',
+        });
+      }
 
       const availability = await this.memoryManager.checkAvailability();
       if (!availability.available) {
@@ -277,6 +284,11 @@ export class MemoryOperationHandlers {
     try {
       const pid = await this.resolvePid(args.pid);
       const patches = this.requirePatches(args.patches);
+      // An empty batch performs no OS write, so it must not require elevated
+      // memory access just to report success with zero results.
+      if (patches.length === 0) {
+        return this.jsonResponse({ success: true, results: [] });
+      }
 
       const availability = await this.memoryManager.checkAvailability();
       if (!availability.available) {
@@ -379,6 +391,8 @@ export class MemoryOperationHandlers {
       reason: params.reason,
       platform: this.platform,
       pid: params.pid,
+      ...(params.address !== null ? { address: params.address } : {}),
+      ...(params.size !== null ? { size: params.size } : {}),
       ...params.extra,
       diagnostics,
     });
