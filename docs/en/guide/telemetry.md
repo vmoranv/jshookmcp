@@ -45,4 +45,3 @@ Proxied networks: the exporter automatically honors `HTTPS_PROXY`/`ALL_PROXY` en
 ## Other backends
 
 `JSHOOK_OBSERVABILITY_EXPORTER=memory` keeps spans/metrics in process memory (diagnostics); `none` disables export entirely; `otlp` (the shipped default) streams to the configured OTLP endpoint.
-

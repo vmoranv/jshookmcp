@@ -45,4 +45,3 @@ JSHOOK_OTLP_QUERY_TEXT=full        # 完整文本（仅在私有端点下使用�
 ## 其他后端
 
 `JSHOOK_OBSERVABILITY_EXPORTER=memory` 将 span/指标保存在进程内存中（诊断用）；`none` 完全关闭导出；`otlp`（出厂默认）把信号流式发送到配置的 OTLP 端点。
-
