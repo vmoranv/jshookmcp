@@ -385,6 +385,17 @@ export class BrowserFleetRouter {
         this.leaseTtlMs,
       );
     }
+    // A live remote lease is sticky in the store: acquire() would renew it and
+    // return the remote worker, only for assertLocal() to fail afterwards (and
+    // we would have extended someone else's lease as a side effect).
+    const existing = await this.leaseStore.get(normalized, this.now());
+    if (
+      existing &&
+      this.activeWorkerIds.has(existing.workerId) &&
+      existing.workerId !== this.localWorkerId
+    ) {
+      throw this.remoteLeaseError(normalized, existing);
+    }
     const lease = await this.leaseStore.acquire({
       sessionId: normalized,
       preferredWorkerId: this.localWorkerId,
@@ -416,6 +427,12 @@ export class BrowserFleetRouter {
         endpoint: this.workers.get(existing.workerId)?.endpoint ?? null,
       });
       if (route) return route;
+    }
+    // Do not fall through to routeSession(): acquire() renews a valid remote
+    // lease and returns it, so assertLocal() would throw only after extending
+    // a lease for a worker this admission path must not touch.
+    if (existing && existing.workerId !== this.localWorkerId) {
+      throw this.remoteLeaseError(normalized, existing);
     }
     if (preferred.id !== this.localWorkerId) {
       const targetWorker = existing ? this.workers.get(existing.workerId) : preferred;
@@ -566,6 +583,18 @@ export class BrowserFleetRouter {
 
   private getLeaseRenewalIntervalMs(): number {
     return Math.max(1, Math.floor(this.leaseTtlMs / 3));
+  }
+
+  private remoteLeaseError(sessionId: string, lease: BrowserFleetLease): BrowserFleetLeaseError {
+    const worker = this.workers.get(lease.workerId);
+    return new BrowserFleetLeaseError(
+      `Browser session ${sessionId} is assigned to worker ${lease.workerId}`,
+      'BROWSER_FLEET_WRONG_WORKER',
+      lease.workerId,
+      worker?.endpoint ?? null,
+      lease.fencingToken,
+      0,
+    );
   }
 
   private leaseLostError(route: BrowserFleetRoute, cause?: unknown): BrowserFleetLeaseError {

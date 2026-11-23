@@ -153,13 +153,20 @@ export class ServerRuntimeState {
           continue;
         }
         const entry = rawEntry as Partial<PersistedDomainTtl>;
-        const ttlMinutes = Number(entry.ttlMinutes);
         const toolNames = Array.isArray(entry.toolNames)
           ? entry.toolNames.filter((value): value is string => typeof value === 'string')
           : [];
-        if (!Number.isFinite(ttlMinutes)) {
-          continue;
-        }
+        // `Number(null | '' | false | [])` is 0, which passes a bare finite check
+        // and downstream treats <= 0 as "never expires". Only accept real,
+        // non-negative numbers from persisted state.
+        const rawTtl = (entry as { ttlMinutes?: unknown }).ttlMinutes;
+        const ttlMinutes =
+          typeof rawTtl === 'number'
+            ? rawTtl
+            : typeof rawTtl === 'string' && rawTtl.trim().length > 0
+              ? Number(rawTtl)
+              : Number.NaN;
+        if (!Number.isFinite(ttlMinutes) || ttlMinutes < 0) continue;
         this.pendingDomainTtls.set(domain, { ttlMinutes, toolNames });
       }
     }
