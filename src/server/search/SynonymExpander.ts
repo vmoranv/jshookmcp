@@ -16,6 +16,36 @@ import { SEARCH_SYNONYM_EXPANSION_LIMIT } from '@src/constants';
  * every other member.  Groups are curated for the MCP tool domain vocabulary.
  */
 const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
+  // Prioritized semantic groups: discriminative terms first so the
+  // default expansion limit (2) reaches them. Kept before the broad groups.
+  [
+    'mobile',
+    'viewport',
+    'smartphone',
+    'phone',
+    'tablet',
+    'screen',
+    'resize',
+    'dimensions',
+    'device',
+  ],
+  [
+    'tls',
+    'version',
+    'versions',
+    'protocol',
+    'protocols',
+    'probe',
+    'endpoint',
+    'ssl',
+    'cipher',
+    'ciphers',
+  ],
+  ['evidence', 'evidance', 'evidanc', 'artifact', 'bundle'],
+  ['capture', 'monitor', 'network', 'traffic'],
+  ['sniff', 'network', 'request', 'traffic', 'capture', 'observe', 'trace', 'record', 'log'],
+  ['intercept', 'fetch', 'xhr', 'api', 'call', 'request', 'network'],
+  ['hook', 'manage', 'generate', 'install', 'patch', 'override'],
   // Emulator term-of-art mapping: users say "the emulator", the
   // native-emulator domain's tools are named nemu_* (ARM64 emulation
   // backend). Kept as its own group and listed BEFORE the Android-bridge
@@ -92,7 +122,20 @@ const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
   // Stealth / anti-detect
   ['stealth', 'antidetect', 'fingerprint', 'evasion', 'undetected'],
   // Mobile / device
-  ['mobile', 'device', 'emulate', 'responsive', 'phone'],
+  [
+    'mobile',
+    'device',
+    'emulate',
+    'responsive',
+    'phone',
+    'smartphone',
+    'viewport',
+    'resize',
+    'screen',
+    'dimensions',
+    'tablet',
+    'iphone',
+  ],
   // Performance / profile
   ['performance', 'profile', 'benchmark', 'metric', 'vitals'],
   // Register / signup
@@ -111,7 +154,6 @@ const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
   ['traffic', 'network', 'request', 'response', 'connection', 'pkt', 'packet', 'pcap'],
   // Heap / memory
   ['heap', 'memory', 'allocation', 'gc', 'garbage', 'mem', 'ram', 'addr', 'pointer', 'ptr'],
-  // Export / save
   ['export', 'save', 'dump', 'download', 'extract'],
   // Function / Symbol
   ['function', 'symbol', 'symbols', 'method', 'sym', 'syms', 'fn'],
@@ -132,7 +174,24 @@ const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
   // V8 / JS runtime internals
   ['v8', 'heap', 'snapshot', 'bytecode', 'jit', 'turbofan', 'ignition', 'hiddenclass'],
   // TLS / BoringSSL
-  ['tls', 'ssl', 'boringssl', 'cert', 'certificate', 'pinning', 'handshake', 'keylog'],
+  [
+    'tls',
+    'ssl',
+    'boringssl',
+    'cert',
+    'certificate',
+    'pinning',
+    'handshake',
+    'keylog',
+    'version',
+    'versions',
+    'protocol',
+    'protocols',
+    'probe',
+    'endpoint',
+    'cipher',
+    'ciphers',
+  ],
   // Skia / GPU rendering
   ['skia', 'gpu', 'render', 'scenegraph', 'scene', 'draw', 'paint', 'raster', 'layer'],
   // Binary instrumentation toolchain
