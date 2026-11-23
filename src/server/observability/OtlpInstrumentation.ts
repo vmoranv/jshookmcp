@@ -144,6 +144,13 @@ function sanitizeAttrs(attrs: Record<string, unknown> | undefined): Record<strin
 
 export class OtlpInstrumentation implements InstrumentationContract {
   private state: 'init' | 'live' | 'broken' = 'init';
+  /**
+   * One-way flag raised at the very start of shutdown(). A slow init may
+   * complete AFTER shutdown() timed out waiting for it; without this the
+   * freshly built providers would be published and their batch/periodic
+   * timers would keep exporting (and keep a short-lived stdio process alive).
+   */
+  private shuttingDown = false;
   private readonly pendingSpans: BufferedSpan[] = [];
   private readonly pendingMetrics: BufferedMetric[] = [];
   private readonly options: OtlpInstrumentationOptions;
@@ -297,6 +304,25 @@ export class OtlpInstrumentation implements InstrumentationContract {
       this.spanProvider = spanProvider as never;
       this.metricProvider = metricProvider as never;
       this.meter = new MeterFacade(metricProvider.getMeter('jshookmcp'));
+
+      // shutdown() may have already timed out waiting for this init. Never
+      // publish providers in that case: their timers would keep exporting
+      // after the server closed. Tear them down and stay a no-op.
+      if (this.shuttingDown) {
+        this.state = 'broken';
+        try {
+          await spanProvider.shutdown();
+        } catch {
+          /* best-effort */
+        }
+        try {
+          await metricProvider.shutdown({ timeoutMillis: FLUSH_TIMEOUT_MS });
+        } catch {
+          /* best-effort */
+        }
+        return;
+      }
+
       this.state = 'live';
 
       // Replay the full lifecycle of every span buffered before the SDK
@@ -328,6 +354,10 @@ export class OtlpInstrumentation implements InstrumentationContract {
   startSpan(name: string, attrs?: Record<string, unknown>, startTime?: number): SpanLike {
     if (this.state === 'broken') return noopSpan(name);
     if (this.state === 'init') {
+      // The buffer is bounded. If it is full the entry will never be replayed,
+      // so return a no-op handle instead of one that pretends to be live and
+      // silently records into an orphaned entry.
+      if (this.pendingSpans.length >= MAX_BUFFERED_SPANS) return noopSpan(name);
       const entry: BufferedSpan = {
         name,
         attrs,
@@ -337,9 +367,7 @@ export class OtlpInstrumentation implements InstrumentationContract {
         ended: false,
         live: null,
       };
-      if (this.pendingSpans.length < MAX_BUFFERED_SPANS) {
-        this.pendingSpans.push(entry);
-      }
+      this.pendingSpans.push(entry);
       // Buffer-backed handle: lifecycle calls are recorded on the entry; once
       // the replay connects a live span they forward to it instead.
       return {
@@ -441,6 +469,9 @@ export class OtlpInstrumentation implements InstrumentationContract {
   /** Shutdown providers (flushes + stops timers). Called from closeServer. */
   async shutdown(): Promise<void> {
     if (this.state === 'broken') return;
+    // Raised before any await: a concurrent (slow) init must observe it and
+    // refuse to publish providers that could never be shut down.
+    this.shuttingDown = true;
     // Same init-wait as flush(): shutdown is the last chance to export the
     // buffer, and it frequently races a cold start on short-lived stdio
     // processes.

@@ -37,7 +37,7 @@
 export const CACHE_HINT_DEFAULTS = Object.freeze({
   ttlMs: 0,
   cacheScope: 'private',
-});
+} as const);
 
 /**
  * The full list of operations whose results are cacheable on the 2026-07-28

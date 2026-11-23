@@ -139,6 +139,8 @@ interface SessionState {
   totalRecorded: number;
   droppedEntries: number;
   lastToolName: string | null;
+  /** Monotonic last-write time, used to evict the STALEST session on overflow. */
+  lastTouchedAt: number;
 }
 
 /**
@@ -159,7 +161,6 @@ export class ToolCallTraceRecorder {
   private readonly maxEntries: number;
   private readonly defaultSessionId: string;
   private readonly sessions = new Map<string, SessionState>();
-
   constructor(options: ToolCallTraceRecorderOptions = {}) {
     // A non-positive cap would make every entry vanish while `totalRecorded`
     // kept climbing — a recorder that records nothing and says it recorded
@@ -187,6 +188,7 @@ export class ToolCallTraceRecorder {
     state.nextSeq += 1;
     state.totalRecorded += 1;
     state.lastToolName = entry.toolName;
+    state.lastTouchedAt = Date.now();
     if (state.entries.length === this.maxEntries) state.droppedEntries += 1;
     state.entries.push(recorded);
     return recorded;
@@ -264,8 +266,20 @@ export class ToolCallTraceRecorder {
     let state = this.sessions.get(key);
     if (state) return state;
     if (this.sessions.size >= MAX_TRACKED_SESSIONS) {
-      const oldest = this.sessions.keys().next().value as string | undefined;
-      if (oldest !== undefined) this.sessions.delete(oldest);
+      // Evict the least-recently-used session, not the first-seen one: the
+      // long-lived default/stdio session was otherwise the first casualty while
+      // an idle later session survived. Record it so the loss stays visible.
+      let stalestKey: string | undefined;
+      let stalestTouched = Number.POSITIVE_INFINITY;
+      for (const [sessionKey, sessionState] of this.sessions) {
+        if (sessionState.lastTouchedAt < stalestTouched) {
+          stalestTouched = sessionState.lastTouchedAt;
+          stalestKey = sessionKey;
+        }
+      }
+      if (stalestKey !== undefined) {
+        this.sessions.delete(stalestKey);
+      }
     }
     state = {
       startedAt: Date.now(),
@@ -274,6 +288,7 @@ export class ToolCallTraceRecorder {
       totalRecorded: 0,
       droppedEntries: 0,
       lastToolName: null,
+      lastTouchedAt: Date.now(),
     };
     this.sessions.set(key, state);
     return state;

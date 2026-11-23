@@ -164,12 +164,18 @@ export class QuickJSSandbox {
     bridge: MCPBridge,
     options: OrchestrationOptions = {},
   ): Promise<OrchestrationResult> {
-    const maxBridgeCalls = options.maxBridgeCalls ?? SANDBOX_MAX_BRIDGE_CALLS;
+    const requestedBudget = options.maxBridgeCalls ?? SANDBOX_MAX_BRIDGE_CALLS;
+    const maxBridgeCalls = Number.isFinite(requestedBudget)
+      ? Math.max(0, Math.floor(requestedBudget))
+      : SANDBOX_MAX_BRIDGE_CALLS;
     const startTime = Date.now();
     const allLogs: string[] = [];
     const allBridgeCalls: BridgeCallRecord[] = [];
 
-    // Apply allowlist if specified
+    // The bridge is caller-owned and may be reused, so never leave our
+    // allowlist installed after this run. (Concurrent runs on the same bridge
+    // still share its pending queue and must not overlap.)
+    const previousAllowlist = options.bridgeAllowlist ? bridge.getAllowlist() : null;
     if (options.bridgeAllowlist) {
       bridge.setAllowlist(options.bridgeAllowlist);
     }
@@ -179,80 +185,109 @@ export class QuickJSSandbox {
     let lastOutput: unknown;
     let round = 0;
 
-    while (round <= maxBridgeCalls) {
-      // Build globals for this round
-      const roundGlobals: Record<string, unknown> = {
-        ...options.globals,
-        __bridgeRound: round,
-      };
-
-      // Inject prior bridge results (round > 0)
-      if (round > 0) {
-        roundGlobals.__bridgeResults = bridgeResults;
-      }
-
-      // Execute one round
-      const roundResult = await this.executeOneRound(code, bridge, {
-        ...options,
-        globals: roundGlobals,
-      });
-
-      // Collect logs
-      allLogs.push(...roundResult.logs);
-
-      // Check for errors / timeout
-      if (!roundResult.ok || roundResult.timedOut) {
-        return {
-          ...roundResult,
-          logs: allLogs,
-          durationMs: Date.now() - startTime,
-          bridgeCallCount: allBridgeCalls.length,
-          bridgeCalls: allBridgeCalls,
+    try {
+      for (;;) {
+        // Build globals for this round
+        const roundGlobals: Record<string, unknown> = {
+          ...options.globals,
+          __bridgeRound: round,
         };
-      }
 
-      lastOutput = roundResult.output;
-
-      // Check for pending bridge calls
-      if (!bridge.hasPending()) {
-        // No pending calls — script completed without requesting tools
-        break;
-      }
-
-      // Drain and resolve pending calls
-      const pending = bridge.drainPending();
-      const roundResults: Record<string, unknown> = {};
-
-      for (const req of pending) {
-        try {
-          const result = await bridge.call(req.toolName, req.args);
-          roundResults[req.id] = result;
-          allBridgeCalls.push({ toolName: req.toolName, args: req.args, result });
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          roundResults[req.id] = { __error: true, message: errorMsg };
-          allBridgeCalls.push({
-            toolName: req.toolName,
-            args: req.args,
-            result: { __error: true, message: errorMsg },
-          });
+        // Inject prior bridge results (round > 0)
+        if (round > 0) {
+          roundGlobals.__bridgeResults = bridgeResults;
         }
+
+        // Execute one round
+        const roundResult = await this.executeOneRound(code, bridge, {
+          ...options,
+          globals: roundGlobals,
+        });
+
+        // Collect logs
+        allLogs.push(...roundResult.logs);
+
+        // Check for errors / timeout
+        if (!roundResult.ok || roundResult.timedOut) {
+          return {
+            ...roundResult,
+            logs: allLogs,
+            durationMs: Date.now() - startTime,
+            bridgeCallCount: allBridgeCalls.length,
+            bridgeCalls: allBridgeCalls,
+          };
+        }
+
+        lastOutput = roundResult.output;
+
+        // No pending calls — script completed without requesting tools
+        if (!bridge.hasPending()) {
+          break;
+        }
+
+        // Drain and resolve pending calls. The budget caps host tool
+        // executions (not just rounds), so a single round cannot smuggle an
+        // unbounded batch of calls past the limit.
+        const pending = bridge.drainPending();
+        // Defensive: a bridge that reports pending but drains nothing would
+        // otherwise spin this loop forever.
+        if (pending.length === 0) {
+          break;
+        }
+
+        if (allBridgeCalls.length + pending.length > maxBridgeCalls) {
+          // Do not execute calls whose results can never be delivered back:
+          // the guest would silently lose them and the run would look
+          // successful. Fail loudly instead.
+          return {
+            ok: false,
+            error: `Bridge call budget exhausted (max ${maxBridgeCalls})`,
+            output: lastOutput,
+            timedOut: false,
+            durationMs: Date.now() - startTime,
+            logs: allLogs,
+            bridgeCallCount: allBridgeCalls.length,
+            bridgeCalls: allBridgeCalls,
+          };
+        }
+
+        const roundResults: Record<string, unknown> = {};
+
+        for (const req of pending) {
+          try {
+            const result = await bridge.call(req.toolName, req.args);
+            roundResults[req.id] = result;
+            allBridgeCalls.push({ toolName: req.toolName, args: req.args, result });
+          } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            roundResults[req.id] = { __error: true, message: errorMsg };
+            allBridgeCalls.push({
+              toolName: req.toolName,
+              args: req.args,
+              result: { __error: true, message: errorMsg },
+            });
+          }
+        }
+
+        // Merge results for next round
+        bridgeResults = { ...bridgeResults, ...roundResults };
+        round++;
       }
 
-      // Merge results for next round
-      bridgeResults = { ...bridgeResults, ...roundResults };
-      round++;
+      return {
+        ok: true,
+        output: lastOutput,
+        timedOut: false,
+        durationMs: Date.now() - startTime,
+        logs: allLogs,
+        bridgeCallCount: allBridgeCalls.length,
+        bridgeCalls: allBridgeCalls,
+      };
+    } finally {
+      if (options.bridgeAllowlist) {
+        bridge.setAllowlist(previousAllowlist);
+      }
     }
-
-    return {
-      ok: true,
-      output: lastOutput,
-      timedOut: false,
-      durationMs: Date.now() - startTime,
-      logs: allLogs,
-      bridgeCallCount: allBridgeCalls.length,
-      bridgeCalls: allBridgeCalls,
-    };
   }
 
   // ── Private helpers ──

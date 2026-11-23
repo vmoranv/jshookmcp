@@ -183,12 +183,17 @@ export const SANDBOX_HELPER_SOURCE = `
         md5cycle(state, blk);
       }
       for (var j = 0; j < 16; j++) tail[j] = 0;
-      for (i = i - 64; i < n; i++) {
-        tail[i>>2] |= str.charCodeAt(i) << ((i%4)<<3);
+      // 'i' is an absolute string offset after the block loop; the tail block
+      // needs block-relative indices, otherwise bytes >= 64 land past tail[15]
+      // and the real trailing data is hashed as an all-zero block.
+      var t = 0;
+      for (i = i - 64; i < n; i++, t++) {
+        tail[t>>2] |= str.charCodeAt(i) << ((t%4)<<3);
       }
-      tail[i>>2] |= 0x80 << ((i%4)<<3);
-      if (i > 55) { md5cycle(state, tail); for (j = 0; j < 16; j++) tail[j] = 0; }
+      tail[t>>2] |= 0x80 << ((t%4)<<3);
+      if (t > 55) { md5cycle(state, tail); for (j = 0; j < 16; j++) tail[j] = 0; }
       tail[14] = n * 8;
+      tail[15] = Math.floor(n / 0x20000000) | 0;
       md5cycle(state, tail);
 
       var hex_chr = '0123456789abcdef';
@@ -218,7 +223,13 @@ export const SANDBOX_HELPER_SOURCE = `
       var l=msg.length;
       while(l%64!==56){msg.push(0);l++;}
       var bits=str.length*8;
-      for(i=7;i>=0;i--)msg.push((bits>>>(i*8))&0xff);
+      // JS shift counts are taken modulo 32, so (bits >>> (i*8)) for i >= 4
+      // re-reads the low word instead of shifting in zeros. Emit the 64-bit
+      // big-endian length explicitly.
+      var hi=Math.floor(bits/0x100000000);
+      var lo=bits>>>0;
+      msg.push((hi>>>24)&0xff,(hi>>>16)&0xff,(hi>>>8)&0xff,hi&0xff,
+               (lo>>>24)&0xff,(lo>>>16)&0xff,(lo>>>8)&0xff,lo&0xff);
       for(var offset=0;offset<msg.length;offset+=64){
         var W=[];
         for(i=0;i<16;i++)W[i]=(msg[offset+i*4]<<24)|(msg[offset+i*4+1]<<16)|(msg[offset+i*4+2]<<8)|msg[offset+i*4+3];
@@ -257,6 +268,9 @@ export const SANDBOX_HELPER_SOURCE = `
   // ── array ──
   helpers.array = {
     chunk: function(arr, size) {
+      // A non-positive size never advances 'i' (size === 0) or moves backwards
+      // (size < 0), hanging the sandbox until the interrupt handler fires.
+      if (!(size > 0)) return [];
       var result = [];
       for (var i = 0; i < arr.length; i += size) {
         result.push(arr.slice(i, i + size));

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { once } from 'node:events';
 import { WebhookServer } from '@src/server/webhook/WebhookServer';
 import { CommandQueue } from '@src/server/webhook/CommandQueue';
 
@@ -94,7 +95,15 @@ describe('WebhookServer', () => {
     it('should emit started event', async () => {
       const events: unknown[] = [];
       server.on('started', (e) => events.push(e));
+      // `started` now fires from the listen callback, i.e. once the socket is
+      // actually bound — wait for it instead of assuming a synchronous emit.
       server.start();
+      if (events.length === 0) {
+        await once(
+          (server as unknown as { server: import('node:http').Server }).server,
+          'listening',
+        );
+      }
       expect(events).toHaveLength(1);
       await server.stop();
     });

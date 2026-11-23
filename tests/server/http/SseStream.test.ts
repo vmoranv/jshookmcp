@@ -197,10 +197,15 @@ describe('createProgressHandler', () => {
     expect(mockRes.writeHead).toHaveBeenCalledWith(204);
   });
 
-  it('should set CORS headers', () => {
+  it('does not expose session-scoped progress data to cross-origin readers', () => {
     const handler = createProgressHandler(eventBus);
     handler(mockReq as IncomingMessage, mockRes, 'test-session');
 
-    expect(mockRes.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Origin', '*');
+    // Progress events are session-scoped: a wildcard origin would let any
+    // website read another user's task stream. Same-origin access needs no
+    // Access-Control-Allow-Origin header, so it must not be emitted.
+    expect(mockRes.setHeader).not.toHaveBeenCalledWith('Access-Control-Allow-Origin', '*');
+    expect(mockRes.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    expect(mockRes.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Headers', 'Content-Type');
   });
 });

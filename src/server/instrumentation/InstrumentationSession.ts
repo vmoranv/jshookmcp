@@ -461,6 +461,12 @@ export class InstrumentationSessionManager {
 
     try {
       const payload = parseToolPayload<TPayload>(await spec.invoke());
+      // `stopOperation` can run while `invoke()` is in flight and mark the
+      // operation cancelled. Do not let the success path overwrite that verdict
+      // (or record artifacts the caller already asked us to stop capturing).
+      if (operation.status === 'cancelled') {
+        return { operation, artifacts: [], payload };
+      }
       const isSuccessful = spec.isSuccessful
         ? spec.isSuccessful(payload)
         : payload['success'] !== false;

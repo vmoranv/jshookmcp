@@ -48,9 +48,41 @@ export interface SessionSnapshotDiff {
   };
 }
 
-/** Stable fingerprint for an artifact: type + canonical data JSON. */
+/**
+ * Deterministic serialization (sorted keys) so logically identical artifact
+ * data always yields the same fingerprint regardless of key insertion order.
+ * Captured payloads are `unknown` and may be circular or non-serializable, so
+ * serialization is bounded and callers fall back to a per-artifact key.
+ */
+function stableStringify(value: unknown, seen: WeakSet<object> = new WeakSet()): string {
+  if (value === undefined) return 'undefined';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
+  const object = value as object;
+  if (seen.has(object)) return '"[circular]"';
+  seen.add(object);
+  try {
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => stableStringify(item, seen)).join(',')}]`;
+    }
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .toSorted()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key], seen)}`)
+      .join(',')}}`;
+  } finally {
+    seen.delete(object);
+  }
+}
+
+/** Stable fingerprint for an artifact (type + canonical data JSON). */
 function artifactFingerprint(a: InstrumentationArtifact): string {
-  return `${a.type}:${JSON.stringify(a.data)}`;
+  try {
+    return `${a.type}:${stableStringify(a.data)}`;
+  } catch {
+    // Non-serializable payload: keep the diff honest with a per-artifact key
+    // instead of failing the whole comparison.
+    return `${a.type}:<unserializable>:${a.operationId}:${a.timestamp}`;
+  }
 }
 
 function countByType(artifacts: InstrumentationArtifact[]): Map<string, number> {

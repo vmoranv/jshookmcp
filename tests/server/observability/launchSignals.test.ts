@@ -123,13 +123,28 @@ describe('beginStderrCapture', () => {
     process.stderr.write = original;
   });
 
-  it('resets the count on a failed launch so a partial banner reads as "nothing ran"', () => {
+  it('preserves observed bytes on a failed launch (stderr distinguishes "refused" from "never ran")', () => {
     vi.spyOn(process.stderr, 'write').mockImplementation((() => true) as never);
     const capture = beginStderrCapture();
-    process.stderr.write('noise\n');
+    process.stderr.write('sandbox denied\n');
     capture.markFailed();
-    expect(capture.bytesSoFar()).toBe(0);
+    expect(capture.bytesSoFar()).toBe(Buffer.byteLength('sandbox denied\n'));
     capture.stop();
+  });
+
+  it('reference-counts overlapping captures so out-of-order stop cannot detach one', () => {
+    const original = process.stderr.write;
+    vi.spyOn(process.stderr, 'write').mockImplementation((() => true) as never);
+    const outer = beginStderrCapture();
+    const inner = beginStderrCapture();
+    process.stderr.write('abc');
+    // Stopping the outer capture first must leave the inner one counting.
+    outer.stop();
+    process.stderr.write('de');
+    inner.stop();
+    expect(outer.bytesSoFar()).toBe(3);
+    expect(inner.bytesSoFar()).toBe(5);
+    process.stderr.write = original;
   });
 
   it('restores the original write exactly once', () => {

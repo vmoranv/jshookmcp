@@ -15,6 +15,7 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import type { RegisteredTool, Tool } from '@modelcontextprotocol/server';
 import { logger } from '@utils/logger';
 import { deactivateToolCore } from '@server/tool-lifecycle';
+import { asToolResponse } from '@server/domains/shared/response';
 
 export interface DynamicToolEntry {
   name: string;
@@ -61,6 +62,13 @@ export class DynamicToolRegistry {
     return this.withMutex(() => {
       const prefixedName = `${DYNAMIC_PREFIX}${name}`;
 
+      // Re-registering the same name would overwrite the map entry, losing the
+      // previous RegisteredTool handle forever — that server-side registration
+      // could then never be removed. Reject the duplicate instead.
+      if (this.tools.has(prefixedName)) {
+        throw new Error(`Dynamic tool "${prefixedName}" is already registered`);
+      }
+
       // Register with MCP server's tool system first, then record the entry so
       // unregister can remove the server-side registration.
       const toolDef: Tool = {
@@ -77,7 +85,22 @@ export class DynamicToolRegistry {
           required: [],
         },
       };
-      const registeredTool = this.ctx.registerSingleTool(toolDef);
+
+      // The MCP registration dispatches through executeToolWithTracking →
+      // router.execute(), so the handler must live in the router as well as the
+      // local map. Wire it first and roll it back if server registration fails,
+      // so a registered tool is never exposed without a callable handler.
+      this.ctx.router.addHandlers({
+        [prefixedName]: async (args) => asToolResponse(await handler(args)),
+      });
+
+      let registeredTool: RegisteredTool;
+      try {
+        registeredTool = this.ctx.registerSingleTool(toolDef);
+      } catch (error) {
+        this.ctx.router.removeHandler(prefixedName);
+        throw error;
+      }
 
       const entry: DynamicToolEntry = {
         name,
@@ -143,6 +166,10 @@ export class DynamicToolRegistry {
         );
       }
     }
+    // Remove the router handler unconditionally: deactivateToolCore below only
+    // runs when activation bookkeeping exists, and a stale router entry would
+    // keep a "removed" sandbox tool callable.
+    this.ctx.router.removeHandler(entry.prefixedName);
     // Clear any routing/activation state that may reference the tool.
     if (this.ctx.router && this.ctx.activatedToolNames && this.ctx.activatedRegisteredTools) {
       deactivateToolCore(entry.prefixedName, {

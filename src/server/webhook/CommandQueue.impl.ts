@@ -67,7 +67,10 @@ export class CommandQueueImpl extends EventEmitter {
   }
 
   enqueue(command: WebhookCommandInput): string {
-    if (this.order.length >= this.maxQueueSize) {
+    // `order` retains processed/failed commands for history and export, so it
+    // must not be the capacity signal: it only ever grows, which would
+    // eventually reject every enqueue for the lifetime of the process.
+    if (this.countInFlightCommands() >= this.maxQueueSize) {
       throw new Error(`Command queue is full (${this.maxQueueSize})`);
     }
 
@@ -139,6 +142,17 @@ export class CommandQueueImpl extends EventEmitter {
     return this.commands.get(id);
   }
 
+  /** Commands that still need work; terminal entries are retained for history. */
+  private countInFlightCommands(): number {
+    let count = 0;
+    for (const command of this.commands.values()) {
+      if (command.status === 'pending' || command.status === 'processing') {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
   protected getCommandsByFilter(filter: {
     status?: WebhookCommandStoredStatus | 'completed';
     endpointId?: string;
@@ -204,17 +218,28 @@ export class CommandQueue extends CommandQueueImpl {
     let lastError: string | undefined;
 
     try {
-      await Promise.race([
-        Promise.resolve(handler(cloneCommand(command))),
-        new Promise<void>((_, reject) => {
-          setTimeout(() => {
-            reject(new Error('Process timeout'));
-          }, this.processTimeout);
-        }),
-      ]);
+      let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          Promise.resolve(handler(cloneCommand(command))),
+          new Promise<void>((_, reject) => {
+            timeoutHandle = setTimeout(() => {
+              reject(new Error('Process timeout'));
+            }, this.processTimeout);
+          }),
+        ]);
+      } finally {
+        // Without this the timeout timer keeps the event loop (and the
+        // process) alive for `processTimeout` after every successful command.
+        if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+      }
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
-      if (command.retries + 1 >= this.maxRetries) {
+      // Count EVERY failed attempt, including the terminal one: previously the
+      // `failed` record kept the previous attempt's count, so the observed
+      // retries did not match reality.
+      command.retries += 1;
+      if (command.retries >= this.maxRetries) {
         finalStatus = 'failed';
       } else {
         finalStatus = 'pending';
@@ -232,7 +257,6 @@ export class CommandQueue extends CommandQueueImpl {
           setTimeout(resolve, this.retryDelay);
         });
       }
-      command.retries += 1;
       const retried = this.updateStatus(id, 'pending', lastError);
       this.emit('retried', cloneCommand(retried));
       throw lastError !== undefined ? new Error(lastError) : new Error('retry');

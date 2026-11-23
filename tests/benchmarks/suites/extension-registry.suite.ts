@@ -477,11 +477,13 @@ export const extensionRegistrySuite: BenchSuite = {
             secret: 'bench-hmac-secret',
           });
           const payloadBody = JSON.stringify({ event: 'command.received', op: 'bench' });
+          const timestamp = String(Date.now());
           const signature = createHmac('sha256', 'bench-hmac-secret')
-            .update(payloadBody, 'utf8')
+            .update(`${timestamp}.${payloadBody}`, 'utf8')
             .digest('hex');
           const post = await postJson(wh.port, '/bench-signed', payloadBody, {
             'x-webhook-signature': signature,
+            'x-webhook-timestamp': timestamp,
           });
           const queue = wh.server.getCommandQueue();
           const dequeued = queue.dequeue();

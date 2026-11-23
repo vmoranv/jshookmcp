@@ -16,6 +16,12 @@ export interface SseStreamOptions {
   heartbeatMs?: number;
 }
 
+/**
+ * Pending-bytes cap for one SSE socket. Past this, a consumer that stopped
+ * reading is dropped instead of letting Node buffer frames without bound.
+ */
+const SSE_MAX_BUFFER_BYTES = 1024 * 1024;
+
 export class SseStream {
   private readonly eventBus: EventBus<ServerEventMap>;
   private readonly options: SseStreamOptions;
@@ -90,11 +96,27 @@ export class SseStream {
       return;
     }
 
-    const eventData = JSON.stringify(data);
+    // Serialization failures (circular payloads) and undefined results must
+    // never escape into the EventBus emitter or produce an unparseable
+    // `data: undefined` frame — drop the event instead.
+    let eventData: string | undefined;
+    try {
+      eventData = JSON.stringify(data);
+    } catch (err) {
+      logger.warn('Failed to serialize SSE event:', err);
+      return;
+    }
+    if (eventData === undefined) {
+      return;
+    }
     const lines = `event: ${event}\ndata: ${eventData}\n\n`;
 
     try {
-      this.res.write(lines);
+      const writable = this.res.write(lines);
+      if (!writable && this.res.writableLength > SSE_MAX_BUFFER_BYTES) {
+        logger.warn('Closing SSE stream: client exceeded the write-buffer cap');
+        this.close();
+      }
     } catch (err) {
       logger.warn('Failed to write SSE event:', err);
       this.close();
@@ -110,7 +132,11 @@ export class SseStream {
     }
 
     try {
-      this.res.write(`${message}\n\n`);
+      const writable = this.res.write(`${message}\n\n`);
+      if (!writable && this.res.writableLength > SSE_MAX_BUFFER_BYTES) {
+        logger.warn('Closing SSE stream: client exceeded the write-buffer cap');
+        this.close();
+      }
     } catch (err) {
       logger.warn('Failed to write SSE message:', err);
       this.close();
@@ -178,8 +204,10 @@ export function createProgressHandler(
   eventBus: EventBus<ServerEventMap>,
 ): (req: IncomingMessage, res: ServerResponse, sessionId?: string) => void {
   return (req: IncomingMessage, res: ServerResponse, sessionId?: string) => {
-    // CORS headers for browser access
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Session-scoped progress data is same-origin only: emitting
+    // `Access-Control-Allow-Origin: *` would let any website read another
+    // user's task events. Browsers block cross-origin reads without the
+    // header; non-browser clients are unaffected by CORS.
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 

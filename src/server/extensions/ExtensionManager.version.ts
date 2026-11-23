@@ -39,7 +39,12 @@ export function isCompatibleVersion(range: string, currentVersion: string): bool
     const bb = parseVersionParts(base);
     if (!cc || !bb) return false;
     const cmp = compareVersion(currentVersion, base);
-    return cmp !== null && cmp >= 0 && cc[0] === bb[0];
+    if (cmp === null || cmp < 0) return false;
+    // Semver caret: only the leading non-zero component must match.
+    // ^1.2.3 → <2.0.0, ^0.2.3 → <0.3.0, ^0.0.3 → <0.0.4.
+    if (bb[0] !== 0) return cc[0] === bb[0];
+    if (bb[1] !== 0) return cc[0] === 0 && cc[1] === bb[1];
+    return cc[0] === 0 && cc[1] === 0 && cc[2] === bb[2];
   }
 
   if (input.startsWith('~')) {

@@ -102,11 +102,15 @@ describe('WebhookServerImpl coverage', () => {
     expect(server.getStats().eventsRegistered).toBe(4);
   });
 
-  it('start throws when already started', () => {
+  it('start throws when already started', async () => {
     const server = new WebhookServerImpl({ port: 0 });
     const listener = vi.fn();
     server.on('started', listener);
     server.start();
+    const httpServer = (server as unknown as { server: import('node:http').Server }).server;
+    if (!httpServer.listening) {
+      await once(httpServer, 'listening');
+    }
     expect(listener).toHaveBeenCalled();
     expect(server.isRunning()).toBe(true);
 
@@ -231,7 +235,10 @@ describe('WebhookServerImpl coverage', () => {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/secure`, {
         method: 'POST',
-        headers: { 'x-webhook-signature': 'deadbeef' },
+        headers: {
+          'x-webhook-signature': 'deadbeef',
+          'x-webhook-timestamp': String(Date.now()),
+        },
         body: '{}',
       });
       expect(response.status).toBe(401);
@@ -267,12 +274,16 @@ describe('WebhookServerImpl coverage', () => {
 
     try {
       const body = '{"event":"tool_called"}';
-      const sig = createHmac('sha256', 's3cret').update(body, 'utf8').digest('hex');
+      const timestamp = String(Date.now());
+      const sig = createHmac('sha256', 's3cret')
+        .update(`${timestamp}.${body}`, 'utf8')
+        .digest('hex');
       const response = await fetch(`http://127.0.0.1:${port}/hook`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           'x-webhook-signature': `sha256=${sig}`,
+          'x-webhook-timestamp': timestamp,
         },
         body,
       });
@@ -291,8 +302,10 @@ describe('WebhookServerImpl coverage', () => {
 
     try {
       const body = '{}';
-      const sig = createHmac('sha256', 's3cret').update(body, 'utf8').digest('hex');
       const oldTimestamp = String(Date.now() - 10 * 60 * 1000); // 10 min ago
+      const sig = createHmac('sha256', 's3cret')
+        .update(`${oldTimestamp}.${body}`, 'utf8')
+        .digest('hex');
       const response = await fetch(`http://127.0.0.1:${port}/timed`, {
         method: 'POST',
         headers: {
@@ -317,8 +330,8 @@ describe('WebhookServerImpl coverage', () => {
 
     try {
       const body = '{"event":"tool_called"}';
-      const sig = createHmac('sha256', 's3cret').update(body, 'utf8').digest('hex');
       const now = String(Date.now());
+      const sig = createHmac('sha256', 's3cret').update(`${now}.${body}`, 'utf8').digest('hex');
       const response = await fetch(`http://127.0.0.1:${port}/timed`, {
         method: 'POST',
         headers: {
@@ -330,6 +343,56 @@ describe('WebhookServerImpl coverage', () => {
       });
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toMatchObject({ ok: true });
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('rejects a secret-protected request without a timestamp header', async () => {
+    const { createHmac } = await import('node:crypto');
+    const server = new WebhookServerImpl({ port: 0 });
+    server.registerEndpoint({ path: '/timed', secret: 's3cret' });
+    const port = await startServer(server);
+
+    try {
+      const body = '{}';
+      const sig = createHmac('sha256', 's3cret').update(body, 'utf8').digest('hex');
+      const response = await fetch(`http://127.0.0.1:${port}/timed`, {
+        method: 'POST',
+        headers: { 'x-webhook-signature': sig },
+        body,
+      });
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toMatchObject({ error: 'missing timestamp header' });
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('binds the timestamp into the signature so a captured request cannot be replayed', async () => {
+    const { createHmac } = await import('node:crypto');
+    const server = new WebhookServerImpl({ port: 0 });
+    server.registerEndpoint({ path: '/timed', secret: 's3cret' });
+    const port = await startServer(server);
+
+    try {
+      const body = '{}';
+      const capturedTimestamp = String(Date.now() - 1_000);
+      const capturedSig = createHmac('sha256', 's3cret')
+        .update(`${capturedTimestamp}.${body}`, 'utf8')
+        .digest('hex');
+      // Replay the captured body+signature under a FRESH timestamp: the
+      // signature no longer matches because the timestamp is signed.
+      const response = await fetch(`http://127.0.0.1:${port}/timed`, {
+        method: 'POST',
+        headers: {
+          'x-webhook-signature': capturedSig,
+          'x-webhook-timestamp': String(Date.now()),
+        },
+        body,
+      });
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toMatchObject({ error: 'invalid signature' });
     } finally {
       await server.stop();
     }
@@ -414,12 +477,16 @@ describe('WebhookServerImpl coverage', () => {
 
     try {
       const body = JSON.stringify({ event: 'tool_called', payload: { id: 1 } });
-      const signature = createHmac('sha256', 'top-secret').update(body, 'utf8').digest('hex');
+      const timestamp = String(Date.now());
+      const signature = createHmac('sha256', 'top-secret')
+        .update(`${timestamp}.${body}`, 'utf8')
+        .digest('hex');
       const response = await originalFetch(`http://127.0.0.1:${port}/events`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           'x-webhook-signature': signature,
+          'x-webhook-timestamp': timestamp,
         },
         body,
       });
