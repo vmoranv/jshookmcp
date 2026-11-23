@@ -81,6 +81,11 @@ describe('StringsExtractor performance', () => {
       // Cap offsets so a freak high-frequency token does not blow up memory
       // and skew the measurement away from CPU.
       maxOffsetsPerString: 32,
+      // This test measures throughput, not ReDoS immunity. The default 50 ms
+      // per-rule guard misfires under full-suite CPU contention (98 ms observed
+      // on a 32 MB fixture), so give the guard headroom while keeping the
+      // 30 s end-to-end ceiling as the real regression signal.
+      regexTimeoutMs: 1_000,
     });
     const elapsed = Date.now() - started;
 
