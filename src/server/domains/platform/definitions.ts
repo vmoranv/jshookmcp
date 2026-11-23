@@ -10,20 +10,23 @@ export const platformTools: Tool[] = [
       .desc('Scan local directories for miniapp package files.')
       .string(
         'searchPath',
-        '可选。指定扫描根目录；不提供时使用默认路径（MiniApp/Cache 与 MiniApp/Plugin）。',
+        'Optional scan root. Defaults to the MiniApp/Cache and MiniApp/Plugin directories.',
       ),
   ),
   tool('miniapp_pkg_unpack', (t) =>
     t
       .desc('Unpack a miniapp package.')
-      .string('inputPath', '必填。小程序包文件路径。')
-      .string('outputDir', '可选。输出目录；不提供时自动生成 artifacts 临时目录。')
+      .string('inputPath', 'Required. Path to the miniapp package file.')
+      .string(
+        'outputDir',
+        'Optional output directory. Defaults to a generated temporary artifacts directory.',
+      )
       .required('inputPath'),
   ),
   tool('miniapp_pkg_analyze', (t) =>
     t
       .desc('Analyze an unpacked miniapp package.')
-      .string('unpackedDir', '必填。已解包目录路径。')
+      .string('unpackedDir', 'Required. Path to the unpacked directory.')
       .required('unpackedDir'),
   ),
   tool('asar_extract', (t) =>
@@ -31,11 +34,18 @@ export const platformTools: Tool[] = [
       .desc(
         'List or unpack the files of an Electron ASAR archive into a folder (listOnly only lists them).',
       )
-      .string('inputPath', '必填。asar 文件路径。')
-      .string('outputDir', '可选。提取目录；不提供时自动生成 artifacts 临时目录。')
-      .boolean('listOnly', '可选。默认 false；true 时仅列出文件清单，不执行提取。', {
-        default: false,
-      })
+      .string('inputPath', 'Required. Path to the ASAR file.')
+      .string(
+        'outputDir',
+        'Optional extraction directory. Defaults to a generated temporary artifacts directory.',
+      )
+      .boolean(
+        'listOnly',
+        'Optional. Defaults to false. When true, only lists files without extracting.',
+        {
+          default: false,
+        },
+      )
       .required('inputPath'),
   ),
   tool('electron_inspect_app', (t) =>
@@ -48,26 +58,30 @@ export const platformTools: Tool[] = [
     t
       .desc('Scan a directory for Electron JSON userdata files.')
       .string('dirPath', 'Directory path to scan for JSON files')
-      .number('maxFiles', '可选。最多读取的 JSON 文件数量。默认 20。', {
+      .number('maxFiles', 'Optional. Maximum number of JSON files to read. Defaults to 20.', {
         default: 20,
         minimum: 1,
         maximum: 10000,
       })
-      .number('maxFileSizeKB', '可选。单个文件大小上限（KB）。超限文件跳过。默认 1024。', {
-        default: 1024,
-        minimum: 1,
-        maximum: 102400,
-      })
+      .number(
+        'maxFileSizeKB',
+        'Optional. Per-file size limit in KB. Larger files are skipped. Defaults to 1024.',
+        {
+          default: 1024,
+          minimum: 1,
+          maximum: 102400,
+        },
+      )
       .required('dirPath')
       .query(),
   ),
   tool('asar_search', (t) =>
     t
       .desc('Grep text patterns inside ASAR archive contents without extraction.')
-      .string('inputPath', '必填。ASAR 文件路径。')
-      .string('pattern', '必填。正则表达式字符串。')
-      .string('fileGlob', '可选。文件扩展名过滤。默认 *.js。', { default: '*.js' })
-      .number('maxResults', '可选。最大返回匹配数。默认 100。', {
+      .string('inputPath', 'Required. Path to the ASAR file.')
+      .string('pattern', 'Required. Regular expression string.')
+      .string('fileGlob', 'Optional file extension filter. Defaults to *.js.', { default: '*.js' })
+      .number('maxResults', 'Optional. Maximum number of matches to return. Defaults to 100.', {
         default: 100,
         minimum: 1,
         maximum: 10000,
@@ -78,7 +92,7 @@ export const platformTools: Tool[] = [
   tool('electron_check_fuses', (t) =>
     t
       .desc('Read Electron fuse states.')
-      .string('exePath', '必填。Electron .exe 文件路径。')
+      .string('exePath', 'Required. Path to the Electron .exe file.')
       .required('exePath')
       .query(),
   ),
@@ -164,8 +178,11 @@ export const platformTools: Tool[] = [
           'main binary, locate each referenced ASAR, and compare the on-disk SHA256/SHA512 hash ' +
           'against the embedded hash. A mismatch means the ASAR was tampered with after build.',
       )
-      .string('exePath', '必填。Electron 可执行文件路径（.exe / 主程序二进制）。')
-      .string('asarPath', '可选。显式指定 ASAR 文件路径；不提供时按 resources/app.asar 自动探测。')
+      .string('exePath', 'Required. Path to the Electron executable (.exe / main binary).')
+      .string(
+        'asarPath',
+        'Optional. Explicit ASAR path. Defaults to auto-detection at resources/app.asar.',
+      )
       .required('exePath')
       .query(),
   ),
@@ -178,15 +195,18 @@ export const platformTools: Tool[] = [
           'unchanged to a directory for downstream deobfuscation. This tool returns an ' +
           'inventory, not deobfuscated scripts.',
       )
-      .string('inputPath', '必填。ASAR 文件路径。')
-      .string('fileGlob', '可选。文件扩展名过滤。默认 *.js。', { default: '*.js' })
+      .string('inputPath', 'Required. Path to the ASAR file.')
+      .string('fileGlob', 'Optional file extension filter. Defaults to *.js.', { default: '*.js' })
       .boolean(
         'extract',
-        '可选。默认 true；将评分超阈值的文件提取到 outputDir 以便后续深度去混淆。',
+        'Optional. Defaults to true; extracts files above the score threshold into outputDir for downstream deobfuscation.',
         { default: true },
       )
-      .string('outputDir', '可选。提取目录；不提供时自动生成 artifacts 临时目录。')
-      .number('maxFiles', '可选。最多扫描的文件数量。默认 500。', {
+      .string(
+        'outputDir',
+        'Optional extraction directory. Defaults to a generated temporary artifacts directory.',
+      )
+      .number('maxFiles', 'Optional. Maximum number of files to scan. Defaults to 500.', {
         default: 500,
         minimum: 1,
         maximum: 10000,
@@ -202,8 +222,11 @@ export const platformTools: Tool[] = [
           'JSON header + data segment) that parseAsarBuffer and Electron accept. Closes the ' +
           'unpack → patch → repack → retest loop without leaving jshookmcp.',
       )
-      .string('inputDir', '必填。要打包的源目录。')
-      .string('outputPath', '可选。输出 .asar 文件路径；不提供时自动生成 artifacts 临时路径。')
+      .string('inputDir', 'Required. Source directory to pack.')
+      .string(
+        'outputPath',
+        'Optional output .asar path. Defaults to a generated temporary artifacts path.',
+      )
       .required('inputDir')
       .query(),
   ),
@@ -217,7 +240,7 @@ export const platformTools: Tool[] = [
           'cdhash. No codesign/signtool dependency (runs in any CI). Cryptographic signature ' +
           'validity and timestamp counter-signatures are out of scope (verified:false).',
       )
-      .string('exePath', '必填。Electron 可执行文件路径（.exe / macOS app binary）。')
+      .string('exePath', 'Required. Path to the Electron executable (.exe / macOS app binary).')
       .required('exePath')
       .query(),
   ),

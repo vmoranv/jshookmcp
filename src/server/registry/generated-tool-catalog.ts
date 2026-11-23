@@ -2291,25 +2291,27 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           inputPath: {
             type: 'string',
-            description: '必填。ASAR 文件路径。',
+            description: 'Required. Path to the ASAR file.',
           },
           fileGlob: {
             type: 'string',
-            description: '可选。文件扩展名过滤。默认 *.js。',
+            description: 'Optional file extension filter. Defaults to *.js.',
             default: '*.js',
           },
           extract: {
             type: 'boolean',
-            description: '可选。默认 true；将评分超阈值的文件提取到 outputDir 以便后续深度去混淆。',
+            description:
+              'Optional. Defaults to true; extracts files above the score threshold into outputDir for downstream deobfuscation.',
             default: true,
           },
           outputDir: {
             type: 'string',
-            description: '可选。提取目录；不提供时自动生成 artifacts 临时目录。',
+            description:
+              'Optional extraction directory. Defaults to a generated temporary artifacts directory.',
           },
           maxFiles: {
             type: 'number',
-            description: '可选。最多扫描的文件数量。默认 500。',
+            description: 'Optional. Maximum number of files to scan. Defaults to 500.',
             default: 500,
             minimum: 1,
             maximum: 10000,
@@ -2342,15 +2344,17 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           inputPath: {
             type: 'string',
-            description: '必填。asar 文件路径。',
+            description: 'Required. Path to the ASAR file.',
           },
           outputDir: {
             type: 'string',
-            description: '可选。提取目录；不提供时自动生成 artifacts 临时目录。',
+            description:
+              'Optional extraction directory. Defaults to a generated temporary artifacts directory.',
           },
           listOnly: {
             type: 'boolean',
-            description: '可选。默认 false；true 时仅列出文件清单，不执行提取。',
+            description:
+              'Optional. Defaults to false. When true, only lists files without extracting.',
             default: false,
           },
         },
@@ -2381,11 +2385,12 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           inputDir: {
             type: 'string',
-            description: '必填。要打包的源目录。',
+            description: 'Required. Source directory to pack.',
           },
           outputPath: {
             type: 'string',
-            description: '可选。输出 .asar 文件路径；不提供时自动生成 artifacts 临时路径。',
+            description:
+              'Optional output .asar path. Defaults to a generated temporary artifacts path.',
           },
         },
         required: ['inputDir'],
@@ -2413,20 +2418,20 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           inputPath: {
             type: 'string',
-            description: '必填。ASAR 文件路径。',
+            description: 'Required. Path to the ASAR file.',
           },
           pattern: {
             type: 'string',
-            description: '必填。正则表达式字符串。',
+            description: 'Required. Regular expression string.',
           },
           fileGlob: {
             type: 'string',
-            description: '可选。文件扩展名过滤。默认 *.js。',
+            description: 'Optional file extension filter. Defaults to *.js.',
             default: '*.js',
           },
           maxResults: {
             type: 'number',
-            description: '可选。最大返回匹配数。默认 100。',
+            description: 'Optional. Maximum number of matches to return. Defaults to 100.',
             default: 100,
             minimum: 1,
             maximum: 10000,
@@ -8174,7 +8179,7 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           exePath: {
             type: 'string',
-            description: '必填。Electron .exe 文件路径。',
+            description: 'Required. Path to the Electron .exe file.',
           },
         },
         required: ['exePath'],
@@ -8415,14 +8420,15 @@ export const GENERATED_TOOL_CATALOG = [
           },
           maxFiles: {
             type: 'number',
-            description: '可选。最多读取的 JSON 文件数量。默认 20。',
+            description: 'Optional. Maximum number of JSON files to read. Defaults to 20.',
             default: 20,
             minimum: 1,
             maximum: 10000,
           },
           maxFileSizeKB: {
             type: 'number',
-            description: '可选。单个文件大小上限（KB）。超限文件跳过。默认 1024。',
+            description:
+              'Optional. Per-file size limit in KB. Larger files are skipped. Defaults to 1024.',
             default: 1024,
             minimum: 1,
             maximum: 102400,
@@ -8454,11 +8460,12 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           exePath: {
             type: 'string',
-            description: '必填。Electron 可执行文件路径（.exe / 主程序二进制）。',
+            description: 'Required. Path to the Electron executable (.exe / main binary).',
           },
           asarPath: {
             type: 'string',
-            description: '可选。显式指定 ASAR 文件路径；不提供时按 resources/app.asar 自动探测。',
+            description:
+              'Optional. Explicit ASAR path. Defaults to auto-detection at resources/app.asar.',
           },
         },
         required: ['exePath'],
@@ -8483,7 +8490,7 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           exePath: {
             type: 'string',
-            description: '必填。Electron 可执行文件路径（.exe / macOS app binary）。',
+            description: 'Required. Path to the Electron executable (.exe / macOS app binary).',
           },
         },
         required: ['exePath'],
@@ -17401,7 +17408,7 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           unpackedDir: {
             type: 'string',
-            description: '必填。已解包目录路径。',
+            description: 'Required. Path to the unpacked directory.',
           },
         },
         required: ['unpackedDir'],
@@ -17430,7 +17437,7 @@ export const GENERATED_TOOL_CATALOG = [
           searchPath: {
             type: 'string',
             description:
-              '可选。指定扫描根目录；不提供时使用默认路径（MiniApp/Cache 与 MiniApp/Plugin）。',
+              'Optional scan root. Defaults to the MiniApp/Cache and MiniApp/Plugin directories.',
           },
         },
       },
@@ -17457,11 +17464,12 @@ export const GENERATED_TOOL_CATALOG = [
         properties: {
           inputPath: {
             type: 'string',
-            description: '必填。小程序包文件路径。',
+            description: 'Required. Path to the miniapp package file.',
           },
           outputDir: {
             type: 'string',
-            description: '可选。输出目录；不提供时自动生成 artifacts 临时目录。',
+            description:
+              'Optional output directory. Defaults to a generated temporary artifacts directory.',
           },
         },
         required: ['inputPath'],

@@ -14009,27 +14009,27 @@
         "properties": {
           "extract": {
             "default": true,
-            "description": "可选。默认 true；将评分超阈值的文件提取到 outputDir 以便后续深度去混淆。",
+            "description": "Optional. Defaults to true; extracts files above the score threshold into outputDir for downstream deobfuscation.",
             "type": "boolean"
           },
           "fileGlob": {
             "default": "*.js",
-            "description": "可选。文件扩展名过滤。默认 *.js。",
+            "description": "Optional file extension filter. Defaults to *.js.",
             "type": "string"
           },
           "inputPath": {
-            "description": "必填。ASAR 文件路径。",
+            "description": "Required. Path to the ASAR file.",
             "type": "string"
           },
           "maxFiles": {
             "default": 500,
-            "description": "可选。最多扫描的文件数量。默认 500。",
+            "description": "Optional. Maximum number of files to scan. Defaults to 500.",
             "maximum": 10000,
             "minimum": 1,
             "type": "number"
           },
           "outputDir": {
-            "description": "可选。提取目录；不提供时自动生成 artifacts 临时目录。",
+            "description": "Optional extraction directory. Defaults to a generated temporary artifacts directory.",
             "type": "string"
           }
         },
@@ -14039,16 +14039,16 @@
       "platform_asar_extract": {
         "properties": {
           "inputPath": {
-            "description": "必填。asar 文件路径。",
+            "description": "Required. Path to the ASAR file.",
             "type": "string"
           },
           "listOnly": {
             "default": false,
-            "description": "可选。默认 false；true 时仅列出文件清单，不执行提取。",
+            "description": "Optional. Defaults to false. When true, only lists files without extracting.",
             "type": "boolean"
           },
           "outputDir": {
-            "description": "可选。提取目录；不提供时自动生成 artifacts 临时目录。",
+            "description": "Optional extraction directory. Defaults to a generated temporary artifacts directory.",
             "type": "string"
           }
         },
@@ -14058,11 +14058,11 @@
       "platform_asar_repack": {
         "properties": {
           "inputDir": {
-            "description": "必填。要打包的源目录。",
+            "description": "Required. Source directory to pack.",
             "type": "string"
           },
           "outputPath": {
-            "description": "可选。输出 .asar 文件路径；不提供时自动生成 artifacts 临时路径。",
+            "description": "Optional output .asar path. Defaults to a generated temporary artifacts path.",
             "type": "string"
           }
         },
@@ -14073,22 +14073,22 @@
         "properties": {
           "fileGlob": {
             "default": "*.js",
-            "description": "可选。文件扩展名过滤。默认 *.js。",
+            "description": "Optional file extension filter. Defaults to *.js.",
             "type": "string"
           },
           "inputPath": {
-            "description": "必填。ASAR 文件路径。",
+            "description": "Required. Path to the ASAR file.",
             "type": "string"
           },
           "maxResults": {
             "default": 100,
-            "description": "可选。最大返回匹配数。默认 100。",
+            "description": "Optional. Maximum number of matches to return. Defaults to 100.",
             "maximum": 10000,
             "minimum": 1,
             "type": "number"
           },
           "pattern": {
-            "description": "必填。正则表达式字符串。",
+            "description": "Required. Regular expression string.",
             "type": "string"
           }
         },
@@ -14098,7 +14098,7 @@
       "platform_electron_check_fuses": {
         "properties": {
           "exePath": {
-            "description": "必填。Electron .exe 文件路径。",
+            "description": "Required. Path to the Electron .exe file.",
             "type": "string"
           }
         },
@@ -14233,14 +14233,14 @@
           },
           "maxFileSizeKB": {
             "default": 1024,
-            "description": "可选。单个文件大小上限（KB）。超限文件跳过。默认 1024。",
+            "description": "Optional. Per-file size limit in KB. Larger files are skipped. Defaults to 1024.",
             "maximum": 102400,
             "minimum": 1,
             "type": "number"
           },
           "maxFiles": {
             "default": 20,
-            "description": "可选。最多读取的 JSON 文件数量。默认 20。",
+            "description": "Optional. Maximum number of JSON files to read. Defaults to 20.",
             "maximum": 10000,
             "minimum": 1,
             "type": "number"
@@ -14252,11 +14252,11 @@
       "platform_electron_verify_integrity": {
         "properties": {
           "asarPath": {
-            "description": "可选。显式指定 ASAR 文件路径；不提供时按 resources/app.asar 自动探测。",
+            "description": "Optional. Explicit ASAR path. Defaults to auto-detection at resources/app.asar.",
             "type": "string"
           },
           "exePath": {
-            "description": "必填。Electron 可执行文件路径（.exe / 主程序二进制）。",
+            "description": "Required. Path to the Electron executable (.exe / main binary).",
             "type": "string"
           }
         },
@@ -14266,7 +14266,7 @@
       "platform_electron_verify_signature": {
         "properties": {
           "exePath": {
-            "description": "必填。Electron 可执行文件路径（.exe / macOS app binary）。",
+            "description": "Required. Path to the Electron executable (.exe / macOS app binary).",
             "type": "string"
           }
         },
@@ -14276,7 +14276,7 @@
       "platform_miniapp_pkg_analyze": {
         "properties": {
           "unpackedDir": {
-            "description": "必填。已解包目录路径。",
+            "description": "Required. Path to the unpacked directory.",
             "type": "string"
           }
         },
@@ -14286,7 +14286,7 @@
       "platform_miniapp_pkg_scan": {
         "properties": {
           "searchPath": {
-            "description": "可选。指定扫描根目录；不提供时使用默认路径（MiniApp/Cache 与 MiniApp/Plugin）。",
+            "description": "Optional scan root. Defaults to the MiniApp/Cache and MiniApp/Plugin directories.",
             "type": "string"
           }
         },
@@ -14295,11 +14295,11 @@
       "platform_miniapp_pkg_unpack": {
         "properties": {
           "inputPath": {
-            "description": "必填。小程序包文件路径。",
+            "description": "Required. Path to the miniapp package file.",
             "type": "string"
           },
           "outputDir": {
-            "description": "可选。输出目录；不提供时自动生成 artifacts 临时目录。",
+            "description": "Optional output directory. Defaults to a generated temporary artifacts directory.",
             "type": "string"
           }
         },
