@@ -265,9 +265,8 @@ export function renderMarkdown(trials: TrialResult[], importance: ParameterImpor
   // Recommended defaults: prefer the RRSI-verified winner over the raw best —
   // an evolve winner that was never holdout-scored (or got λ-regularized out
   // of the verification shortlist) is exactly the overfit risk the gate
-  // exists to catch. Vector-signal keys are stripped: LEARN_* cannot be
-  // observed by any offline eval, and SKIP/COSINE from a lexical-only run are
-  // noise fitted on a dead dimension (see search-space.ts).
+  // exists to catch. Historical vector-signal keys are stripped: the dense
+  // path is gone, so recommending them would write dead env vars.
   const recommendationSource = verifiedWinner ?? bestLexical;
   if (recommendationSource) {
     const vectorKeys: readonly string[] = VECTOR_TUNABLE_PARAM_KEYS;
@@ -284,7 +283,7 @@ export function renderMarkdown(trials: TrialResult[], importance: ParameterImpor
     if (excluded.length > 0) {
       lines.push(
         '',
-        `> Excluded ${excluded.length} vector-signal key(s) (${excluded.join(', ')}): not tunable in a lexical-only run. Tune them separately with \`optimize.ts --vector\`.`,
+        `> Excluded ${excluded.length} historical vector-signal key(s) (${excluded.join(', ')}): removed with the dense path; no recommendation is emitted.`,
       );
     }
     lines.push('', '```bash');

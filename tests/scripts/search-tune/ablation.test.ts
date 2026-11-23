@@ -34,6 +34,7 @@ describe('mechanism registry', () => {
       'explicit-mention',
       'out-of-domain-gate',
       'rrf-fusion',
+      'intent-bands',
       'workflow-transition',
       'confidence-floor',
     ]);
@@ -44,9 +45,7 @@ describe('mechanism registry', () => {
       (mechanism) => mechanism.neutralization === 'config-zero',
     );
     for (const mechanism of configZero) {
-      const hasNeutraliser = Boolean(
-        mechanism.env || mechanism.searchConfig || mechanism.vectorMode,
-      );
+      const hasNeutraliser = Boolean(mechanism.env || mechanism.searchConfig);
       expect(hasNeutraliser, mechanism.id).toBe(true);
     }
   });

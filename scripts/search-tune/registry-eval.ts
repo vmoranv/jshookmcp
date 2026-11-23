@@ -14,7 +14,6 @@ import type { EvaluationReport } from './evaluation';
 export async function evaluateRegistry(outPath?: string): Promise<EvaluationReport> {
   const report = await runSearchEvaluation({
     corpus: 'registry',
-    vectorMode: 'off',
     latencyRepeats: 2,
     include: { ledger: true, perCase: false, significance: false },
   });

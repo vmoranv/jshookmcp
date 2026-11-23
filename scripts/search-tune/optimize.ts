@@ -24,9 +24,7 @@
  *                      Σ|param−default|/(max−min) — 0 disables.
  *   --no-prune         disable freezing low-sensitivity params to shipped
  *                      defaults after phase 1 (pruner).
- *   --vector           removed with the dense path; passing it now exits with an error.
- *                      are excluded — sampling them in a lexical run fits
- *                      noise on a dead dimension.
+ *   --vector           removed with the dense path; passing it exits with an error.
  *   --dry-run          run the full pipeline but do NOT write .env.
  */
 import { execFile } from 'node:child_process';
@@ -228,11 +226,11 @@ async function runWorker(): Promise<void> {
     // on a subset would make the gap meaningless.
     const { splitEvolveHoldout } = await import('./holdout');
     const split = splitEvolveHoldout(fixture.cases, { evolveRatio: 0.7, seed: 42 });
-    evolveSlice = split.evolve as EvalCaseExt[];
-    holdoutSlice = split.holdout as EvalCaseExt[];
+    evolveSlice = [...split.evolve] as EvalCaseExt[];
+    holdoutSlice = [...split.holdout] as EvalCaseExt[];
     evalCases = evolveSlice;
   } else if (spec.dataset === 'search-quality') {
-    evalCases = lexicalCases as EvalCaseExt[];
+    evalCases = [...lexicalCases] as EvalCaseExt[];
   } else if (spec.dataset === 'profile-tier') {
     // Phase 3: both profile-tier cases + rerank-state cases to give rerank params signal
     evalCases = [...profileCases, ...rerankStateCases] as EvalCaseExt[];
@@ -266,7 +264,7 @@ async function runWorker(): Promise<void> {
 
   if (spec.onlyTags !== undefined && spec.onlyTags.length > 0) {
     const wanted = new Set(spec.onlyTags);
-    const tagged = (fixture.cases as EvalCaseExt[]).filter((c) =>
+    const tagged = ([...fixture.cases] as EvalCaseExt[]).filter((c) =>
       (c as { tags?: readonly string[] }).tags?.some((t) => wanted.has(t)),
     );
     if (tagged.length === 0) {
@@ -304,7 +302,7 @@ async function runWorker(): Promise<void> {
   // uses these metrics to run the critic (gap / regression / noise-floor
   // checks) and the rejected-region history, so an evolve winner that stalls
   // or regresses out-of-distribution is never written to .env.
-  let holdoutMetrics: AggregateMetrics | null = null;
+  let holdoutMetrics: ReturnType<typeof aggregateMetrics> | null = null;
   if (holdoutSlice !== null) {
     const holdoutCaseMetrics: CaseMetrics[] = [];
     for (const tc of holdoutSlice) {
@@ -413,13 +411,6 @@ interface TrialSpec {
   /** Source trial id when this spec is a holdout-verification re-run. */
   sourceTrialId?: string;
   /**
-   * Whether the worker runs with the dense-vector signal on. Propagated to a
-   * deterministic SEARCH_VECTOR_ENABLED env override (explicit 'false' in
-   * lexical runs, so a shell-leaked SEARCH_VECTOR_ENABLED cannot silently
-   * flip a lexical run into a vector run).
-   */
-  vectorEnabled?: boolean;
-  /**
    * Restrict scoring to cases carrying one of these tags. Used by the OOD
    * domain holdout so the trial measures domains the candidate was never
    * tuned on, instead of the whole fixture.
@@ -465,8 +456,6 @@ interface OptimizeOptions {
   regularization: number;
   /** Freeze low-sensitivity params to shipped defaults after phase 1. */
   prune: boolean;
-  /** Enable the dense-vector signal in workers (phase-1 vector params join). */
-  vector: boolean;
   /** Run the pipeline without writing .env. */
   dryRun: boolean;
 }
@@ -498,7 +487,6 @@ function parseOptions(): OptimizeOptions {
     dataset,
     regularization: parseFloat(get('--regularization', '0.01')),
     prune: !has('--no-prune'),
-    vector: false,
     dryRun: has('--dry-run'),
   };
 }
@@ -513,10 +501,6 @@ function spawnWorker(spec: TrialSpec): Promise<TrialResult | null> {
   for (const [key, value] of Object.entries(spec.params)) {
     envOverrides[key] = String(value);
   }
-  // Deterministic vector switch: explicit in BOTH modes so a shell-exported
-  // SEARCH_VECTOR_ENABLED can never flip a lexical run (or mute a --vector
-  // run) halfway through the trial population.
-  envOverrides.SEARCH_VECTOR_ENABLED = spec.vectorEnabled ? 'true' : 'false';
   // Tuning workers must never report telemetry: with opt-out telemetry ON by
   // default, thousands of trial searches would flood the real ingress and
   // pollute the production dataset.
@@ -628,7 +612,7 @@ interface FrozenParamsRef {
   current: Partial<Record<TunableParamKey, number>>;
 }
 
-function datasetArg(options: TuneOptions, dataset: string): string {
+function datasetArg(options: TuneOptions, dataset: TrialSpec['dataset']): TrialSpec['dataset'] {
   return options.dataset === 'realtime' ? 'realtime' : dataset;
 }
 
@@ -653,11 +637,6 @@ async function verifyRealtimeDataset(options: TuneOptions): Promise<void> {
 function logTuningPlan(ctx: TunePhaseContext): void {
   console.log(
     `Search tuning: ${ctx.defs.length} params (${ctx.phase1Defs.length} lexical, ${ctx.phase3Defs.length} profile, ${ctx.phase4Defs.length} rerank)`,
-  );
-  console.log(
-    ctx.options.vector
-      ? 'Vector signal: ENABLED (workers run SEARCH_VECTOR_ENABLED=true; vector-scoring params join phase 1)'
-      : 'Vector signal: disabled (lexical run; vector-scoring params excluded from sampling)',
   );
   console.log(`Using ${ctx.options.concurrency} CPU cores, seed=${ctx.options.seed}`);
 }
@@ -695,7 +674,6 @@ function buildPhase1Specs(ctx: TunePhaseContext): TrialSpec[] {
       dataset: datasetArg(ctx.options, 'search-quality'),
       params: params as Record<string, number>,
       seed: ctx.options.seed + i,
-      vectorEnabled: ctx.options.vector || undefined,
     });
   }
   return specs;
@@ -766,7 +744,6 @@ async function runPhase2Refinement(
         dataset: datasetArg(ctx.options, 'search-quality'),
         params: params as Record<string, number>,
         seed: ctx.options.seed + 10000 + idx,
-        vectorEnabled: ctx.options.vector || undefined,
       });
       idx++;
     }
@@ -796,7 +773,6 @@ async function runRrsiHoldoutVerification(
     seed: ctx.options.seed + 40000 + i,
     evaluateHoldout: true,
     sourceTrialId: trial.trialId,
-    vectorEnabled: ctx.options.vector || undefined,
   }));
   const sourceByHoldoutId = new Map(holdoutSpecs.map((s) => [s.trialId, s.sourceTrialId] as const));
   const evolveScoreByTrialId = new Map(
@@ -886,7 +862,6 @@ async function logOodConfirmation(ctx: TunePhaseContext, bestLexical: TrialResul
         params: bestLexical.params,
         seed: ctx.options.seed + 50000,
         onlyTags: [...ood.heldOutTags],
-        vectorEnabled: ctx.options.vector || undefined,
       },
     ],
     1,
@@ -921,7 +896,6 @@ async function runPhase3Profile(
       dataset: datasetArg(ctx.options, 'profile-tier'),
       params: merged as Record<string, number>,
       seed: ctx.options.seed + 20000 + i,
-      vectorEnabled: ctx.options.vector || undefined,
     });
   }
   return runTrials(specs, ctx.options.concurrency, 'Phase 3 — Profile', ctx.outFile);
@@ -947,7 +921,6 @@ async function runPhase4Rerank(
       dataset: datasetArg(ctx.options, 'rerank-state'),
       params: merged as Record<string, number>,
       seed: ctx.options.seed + 30000 + i,
-      vectorEnabled: ctx.options.vector || undefined,
     });
   }
   return runTrials(specs, ctx.options.concurrency, 'Phase 4 — Rerank', ctx.outFile);
@@ -1022,9 +995,9 @@ async function orchestrate(): Promise<void> {
     options,
     outFile,
     defs,
-    phase1Defs: getPhaseParams(defs, 1, { vectorEnabled: options.vector }),
-    phase3Defs: getPhaseParams(defs, 3, { vectorEnabled: options.vector }),
-    phase4Defs: getPhaseParams(defs, 4, { vectorEnabled: options.vector }),
+    phase1Defs: getPhaseParams(defs, 1),
+    phase3Defs: getPhaseParams(defs, 3),
+    phase4Defs: getPhaseParams(defs, 4),
     sampleFresh: () => ({}) as TrialParams, // replaced below (needs frozenRef)
     rankScore,
   };

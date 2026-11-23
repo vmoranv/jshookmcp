@@ -131,8 +131,8 @@ describe('search-tune/report', () => {
       );
       expect(markdown).toContain('export SEARCH_BM25_K1=0.8');
       expect(markdown).not.toContain('export SEARCH_VECTOR_');
-      expect(markdown).toContain('Excluded 3 vector-signal key(s)');
-      expect(markdown).toContain('optimize.ts --vector');
+      expect(markdown).toContain('Excluded 3 historical vector-signal key(s)');
+      expect(markdown).not.toContain('optimize.ts --vector');
     });
 
     it('renders the RRSI holdout table with gap-based verdicts', () => {

@@ -6,18 +6,10 @@
 // ── parameter whitelist ──
 
 export const SEARCH_TUNE_PARAM_KEYS = [
-  // Phase 1: lexical + boost signals. Vector-scoring keys
-  // (SEARCH_VECTOR_BM25_SKIP_THRESHOLD / SEARCH_VECTOR_COSINE_WEIGHT) are only
-  // sampled when the run passes --vector (see VECTOR_SCORING_PARAM_KEYS); in a
-  // lexical run the tuning worker's engine constructs with vectorEnabled=false,
-  // making those dimensions dead — sampling them burns trial budget and emits
-  // noise "recommendations".
-  //
-  // SEARCH_VECTOR_LEARN_* are deliberately absent: they steer the FeedbackTracker
-  // learning loop, which only advances on real tool-call feedback
-  // (recordToolCallFeedback). The eval loop never records feedback, so no
-  // offline trial can observe them — see VECTOR_TUNABLE_PARAM_KEYS for the
-  // historical-filter set used when consuming old trials.jsonl files.
+  // Phase 1: lexical + boost signals. Search is lexical-only (ADR-0005):
+  // every SEARCH_VECTOR_* dimension was removed with the dense path and stays
+  // out of the tuning space. VECTOR_TUNABLE_PARAM_KEYS below is a historical
+  // denylist for old trials.jsonl files, not a sampling surface.
   'SEARCH_TRIGRAM_WEIGHT',
   'SEARCH_TRIGRAM_THRESHOLD',
   'SEARCH_RRF_BM25_BLEND',
@@ -58,25 +50,15 @@ export const SEARCH_TUNE_PARAM_KEYS = [
 export type TunableParamKey = (typeof SEARCH_TUNE_PARAM_KEYS)[number];
 
 /**
- * Vector-signal scoring keys. Only sampled when the tuning run passes
- * `--vector` (optimize.ts then sets SEARCH_VECTOR_ENABLED=true in every worker
- * env). In the default lexical run the worker engine has vectorEnabled=false,
- * so these two keys are dead dimensions — getPhaseParams drops them.
- */
-export const VECTOR_SCORING_PARAM_KEYS = [
-  'SEARCH_VECTOR_BM25_SKIP_THRESHOLD',
-  'SEARCH_VECTOR_COSINE_WEIGHT',
-] as const;
-
-/**
- * Every vector-related key that can appear in a HISTORICAL trials.jsonl (runs
- * predating the gating above sampled all five). Consumers that turn trial
- * params into recommendations (report.ts, .env application) exclude this set:
- * LEARN_* values are offline-unobservable feedback-dynamics knobs, and
- * SKIP/COSINE values from a lexical-only run carry no evidence.
+ * Historical vector-signal keys that can appear in an old trials.jsonl (runs
+ * predating the dense-path removal). Consumers that turn trial params into
+ * recommendations (report.ts, .env application) exclude this set: the keys no
+ * longer exist in the runtime constants, so recommending them would write dead
+ * env vars.
  */
 export const VECTOR_TUNABLE_PARAM_KEYS = [
-  ...VECTOR_SCORING_PARAM_KEYS,
+  'SEARCH_VECTOR_BM25_SKIP_THRESHOLD',
+  'SEARCH_VECTOR_COSINE_WEIGHT',
   'SEARCH_VECTOR_LEARN_UP',
   'SEARCH_VECTOR_LEARN_DOWN',
   'SEARCH_VECTOR_LEARN_TOP_N',
@@ -141,7 +123,7 @@ export type TrialParams = Readonly<Partial<Record<TunableParamKey, number>>>;
 // ── parameter definitions ──
 
 export const PARAM_DEFS: readonly TunableParamDef[] = [
-  // Phase 1: lexical + vector + boost signals (all 24 scoring params)
+  // Phase 1: lexical + boost signals (20 scoring params)
   { key: 'SEARCH_TRIGRAM_WEIGHT', type: 'float', min: 0.01, max: 0.3, step: 0.01, phase: 1 },
   { key: 'SEARCH_TRIGRAM_THRESHOLD', type: 'float', min: 0.15, max: 0.55, step: 0.01, phase: 1 },
   { key: 'SEARCH_RRF_BM25_BLEND', type: 'float', min: 0.1, max: 0.8, step: 0.01, phase: 1 },
@@ -251,16 +233,8 @@ export async function loadSearchSpace(): Promise<readonly TunableParamDef[]> {
 export function getPhaseParams(
   defs: readonly TunableParamDef[],
   phase: number,
-  options?: { vectorEnabled?: boolean },
 ): readonly TunableParamDef[] {
-  const phaseDefs = defs.filter((d) => d.phase === phase);
-  if (options?.vectorEnabled === false) {
-    // Lexical run: the worker engine constructs with vectorEnabled=false, so
-    // vector-scoring dimensions are dead — exclude them from sampling.
-    const vectorKeys: readonly string[] = VECTOR_SCORING_PARAM_KEYS;
-    return phaseDefs.filter((d) => !vectorKeys.includes(d.key));
-  }
-  return phaseDefs;
+  return defs.filter((d) => d.phase === phase);
 }
 
 /**

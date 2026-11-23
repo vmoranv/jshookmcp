@@ -33,7 +33,6 @@ import type {
 } from './significance';
 
 export type CorpusKind = 'fixture' | 'registry';
-export type VectorMode = 'off' | 'on';
 export type EvaluationStatus = 'ok' | 'blocked' | 'partial';
 
 /** Structural engine interface; the real engine satisfies it, tests stub it. */
@@ -104,7 +103,6 @@ export interface BaselineArtifact {
     readonly caseCount: number;
   };
   readonly config: {
-    readonly vectorMode: VectorMode;
     readonly paramsHash: string;
     readonly paramOverrides: Readonly<Record<string, number>>;
   };
@@ -132,7 +130,6 @@ export interface DeltaReport {
 
 export interface EvaluationRequest {
   readonly corpus: CorpusKind;
-  readonly vectorMode: VectorMode;
   readonly cases?: readonly SearchEvalCase[];
   readonly engine?: SearchEngineLike;
   readonly toolCountHint?: number;
@@ -161,7 +158,6 @@ export interface EvaluationReport {
     readonly caseCount: number;
   };
   readonly config: {
-    readonly vectorMode: VectorMode;
     readonly paramsHash: string;
     readonly paramOverrides: Readonly<Record<string, number>>;
     readonly mechanisms: readonly string[];
@@ -296,7 +292,6 @@ export async function runSearchEvaluation(request: EvaluationRequest): Promise<E
         caseCount: corpus.cases.length,
       },
       config: {
-        vectorMode: request.vectorMode,
         paramsHash: paramsHash(request),
         paramOverrides: request.paramOverrides ?? {},
         mechanisms: request.mechanismOverrides ?? [],
@@ -454,7 +449,6 @@ function summarizeLatency(samples: readonly number[]): LatencySummary {
 function paramsHash(request: EvaluationRequest): string {
   return hashText(
     stableStringify({
-      vectorMode: request.vectorMode,
       paramOverrides: request.paramOverrides ?? {},
       searchConfigOverrides: request.searchConfigOverrides ?? {},
       mechanismOverrides: request.mechanismOverrides ?? [],
@@ -502,7 +496,6 @@ function emptyReport(
     blockers,
     corpus: { kind: request.corpus, toolCount: request.toolCountHint ?? 0, caseCount: 0 },
     config: {
-      vectorMode: request.vectorMode,
       paramsHash: paramsHash(request),
       paramOverrides: request.paramOverrides ?? {},
       mechanisms: request.mechanismOverrides ?? [],
@@ -565,7 +558,6 @@ export function toBaselineArtifact(
     createdAt: report.createdAt,
     corpus: report.corpus,
     config: {
-      vectorMode: report.config.vectorMode,
       paramsHash: report.config.paramsHash,
       paramOverrides: report.config.paramOverrides,
     },
@@ -589,7 +581,6 @@ if (invokedDirectly) {
   };
   const report = await runSearchEvaluation({
     corpus: get('corpus', 'fixture') as CorpusKind,
-    vectorMode: get('vector', 'off') as VectorMode,
     latencyRepeats: Number(get('repeats', '3')),
     include: { ledger: true, perCase: false, significance: false },
   });

@@ -46,16 +46,13 @@ interface AblationRecord {
 }
 
 function baselinePath(corpus: CorpusKind): string {
-  return join(BASELINE_DIR, `2026-11-23-${corpus}-vector-off.defaults.json`);
+  return join(BASELINE_DIR, `${corpus}.defaults.json`);
 }
 
 function skipReason(mechanism: MechanismDescriptor): string | null {
   if (mechanism.neutralization !== 'config-zero')
     return `neutralization=${mechanism.neutralization}`;
-  if (mechanism.id === 'dense') return 'baseline is already vector-off';
-  if (mechanism.id === 'feedback-learning')
-    return 'harness already forces vectorDynamicWeight=false';
-  if (!mechanism.env && !mechanism.searchConfig && !mechanism.vectorMode) return 'no neutraliser';
+  if (!mechanism.env && !mechanism.searchConfig) return 'no neutraliser';
   return null;
 }
 
@@ -68,7 +65,6 @@ async function runChild(mechanismId: string, corpus: CorpusKind, outPath: string
   const fixture = buildSearchQualityFixture();
   const report = await runSearchEvaluation({
     corpus,
-    vectorMode: mechanism.vectorMode ?? 'off',
     cases: fixture.cases,
     compareTo: baseline,
     searchConfigOverrides: mechanism.searchConfig,
@@ -185,10 +181,10 @@ async function runOne(mechanism: MechanismDescriptor, corpus: CorpusKind): Promi
   };
 }
 
-async function runAll(): Promise<void> {
+async function runAll(corpora: readonly CorpusKind[]): Promise<void> {
   const records: AblationRecord[] = [];
   for (const mechanism of SEARCH_MECHANISMS) {
-    for (const corpus of CORPORA) {
+    for (const corpus of corpora) {
       process.stdout.write(`ablate ${mechanism.id} / ${corpus} ... `);
       const record = await runOne(mechanism, corpus);
       console.log(record.status);
@@ -213,6 +209,8 @@ async function writeSummary(records: readonly AblationRecord[]): Promise<void> {
   const lines: string[] = [];
   lines.push('# D2 mechanism ablation');
   lines.push('');
+  lines.push(`Corpora: ${[...new Set(records.map((record) => record.corpus))].join(', ')}`);
+  lines.push('');
   lines.push(
     'Contribution = baseline objective - ablated objective. Positive means the mechanism earns its keep; <= 0 means removing it does not hurt (deletion candidate).',
   );
@@ -231,7 +229,7 @@ async function writeSummary(records: readonly AblationRecord[]): Promise<void> {
           : (fixture.contribution ?? 0) > 0.01 || (registry.contribution ?? 0) > 0.01
             ? 'keep'
             : 'inconclusive'
-        : [fixture?.status, registry?.status].filter(Boolean).join('/');
+        : `${fixture?.status ?? 'missing'}/${registry?.status ?? 'missing'}`;
     rows.push({
       id,
       group: list[0]?.group ?? '',
@@ -266,11 +264,11 @@ const invokedDirectly =
 
 if (invokedDirectly) {
   const args = process.argv.slice(2);
+  const get = (name: string, fallback = ''): string => {
+    const index = args.indexOf(`--${name}`);
+    return index >= 0 ? (args[index + 1] ?? fallback) : fallback;
+  };
   if (args.includes('--child')) {
-    const get = (name: string): string => {
-      const index = args.indexOf(`--${name}`);
-      return index >= 0 ? (args[index + 1] ?? '') : '';
-    };
     const mechanismId = get('mechanism');
     const corpus = get('corpus') as CorpusKind;
     const outPath = get('out');
@@ -278,6 +276,10 @@ if (invokedDirectly) {
       throw new Error('child requires --mechanism --corpus --out');
     await runChild(mechanismId, corpus, outPath);
   } else {
-    await runAll();
+    const corpusArg = get('corpus', 'all');
+    if (corpusArg !== 'all' && !CORPORA.includes(corpusArg as CorpusKind)) {
+      throw new Error(`unknown --corpus "${corpusArg}"; expected fixture, registry, or all`);
+    }
+    await runAll(corpusArg === 'all' ? CORPORA : [corpusArg as CorpusKind]);
   }
 }

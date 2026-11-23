@@ -61,7 +61,7 @@ function zeroBaseline(cases: readonly SearchEvalCase[]): BaselineArtifact {
     version: 1,
     createdAt: '2026-01-01T00:00:00.000Z',
     corpus: { kind: 'fixture', toolCount: 2, caseCount: cases.length },
-    config: { vectorMode: 'off', paramsHash: 'baseline', paramOverrides: {} },
+    config: { paramsHash: 'baseline', paramOverrides: {} },
     aggregate,
     latency: { p50: 0, p90: 0, p95: 0, p99: 0, max: 0, samples: 0 },
     perCase,
@@ -72,7 +72,6 @@ describe('runSearchEvaluation', () => {
   it('returns an ok report with stable rankings across latency repeats', async () => {
     const report = await runSearchEvaluation({
       corpus: 'fixture',
-      vectorMode: 'off',
       engine: perfectEngine(),
       toolCountHint: 2,
       cases: CASES,
@@ -90,7 +89,6 @@ describe('runSearchEvaluation', () => {
   it('computes paired deltas against a baseline and returns a verdict', async () => {
     const report = await runSearchEvaluation({
       corpus: 'fixture',
-      vectorMode: 'off',
       engine: perfectEngine(),
       toolCountHint: 2,
       cases: CASES,
@@ -107,7 +105,6 @@ describe('runSearchEvaluation', () => {
     const counts = { scoreStages: 20, tunableParams: 35, runtimeDeps: 22, searchLoc: 5_000 };
     const report = await runSearchEvaluation({
       corpus: 'fixture',
-      vectorMode: 'off',
       engine: perfectEngine(),
       toolCountHint: 2,
       cases: CASES,
@@ -127,7 +124,6 @@ describe('runSearchEvaluation', () => {
     };
     const report = await runSearchEvaluation({
       corpus: 'fixture',
-      vectorMode: 'off',
       engine: failing,
       toolCountHint: 2,
       cases: CASES,
@@ -140,7 +136,6 @@ describe('runSearchEvaluation', () => {
   it('blocks an empty corpus', async () => {
     const report = await runSearchEvaluation({
       corpus: 'fixture',
-      vectorMode: 'off',
       engine: stubEngine({}),
       cases: [],
       latencyRepeats: 1,

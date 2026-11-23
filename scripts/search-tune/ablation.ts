@@ -1,5 +1,5 @@
 /**
- * The 20 scoring mechanisms of the Search engine, grouped into 11 slots.
+ * The 18 scoring mechanisms of the Search engine, grouped into 9 groups.
  *
  * Each descriptor says how the mechanism can be neutralised for ablation.
  * `not-possible` means "contribution unknown", never "zero contribution".
@@ -34,8 +34,6 @@ export interface MechanismDescriptor {
   readonly env?: Readonly<Record<string, string>>;
   /** SearchConfig overrides applied at engine construction. */
   readonly searchConfig?: Partial<SearchConfig>;
-  /** Dense requires a vector mode rather than a knob. */
-  readonly vectorMode?: 'off' | 'on';
   readonly note?: string;
 }
 
@@ -135,8 +133,12 @@ export const SEARCH_MECHANISMS: readonly MechanismDescriptor[] = [
     id: 'intent-bands',
     group: 'intent',
     label: 'intent bonus bands',
-    neutralization: 'config-zero',
-    searchConfig: { intentToolBoostRules: [] },
+    neutralization: 'not-possible',
+    note:
+      'Shipped defaults already carry an empty intentToolBoostRules list, so there is nothing ' +
+      'left to neutralise. Clearing the rules also makes the confidence-floor gate fire for ' +
+      'every non-explicit query (intentToolBonuses.size is always 0); that behavior change must ' +
+      'be measured as part of the shipped baseline, not as an ablation.',
   },
   {
     id: 'category-profiles',
@@ -212,12 +214,7 @@ export function validateMechanisms(
     seen.add(mechanism.id);
     if (!groups.has(mechanism.group))
       errors.push(`unknown group: ${mechanism.id} -> ${mechanism.group}`);
-    if (
-      mechanism.neutralization === 'config-zero' &&
-      !mechanism.env &&
-      !mechanism.searchConfig &&
-      !mechanism.vectorMode
-    ) {
+    if (mechanism.neutralization === 'config-zero' && !mechanism.env && !mechanism.searchConfig) {
       errors.push(`config-zero without a neutraliser: ${mechanism.id}`);
     }
   }

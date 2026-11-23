@@ -6,7 +6,7 @@
  * Usage:
  *   tsx scripts/search-tune/run-baseline.ts --corpus fixture \
  *     --params scripts/search-tune/baselines/params-2026-11-23-h03.json \
- *     --out scripts/search-tune/baselines/2026-11-23-fixture-vector-off.json \
+ *     --out scripts/search-tune/baselines/fixture.defaults.json \
  *     --winner h03 --optimizer-score 0.8554 --tuning-ms 520000
  */
 
@@ -19,14 +19,13 @@ import { pathToFileURL } from 'node:url';
 
 import { buildSearchQualityFixture } from '../../tests/server/search/fixtures/search-quality.fixture';
 import type { SearchEvalCase } from '../../tests/server/search/fixtures/search-quality.fixture';
-import type { BaselineProvenance, CorpusKind, VectorMode } from './evaluation';
+import type { BaselineProvenance, CorpusKind } from './evaluation';
 import { splitEvolveHoldout } from './holdout';
 
 export interface BaselineRunOptions {
   readonly corpus: CorpusKind;
   readonly outPath: string;
   readonly paramsPath?: string;
-  readonly vectorMode?: VectorMode;
   readonly latencyRepeats?: number;
   readonly seed?: number;
   readonly evolveRatio?: number;
@@ -70,7 +69,6 @@ export async function buildBaseline(options: BaselineRunOptions): Promise<void> 
   };
   const report = await runSearchEvaluation({
     corpus: options.corpus,
-    vectorMode: options.vectorMode ?? 'off',
     cases: fixture.cases,
     paramOverrides,
     latencyRepeats: options.latencyRepeats ?? 3,
@@ -102,10 +100,18 @@ export async function buildBaseline(options: BaselineRunOptions): Promise<void> 
 
 function readGitSha(): string | null {
   try {
-    return execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
+    const sha = execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
       cwd: process.cwd(),
       encoding: 'utf8',
     }).trim();
+    // A baseline from a dirty tree is not reproducible from the named commit;
+    // surface that in the artifact instead of claiming an exact revision.
+    const dirty =
+      execFileSync('git', ['status', '--porcelain'], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+      }).trim().length > 0;
+    return dirty ? `${sha}-dirty` : sha;
   } catch {
     return null;
   }
@@ -136,7 +142,6 @@ if (invokedDirectly) {
     corpus: get('corpus', 'fixture') as CorpusKind,
     outPath: get('out', 'artifacts/search-tuning/baseline.json'),
     paramsPath: get('params', '') || undefined,
-    vectorMode: get('vector', 'off') as VectorMode,
     latencyRepeats: Number(get('repeats', '3')),
     seed: Number(get('seed', '42')),
     evolveRatio: Number(get('evolve-ratio', '0.7')),

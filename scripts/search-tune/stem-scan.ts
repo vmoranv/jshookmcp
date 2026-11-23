@@ -172,7 +172,7 @@ async function main(): Promise<void> {
         dom736,
         undefined,
         undefined,
-        { vectorEnabled: false } as never,
+        undefined,
         sk736,
       );
       regRes = await evalCorpus(regEngine, regCases);

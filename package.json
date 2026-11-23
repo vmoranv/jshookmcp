@@ -77,7 +77,7 @@
     "build:sdk": "corepack pnpm -C packages/extension-sdk build",
     "build:all": "corepack pnpm run build:dts && corepack pnpm run build:sdk",
     "build:analyze": "cross-env BUNDLE_ANALYZE=1 corepack pnpm run build && echo 'Open stats.html in browser to view bundle analysis'",
-    "typecheck": "tsc --noEmit -p tsconfig.json && corepack pnpm -C packages/extension-sdk typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.search-tune.json && corepack pnpm -C packages/extension-sdk typecheck",
     "deps:update": "corepack pnpm update -r",
     "dev": "tsx --conditions=development watch src/index.ts",
     "dev:daemon": "cross-env MCP_TRANSPORT=http tsx --conditions=development watch src/index.ts",
@@ -146,7 +146,10 @@
     "mutation:plan": "fallow mutation --plan --base master --runner-project server",
     "mutation:changed": "fallow mutation --base master --runner-project server --time-budget 10m --max-mutants 60",
     "mutation:recheck": "fallow mutation --recheck --runner-project server",
-    "mutation:tasks": "fallow mutation tasks"
+    "mutation:tasks": "fallow mutation tasks",
+    "typecheck:search-tune": "tsc --noEmit -p tsconfig.search-tune.json",
+    "search:tune:baseline": "tsx scripts/search-tune/run-baseline.ts",
+    "search:tune:ablation": "tsx scripts/search-tune/run-ablation.ts"
   },
   "dependencies": {
     "@alexaltea/capstone-js": "^5.0.9",
