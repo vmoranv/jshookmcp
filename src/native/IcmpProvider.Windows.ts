@@ -184,18 +184,18 @@ function sendEchoOnce(
 }
 
 function parseReply(buf: Buffer): { address: number; status: number; rtt: number } {
-  // ICMP_ECHO_REPLY layout differs by pointer width:
-  //   x86 (ICMP_ECHO_REPLY32): Address(ULONG @0) Status(@4) RoundTripTime(@8)
-  //   x64 (ICMP_ECHO_REPLY):   Address(PVOID @0, 8B) Status(@8) RoundTripTime(@12)
-  // Reading the 32-bit offsets on x64 shifts every field: "status" would read
-  // the upper half of the Address pointer and "rtt" would read Status.
-  // ICMP_ECHO_REPLY layout differs by pointer width. Both x64 and ARM64 use
-  // 8-byte pointers (PVOID), so only the 32-bit x86 target uses the small layout.
-  const is64 = process.arch !== 'ia32';
+  // ICMP_ECHO_REPLY layout is identical on x86/x64 for the leading fields
+  // because Address is IPAddr (a 4-byte ULONG), not a pointer:
+  //   Address(ULONG @0) Status(@4) RoundTripTime(@8) DataSize(@12) Reserved(@14)
+  // Only the trailing Data/Options pointers change width. Reading 64-bit
+  // offsets shifts Status->RoundTripTime and RoundTripTime->DataSize|Reserved.
+  if (buf.length < 12) {
+    return { address: 0, status: 0xffffffff, rtt: 0 };
+  }
   return {
-    address: is64 ? Number(buf.readBigUInt64LE(0)) & 0xffffffff : buf.readUInt32LE(0),
-    status: buf.readUInt32LE(is64 ? 8 : 4),
-    rtt: buf.readUInt32LE(is64 ? 12 : 8),
+    address: buf.readUInt32LE(0),
+    status: buf.readUInt32LE(4),
+    rtt: buf.readUInt32LE(8),
   };
 }
 

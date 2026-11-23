@@ -266,6 +266,23 @@ describe('Win32API', () => {
     expect(res.modules[0]).toBe(0x1000n);
   });
 
+  it('clamps EnumProcessModules count to the allocated buffer capacity', () => {
+    // The process reports 5 modules (40 bytes) but the caller only allocated
+    // room for 2 — reading a 5th qword would throw ERR_OUT_OF_RANGE.
+    // @ts-expect-error
+    mockFuncs.EnumProcessModules.mockImplementation((h, buf, s, needed) => {
+      buf.writeBigUInt64LE(0x1000n, 0);
+      buf.writeBigUInt64LE(0x2000n, 8);
+      needed.writeUInt32LE(40, 0);
+      return 1;
+    });
+    const res = EnumProcessModules(1234n, 2);
+    expect(res.success).toBe(true);
+    expect(res.count).toBe(2);
+    expect(res.modules).toHaveLength(2);
+    expect(res.modules[1]).toBe(0x2000n);
+  });
+
   it('handles GetModuleBaseName', () => {
     // @ts-expect-error
     mockFuncs.GetModuleBaseNameA.mockImplementation((h, m, buf, _size) => {

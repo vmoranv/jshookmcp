@@ -175,8 +175,7 @@ describe('RemoteProxy connect flow (mock ws)', () => {
   });
 
   it('rejects on ws error before open', async () => {
-    // The RemoteProxy's error handler emits 'error' on the EventEmitter.
-    // If no listener is attached, Node throws. Attach a no-op listener.
+    // Forwarding 'error' when a listener exists must keep working.
     proxy.on('error', () => {});
 
     const connectPromise = proxy.connect();
@@ -185,6 +184,16 @@ describe('RemoteProxy connect flow (mock ws)', () => {
     mockWs.triggerError(new Error('ECONNREFUSED'));
     await expect(connectPromise).rejects.toThrow('ECONNREFUSED');
     expect(proxy.status.connected).toBe(false);
+  });
+
+  it('does not throw when a ws error arrives with no error listener', async () => {
+    const connectPromise = proxy.connect();
+    // EventEmitter('error') with no listener would throw synchronously and
+    // escape the ws callback; the proxy must record it and still reject.
+    expect(() => mockWs.triggerError(new Error('boom'))).not.toThrow();
+    await expect(connectPromise).rejects.toThrow('boom');
+    expect(proxy.status.lastError).toBe('boom');
+    expect(proxy.status.errors).toBe(1);
   });
 
   it('double-connect is a no-op', async () => {

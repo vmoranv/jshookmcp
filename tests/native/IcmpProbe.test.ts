@@ -22,19 +22,12 @@ const { state, mockKoffi, posixMocks } = vi.hoisted(() => {
       replySize: number,
     ) => {
       shared.replySizes.push(replySize);
-      if (process.arch !== 'ia32') {
-        // ICMP_ECHO_REPLY (64-bit pointer width; x64 and ARM64 both use
-        // 8-byte pointers): Address is a ULONG_PTR at 0 (8B), Status at 8,
-        // RoundTripTime at 12. Mirrors the source gate in parseReply().
-        replyBuf.writeBigUInt64LE(BigInt(destAddr >>> 0), 0);
-        replyBuf.writeUInt32LE(0, 8);
-        replyBuf.writeUInt32LE(7, 12);
-      } else {
-        // ICMP_ECHO_REPLY32: Address(4) Status(4) RoundTripTime(4).
-        replyBuf.writeUInt32LE(destAddr >>> 0, 0);
-        replyBuf.writeUInt32LE(0, 4);
-        replyBuf.writeUInt32LE(7, 8);
-      }
+      // ICMP_ECHO_REPLY: Address is IPAddr (ULONG, 4 bytes) on both x86 and
+      // x64. Status @4, RoundTripTime @8; only Data/Options pointer width
+      // changes. Writing 64-bit offsets would make Status read the RTT.
+      replyBuf.writeUInt32LE(destAddr >>> 0, 0);
+      replyBuf.writeUInt32LE(0, 4);
+      replyBuf.writeUInt32LE(7, 8);
       return 1;
     },
   );
@@ -314,6 +307,45 @@ describe('IcmpProbe POSIX default TTL from config', () => {
     await icmpProbe({ target: '1.2.3.4', ttl: 64, timeout: 1000 });
 
     expect(ttlSetCalls()).toEqual([64]);
+
+    unloadIcmpLibraries();
+  });
+});
+
+describe('IcmpProbe POSIX Darwin sockaddr/TTL layout', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  });
+
+  it('uses IP_TTL=4 and the BSD sockaddr_in byte layout', async () => {
+    let capturedAddr: Buffer | undefined;
+    (posixMocks.posixSendto as any).mockImplementation(
+      (_fd: number, _buf: Buffer, _len: number, _flags: number, addr: Buffer) => {
+        capturedAddr = Buffer.from(addr);
+        return 32;
+      },
+    );
+
+    vi.resetModules();
+    const { icmpProbe, unloadIcmpLibraries } = await import('@src/native/IcmpProbe');
+    await icmpProbe({ target: '1.2.3.4', ttl: 128, timeout: 1000 });
+
+    // Darwin IP_TTL is 4 (2 would be IP_HDRINCL).
+    const ttlCalls = posixMocks.posixSetSockOpt.mock.calls.filter(
+      ([, level, optname]) => level === 0 && optname === 4,
+    );
+    expect(ttlCalls.length).toBeGreaterThan(0);
+    expect((ttlCalls[0]![3] as Buffer).readInt32LE(0)).toBe(128);
+
+    expect(capturedAddr).toBeDefined();
+    expect(capturedAddr![0]).toBe(16); // sin_len
+    expect(capturedAddr![1]).toBe(2); // sin_family = AF_INET
+    expect([...capturedAddr!.subarray(4, 8)]).toEqual([1, 2, 3, 4]);
 
     unloadIcmpLibraries();
   });

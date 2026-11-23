@@ -9,10 +9,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   GdbRspServer,
+  applyGdbMemoryWrite,
   getOrCreateGdbServer,
   removeGdbServer,
   listGdbServers,
 } from '@native/GdbRspServer';
+import type { GdbEmulatorEngine } from '@native/GdbRspServer.types';
 import type { EmulatorSession } from '@modules/native-emulator/SessionManager';
 
 function createMockSession(): EmulatorSession {
@@ -125,5 +127,40 @@ describe('getOrCreateGdbServer / removeGdbServer / listGdbServers', () => {
     });
     expect(removeGdbServer('test-remove')).toBe(true);
     expect(removeGdbServer('test-remove')).toBe(false);
+  });
+});
+
+describe('applyGdbMemoryWrite (RSP M packet)', () => {
+  const baseEngine: GdbEmulatorEngine = {
+    readRegister: () => 0,
+    writeRegister: () => {},
+    readMemory: () => new Uint8Array(0),
+  };
+
+  it('applies validated hex through an engine that supports writes', () => {
+    const writes: Array<{ address: number; bytes: Uint8Array }> = [];
+    const engine: GdbEmulatorEngine = {
+      ...baseEngine,
+      writeMemory(address, bytes) {
+        writes.push({ address, bytes });
+      },
+    };
+
+    expect(applyGdbMemoryWrite(engine, 0x1000, 2, 'cafe')).toBe(true);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.address).toBe(0x1000);
+    expect([...writes[0]!.bytes]).toEqual([0xca, 0xfe]);
+  });
+
+  it('rejects writes when the engine has no writeMemory surface', () => {
+    // The old handler answered OK after a read-only probe and silently
+    // discarded hexData.
+    expect(applyGdbMemoryWrite(baseEngine, 0x1000, 1, 'cc')).toBe(false);
+  });
+
+  it('rejects length mismatches and non-hex payloads', () => {
+    const engine: GdbEmulatorEngine = { ...baseEngine, writeMemory: () => {} };
+    expect(applyGdbMemoryWrite(engine, 0x1000, 2, 'cc')).toBe(false); // short
+    expect(applyGdbMemoryWrite(engine, 0x1000, 1, 'zz')).toBe(false); // non-hex
   });
 });

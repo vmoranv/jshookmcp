@@ -184,42 +184,90 @@ describe('parseMinidump — thread list', () => {
 });
 
 describe('parseMinidump — module list', () => {
-  it('parses ModuleListStream with version info', () => {
-    // MINIDUMP_MODULE: base(u64) size(u32) checksum(u32) timestamp(u32) nameRva(u32)
-    // version(u16*4) + CV record(u32*4) + misc(u32*2) + reserved(u64*2) = 72 bytes
-    const MOD_SZ = 72;
-    const mod = Buffer.alloc(4 + MOD_SZ);
-    mod.writeUInt32LE(1, 0);
-    mod.writeBigUInt64LE(BigInt(0x7ff70000), 4);
-    mod.writeUInt32LE(0x100000, 12);
+  it('parses ModuleListStream with version info and a UTF-16 module name', () => {
+    // MINIDUMP_MODULE = 108 bytes: base(u64) size(u32) checksum(u32)
+    // timestamp(u32) nameRva(u32) + VS_FIXEDFILEINFO(52) + CvRecord(8) +
+    // MiscRecord(8) + reserved0(u64) + reserved1(u64).
+    const MOD_SZ = 108;
+    const mod = Buffer.alloc(MOD_SZ);
+    mod.writeBigUInt64LE(BigInt(0x7ff70000), 0);
+    mod.writeUInt32LE(0x100000, 8);
+    mod.writeUInt32LE(0, 12);
     mod.writeUInt32LE(0, 16);
-    mod.writeUInt32LE(0, 20);
-    mod.writeUInt32LE(0xffffffff, 24); // nameRva → invalid → '(unknown)'
-    mod.writeUInt16LE(10, 28);
-    mod.writeUInt16LE(0, 30);
-    mod.writeUInt16LE(19041, 32);
-    mod.writeUInt16LE(5465, 34);
+    // nameRva is patched below once the absolute file offset is known.
+    // VS_FIXEDFILEINFO: dwFileVersionMS @ 32, dwFileVersionLS @ 36
+    mod.writeUInt32LE((10 << 16) | 0, 32);
+    mod.writeUInt32LE((19041 << 16) | 5465, 36);
+
     const dirOffset = 32;
     const dataOffset = dirOffset + 12;
-    const buf = Buffer.concat([header(1, dirOffset), dirEntry(4, mod.length, dataOffset), mod]);
+    const nameOffset = dataOffset + 4 + MOD_SZ;
+    mod.writeUInt32LE(nameOffset, 20);
+
+    const nameBytes = Buffer.from('test.dll', 'utf16le');
+    const nameRec = Buffer.alloc(4 + nameBytes.length);
+    nameRec.writeUInt32LE(nameBytes.length, 0);
+    nameBytes.copy(nameRec, 4);
+
+    const stream = Buffer.alloc(4 + MOD_SZ);
+    stream.writeUInt32LE(1, 0); // module count
+    mod.copy(stream, 4);
+
+    const buf = Buffer.concat([
+      header(1, dirOffset),
+      dirEntry(4, stream.length + nameRec.length, dataOffset),
+      stream,
+      nameRec,
+    ]);
     mockReadFileSync.mockReturnValue(buf);
     const r = parseMinidump('/mod.dmp');
     expect(r.modules).toHaveLength(1);
     expect(r.modules[0]?.baseAddress).toBe('0x7ff70000');
     expect(r.modules[0]?.size).toBe(0x100000);
-    expect(r.modules[0]?.name).toBe('(unknown)');
+    expect(r.modules[0]?.name).toBe('test.dll');
     expect(r.modules[0]?.timestamp).toBe('n/a');
     expect(r.modules[0]?.version).toBe('10.0.19041.5465');
+  });
+
+  it('advances by the full 108-byte MINIDUMP_MODULE stride for every entry', () => {
+    const MOD_SZ = 108;
+    const stream = Buffer.alloc(4 + MOD_SZ * 2);
+    stream.writeUInt32LE(2, 0);
+    // Module 0
+    stream.writeBigUInt64LE(BigInt(0x10000000), 4);
+    stream.writeUInt32LE(0x1000, 12);
+    stream.writeUInt32LE(0xffffffff, 24); // nameRva → out of range
+    // Module 1 starts exactly one full struct later.
+    stream.writeBigUInt64LE(BigInt(0x20000000), 4 + MOD_SZ);
+    stream.writeUInt32LE(0x2000, 12 + MOD_SZ);
+    stream.writeUInt32LE(0xffffffff, 24 + MOD_SZ);
+
+    const dirOffset = 32;
+    const dataOffset = dirOffset + 12;
+    const buf = Buffer.concat([
+      header(1, dirOffset),
+      dirEntry(4, stream.length, dataOffset),
+      stream,
+    ]);
+    mockReadFileSync.mockReturnValue(buf);
+    const r = parseMinidump('/mods.dmp');
+    expect(r.modules).toHaveLength(2);
+    expect(r.modules[0]?.baseAddress).toBe('0x10000000');
+    expect(r.modules[0]?.size).toBe(0x1000);
+    expect(r.modules[1]?.baseAddress).toBe('0x20000000');
+    expect(r.modules[1]?.size).toBe(0x2000);
+    expect(r.modules[1]?.name).toBe('(unknown)');
   });
 });
 
 describe('parseMinidump — memory lists', () => {
   it('parses MemoryListStream (32-bit)', () => {
-    const mem = Buffer.alloc(4 + 20);
+    // memoryCount(u32) + MINIDUMP_MEMORY_DESCRIPTOR{ start(u64) size(u32) rva(u32) }
+    const mem = Buffer.alloc(4 + 16);
     mem.writeUInt32LE(1, 0);
     mem.writeBigUInt64LE(BigInt(0x10000000), 4);
-    mem.writeBigUInt64LE(BigInt(0x2000), 12);
-    mem.writeUInt32LE(500, 20);
+    mem.writeUInt32LE(0x2000, 12);
+    mem.writeUInt32LE(500, 16);
     const dirOffset = 32;
     const dataOffset = dirOffset + 12;
     const buf = Buffer.concat([header(1, dirOffset), dirEntry(5, mem.length, dataOffset), mem]);

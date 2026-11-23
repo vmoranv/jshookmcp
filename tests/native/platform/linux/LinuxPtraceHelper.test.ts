@@ -58,7 +58,6 @@ import {
 
 // x86-64 user_regs_struct offsets (mirror of the implementation).
 const OFF_RAX = 80;
-const OFF_ORIG_RAX = 120;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -98,7 +97,9 @@ beforeEach(() => {
       } else if (syscallStop === 'enter') {
         syscallStop = 'exit';
         // syscall-exit-stop: rax = return value; mmap returns a pointer.
-        const syscallNr = Number(regsState.readBigUInt64LE(OFF_ORIG_RAX));
+        // The injected number lives in RAX (the vDSO gadget's syscall entry
+        // copies RAX to orig_rax), so read RAX to decide the result.
+        const syscallNr = Number(regsState.readBigUInt64LE(OFF_RAX));
         regsState.writeBigUInt64LE(syscallNr === 9 ? 0x7f001234n : 0n, OFF_RAX);
       }
       return 0n;
@@ -194,5 +195,27 @@ describe('remoteSyscall / PTRACE_SYSCALL handshake', () => {
 
     const detachCalls = mockPtrace.mock.calls.filter((c) => Number(c[0]) === 17);
     expect(detachCalls).toHaveLength(1);
+  });
+});
+
+describe('remoteSyscall ptrace error handling', () => {
+  function callsFor(req: number): unknown[] {
+    return mockPtrace.mock.calls.filter((c) => Number(c[0]) === req);
+  }
+
+  it('does not detach or restore when PTRACE_ATTACH fails', () => {
+    mockPtrace.mockImplementation((req: bigint) => (Number(req) === 16 ? -1n : 0n));
+
+    expect(() => remoteSyscall(999, 9)).toThrow(/PTRACE_ATTACH/);
+    expect(callsFor(17)).toHaveLength(0); // DETACH
+    expect(callsFor(13)).toHaveLength(0); // SETREGS
+  });
+
+  it('does not write back zeroed registers when PTRACE_GETREGS fails', () => {
+    mockPtrace.mockImplementation((req: bigint) => (Number(req) === 12 ? -1n : 0n));
+
+    expect(() => remoteSyscall(999, 9)).toThrow(/PTRACE_GETREGS/);
+    expect(callsFor(13)).toHaveLength(0); // SETREGS with the zero buffer
+    expect(callsFor(17)).toHaveLength(1); // still detaches the attached tracee
   });
 });

@@ -245,6 +245,41 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
     };
   }
 
+  /**
+   * Walk mach_vm_region from address 0, collecting every mapped region.
+   * mach_vm_region returns the next region at/after the queried address, so
+   * this advances across holes instead of stopping at an unmapped gap.
+   */
+  enumerateRegions(handle: ProcessHandle): MemoryRegionInfo[] {
+    const h = getDarwinHandle(handle);
+    const regions: MemoryRegionInfo[] = [];
+    let address = 0n;
+
+    // Safety cap mirrors enumerateModulesRemote.
+    for (let i = 0; i < 10000; i++) {
+      const { kr, address: regionBase, size: regionSize, info } = machVmRegion(h.task, address);
+      if (kr !== KERN.SUCCESS || regionSize === 0n) break;
+
+      const protection = machProtToMemoryProtection(info.protection);
+      regions.push({
+        baseAddress: regionBase,
+        size: Number(regionSize),
+        protection,
+        state: 'committed',
+        type: darwinShareModeToType(info.behavior),
+        isReadable: (protection & MemoryProtection.Read) !== 0,
+        isWritable: (protection & MemoryProtection.Write) !== 0,
+        isExecutable: (protection & MemoryProtection.Execute) !== 0,
+      });
+
+      const next = regionBase + regionSize;
+      if (next <= address) break;
+      address = next;
+    }
+
+    return regions;
+  }
+
   changeProtection(
     handle: ProcessHandle,
     address: bigint,

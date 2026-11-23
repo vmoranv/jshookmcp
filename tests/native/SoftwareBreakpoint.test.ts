@@ -48,6 +48,7 @@ vi.mock('@native/Win32Debug', () => ({
     rip: 0n,
   })),
   writeContext: vi.fn(),
+  setSingleStepFlag: vi.fn(),
   encodeDR7: vi.fn(() => 0n),
   CONTEXT_FLAGS: { ALL: 0x0010001f },
   EXCEPTION_CODE: { SINGLE_STEP: 0x80000004, BREAKPOINT: 0x80000003, ACCESS_VIOLATION: 0xc0000005 },
@@ -137,5 +138,29 @@ describe('SoftwareBreakpointEngine', () => {
       const removed = await engine.removeBreakpoint('nonexistent');
       expect(removed).toBe(false);
     });
+  });
+});
+
+describe('SoftwareBreakpointEngine waitForHit', () => {
+  it('continues the breakpoint debug event before returning the hit', async () => {
+    vi.clearAllMocks();
+    const engine = new SoftwareBreakpointEngine();
+    const win32debug = await import('@native/Win32Debug');
+    const bp = await engine.setBreakpoint(1234, '0x401000', 'execute', 1);
+
+    vi.mocked(win32debug.WaitForDebugEvent).mockReturnValueOnce({
+      debugEventCode: 1,
+      processId: 1234,
+      threadId: 77,
+      exceptionCode: 0x80000003,
+      exceptionAddress: 0x401000n,
+    });
+
+    const hit = await engine.waitForHit(100);
+
+    expect(hit?.breakpointId).toBe(bp.id);
+    // The debug event must be released, otherwise the debuggee stays frozen
+    // and no follow-up SINGLE_STEP can arrive.
+    expect(win32debug.ContinueDebugEvent).toHaveBeenCalledWith(1234, 77, 0x00010002);
   });
 });

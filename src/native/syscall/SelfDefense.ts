@@ -628,7 +628,7 @@ function startWatchdog(config: SelfDefenseConfig): {
  * The watchdog continuously checks if the parent PID is alive.
  * If parent dies, restarts it with the same command line.
  */
-function buildWatchdogScript(parentPid: number | undefined, restartArgs: string[]): string {
+export function buildWatchdogScript(parentPid: number | undefined, restartArgs: string[]): string {
   const argsJson = JSON.stringify(restartArgs);
   const pid = parentPid;
 
@@ -666,9 +666,9 @@ const interval = setInterval(() => {
     goneSince = 0;
   }
 }, 3000);
-
-// Unref so watchdog doesn't block system shutdown
-interval.unref();
+// Keep the interval referenced: with stdio ignored it is the only active
+// handle keeping the watchdog child alive. Unref'ing makes the child exit
+// immediately, so it never monitors anything.
 `;
 }
 

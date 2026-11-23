@@ -190,6 +190,19 @@ class FileView {
     this.pos += maxLen;
     return s;
   }
+  /**
+   * Read a MINIDUMP_STRING at a file RVA: u32 byte-length prefix followed by
+   * raw UTF-16LE bytes (no NUL terminator). Does not move the read cursor.
+   */
+  readMinidumpString(rva: number): string {
+    if (!this.valid(rva, 4)) return '';
+    const byteLen = this.buf.readUInt32LE(rva);
+    const start = rva + 4;
+    const available = this.buf.length - start;
+    const len = Math.min(byteLen, Math.max(0, available));
+    if (len <= 0) return '';
+    return this.buf.toString('utf16le', start, start + len);
+  }
   seek(off: number): void {
     this.pos = off;
   }
@@ -374,11 +387,16 @@ function parseModuleList(f: FileView, rva: number, out: MinidumpSummary): void {
     const timestamp = f.readU32();
     const nameRva = f.readU32();
 
-    // VersionInfo: 4x u16
-    const vMaj = f.readU16();
-    const vMin = f.readU16();
-    const vBld = f.readU16();
-    const vRev = f.readU16();
+    // VS_FIXEDFILEINFO is 52 bytes (13 DWORDs). The file version is the two
+    // DWORDs at offsets 8 (MS) and 12 (LS); skip dwSignature/dwStrucVersion
+    // before them and the remaining product/flag DWORDs after them.
+    const versionInfo = f.readBytes(52);
+    const fileVersionMS = versionInfo.readUInt32LE(8);
+    const fileVersionLS = versionInfo.readUInt32LE(12);
+    const vMaj = (fileVersionMS >>> 16) & 0xffff;
+    const vMin = fileVersionMS & 0xffff;
+    const vBld = (fileVersionLS >>> 16) & 0xffff;
+    const vRev = fileVersionLS & 0xffff;
 
     // CV record
     f.readU32(); // cvDataSize
@@ -390,10 +408,7 @@ function parseModuleList(f: FileView, rva: number, out: MinidumpSummary): void {
 
     let modName = '(unknown)';
     if (f.valid(nameRva)) {
-      const saved = f.tell();
-      f.seek(nameRva);
-      modName = f.readString(256);
-      f.seek(saved);
+      modName = f.readMinidumpString(nameRva);
     }
 
     const ts = timestamp > 0 ? new Date(timestamp * 1000).toISOString() : 'n/a';
@@ -415,8 +430,10 @@ function parseMemoryList(f: FileView, rva: number, out: MinidumpSummary): void {
   f.seek(rva);
   const count = f.readU32();
   for (let i = 0; i < count; i++) {
+    // MINIDUMP_MEMORY_DESCRIPTOR: StartOfMemoryRange(u64) +
+    // MINIDUMP_LOCATION_DESCRIPTOR { DataSize(u32), Rva(u32) } = 16 bytes.
     const start = f.readU64();
-    const size = f.readU64();
+    const size = f.readU32();
     const memRva = f.readU32();
     out.memoryRanges.push({
       startAddress: `0x${start.toString(16)}`,

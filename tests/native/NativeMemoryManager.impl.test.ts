@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
     readMemory: vi.fn(),
     writeMemory: vi.fn(),
     queryRegion: vi.fn(),
+    enumerateRegions: vi.fn(),
     changeProtection: vi.fn(),
     allocateMemory: vi.fn(),
     freeMemory: vi.fn(),
@@ -108,6 +109,7 @@ describe('NativeMemoryManager.impl', () => {
     });
     state.mockProvider.writeMemory.mockReturnValue({ bytesWritten: 2 });
     state.mockProvider.closeProcess.mockReturnValue(undefined);
+    state.mockProvider.enumerateRegions.mockReturnValue(undefined);
     state.checkNativeMemoryAvailability.mockResolvedValue({ available: true });
     // Win32-only mocks
     state.openProcessForMemory.mockReturnValue(1234);
@@ -224,6 +226,43 @@ describe('NativeMemoryManager.impl', () => {
         },
       ],
     });
+  });
+
+  it('enumerates regions via the provider bulk listing instead of stopping at holes', async () => {
+    state.mockProvider.openProcess.mockReturnValue({ pid: 123, writeAccess: false });
+    state.mockProvider.enumerateRegions.mockReturnValue([
+      {
+        baseAddress: 0x10000n,
+        size: 0x1000,
+        protection: 0x03,
+        state: 'committed',
+        type: 'private',
+        isReadable: true,
+        isWritable: true,
+        isExecutable: false,
+      },
+      {
+        baseAddress: 0x90000n,
+        size: 0x2000,
+        protection: 0x01,
+        state: 'committed',
+        type: 'private',
+        isReadable: true,
+        isWritable: false,
+        isExecutable: false,
+      },
+    ]);
+
+    const manager = new NativeMemoryManager();
+    const result = await manager.enumerateRegions(123);
+
+    expect(result.success).toBe(true);
+    expect(result.regions).toHaveLength(2);
+    // The first mapped region is not at address 0; a hole-walking queryRegion
+    // loop would have returned an empty list.
+    expect(result.regions?.[0]?.baseAddress).toBe('0x10000');
+    expect(result.regions?.[1]?.baseAddress).toBe('0x90000');
+    expect(state.mockProvider.queryRegion).not.toHaveBeenCalled();
   });
 
   it('returns a failure when memory protection lookup cannot query the region', async () => {

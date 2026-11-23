@@ -230,6 +230,41 @@ describe('Win32Debug', () => {
     });
   });
 
+  describe('writeBreakpointRegisters (AMD64)', () => {
+    it('encodes an execution breakpoint with LEN=1 and updates only its DR7 slot', () => {
+      const buf = Buffer.alloc(1232);
+      writeBreakpointRegisters(buf, 0, 0x401000n, true, 'execute', 'break', false);
+
+      expect(buf.readBigUInt64LE(0x48)).toBe(0x401000n); // Dr0
+      const dr7 = buf.readBigUInt64LE(0x70);
+      expect(dr7 & 0x1n).toBe(0x1n); // local enable DR0
+      expect((dr7 >> 16n) & 0b11n).toBe(0b00n); // execute
+      expect((dr7 >> 18n) & 0b11n).toBe(0b00n); // LEN=1 byte
+    });
+
+    it('clears stale RW/LEN bits when reconfiguring an existing slot', () => {
+      const buf = Buffer.alloc(1232);
+      // Slot 0: 8-byte readwrite watchpoint.
+      writeBreakpointRegisters(buf, 0, 0x5000n, true, 'readwrite', 'watch', false);
+      const before = buf.readBigUInt64LE(0x70);
+      expect((before >> 18n) & 0b11n).toBe(0b10n); // LEN=8
+
+      // Reconfigure slot 0 as execute: RW/LEN must return to 0/0.
+      writeBreakpointRegisters(buf, 0, 0x401000n, true, 'execute', 'break', false);
+      const after = buf.readBigUInt64LE(0x70);
+      expect((after >> 16n) & 0b11n).toBe(0b00n);
+      expect((after >> 18n) & 0b11n).toBe(0b00n);
+    });
+
+    it('ignores DR indices outside 0-3 instead of throwing', () => {
+      const buf = Buffer.alloc(1232);
+      expect(() =>
+        writeBreakpointRegisters(buf, 4, 0x1000n, true, 'write', 'watch', false),
+      ).not.toThrow();
+      expect(readBreakpointRegisterAddress(buf, 4, false)).toBe(0n);
+    });
+  });
+
   describe('Win32 API FFI Wrappers', () => {
     beforeEach(() => {
       mockFunc.mockReset();
@@ -373,12 +408,24 @@ describe('Win32Debug', () => {
         buf.writeUInt32LE(DEBUG_EVENT_CODE.EXCEPTION_DEBUG_EVENT, 0x00);
         buf.writeUInt32LE(0x80000003, 0x10); // breakpoint
         buf.writeBigUInt64LE(0xabcd1234n, 0x20); // rip
-        buf.writeUInt32LE(0, 0x14); // first chance true
+        buf.writeUInt32LE(1, 0xa8); // dwFirstChance (after 0x98-byte EXCEPTION_RECORD)
         return 1;
       });
       info = WaitForDebugEvent(1000);
       expect(info?.exceptionCode).toBe(0x80000003);
       expect(info?.firstChance).toBe(true);
+
+      // Second-chance: dwFirstChance == 0, and ExceptionFlags is independent.
+      mockFunc.mockImplementationOnce((buf: Buffer) => {
+        buf.writeUInt32LE(DEBUG_EVENT_CODE.EXCEPTION_DEBUG_EVENT, 0x00);
+        buf.writeUInt32LE(0xc0000005, 0x10); // access violation
+        buf.writeUInt32LE(1, 0x14); // ExceptionFlags (not firstChance)
+        buf.writeUInt32LE(0, 0xa8); // dwFirstChance == 0
+        return 1;
+      });
+      info = WaitForDebugEvent(1000);
+      expect(info?.exceptionCode).toBe(0xc0000005);
+      expect(info?.firstChance).toBe(false);
 
       // Timeout
       mockFunc.mockReturnValueOnce(0);

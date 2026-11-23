@@ -222,6 +222,30 @@ function parseHandleBuffer(buffer: Buffer, filterPid?: number): RawHandleEntry[]
 }
 
 /**
+ * Decode an OBJECT_TYPE_INFORMATION buffer.
+ *
+ * The struct starts with a UNICODE_STRING at offset 0 (`Length` u16) whose
+ * `Buffer` pointer (offset 8 on x64) points at the actual type-name bytes,
+ * which are appended after the fixed structure — not at a fixed offset 16
+ * (offset 16 is `TotalNumberOfObjects`).
+ *
+ * @param baseAddress - Address of `buf` in this process, used to turn the
+ *   embedded pointer into an offset within the buffer.
+ */
+export function parseObjectTypeName(buf: Buffer, baseAddress: bigint): string {
+  if (buf.length < 16) return 'Unknown';
+  const strLen = buf.readUInt16LE(0);
+  if (strLen === 0) return 'Unknown';
+
+  const strPtr = buf.readBigUInt64LE(8);
+  const offset = Number(strPtr - baseAddress);
+  if (!Number.isFinite(offset) || offset < 0 || offset + strLen > buf.length) {
+    return 'Unknown';
+  }
+  return buf.toString('utf16le', offset, offset + strLen);
+}
+
+/**
  * Query the type name of a handle using NtQueryObject(ObjectTypeInformation).
  * This call never hangs — it is safe to call on any handle type.
  */
@@ -229,27 +253,19 @@ function queryHandleTypeName(dupHandle: bigint): string {
   const bufSize = 1024;
   const buf = Buffer.alloc(bufSize);
   const returnLen = Buffer.alloc(8);
+  const baseAddress = requireKoffi().address(buf);
 
   const status = getNtQueryObject()(
     dupHandle,
     ObjectTypeInformation,
-    requireKoffi().address(buf),
+    baseAddress,
     bufSize,
     requireKoffi().address(returnLen),
   ) as number;
 
   if (status < 0) return 'Unknown';
 
-  // UNICODE_STRING at offset 0: Length(uint16) + MaximumLength(uint16) + pad(4) + Buffer(uint64)
-  const strLen = buf.readUInt16LE(0);
-  if (strLen === 0) return 'Unknown';
-
-  // String data follows the UNICODE_STRING header (offset 16 on x64)
-  try {
-    return buf.toString('utf16le', 16, 16 + strLen);
-  } catch {
-    return 'Unknown';
-  }
+  return parseObjectTypeName(buf, baseAddress);
 }
 
 /**
@@ -416,24 +432,20 @@ export function enumerateProcessHandles(pid: number, opts: EnumerateOptions = {}
     // 2. Filter by target PID
     const rawEntries = parseHandleBuffer(buffer, pid);
 
-    // 3. Open target process for DUP_HANDLE access
-    let processHandle: bigint;
-    try {
-      processHandle = OpenProcess(PROCESS_ACCESS.DUP_HANDLE, false, pid);
-    } catch {
-      // Try with QUERY_LIMITED_INFORMATION as fallback
-      try {
-        processHandle = OpenProcess(PROCESS_ACCESS.QUERY_LIMITED_INFORMATION, false, pid);
-      } catch {
-        return {
-          success: false,
-          entries: [],
-          totalSystemHandles: totalHandles,
-          typeIndexCache: new Map(),
-          error: `Cannot open process ${pid}. Run as Administrator.`,
-          requiresElevation: true,
-        };
-      }
+    // 3. Open target process for DUP_HANDLE access.
+    // OpenProcess returns 0n on failure (it does not throw), so it must be
+    // checked explicitly. QUERY_LIMITED_INFORMATION is not a fallback here:
+    // it does not grant PROCESS_DUP_HANDLE, so duplication would still fail.
+    const processHandle = OpenProcess(PROCESS_ACCESS.DUP_HANDLE, false, pid);
+    if (processHandle === 0n) {
+      return {
+        success: false,
+        entries: [],
+        totalSystemHandles: totalHandles,
+        typeIndexCache: new Map(),
+        error: `Cannot open process ${pid}. Run as Administrator.`,
+        requiresElevation: true,
+      };
     }
 
     try {
@@ -450,7 +462,9 @@ export function enumerateProcessHandles(pid: number, opts: EnumerateOptions = {}
         if (filterType && typeName.toLowerCase() !== filterType) continue;
 
         let objectName = '';
-        if (includeNames && !HANG_PRONE_TYPES.has(typeName)) {
+        // 'Unknown' means the type could not be resolved; ObjectNameInformation
+        // on an unclassified handle can block indefinitely, so skip it.
+        if (includeNames && typeName !== 'Unknown' && !HANG_PRONE_TYPES.has(typeName)) {
           const dupHandle = duplicateHandle(processHandle, entry.handleValue);
           if (dupHandle !== 0n) {
             try {

@@ -8,6 +8,11 @@ export interface GdbEmulatorEngine {
   readRegister(name: string): number;
   writeRegister(name: string, value: number): void;
   readMemory(address: number, length: number): Uint8Array;
+  /**
+   * Optional memory write. Engines that cannot write memory must omit this;
+   * the RSP server then reports writes as unsupported instead of lying with OK.
+   */
+  writeMemory?(address: number, bytes: Uint8Array): void;
 }
 
 export interface GdbEmulatorSession {

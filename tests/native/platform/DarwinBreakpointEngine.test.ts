@@ -31,10 +31,17 @@ vi.mock('@src/native/platform/darwin/DarwinAPI', () => ({
   threadGetState: vi.fn(() => 0),
 }));
 
-import { DarwinBreakpointEngine } from '@native/platform/DarwinBreakpointEngine';
+import {
+  DarwinBreakpointEngine,
+  ARM_DEBUG_STATE64_FLAVOR,
+} from '@native/platform/DarwinBreakpointEngine';
 
 describe('DarwinBreakpointEngine', () => {
   let engine: DarwinBreakpointEngine;
+
+  it('uses XNU ARM_DEBUG_STATE64 flavor 15 (not 18)', () => {
+    expect(ARM_DEBUG_STATE64_FLAVOR).toBe(15);
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();

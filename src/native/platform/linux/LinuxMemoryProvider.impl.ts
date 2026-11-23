@@ -222,6 +222,25 @@ class LinuxMemoryProviderImpl implements PlatformMemoryAPI {
     return null;
   }
 
+  /**
+   * Bulk region listing from /proc/<pid>/maps. Unlike queryRegion, this does
+   * not stop at the first unmapped gap (address 0 is never mapped).
+   */
+  enumerateRegions(handle: ProcessHandle): MemoryRegionInfo[] {
+    const mapsPath = `/proc/${handle.pid}/maps`;
+    const parsed = parseProcMaps(fs.readFileSync(mapsPath, 'utf8'));
+    return parsed.map((region) =>
+      toRegionInfo({
+        start: region.start,
+        end: region.end,
+        perms:
+          `${region.permissions.read ? 'r' : '-'}${region.permissions.write ? 'w' : '-'}` +
+          `${region.permissions.exec ? 'x' : '-'}${region.permissions.private ? 'p' : 's'}`,
+        path: region.pathname || undefined,
+      }),
+    );
+  }
+
   changeProtection(
     handle: ProcessHandle,
     address: bigint,

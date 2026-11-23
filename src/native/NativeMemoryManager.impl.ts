@@ -201,18 +201,31 @@ export class NativeMemoryManager {
       const regions: MemoryRegion[] = [];
 
       try {
+        const bulk = this.provider.enumerateRegions?.(handle);
+        if (bulk !== undefined) {
+          for (const info of bulk) {
+            regions.push(regionInfoToMemoryRegion(info));
+          }
+          return { success: true, regions };
+        }
+
         let address = 0n;
         const maxAddress = USERSPACE_MAX_ADDRESS;
 
         while (address < maxAddress) {
           const regionInfo = this.provider.queryRegion(handle, address);
 
-          if (!regionInfo) {
+          if (!regionInfo || regionInfo.size <= 0) {
+            // queryRegion only matches a containing region (Linux/Darwin), so
+            // address 0 is a hole. Providers that can enumerate implement
+            // enumerateRegions above; without it, stop rather than spin.
             break;
           }
 
           regions.push(regionInfoToMemoryRegion(regionInfo));
-          address = regionInfo.baseAddress + BigInt(regionInfo.size);
+          const next = regionInfo.baseAddress + BigInt(regionInfo.size);
+          if (next <= address) break; // progress guard
+          address = next;
         }
 
         return { success: true, regions };
@@ -300,28 +313,35 @@ export class NativeMemoryManager {
       let regionMatches: bigint[][] = [];
 
       try {
-        let address = 0n;
-        const maxAddress = USERSPACE_MAX_ADDRESS;
-
-        while (address < maxAddress) {
-          const regionInfo = this.provider.queryRegion(handle, address);
-
-          if (!regionInfo) {
-            break;
+        const bulk = this.provider.enumerateRegions?.(handle);
+        if (bulk !== undefined) {
+          for (const info of bulk) {
+            if (info.isReadable && info.size > 0 && info.size <= Number.MAX_SAFE_INTEGER) {
+              readableRegions.push({ baseAddress: info.baseAddress, regionSize: info.size });
+            }
           }
+        } else {
+          let address = 0n;
+          const maxAddress = USERSPACE_MAX_ADDRESS;
 
-          if (
-            regionInfo.isReadable &&
-            regionInfo.size > 0 &&
-            regionInfo.size <= Number.MAX_SAFE_INTEGER
-          ) {
-            readableRegions.push({
-              baseAddress: regionInfo.baseAddress,
-              regionSize: regionInfo.size,
-            });
+          while (address < maxAddress) {
+            const regionInfo = this.provider.queryRegion(handle, address);
+
+            if (!regionInfo || regionInfo.size <= 0) {
+              break;
+            }
+
+            if (regionInfo.isReadable && regionInfo.size <= Number.MAX_SAFE_INTEGER) {
+              readableRegions.push({
+                baseAddress: regionInfo.baseAddress,
+                regionSize: regionInfo.size,
+              });
+            }
+
+            const next = regionInfo.baseAddress + BigInt(regionInfo.size);
+            if (next <= address) break; // progress guard
+            address = next;
           }
-
-          address = regionInfo.baseAddress + BigInt(regionInfo.size);
         }
 
         const providerRef = this.provider;
