@@ -5,6 +5,8 @@
  * and domain description generation.
  */
 import { createHash } from 'node:crypto';
+import { logger } from '@utils/logger';
+import { emitBusEvent } from '@server/EventBus';
 import { getProfileDomains, getToolDomain } from '@server/ToolCatalog';
 import type { Tool } from '@modelcontextprotocol/server';
 import type { ToolProfile } from '@server/ToolCatalog';
@@ -13,6 +15,8 @@ import { ToolSearchEngine } from '@server/ToolSearch';
 import { DOMAIN_TOOL_COUNT_MAP } from '@server/registry/generated-domains';
 import { loadSearchCatalog } from '@server/registry/SearchCatalog';
 import { registerSearchSnapshotSourcesFromCtx } from '@server/search/snapshotRegistration';
+import { buildCatalogDescriptors, describeCatalogChange } from '@server/search/CatalogSnapshot';
+import { compareCodeUnit, stableStringify } from '@server/search/CanonicalJson';
 import {
   MCP_TOOL_ACTIVATION_BUDGET_TOKENS,
   MCP_TOOL_MAX_ACTIVE_TOOLS,
@@ -71,8 +75,17 @@ export function getExtensionDomainMap(ctx: MCPServerContext): Map<string, string
 export async function getCombinedTools(ctx: MCPServerContext): Promise<Tool[]> {
   const catalog = await loadSearchCatalog();
   const tools = new Map(catalog.tools.map((tool) => [tool.name, tool]));
-  for (const record of ctx.extensionToolsByName.values()) {
-    tools.set(record.name, record.tool);
+  // Extension registration order follows discovery order, which can vary with
+  // the filesystem/locale. Sort by registration key so two runs that loaded the same
+  // extensions index the same document order — tie-breaking and the catalog
+  // root must not depend on plugin load order.
+  const extensions = [...ctx.extensionToolsByName.entries()].toSorted(([left], [right]) =>
+    compareCodeUnit(left, right),
+  );
+  for (const [name, record] of extensions) {
+    // Registration key, not `record.tool.name`: the map key is what the router
+    // resolves, and an extension may deliberately override a built-in slot.
+    tools.set(name, record.tool);
   }
   return [...tools.values()];
 }
@@ -89,6 +102,11 @@ interface CachedSearchEngine {
 }
 
 const searchEngineCache = new WeakMap<MCPServerContext, CachedSearchEngine>();
+/** In-flight construction, so concurrent callers share one index build. */
+const searchEngineInflight = new WeakMap<
+  MCPServerContext,
+  { signature: string; promise: Promise<ToolSearchEngine> }
+>();
 
 /**
  * Commit the engine cache to the witness that actually builds the index:
@@ -107,7 +125,7 @@ function hashExtensionWitness(
   hash.update('\0');
   hash.update(tool?.description ?? '');
   hash.update('\0');
-  hash.update(tool?.inputSchema === undefined ? '' : JSON.stringify(tool.inputSchema));
+  hash.update(tool?.inputSchema === undefined ? '' : stableStringify(tool.inputSchema));
   return hash.digest('hex').slice(0, 12);
 }
 
@@ -127,6 +145,27 @@ export async function getSearchEngine(ctx: MCPServerContext): Promise<ToolSearch
   const cached = searchEngineCache.get(ctx);
   if (cached?.signature === signature) return cached.engine;
 
+  // Dedupe concurrent construction: two callers (e.g. resources + search_tools)
+  // must not race the snapshot restore or build the BM25 index twice.
+  const inflight = searchEngineInflight.get(ctx);
+  if (inflight?.signature === signature) return inflight.promise;
+
+  const build = buildAndRegisterSearchEngine(ctx, signature);
+  searchEngineInflight.set(ctx, { signature, promise: build });
+  try {
+    return await build;
+  } finally {
+    if (searchEngineInflight.get(ctx)?.promise === build) {
+      searchEngineInflight.delete(ctx);
+    }
+  }
+}
+
+async function buildAndRegisterSearchEngine(
+  ctx: MCPServerContext,
+  signature: string,
+): Promise<ToolSearchEngine> {
+  const previous = searchEngineCache.get(ctx);
   const catalog = await loadSearchCatalog();
   const tools = await getCombinedTools(ctx);
   const toolDomains = new Map(catalog.domainByToolName);
@@ -146,6 +185,7 @@ export async function getSearchEngine(ctx: MCPServerContext): Promise<ToolSearch
     );
   }
 
+  const catalogDescriptors = buildCatalogDescriptors(tools, toolDomains);
   const engine = new ToolSearchEngine(
     tools,
     toolDomains,
@@ -153,9 +193,9 @@ export async function getSearchEngine(ctx: MCPServerContext): Promise<ToolSearch
     toolScoreMultipliers,
     ctx.config.search,
     catalog.sceneKeywordsByToolName,
+    catalogDescriptors,
   );
   engine.extensionEtag = signature;
-  searchEngineCache.set(ctx, { signature, engine });
 
   // Expose the engine + its quality tracker to synchronous consumers: the
   // tool-call feedback and search-quality association hooks in
@@ -175,6 +215,41 @@ export async function getSearchEngine(ctx: MCPServerContext): Promise<ToolSearch
   // out, so the first recordSearch can never race (and be clobbered by) a
   // still-in-flight restoreSnapshot.
   await registerSearchSnapshotSourcesFromCtx(ctx, engine);
+
+  // Explain catalog drift whenever a rebuild was triggered. The signature can
+  // also change for non-catalog reasons (workflow runtime count), so announce
+  // only when the descriptor diff is non-empty.
+  if (previous) {
+    const transition = describeCatalogChange(
+      previous.engine.getCatalogSnapshot(),
+      engine.getCatalogSnapshot(),
+    );
+    const mutated = transition.mutated.map((entry) => ({
+      name: entry.name,
+      path: entry.fields[0]?.path ?? '$',
+    }));
+    if (transition.added.length > 0 || transition.removed.length > 0 || mutated.length > 0) {
+      emitBusEvent(ctx.eventBus, 'search:catalog_changed', {
+        digestBefore: previous.engine.getStateRoot(),
+        digestAfter: engine.getStateRoot(),
+        added: [...transition.added],
+        removed: [...transition.removed],
+        mutated,
+        truncated: transition.truncated,
+        timestamp: new Date().toISOString(),
+      });
+      logger.info(
+        `[search] catalog changed: +${transition.added.length} ` +
+          `-${transition.removed.length} ~${transition.mutated.length}` +
+          `${transition.truncated ? ' (truncated)' : ''}`,
+      );
+    }
+  }
+
+  // Publish only after registration succeeds: a failure must not leave a
+  // cached engine whose snapshot sources were never wired (which every later
+  // signature-stable call would then short-circuit on).
+  searchEngineCache.set(ctx, { signature, engine });
 
   return engine;
 }
@@ -369,6 +444,6 @@ export function buildDomainDescription(ctx: MCPServerContext): string {
     `This includes built-in tools plus any loaded plugin/workflow tools (${extensionCount} currently loaded). ` +
     `In search-tier sessions, call this before assuming a capability is unavailable. ` +
     `Use activate_tools for exact matches, activate_domain for an entire domain. ` +
-    `The engine combines token matching, fuzzy names, profile context, and optional static embeddings.`
+    `The ranking combines token matching, fuzzy names, and profile context.`
   );
 }

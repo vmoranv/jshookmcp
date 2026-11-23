@@ -15,12 +15,15 @@ import { ToolError } from '@errors/ToolError';
 import type { MCPServerContext } from '@server/MCPServer.context';
 
 /**
- * Tracks whether code is executing inside any domain factory. AsyncLocalStorage
+ * Tracks the chain of domain factories currently executing. AsyncLocalStorage
  * propagates across await points, so an async factory that re-enters a proxy
- * after suspending is still detected — while concurrent external access (a
- * different task waiting on the in-flight init) is not misclassified.
+ * after suspending is still detected. Storing the whole chain (not a boolean)
+ * keeps two cases distinct:
+ *   - re-entering a domain already on the chain  -> real circular init, throw
+ *   - reading an unrelated domain's proxy while  -> wait for its in-flight
+ *     another factory runs                          init instead of throwing
  */
-const activeFactoryContext = new AsyncLocalStorage<boolean>();
+const activeFactoryContext = new AsyncLocalStorage<readonly string[]>();
 
 function isPromiseLike<T>(value: unknown): value is PromiseLike<T> {
   return (
@@ -77,19 +80,21 @@ export function createDomainProxy<T extends object>(
   function initialize(): T | Promise<T> {
     if (instance) return instance;
 
+    const factoryChain = activeFactoryContext.getStore();
     if (initializing) {
-      if (activeFactoryContext.getStore() === true) {
+      if (factoryChain?.includes(domain)) {
         // The factory itself (sync body, or async continuation after an await)
-        // re-entered this proxy before init finished — circular dependency.
-        // Fail fast instead of dead-locking on a promise that can only resolve
-        // once this access returns.
+        // re-entered this domain's proxy before init finished — circular
+        // dependency. Fail fast instead of dead-locking on a promise that can
+        // only resolve once this access returns.
         throw new ToolError(
           'RUNTIME',
           `${label}: circular initialization detected for domain "${domain}"`,
           { details: errorDetails },
         );
       }
-      // Concurrent access from OUTSIDE the factory: wait for the in-flight init.
+      // Concurrent access from OUTSIDE the factory, or from a different
+      // domain's factory: wait for the in-flight init.
       return initPromise!;
     }
     if (initPromise) return initPromise;
@@ -98,7 +103,8 @@ export function createDomainProxy<T extends object>(
     initializing = true;
     let created: T | Promise<T>;
     try {
-      created = activeFactoryContext.run(true, () => factory());
+      const nextChain = [...(factoryChain ?? []), domain];
+      created = activeFactoryContext.run(nextChain, () => factory());
     } catch (error) {
       initializing = false;
       throw error;
@@ -117,6 +123,11 @@ export function createDomainProxy<T extends object>(
           throw error;
         },
       );
+      // The `get` trap returns an async accessor without awaiting it, so a
+      // consumer may read a property and never attach a handler. The rejection
+      // is intentionally cached; keep it "handled" to avoid aborting the
+      // process with an unhandled rejection.
+      void initPromise.catch(() => undefined);
       return initPromise;
     }
 

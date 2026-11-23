@@ -38,6 +38,7 @@ export { buildDomainDescription } from '@server/MCPServer.search.helpers';
 import {
   buildDomainDescription,
   getActivationBudgetSnapshot,
+  getSearchEngine,
 } from '@server/MCPServer.search.helpers';
 import { handleSearchTools } from '@server/MCPServer.search.handlers.search';
 import {
@@ -97,6 +98,9 @@ async function handleCoverageReport(
     uncalledCount: 0,
   };
   const budget = await getActivationBudgetSnapshot(ctx);
+  // Commitment over the catalog the search engine actually indexed. Agents can
+  // compare it across sessions to detect drift without re-reading every schema.
+  const engine = await getSearchEngine(ctx);
   return {
     content: [
       {
@@ -106,6 +110,7 @@ async function handleCoverageReport(
             success: true,
             ...summary,
             budget,
+            catalogDigest: engine.getStateRoot(),
           },
           null,
           2,
@@ -327,6 +332,7 @@ const META_TOOL_DEFINITIONS: MetaToolDef[] = [
     name: 'coverage_report',
     description:
       'Report which tools have been called in the current runtime and which known tools remain uncalled. ' +
+      'Also returns the catalog commitment digest for cross-session drift checks. ' +
       'Loads all domains first so the uncalled list reflects the full tool catalog, not just currently active tools.',
     inputSchema: {
       type: 'object',

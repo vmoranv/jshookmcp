@@ -14,6 +14,7 @@
  */
 
 import { logger } from '@utils/logger';
+import { sensitiveJsonReplacer } from '@utils/redaction';
 import { asErrorResponse, asTextResponse } from '@server/domains/shared/response';
 import { getToolDomain } from '@server/ToolCatalog';
 import {
@@ -922,8 +923,11 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
     // resources are admitted into a shared fleet keyed by session; silently
     // collapsing a missing identity to 'default' would leak leases/pools
     // across concurrent clients. Require an explicit session id on this leg
-    // instead. Legacy /mcp and stdio keep their historical default.
-    if (browserCoordinator && fleetRouter && getToolRequestContext()?.isModern && !sessionId) {
+    // instead. Legacy /mcp and stdio keep their historical default. The guard
+    // is gated on the coordinator (the stateful resource owner), not on fleet
+    // routing: with fleet routing disabled the coordinator still normalizes a
+    // null id to the shared 'default' session.
+    if (browserCoordinator && getToolRequestContext()?.isModern && !sessionId) {
       return asTextResponse(
         JSON.stringify({
           success: false,
@@ -949,7 +953,12 @@ async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopePar
     const executeInContext = async () => {
       activeWatchdogTimer = setTimeout(() => {
         try {
-          const safeArgs = JSON.stringify(args).slice(0, ARGS_PREVIEW_MAX_CHARS);
+          // Never log raw args: this bypasses the tool-args policy and can
+          // leak cookies/tokens. Redact credential-ish keys, then cap.
+          const safeArgs = JSON.stringify(args, sensitiveJsonReplacer).slice(
+            0,
+            ARGS_PREVIEW_MAX_CHARS,
+          );
           logger.warn(
             `Telemetry Alert [ERR-03]: Tool execution hung (${Math.round(timeoutMs / 1000)}s) for '${name}'. ` +
               `Args preview: ${safeArgs}...`,

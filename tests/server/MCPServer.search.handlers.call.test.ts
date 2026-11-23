@@ -132,6 +132,7 @@ describe('MCPServer.search.handlers.call', () => {
     vi.clearAllMocks();
     state.getSearchEngine.mockReturnValue({
       recordToolCallFeedback: vi.fn(),
+      getStateRoot: vi.fn(() => '0'.repeat(64)),
     });
     state.getToolInputSchema.mockReturnValue({ type: 'object', properties: {} });
     state.getToolByName.mockReturnValue(new Map([['test_tool', tool('test_tool')]]));
@@ -214,12 +215,20 @@ describe('MCPServer.search.handlers.call', () => {
     expect(ctx.router.has).toHaveBeenCalledWith('test_tool');
   });
 
-  it('uses empty object when args is not an object', async () => {
+  it('reports a wrapper error when args is not an object instead of silently dispatching {}', async () => {
     const ctx = createCtx();
 
-    await handleCallTool(ctx, { name: 'test_tool', args: 'not-an-object' }, { getMetaToolHandler });
+    const result = parseResponse(
+      await handleCallTool(
+        ctx,
+        { name: 'test_tool', args: 'not-an-object' },
+        { getMetaToolHandler },
+      ),
+    );
 
-    expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('args must be a JSON object');
+    expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
   });
 
   it('validates args against tool schema before execution', async () => {
@@ -276,12 +285,16 @@ describe('MCPServer.search.handlers.call', () => {
     expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
   });
 
-  it('uses empty object when args is an array', async () => {
+  it('reports a wrapper error when args is an array', async () => {
     const ctx = createCtx();
 
-    await handleCallTool(ctx, { name: 'test_tool', args: [1, 2] }, { getMetaToolHandler });
+    const result = parseResponse(
+      await handleCallTool(ctx, { name: 'test_tool', args: [1, 2] }, { getMetaToolHandler }),
+    );
 
-    expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('args must be a JSON object');
+    expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
   });
 
   it('uses empty object when args is not provided', async () => {

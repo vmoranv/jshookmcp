@@ -157,18 +157,28 @@ function asArgsObject(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/** The `parameters` wrapper accepts an object or a JSON string, never an error. */
-function parseParametersWrapper(value: unknown): Record<string, unknown> {
-  const asObject = asArgsObject(value);
-  if (asObject) return asObject;
-  if (typeof value !== 'string' || value.trim().length === 0) return {};
-  try {
-    const parsed = asArgsObject(JSON.parse(value));
-    return parsed ?? {};
-  } catch {
-    /* malformed parameters JSON — treated as no arguments */
-    return {};
+/** The `parameters` wrapper accepts an object or a JSON string. */
+function parseParametersWrapper(value: unknown): {
+  toolArgs: Record<string, unknown>;
+  wrapperError: string | null;
+} {
+  if (typeof value === 'string') {
+    if (value.trim().length === 0) {
+      return { toolArgs: {}, wrapperError: 'parameters must be a non-empty JSON string' };
+    }
+    try {
+      const parsed = asArgsObject(JSON.parse(value));
+      return parsed
+        ? { toolArgs: parsed, wrapperError: null }
+        : { toolArgs: {}, wrapperError: 'parameters must decode to a JSON object' };
+    } catch {
+      return { toolArgs: {}, wrapperError: 'parameters must be valid JSON' };
+    }
   }
+  const asObject = asArgsObject(value);
+  return asObject
+    ? { toolArgs: asObject, wrapperError: null }
+    : { toolArgs: {}, wrapperError: 'parameters must be a JSON object or a JSON string' };
 }
 
 /**
@@ -209,8 +219,12 @@ function resolveCallToolArgs(args: Record<string, unknown>): {
   const argsObject = asArgsObject(args.args);
   if (argsObject) {
     toolArgs = argsObject;
+  } else if ('args' in args) {
+    // Present but unusable (array/number/null): report instead of silently
+    // invoking the tool with empty arguments.
+    wrapperError = 'args must be a JSON object';
   } else if (args.parameters !== undefined) {
-    toolArgs = parseParametersWrapper(args.parameters);
+    ({ toolArgs, wrapperError } = parseParametersWrapper(args.parameters));
   } else if (args.arguments !== undefined) {
     ({ toolArgs, wrapperError } = parseArgumentsWrapper(args.arguments));
   }
