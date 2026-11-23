@@ -3,10 +3,7 @@
  * Prefixes: SEARCH_*, PREDICTIVE_*, RERANK_*
  */
 
-import { int, float, bool, str, csv, autoInt, cpuCount } from './helpers.js';
-import { DEFAULT_SEARCH_VECTOR_MODEL_ID } from './search-model.js';
-
-export { DEFAULT_SEARCH_VECTOR_MODEL_ID } from './search-model.js';
+import { int, float, bool, csv, autoInt, cpuCount } from './helpers.js';
 
 /* ================================================================== */
 /*  Search ranking — workflow domain                                   */
@@ -85,23 +82,8 @@ export const SEARCH_QUERY_CACHE_CAPACITY = int('SEARCH_QUERY_CACHE_CAPACITY', 50
  */
 export const SEARCH_MIN_CONTENT_TOKENS = int('SEARCH_MIN_CONTENT_TOKENS', 1);
 
-/**
- * Cache invalidation tolerance: cached entries are reusable while the
- * live vector weight stays within this delta of the weight recorded
- * when the entry was stored. Avoids flushing the full cache on every
- * feedback tick (the previous epoch bump behavior).
- */
-export const SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE = float(
-  'SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE',
-  0.05,
-);
-
-/**
- * Bound feedback actions folded into one vector-weight update.
- * The query cache is versioned by that fold's epoch, so repeated queries
- * stay hits until a fold actually moves the weight.
- */
-export const SEARCH_FEEDBACK_FOLD_SIZE = int('SEARCH_FEEDBACK_FOLD_SIZE', 4);
+/* @deprecated dense scoring was removed; only the historical quality metric reads this. */
+export const SEARCH_VECTOR_BM25_SKIP_THRESHOLD = float('SEARCH_VECTOR_BM25_SKIP_THRESHOLD', 0);
 
 /* ================================================================== */
 /*  Semantic search: synonym, trigram, RRF                             */
@@ -177,79 +159,6 @@ export const SEARCH_BM25_B = float('SEARCH_BM25_B', 0.75);
 /* ================================================================== */
 /*  Dense vector search (embeddings)                                   */
 /* ================================================================== */
-
-/**
- * Dense vector search (Phase 8 — Hybrid Semantic Routing).
- *
- * SEARCH_VECTOR_ENABLED: master switch for embedding-based search signal.
- *   Enabled by default on every transport — vector recall is part of the
- *   retrieval quality the engine is tuned for, so it should not silently
- *   depend on how the client connects. The cost is bounded rather than
- *   resident: the checkpoint is a lightweight static Model2Vec model, catalog
- *   embeddings persist to disk (SEARCH_VECTOR_CACHE_ENABLED), and the worker
- *   is released after SEARCH_VECTOR_WORKER_IDLE_MS. A model that cannot be
- *   loaded degrades the query to lexical search for
- *   SEARCH_VECTOR_RETRY_COOLDOWN_MS instead of failing it. Set
- *   SEARCH_VECTOR_ENABLED=false for lexical-only operation (lowest cold start).
- * SEARCH_VECTOR_MODEL_ID: Hugging Face ID of a Model2Vec-compatible static embedding model.
- * SEARCH_VECTOR_COSINE_WEIGHT: initial weight of the vector cosine signal in RRF fusion.
- * SEARCH_VECTOR_DYNAMIC_WEIGHT: when true, vector weight self-tunes based on tool-call feedback.
- * SEARCH_VECTOR_LEARN_UP / DOWN: step sizes applied when the selected tool was
- *   inside / outside the vector top-N. The defaults trade convergence speed
- *   for stability.
- * SEARCH_VECTOR_LEARN_TOP_N: rank threshold that separates "hit" from "miss".
- */
-const sharedHttpTransport = str('MCP_TRANSPORT', 'stdio').trim().toLowerCase() === 'http';
-export const SEARCH_VECTOR_ENABLED = bool('SEARCH_VECTOR_ENABLED', true);
-export const SEARCH_VECTOR_MODEL_ID = str('SEARCH_VECTOR_MODEL_ID', DEFAULT_SEARCH_VECTOR_MODEL_ID);
-export const SEARCH_VECTOR_COSINE_WEIGHT = float('SEARCH_VECTOR_COSINE_WEIGHT', 0.53);
-export const SEARCH_VECTOR_DYNAMIC_WEIGHT = bool('SEARCH_VECTOR_DYNAMIC_WEIGHT', true);
-export const SEARCH_VECTOR_LEARN_UP = float('SEARCH_VECTOR_LEARN_UP', 0.13);
-export const SEARCH_VECTOR_LEARN_DOWN = float('SEARCH_VECTOR_LEARN_DOWN', 0.02);
-export const SEARCH_VECTOR_LEARN_TOP_N = int('SEARCH_VECTOR_LEARN_TOP_N', 3);
-/**
- * SEARCH_VECTOR_BM25_SKIP_THRESHOLD: when the top BM25 score meets or exceeds
- * this value, dense vector scoring is skipped — the text signal is already
- * strong enough that embeddings rarely change the ranking.
- * Set to 0 to always run vector scoring (original behavior).
- *
- * Default 0 since 2026-10-24: production telemetry (D1 jshookmcp-telemetry,
- * 2238 search.query spans over 19 days) showed the skip threshold fired on
- * 99.8% of real queries (only 4 of 2238 below BM25 score 8), making the
- * vector signal structurally unreachable — vector_participated was 0.00%
- * in the wild despite being enabled by default. Canary-verified with the
- * threshold disabled so the hybrid fusion actually runs and its gain can
- * be measured via search.query telemetry (full_path_vector outcome share).
- * Re-enable a non-zero threshold only if full_path_lexical vs
- * full_path_vector quality parity is demonstrated.
- */
-export const SEARCH_VECTOR_BM25_SKIP_THRESHOLD = float('SEARCH_VECTOR_BM25_SKIP_THRESHOLD', 0);
-
-/**
- * Start catalog embedding work at construction time instead of on first vector search.
- *
- * Default true since 2026-10-24: with SEARCH_VECTOR_BM25_SKIP_THRESHOLD
- * disabled, vector scoring runs on every full-path query, so the lazy
- * first-query model download would land on user-visible latency instead of
- * background warmup. Prewarm keeps the one-time HF download off the query
- * path; failure degrades to lexical for SEARCH_VECTOR_RETRY_COOLDOWN_MS.
- */
-export const SEARCH_VECTOR_PREWARM = bool('SEARCH_VECTOR_PREWARM', true);
-
-/** Release the embedding worker after this idle window. Set to 0 to keep it resident. */
-export const SEARCH_VECTOR_WORKER_IDLE_MS = int(
-  'SEARCH_VECTOR_WORKER_IDLE_MS',
-  sharedHttpTransport ? 300_000 : 15_000,
-);
-
-/** Per-request timeout for remote model/tokenizer downloads inside the worker. */
-export const SEARCH_VECTOR_FETCH_TIMEOUT_MS = int('SEARCH_VECTOR_FETCH_TIMEOUT_MS', 15_000);
-
-/** Back off after an embedding load failure instead of restarting the worker on every search. */
-export const SEARCH_VECTOR_RETRY_COOLDOWN_MS = int('SEARCH_VECTOR_RETRY_COOLDOWN_MS', 60_000);
-
-/** Persist catalog embeddings so daemon restarts do not repeat full-catalog inference. */
-export const SEARCH_VECTOR_CACHE_ENABLED = bool('SEARCH_VECTOR_CACHE_ENABLED', true);
 
 /* ================================================================== */
 /*  Profile tier-aware ranking                                         */

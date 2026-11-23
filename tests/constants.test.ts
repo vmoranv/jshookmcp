@@ -35,38 +35,6 @@ afterEach(() => {
 });
 
 describe('constants env parsing', () => {
-  it('defaults vector search on for every transport and honors explicit overrides', async () => {
-    expect(
-      (await loadConstants({ MCP_TRANSPORT: undefined, SEARCH_VECTOR_ENABLED: undefined }))
-        .SEARCH_VECTOR_ENABLED,
-    ).toBe(true);
-    expect(
-      (await loadConstants({ MCP_TRANSPORT: 'http', SEARCH_VECTOR_ENABLED: undefined }))
-        .SEARCH_VECTOR_ENABLED,
-    ).toBe(true);
-    expect(
-      (await loadConstants({ MCP_TRANSPORT: 'stdio', SEARCH_VECTOR_ENABLED: undefined }))
-        .SEARCH_VECTOR_ENABLED,
-    ).toBe(true);
-    // The opt-out must still work on stdio — that is the documented escape
-    // hatch now that the transport no longer decides the default.
-    expect(
-      (await loadConstants({ MCP_TRANSPORT: 'stdio', SEARCH_VECTOR_ENABLED: 'false' }))
-        .SEARCH_VECTOR_ENABLED,
-    ).toBe(false);
-  });
-
-  it('uses a short stdio worker idle timeout and a longer HTTP timeout by default', async () => {
-    expect(
-      (await loadConstants({ MCP_TRANSPORT: undefined, SEARCH_VECTOR_WORKER_IDLE_MS: undefined }))
-        .SEARCH_VECTOR_WORKER_IDLE_MS,
-    ).toBe(15_000);
-    expect(
-      (await loadConstants({ MCP_TRANSPORT: 'http', SEARCH_VECTOR_WORKER_IDLE_MS: undefined }))
-        .SEARCH_VECTOR_WORKER_IDLE_MS,
-    ).toBe(300_000);
-  });
-
   it('parses integer env values with fallback semantics', async () => {
     expect((await loadConstants({ DEFAULT_DEBUG_PORT: undefined })).DEFAULT_DEBUG_PORT).toBe(9222);
     expect((await loadConstants({ DEFAULT_DEBUG_PORT: '' })).DEFAULT_DEBUG_PORT).toBe(9222);

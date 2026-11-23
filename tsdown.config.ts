@@ -7,7 +7,6 @@ export default defineConfig(async () => ({
     'src/index.ts',
     'src/server/plugin-api.ts',
     'src/server/fleet-api.ts',
-    'src/server/search/EmbeddingWorker.ts',
     // Unidbg JVM-invocation worker — spawned as a standalone subprocess by
     // UnidbgRunner via @utils/subprocess-worker (JSONL over stdio).
     'src/modules/binary-instrument/unidbg-worker.ts',

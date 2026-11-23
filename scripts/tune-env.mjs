@@ -113,7 +113,6 @@ const PRESETS = {
     description: 'Minimal memory footprint. Disables vector search, reduces caches, shorter TTLs.',
     values: {
       MCP_TOOL_PROFILE: 'search',
-      SEARCH_VECTOR_ENABLED: 'false',
       SEARCH_QUERY_CACHE_CAPACITY: '100',
       ACTIVATION_TTL_MINUTES: '10',
       AUTOPRUNE_AUTO_INACTIVITY_MS: '300000',
@@ -131,7 +130,6 @@ const PRESETS = {
       'Good balance of features and memory. Workflow profile, vector search on, moderate caches.',
     values: {
       MCP_TOOL_PROFILE: 'workflow',
-      SEARCH_VECTOR_ENABLED: 'true',
       SEARCH_QUERY_CACHE_CAPACITY: '500',
       ACTIVATION_TTL_MINUTES: '30',
       SANDBOX_MEMORY_LIMIT_MB: '128',
@@ -142,7 +140,6 @@ const PRESETS = {
     description: 'All tools loaded at startup. Maximum capability, highest memory.',
     values: {
       MCP_TOOL_PROFILE: 'full',
-      SEARCH_VECTOR_ENABLED: 'true',
       SEARCH_QUERY_CACHE_CAPACITY: '1000',
       ACTIVATION_TTL_MINUTES: '0',
     },
@@ -151,7 +148,6 @@ const PRESETS = {
     description: 'CI/testing preset. Fast startup, no optional features, strict error handling.',
     values: {
       MCP_TOOL_PROFILE: 'search',
-      SEARCH_VECTOR_ENABLED: 'false',
       DISCOVERY_STRICT: 'true',
       SANDBOX_EXEC_TIMEOUT_MS: '3000',
       SANDBOX_MEMORY_LIMIT_MB: '64',
@@ -246,7 +242,6 @@ async function main() {
     console.log('\n  Key env variables for tuning:\n');
     const tunable = [
       'MCP_TOOL_PROFILE',
-      'SEARCH_VECTOR_ENABLED',
       'SEARCH_QUERY_CACHE_CAPACITY',
       'ACTIVATION_TTL_MINUTES',
       'SANDBOX_MEMORY_LIMIT_MB',

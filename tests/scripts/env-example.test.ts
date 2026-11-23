@@ -90,7 +90,6 @@ const contextualTypedDefaults = new Map<string, string>([
   ['JSHOOK_IO_CONCURRENCY', '4'],
   ['JSHOOK_CPU_CONCURRENCY', '2'],
   ['JSHOOK_CDP_CONCURRENCY', '2'],
-  ['SEARCH_VECTOR_WORKER_IDLE_MS', '15000'],
 ]);
 
 const allowedRawProcessEnvironment = new Set([

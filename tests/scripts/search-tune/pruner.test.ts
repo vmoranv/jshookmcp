@@ -141,10 +141,10 @@ describe('search-tune/pruner', () => {
 
     it('covers every tunable param key', () => {
       const keys = Object.keys(SEARCH_TUNE_DEFAULTS);
-      // 22 phase-1 lexical keys + 4 profile + 9 rerank. The three
+      // 20 phase-1 lexical keys + 4 profile + 9 rerank (vector keys removed). The three
       // SEARCH_VECTOR_LEARN_* keys left the space: no offline eval observes
       // feedback-learning dynamics (see search-space.ts).
-      expect(keys.length).toBeGreaterThanOrEqual(35);
+      expect(keys.length).toBeGreaterThanOrEqual(33);
       for (const key of keys) {
         expect(typeof SEARCH_TUNE_DEFAULTS[key as TunableParamKey]).toBe('number');
       }

@@ -226,7 +226,7 @@ export class WorkflowRunStore implements SnapshotSource {
   // `scheduler.register('workflow-run-store.json', getWorkflowRunStore())`
   // — and route markDirty() through a persist notifier. This class only
   // provides the SnapshotSource contract; the cross-module wiring belongs to
-  // the engine-orchestration phase (see FeedbackTracker for the same split).
+  // the engine-orchestration phase.
 
   isPersistDirty(): boolean {
     return this.dirty;

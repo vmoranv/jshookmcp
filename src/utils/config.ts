@@ -4,7 +4,6 @@ import { homedir } from 'node:os';
 import { isAbsolute, normalize, relative, resolve } from 'node:path';
 import { z } from 'zod';
 import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
-import { DEFAULT_SEARCH_VECTOR_MODEL_ID } from '@src/constants/search-model';
 import { logger } from './logger';
 import { getPackageVersion } from './packageVersion';
 import { isRecord } from './type-guards';
@@ -394,10 +393,6 @@ const ConfigSchema = z.object({
   SEARCH_QUERY_CATEGORY_PROFILES_JSON: optionalTrimmedString,
   SEARCH_CJK_QUERY_ALIASES_JSON: optionalTrimmedString,
   SEARCH_INTENT_TOOL_BOOST_RULES_JSON: optionalTrimmedString,
-  SEARCH_VECTOR_ENABLED: optionalEnvBool,
-  SEARCH_VECTOR_MODEL_ID: optionalTrimmedString,
-  SEARCH_VECTOR_COSINE_WEIGHT: envFloat(0.53).pipe(z.number().min(0).max(10)),
-  SEARCH_VECTOR_DYNAMIC_WEIGHT: envBool(true),
 
   // Observability (src/server/observability/). The OTLP exporter additionally
   // honours the standard OTEL_EXPORTER_OTLP_* vars inside the exporters.
@@ -776,10 +771,6 @@ function cloneSearchConfig(search: SearchConfig): SearchConfig {
         bonus: boost.bonus,
       })),
     })),
-    vectorEnabled: search.vectorEnabled,
-    vectorModelId: search.vectorModelId,
-    vectorCosineWeight: search.vectorCosineWeight,
-    vectorDynamicWeight: search.vectorDynamicWeight,
   };
 }
 
@@ -795,13 +786,6 @@ function buildSearchConfig(env: ParsedConfigEnvironment): SearchConfig {
     intentToolBoostRules:
       parseIntentToolBoostRules(env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON) ??
       defaults.intentToolBoostRules,
-    // Enabled by default on every transport, mirroring SEARCH_VECTOR_ENABLED in
-    // src/constants/search.ts — the retrieval quality target is transport-
-    // independent. Opt out with SEARCH_VECTOR_ENABLED=false.
-    vectorEnabled: env.SEARCH_VECTOR_ENABLED ?? true,
-    vectorModelId: env.SEARCH_VECTOR_MODEL_ID ?? DEFAULT_SEARCH_VECTOR_MODEL_ID,
-    vectorCosineWeight: env.SEARCH_VECTOR_COSINE_WEIGHT,
-    vectorDynamicWeight: env.SEARCH_VECTOR_DYNAMIC_WEIGHT,
   };
 }
 
@@ -1363,13 +1347,6 @@ function validateReverseEngineeringConfig(config: Config, errors: string[]): voi
 }
 
 function validateSearchConfig(config: Config, errors: string[]): void {
-  if (
-    config.search.vectorCosineWeight !== undefined &&
-    (config.search.vectorCosineWeight < 0 || config.search.vectorCosineWeight > 10)
-  ) {
-    errors.push('search.vectorCosineWeight must be between 0 and 10');
-  }
-
   for (const profile of config.search.queryCategoryProfiles) {
     try {
       void new RegExp(profile.pattern, profile.flags);

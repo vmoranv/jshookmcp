@@ -24,10 +24,7 @@
  *                      Σ|param−default|/(max−min) — 0 disables.
  *   --no-prune         disable freezing low-sensitivity params to shipped
  *                      defaults after phase 1 (pruner).
- *   --vector           enable the dense-vector signal in every worker
- *                      (SEARCH_VECTOR_ENABLED=true) and include the two
- *                      vector-scoring params in phase-1 sampling. Without it,
- *                      workers run vectorEnabled=false and the vector params
+ *   --vector           removed with the dense path; passing it now exits with an error.
  *                      are excluded — sampling them in a lexical run fits
  *                      noise on a dead dimension.
  *   --dry-run          run the full pipeline but do NOT write .env.
@@ -488,6 +485,10 @@ function parseOptions(): OptimizeOptions {
     console.error(`Unknown --dataset "${datasetRaw}". Expected "fixture" (default) or "realtime".`);
     process.exit(1);
   }
+  if (has('--vector')) {
+    console.error('--vector was removed with the dense path; search tuning is lexical-only.');
+    process.exit(1);
+  }
   return {
     seed: parseInt(get('--seed', '42'), 10),
     outDir: get('--out-dir', 'artifacts/search-tuning'),
@@ -497,7 +498,7 @@ function parseOptions(): OptimizeOptions {
     dataset,
     regularization: parseFloat(get('--regularization', '0.01')),
     prune: !has('--no-prune'),
-    vector: has('--vector'),
+    vector: false,
     dryRun: has('--dry-run'),
   };
 }
@@ -524,13 +525,12 @@ function spawnWorker(spec: TrialSpec): Promise<TrialResult | null> {
 
   return new Promise((res) => {
     const child = execFile(
-      'npx',
-      ['tsx', SELF, '--worker'],
+      process.execPath,
+      ['--import', 'tsx', SELF, '--worker'],
       {
         env: { ...process.env, ...envOverrides },
         cwd: ROOT,
         maxBuffer: 10 * 1024 * 1024,
-        shell: true,
       },
       (error, stdout, _stderr) => {
         if (error) {

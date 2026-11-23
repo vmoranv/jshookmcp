@@ -66,7 +66,6 @@
   "server/macros/MacroConfigLoader.ts:validateStep": 34,
   "server/MCPServer.execution.ts:executeToolWithTracking": 26,
   "server/search/SearchQualityTracker.ts:restoreSnapshot": 32,
-  "server/search/StaticEmbeddingModel.ts:parseStaticEmbeddingTensor": 29,
   "server/ToolRouter.policy.ts:<anon>": 38,
   "server/ToolRouter.ts:routeToolRequest": 30,
   "utils/safeOutput.ts:writeFileAtomically": 25

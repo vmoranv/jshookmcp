@@ -22,7 +22,6 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Tool } from '@modelcontextprotocol/server';
 import { GENERATED_TOOL_CATALOG } from '@server/registry/generated-tool-catalog';
-import type { SearchConfig } from '@internal-types/config';
 import { buildRegistryCoverageCases } from '@tests/server/search/fixtures/registry-coverage.fixture';
 import {
   aggregateSearchMetrics,
@@ -94,7 +93,7 @@ describe('registry-corpus retrieval benchmark', () => {
         domains,
         undefined,
         undefined,
-        { vectorEnabled: false } as SearchConfig, // lexical-layer measurement, no embedding worker
+        undefined,
         sceneKeywords,
       );
 
@@ -203,7 +202,7 @@ describe('registry-corpus retrieval benchmark', () => {
         domains,
         undefined,
         undefined,
-        { vectorEnabled: false } as SearchConfig,
+        undefined,
         sceneKeywords,
       );
 

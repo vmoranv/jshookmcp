@@ -12,7 +12,7 @@
  * No I/O, no env reads, no global state: callers pass cases in, get slices out.
  */
 
-import type { SearchEvalCase } from '../../../tests/server/search/fixtures/search-quality.fixture';
+import type { SearchEvalCase } from '../../tests/server/search/fixtures/search-quality.fixture';
 
 // ── public types ──
 

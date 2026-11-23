@@ -19,13 +19,6 @@ execFileSync(process.execPath, [resolve(dir, 'generate-domains-index.mjs')], { s
 await build({ dts: withDts });
 
 {
-  const worker = resolve(root, 'dist', 'server', 'search', 'EmbeddingWorker.mjs');
-  if (!existsSync(worker)) {
-    throw new Error(`Embedding worker build output not found: ${worker}`);
-  }
-}
-
-{
   const src = resolve(root, 'src', 'native', 'scripts');
   const dst = resolve(root, 'dist', 'native', 'scripts');
   if (existsSync(src)) {

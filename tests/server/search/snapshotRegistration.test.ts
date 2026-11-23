@@ -1,7 +1,7 @@
 /**
  * Tests for search-tracker snapshot registration.
  *
- * The FeedbackTracker and SearchQualityTracker both implement the
+ * The SearchQualityTracker implements the
  * SnapshotSource contract, but they live inside the lazily-built
  * ToolSearchEngine, so wiring them into the RuntimeSnapshotScheduler happens
  * at engine-construction time via registerSearchSnapshotSources
@@ -19,9 +19,8 @@ import {
 } from '@server/persistence/RuntimeSnapshotScheduler';
 import type { ToolSearchEngine } from '@server/search/ToolSearchEngine';
 
-function fakeEngine(trackers: { feedback?: unknown; quality?: unknown } = {}): unknown {
+function fakeEngine(trackers: { quality?: unknown } = {}): unknown {
   return {
-    getFeedbackTracker: () => trackers.feedback ?? { name: 'feedback' },
     getSearchQualityTracker: () => trackers.quality ?? { name: 'quality' },
   };
 }
@@ -62,7 +61,7 @@ vi.mock('@src/constants', async (importOriginal) => ({
 import { handleSearchTools } from '@server/MCPServer.search.handlers.search';
 
 describe('registerSearchSnapshotSources', () => {
-  it('registers both trackers under distinct file names in the state dir', async () => {
+  it('registers the quality tracker in the state dir', async () => {
     const registerAsync = vi.fn(async () => undefined);
     const scheduler = { registerAsync } as unknown as RuntimeSnapshotScheduler;
 
@@ -72,14 +71,8 @@ describe('registerSearchSnapshotSources', () => {
       resolve('tmp-state'),
     );
 
-    expect(registered.feedbackTracker).toEqual({ name: 'feedback' });
     expect(registered.qualityTracker).toEqual({ name: 'quality' });
-
-    expect(registerAsync).toHaveBeenCalledTimes(2);
-    expect(registerAsync).toHaveBeenCalledWith(
-      resolve('tmp-state', 'search-feedback.json'),
-      expect.objectContaining({ name: 'feedback' }),
-    );
+    expect(registerAsync).toHaveBeenCalledTimes(1);
     expect(registerAsync).toHaveBeenCalledWith(
       resolve('tmp-state', 'search-quality.json'),
       expect.objectContaining({ name: 'quality' }),
@@ -112,9 +105,8 @@ describe('registerSearchSnapshotSources', () => {
     await registerSearchSnapshotSources(scheduler, fakeEngine() as never, resolve('tmp-state'));
     await registerSearchSnapshotSources(scheduler, fakeEngine() as never, resolve('tmp-state'));
 
-    expect(scheduler.getRegisteredSources()).toHaveLength(2);
+    expect(scheduler.getRegisteredSources()).toHaveLength(1);
     expect(scheduler.getRegisteredSources()?.map((s) => s.filePath)).toEqual([
-      resolve('tmp-state', 'search-feedback.json'),
       resolve('tmp-state', 'search-quality.json'),
     ]);
   });
@@ -123,29 +115,20 @@ describe('registerSearchSnapshotSources', () => {
     const scheduler = new RuntimeSnapshotScheduler();
 
     await registerSearchSnapshotSources(scheduler, fakeEngine() as never, resolve('tmp-state'));
-    const rebuilt = fakeEngine({
-      feedback: { name: 'feedback-v2' },
-      quality: { name: 'quality-v2' },
-    }) as never;
+    const rebuilt = fakeEngine({ quality: { name: 'quality-v2' } }) as never;
     await registerSearchSnapshotSources(scheduler, rebuilt, resolve('tmp-state'));
 
-    // Same two files, but the registered sources are the REBUILT instances.
+    // Same file, but the registered source is the REBUILT instance.
     const sources = scheduler.getRegisteredSources();
-    expect(sources).toHaveLength(2);
+    expect(sources).toHaveLength(1);
     expect(sources?.map((s) => (s.source as unknown as { name: string }).name)).toEqual([
-      'feedback-v2',
       'quality-v2',
     ]);
   });
 
   it('works with real tracker instances (SnapshotSource contract shape)', async () => {
     const scheduler = new RuntimeSnapshotScheduler();
-    const feedback = {
-      isPersistDirty: () => true,
-      exportSnapshot: () => ({ vectorWeight: 0.55 }),
-      restoreSnapshot: () => undefined,
-      markPersisted: () => undefined,
-    };
+
     const quality = {
       isPersistDirty: () => false,
       exportSnapshot: () => ({ lastRecordId: null, records: [] }),
@@ -154,13 +137,12 @@ describe('registerSearchSnapshotSources', () => {
     };
     const registered = await registerSearchSnapshotSources(
       scheduler,
-      fakeEngine({ feedback, quality }) as never,
+      fakeEngine({ quality }) as never,
       resolve('tmp-state'),
     );
 
-    expect(registered.feedbackTracker).toBe(feedback);
     expect(registered.qualityTracker).toBe(quality);
-    expect(scheduler.getRegisteredSources()).toHaveLength(2);
+    expect(scheduler.getRegisteredSources()).toHaveLength(1);
   });
 });
 
@@ -174,11 +156,10 @@ describe('handler registration wiring', () => {
   });
 
   it('handleSearchTools registers the engine trackers with the scheduler', async () => {
-    // A real engine exposes real FeedbackTracker / SearchQualityTracker
+    // A real engine exposes a real SearchQualityTracker
     // instances; both must end up in the scheduler after one search.
     const engine = {
       search: vi.fn(async () => []),
-      getFeedbackTracker: () => ({ isPersistDirty: () => false }),
       getSearchQualityTracker: () => ({
         getEnhancementSuggestions: () => null,
         isPersistDirty: () => false,
@@ -200,17 +181,13 @@ describe('handler registration wiring', () => {
     await handleSearchTools(ctx, { query: 'hook fetch' });
 
     const sources = scheduler.getRegisteredSources();
-    expect(sources.map((s) => s.filePath)).toEqual([
-      resolve(stateDir, 'search-feedback.json'),
-      resolve(stateDir, 'search-quality.json'),
-    ]);
+    expect(sources.map((s) => s.filePath)).toEqual([resolve(stateDir, 'search-quality.json')]);
   });
 
   it('skips registration gracefully when no scheduler/state dir is configured', async () => {
     // ctx without domain instances (bare test context) must not throw.
     const engine = {
       search: vi.fn(async () => []),
-      getFeedbackTracker: () => ({ isPersistDirty: () => false }),
       getSearchQualityTracker: () => ({
         getEnhancementSuggestions: () => null,
         isPersistDirty: () => false,

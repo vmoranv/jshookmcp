@@ -702,6 +702,8 @@ const CASES: readonly SearchEvalCase[] = [
     topK: 10,
     expectations: [
       { tool: 'console_inject_fetch_interceptor', gain: 3 },
+      { tool: 'console_inject_xhr_interceptor', gain: 2 },
+      { tool: 'network_intercept', gain: 2 },
       { tool: 'network_enable', gain: 2 },
       { tool: 'run_extension_workflow', gain: 2 },
     ],
@@ -1122,6 +1124,7 @@ const CASES: readonly SearchEvalCase[] = [
     topK: 10,
     expectations: [
       { tool: 'manage_hooks', gain: 3 },
+      { tool: 'hook_function', gain: 2 },
       { tool: 'generate_hooks', gain: 2 },
     ],
     idealTool: 'manage_hooks',

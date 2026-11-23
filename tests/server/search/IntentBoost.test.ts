@@ -2,8 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { IntentBoostImpl } from '@server/search/IntentBoost';
 
 describe('search/IntentBoost', () => {
-  it('uses the built-in default rules when no config is provided', () => {
+  it('has no built-in rules after the Phase 2 removal', () => {
     const boost = new IntentBoostImpl();
+
+    expect(boost.resolveIntentToolBonuses('register signup verify')).toEqual(new Map());
+    expect(boost.resolveIntentToolBonuses('api capture session')).toEqual(new Map());
+    expect(boost.getCompiledRules()).toEqual([]);
+  });
+
+  it('applies explicit custom rules', () => {
+    const boost = new IntentBoostImpl([
+      {
+        pattern: 'register signup verify',
+        boosts: [{ tool: 'run_extension_workflow', bonus: 12 }],
+      },
+      { pattern: 'api capture session', boosts: [{ tool: 'run_extension_workflow', bonus: 18 }] },
+    ]);
 
     expect(
       boost.resolveIntentToolBonuses('register signup verify').get('run_extension_workflow'),

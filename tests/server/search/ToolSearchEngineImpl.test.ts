@@ -12,42 +12,11 @@ const state = vi.hoisted(() => ({
   }),
 }));
 
-const vectorState = vi.hoisted(() => ({
-  embedBatchCalls: 0,
-  embedCalls: 0,
-  embedBatchInputs: [] as string[][],
-  embedInputs: [] as string[],
-  failEmbedBatch: false,
-  failEmbedQuery: false,
-}));
-
 vi.mock('@server/ToolCatalog', () => ({
   get allTools() {
     return state.allTools;
   },
   getToolDomain: state.getToolDomain,
-}));
-
-vi.mock('@server/search/EmbeddingEngine', () => ({
-  EmbeddingEngine: class {
-    async embedBatch(texts: string[]): Promise<Float32Array[]> {
-      vectorState.embedBatchCalls += 1;
-      vectorState.embedBatchInputs.push(texts);
-      if (vectorState.failEmbedBatch) {
-        throw new Error('embedBatch failed');
-      }
-      return texts.map(vectorFor);
-    }
-
-    async embed(text: string): Promise<Float32Array> {
-      vectorState.embedCalls += 1;
-      vectorState.embedInputs.push(text);
-      if (vectorState.failEmbedQuery) {
-        throw new Error('embed failed');
-      }
-      return vectorFor(text);
-    }
-  },
 }));
 
 vi.mock('@src/constants', () => ({
@@ -94,19 +63,6 @@ vi.mock('@src/constants', () => ({
   SEARCH_SELF_RAG_ENABLED: false,
 }));
 
-function vectorFor(text: string): Float32Array {
-  const lower = text.toLowerCase();
-
-  if (lower.includes('navigate')) return new Float32Array([1, 0, 0]);
-  if (lower.includes('click')) return new Float32Array([0.92, 0.08, 0]);
-  if (lower.includes('alpha')) return new Float32Array([0.95, 0, 0]);
-  if (lower.includes('beta')) return new Float32Array([0.9, 0, 0]);
-  if (lower.includes('gamma')) return new Float32Array([0.85, 0, 0]);
-  if (lower.includes('pause') || lower.includes('debug')) return new Float32Array([0, 1, 0]);
-
-  return new Float32Array([0.5, 0.25, 0]);
-}
-
 function makeTool(name: string, description: string): Tool {
   return {
     name,
@@ -119,12 +75,6 @@ describe('search/ToolSearchEngineImpl', () => {
   beforeEach(() => {
     vi.resetModules();
     state.getToolDomain.mockClear();
-    vectorState.embedBatchCalls = 0;
-    vectorState.embedCalls = 0;
-    vectorState.embedBatchInputs = [];
-    vectorState.embedInputs = [];
-    vectorState.failEmbedBatch = false;
-    vectorState.failEmbedQuery = false;
     state.allTools = [
       makeTool('page_navigate', 'Navigate a page. Opens a URL in the current tab.'),
       makeTool('page_click', 'Click an element in the current tab'),
@@ -198,37 +148,6 @@ describe('search/ToolSearchEngineImpl', () => {
     expect(pureStopword).toEqual([]);
     expect(multiStopword).toEqual([]);
     expect(realQuery.length).toBeGreaterThan(0);
-  });
-
-  it('replays cached results only until embeddings become ready (cache staleness)', async () => {
-    // The stale-cache window: a query served while prewarm is in flight
-    // caches a lexical-only result; once toolEmbeddings land the cache must
-    // be cleared so the repeat picks up the vector signal.
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine(
-      [
-        makeTool('page_navigate', 'Navigate a page'),
-        makeTool('page_click', 'Click a page element'),
-      ],
-      new Map(),
-      undefined,
-      undefined,
-      {
-        queryCategoryProfiles: [],
-        cjkQueryAliases: [],
-        intentToolBoostRules: [],
-        vectorEnabled: true,
-      },
-    );
-
-    // First search may race prewarm; force the readiness transition and then
-    // verify the cache does not keep serving pre-readiness entries.
-    await engine.waitForEmbeddings?.();
-    const first = await engine.search('navigate a page', 5);
-    const second = await engine.search('navigate a page', 5);
-
-    expect(first.map((r) => r.name)).toEqual(second.map((r) => r.name));
-    expect(first.map((r) => r.score)).toEqual(second.map((r) => r.score));
   });
 
   it('normalises query casing and whitespace so the cache key stays stable', async () => {
@@ -424,106 +343,6 @@ describe('search/ToolSearchEngineImpl', () => {
     expect(results[0]!.score).toBeGreaterThan(results[1]!.score);
   });
 
-  it('uses vector feedback, cache invalidation, and lazy embedding reuse', async () => {
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine(
-      [
-        makeTool('page_navigate', 'Navigate a page'),
-        makeTool('page_click', 'Click a page element'),
-        makeTool('debug_pause', 'Pause JavaScript execution'),
-      ],
-      undefined,
-      undefined,
-      undefined,
-      {
-        queryCategoryProfiles: [],
-        cjkQueryAliases: [],
-        intentToolBoostRules: [],
-        vectorEnabled: true,
-        vectorCosineWeight: 0.4,
-      } satisfies SearchConfig,
-    );
-
-    // Let the background embedBatch prewarm complete before searching, so the
-    // vector signal is live for both queries (the prewarm now runs off the
-    // search hot path; without awaiting it the first search degrades to BM25).
-    await engine.waitForEmbeddings();
-
-    const first = await engine.search('navigate', 5);
-    engine.recordToolCallFeedback('page_navigate', 'navigate');
-    const second = await engine.search('navigate', 5);
-
-    expect(first[0]?.name).toBe('page_navigate');
-    expect(second[0]?.name).toBe('page_navigate');
-    expect(vectorState.embedBatchCalls).toBe(1);
-    // Cache is value-versioned: feedback within tolerance preserves the cached
-    // result, so the second query reuses the previously embedded vector.
-    expect(vectorState.embedCalls).toBe(1);
-    expect(vectorState.embedBatchInputs[0]?.[0]).toContain('page navigate');
-  });
-
-  it('falls back when vector embeddings fail to load', async () => {
-    vectorState.failEmbedBatch = true;
-    const { logger } = await import('@utils/logger');
-    const warn = vi.spyOn(logger, 'warn');
-
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine(
-      [makeTool('page_navigate', 'Navigate a page')],
-      undefined,
-      undefined,
-      undefined,
-      {
-        queryCategoryProfiles: [],
-        cjkQueryAliases: [],
-        intentToolBoostRules: [],
-        vectorEnabled: true,
-        vectorCosineWeight: 0.4,
-      } satisfies SearchConfig,
-    );
-
-    // The prewarm embedBatch now runs in the background and fails there;
-    // settle it so the failure is observed before we assert call counts.
-    await engine.waitForEmbeddings();
-    await engine.waitForEmbeddings();
-
-    const results = await engine.search('navigate', 5);
-
-    expect(results[0]?.name).toBe('page_navigate');
-    expect(vectorState.embedBatchCalls).toBe(1);
-    expect(vectorState.embedCalls).toBe(0);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('using lexical search for 60000ms'));
-  });
-
-  it('falls back when query embedding fails', async () => {
-    vectorState.failEmbedQuery = true;
-
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine(
-      [makeTool('page_navigate', 'Navigate a page')],
-      undefined,
-      undefined,
-      undefined,
-      {
-        queryCategoryProfiles: [],
-        cjkQueryAliases: [],
-        intentToolBoostRules: [],
-        vectorEnabled: true,
-        vectorCosineWeight: 0.4,
-      } satisfies SearchConfig,
-    );
-
-    // Let the background prewarm finish seeding tool embeddings so the
-    // search path actually reaches the query-embed step we want to fail.
-    await engine.waitForEmbeddings();
-
-    const results = await engine.search('navigate', 5);
-
-    expect(results[0]?.name).toBe('page_navigate');
-    expect(vectorState.embedBatchCalls).toBe(1);
-    expect(vectorState.embedCalls).toBe(1);
-  });
-
   it('boosts affinity neighbors and domain hubs when prefix groups are active', async () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     const engine = new ToolSearchEngine([
@@ -641,104 +460,5 @@ describe('search/ToolSearchEngineImpl', () => {
 
     (engine as any).applyIntentBonusBand(scores, fakeBonuses);
     expect(Array.from(scores)).toEqual([1, 2]);
-  });
-});
-
-describe('Hybrid Vector Search', () => {
-  beforeEach(() => {
-    vi.resetModules();
-    state.getToolDomain.mockClear();
-    state.allTools = [
-      makeTool('page_navigate', 'Navigate a page'),
-      makeTool('page_click', 'Click a page element'),
-      makeTool('debug_pause', 'Pause JavaScript execution'),
-    ];
-  });
-
-  it('gracefully falls back when vector is disabled (3-signal only)', async () => {
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    // Vector is disabled via mocked constants (SEARCH_VECTOR_ENABLED=false)
-    const engine = new ToolSearchEngine([
-      makeTool('page_navigate', 'Navigate a page'),
-      makeTool('page_click', 'Click a page element'),
-    ]);
-
-    const results = await engine.search('navigate', 5);
-
-    // Should still return results using BM25+TF-IDF+Trigram
-    expect(results.length).toBeGreaterThan(0);
-    expect(results[0]?.name).toBe('page_navigate');
-  });
-
-  it('recordToolCallFeedback adjusts vector weight upward for top-5 matches', async () => {
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine([
-      makeTool('page_navigate', 'Navigate a page'),
-      makeTool('page_click', 'Click a page element'),
-    ]);
-
-    // Without vector enabled, feedback should be a no-op (no crash)
-    engine.recordToolCallFeedback('page_navigate', 'navigate');
-    // Should not throw
-    const results = await engine.search('navigate', 5);
-    expect(results.length).toBeGreaterThan(0);
-  });
-
-  it('recordToolCallFeedback is safe to call without prior search', async () => {
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine([makeTool('page_navigate', 'Navigate a page')]);
-
-    // Should not throw even without a prior search
-    expect(() => engine.recordToolCallFeedback('page_navigate', '')).not.toThrow();
-  });
-
-  it('clears stale vector feedback state when BM25 skips vector scoring', async () => {
-    const constants = await import('@src/constants');
-    const previousThreshold = constants.SEARCH_VECTOR_BM25_SKIP_THRESHOLD;
-    // @ts-expect-error test mutates mocked constant
-    constants.SEARCH_VECTOR_BM25_SKIP_THRESHOLD = 0.0001;
-
-    try {
-      const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-      const engine = new ToolSearchEngine(
-        [
-          makeTool('page_navigate', 'Navigate a page'),
-          makeTool('page_click', 'Click a page element'),
-        ],
-        undefined,
-        undefined,
-        undefined,
-        {
-          queryCategoryProfiles: [],
-          cjkQueryAliases: [],
-          intentToolBoostRules: [],
-          vectorEnabled: true,
-          vectorCosineWeight: 0.4,
-        } satisfies SearchConfig,
-      );
-
-      (engine as any).feedbackTracker.recordVectorRanking(new Map([['stale_tool', 0]]));
-      await engine.search('navigate', 5);
-
-      // `null` (signal did not participate) — not an empty map, which the
-      // feedback tracker would misread as "tool not ranked" evidence and
-      // turn into a constant down-step.
-      expect((engine as any).feedbackTracker.lastVectorRanking).toBeNull();
-    } finally {
-      // @ts-expect-error test mutates mocked constant
-      constants.SEARCH_VECTOR_BM25_SKIP_THRESHOLD = previousThreshold;
-    }
-  });
-
-  it('search returns Promise<ToolSearchResult[]>', async () => {
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
-    const engine = new ToolSearchEngine([makeTool('page_navigate', 'Navigate a page')]);
-
-    const result = engine.search('navigate', 5);
-
-    // search() should return a Promise
-    expect(result).toBeInstanceOf(Promise);
-    const resolved = await result;
-    expect(Array.isArray(resolved)).toBe(true);
   });
 });

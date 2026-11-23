@@ -85,7 +85,6 @@ function runInWorker(label: string, env: Record<string, string>): Promise<string
 async function probeRun() {
   await initRegistry();
   const engine = await buildEngine();
-  await engine.waitForEmbeddings?.();
   const label = process.env.PROBE_LABEL ?? '?';
   const rows: string[] = [];
   let top1Hits = 0;

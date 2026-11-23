@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Tool } from '@modelcontextprotocol/server';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { ToolProfile } from '@server/ToolCatalog';
@@ -26,22 +27,14 @@ import {
   SEARCH_TIER_PENALTY_FULL,
   SEARCH_TRIGRAM_THRESHOLD,
   SEARCH_TRIGRAM_WEIGHT,
-  SEARCH_VECTOR_ENABLED,
-  SEARCH_VECTOR_MODEL_ID,
-  SEARCH_VECTOR_PREWARM,
-  SEARCH_VECTOR_RETRY_COOLDOWN_MS,
 } from '@src/constants';
 import { BM25ScorerImpl } from './BM25Scorer';
-import { EmbeddingEngine } from './EmbeddingEngine';
-import { loadToolEmbeddingsCachePartial, saveToolEmbeddingsCacheV2 } from './EmbeddingCache';
 import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
 import { applyIntentBonusBandToScores } from './SearchIntentBonus';
 import { SearchFusion } from './SearchFusion';
-import { VectorScorer } from './VectorScorer';
 import { SearchResultProjector } from './SearchResultProjector';
 import { SearchResultCache, type CachedSearchEntry } from './SearchResultCache';
-import { FeedbackTracker } from './FeedbackTracker';
 import {
   QueryNormalizer,
   readStemMode,
@@ -59,19 +52,13 @@ import {
   type SpanLike,
 } from '@server/observability/InstrumentationContract';
 import { redactQueryText } from '@server/observability/queryTextPolicy';
-import { logger } from '@utils/logger';
 import {
   applyGraphExpansionToScores,
   buildAffinityGraph,
   findDelimitedIndex,
   type AffinityEdge,
 } from './ToolSearchEngine.helpers';
-import {
-  buildSearchCacheKey,
-  capturePositiveScores,
-  materializeScores,
-  type SearchWitness,
-} from './SearchStatement';
+import { buildSearchCacheKey, capturePositiveScores, materializeScores } from './SearchStatement';
 import { ToolMerkleTree, type ToolStateWitness } from './ToolMerkleWitness';
 
 // ── public types ──
@@ -170,22 +157,8 @@ export class ToolSearchEngine {
    * fold epoch. Recency and tier are replayed on hit.
    */
   private readonly queryCache: SearchResultCache;
-  /** Evidence from the search the caller just saw. Tool-call learning reads this. */
-  private lastWitness: SearchWitness | null = null;
   /** Trigram fuzzy matching index over tool names. */
   private readonly trigramIndex: TrigramIndex;
-
-  // ── Dense vector search (Phase 8) ──
-  private readonly embeddingEngine: EmbeddingEngine | null;
-  private readonly vectorModelId: string;
-  private toolEmbeddings: Float32Array[] | null = null;
-  /**
-   * In-flight prewarm promise guard. Ensures at most one embedBatch runs at a
-   * time across the constructor fire-and-forget and any lazy re-trigger after
-   * a failure. Reset to null on rejection so the next trigger can retry.
-   */
-  private prewarmPromise: Promise<void> | null = null;
-  private embeddingRetryAfterMs = 0;
   /**
    * Effective SEARCH_STEM_MODE captured at construction. doc.tokenSet is
    * stem-folded once at index time with this mode; including it in the cache
@@ -193,8 +166,6 @@ export class ToolSearchEngine {
    * different mode. Exposed to the cache-key builder at search time.
    */
   private readonly stemMode: StemMode;
-  /** Feedback tracking for adaptive vector weight adjustment. */
-  private readonly feedbackTracker: FeedbackTracker;
   /** Per-tool recency tracker for frequency / recency boosts. */
   private readonly recencyTracker = new Map<string, number>();
 
@@ -204,7 +175,6 @@ export class ToolSearchEngine {
   private readonly reRanker: ReRanker;
   private readonly qualityTracker = new SearchQualityTracker();
   private readonly fusion: SearchFusion;
-  private readonly vectorScorer: VectorScorer;
   private readonly resultProjector: SearchResultProjector;
 
   // ── Lookup tables & Cryptographic State (Mina / PLONK inspired) ──
@@ -348,14 +318,6 @@ export class ToolSearchEngine {
 
     // Initialize extracted modules
     this.bm25Scorer = new BM25ScorerImpl(searchConfig);
-
-    // Initialize vector search (Phase 8)
-    const vectorEnabled = searchConfig?.vectorEnabled ?? SEARCH_VECTOR_ENABLED;
-    this.vectorModelId = searchConfig?.vectorModelId ?? SEARCH_VECTOR_MODEL_ID;
-    this.embeddingEngine = vectorEnabled
-      ? new EmbeddingEngine({ modelId: this.vectorModelId })
-      : null;
-    this.feedbackTracker = new FeedbackTracker(searchConfig);
     this.intentBoost = new IntentBoostImpl(searchConfig?.intentToolBoostRules);
 
     let totalLength = 0;
@@ -402,26 +364,13 @@ export class ToolSearchEngine {
 
     // ── Trigram fuzzy index over tool names ──
     this.trigramIndex = new TrigramIndex(this.docs.map((d) => d.name));
-    this.vectorScorer = new VectorScorer({
-      embeddingEngine: this.embeddingEngine,
-      getEmbeddings: () => this.toolEmbeddings,
-      ensureEmbeddings: () => this.ensureToolEmbeddings(),
-    });
     this.fusion = new SearchFusion({
       docs: this.docs,
       trigramIndex: this.trigramIndex,
-      feedbackTracker: this.feedbackTracker,
-      computeVectorCosineScores: (query) => this.vectorScorer.score(query),
     });
 
     // ── Query result cache (§4.3 CSAPC) ──
     this.queryCache = new SearchResultCache(SEARCH_QUERY_CACHE_CAPACITY);
-
-    // A shared daemon should not load the embedding model until vector scoring is needed.
-    // Operators can opt back into background prewarm for latency-sensitive deployments.
-    if (this.embeddingEngine && SEARCH_VECTOR_PREWARM) {
-      void this.ensureToolEmbeddings();
-    }
   }
 
   /**
@@ -687,6 +636,7 @@ export class ToolSearchEngine {
     activeToolNames?: ReadonlySet<string>,
     visibleDomains?: ReadonlySet<string>,
     profile?: ToolProfile,
+    searchId?: string,
   ): {
     quickResults: ToolSearchResult[];
     preAdjust: Array<[number, number]>;
@@ -705,15 +655,13 @@ export class ToolSearchEngine {
       profile,
       null,
     );
-    this.feedbackTracker.recordVectorRanking(null);
-    const searchId = this.qualityTracker.recordSearch(
+    this.qualityTracker.recordSearch(
       query,
       quickResults.map((r) => r.name),
       quickResults.map((r) => r.score),
       performance.now() - quickStartMs,
-      { vectorParticipated: false },
+      { id: searchId },
     );
-    this.rememberWitness(searchId, quickResults, null);
     const quickLatencyMs = Math.round(performance.now() - quickStartMs);
     return { quickResults, preAdjust, quickLatencyMs };
   }
@@ -726,6 +674,7 @@ export class ToolSearchEngine {
     profile?: ToolProfile,
   ): Promise<ToolSearchResult[]> {
     const searchStartTime = performance.now();
+    const searchId = randomUUID();
 
     // ── search.query telemetry span ──
     const instrumentation = getGlobalInstrumentation();
@@ -733,6 +682,7 @@ export class ToolSearchEngine {
       'search.query_text': redactQueryText(query),
       'search.query_length': query.length,
       'search.top_k': topK,
+      'search.id': searchId,
     });
 
     // Tokenise without synonyms first, filter stop words, then keep only the most informative.
@@ -825,6 +775,7 @@ export class ToolSearchEngine {
         activeToolNames,
         visibleDomains,
         profile,
+        searchId,
       );
       telemetrySpan.end({
         'search.quick_path': true,
@@ -837,7 +788,7 @@ export class ToolSearchEngine {
       instrumentation.emitMetric(MetricNames.searchLatencyMs, quickLatencyMs, 'histogram', {
         outcome: 'quick_path',
       });
-      this.writeCache(cacheKey, 'quick', preAdjust, null);
+      this.writeCache(cacheKey, 'quick', preAdjust);
       return quickResults;
     }
 
@@ -857,6 +808,7 @@ export class ToolSearchEngine {
       intentToolBonuses,
       searchStartTime,
       telemetrySpan,
+      searchId,
     });
   }
 
@@ -879,6 +831,7 @@ export class ToolSearchEngine {
     intentToolBonuses: Map<string, number>;
     searchStartTime: number;
     telemetrySpan: SpanLike;
+    searchId: string;
   }): Promise<ToolSearchResult[]> {
     const {
       cacheKey,
@@ -892,6 +845,7 @@ export class ToolSearchEngine {
       intentToolBonuses,
       searchStartTime,
       telemetrySpan,
+      searchId,
     } = args;
     const queryTokens = args.queryTokens;
 
@@ -941,10 +895,7 @@ export class ToolSearchEngine {
     this.scoreLexicalQueryTokens(queryTokens, scores);
 
     // ── RRF multi-signal fusion (replaces multiplicative TF-IDF boost) ──
-    const { topBm25Score, vectorParticipated, vectorRanking, hasSignal } = await this.fusion.apply(
-      query,
-      scores,
-    );
+    const { topBm25Score, hasSignal } = await this.fusion.apply(query, scores);
 
     // ── Relevance Confidence Gate ──
     if (!hasSignal && intentToolBonuses.size === 0 && explicitToolMention === null) {
@@ -1025,7 +976,7 @@ export class ToolSearchEngine {
       return [];
     }
 
-    this.writeCache(cacheKey, 'full', preAdjust, vectorRanking);
+    this.writeCache(cacheKey, 'full', preAdjust);
 
     // ── Search quality tracking ──
     const latencyMs = performance.now() - searchStartTime;
@@ -1036,22 +987,20 @@ export class ToolSearchEngine {
       ...(topBm25Score > 0
         ? { 'search.bm25_top_score': Math.round(topBm25Score * 1000) / 1000 }
         : {}),
-      'search.vector_participated': vectorParticipated,
     });
     instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
-      outcome: vectorParticipated ? 'full_path_vector' : 'full_path_lexical',
+      outcome: 'full_path_lexical',
     });
     instrumentation.emitMetric(MetricNames.searchLatencyMs, Math.round(latencyMs), 'histogram', {
-      outcome: vectorParticipated ? 'full_path_vector' : 'full_path_lexical',
+      outcome: 'full_path_lexical',
     });
-    const searchId = this.qualityTracker.recordSearch(
+    this.qualityTracker.recordSearch(
       query,
       results.map((r) => r.name),
       results.map((r) => r.score),
       latencyMs,
-      { bm25TopScore: topBm25Score, vectorParticipated },
+      { bm25TopScore: topBm25Score, id: searchId },
     );
-    this.rememberWitness(searchId, results, vectorRanking);
 
     return results;
   }
@@ -1063,10 +1012,7 @@ export class ToolSearchEngine {
    * point was to add that signal.
    */
   private isCachedEntryFresh(entry: CachedSearchEntry): boolean {
-    if (entry.kind === 'quick') return true;
-    if (entry.feedbackEpoch !== this.feedbackTracker.getFeedbackEpoch()) return false;
-    if (!entry.vectorReady && this.toolEmbeddings !== null) return false;
-    return true;
+    return entry.kind === 'quick' || entry.kind === 'full';
   }
 
   private replayCached(
@@ -1089,8 +1035,6 @@ export class ToolSearchEngine {
       profile,
       explicit,
     );
-    const vectorRanking = entry.vectorRanking ? new Map(entry.vectorRanking) : null;
-    this.rememberWitness(`cache:${entry.kind}`, results, vectorRanking);
     return results;
   }
 
@@ -1110,36 +1054,13 @@ export class ToolSearchEngine {
     const ranked = this.resultProjector.collect(scores, activeToolNames, topK);
     return kind === 'full' ? this.resultProjector.rerank(query, ranked, activeToolNames) : ranked;
   }
-
   private writeCache(
     cacheKey: string,
     kind: 'quick' | 'full',
     preAdjust: Array<[number, number]>,
-    vectorRanking: ReadonlyMap<string, number> | null,
   ): void {
-    this.queryCache.set(cacheKey, {
-      kind,
-      feedbackEpoch: this.feedbackTracker.getFeedbackEpoch(),
-      // Recorded at write time so a later readiness flip invalidates the entry
-      // even if the bootstrap's own clear() lost the race with this write.
-      vectorReady: this.toolEmbeddings !== null,
-      preAdjust,
-      vectorRanking: vectorRanking ? [...vectorRanking] : null,
-    });
+    this.queryCache.set(cacheKey, { kind, preAdjust });
   }
-
-  private rememberWitness(
-    searchId: string,
-    results: readonly ToolSearchResult[],
-    vectorRanking: ReadonlyMap<string, number> | null,
-  ): void {
-    this.lastWitness = {
-      searchId,
-      returnedTools: results.map((result) => result.name),
-      vectorRanking,
-    };
-  }
-
   /** Exact tool-name queries are the only rank-preserving skip of RRF. */
   private isExactNameQuery(rawQuery: string): boolean {
     const normalised = rawQuery.toLowerCase().replace(/[\s-]+/g, '_');
@@ -1311,130 +1232,18 @@ export class ToolSearchEngine {
     }
   }
 
-  // ── Dense vector search methods (Phase 8) ──
-
-  waitForEmbeddings(): Promise<void> {
-    return this.ensureToolEmbeddings();
-  }
-
-  /**
-   * Load catalog embeddings from disk or compute them once. Concurrent callers
-   * share the same promise, while failures degrade to lexical search and remain retryable.
-   *
-   * Incremental (cache v2): per-tool hash matching lets unchanged tools reuse
-   * their cached vectors; only tools whose name/description changed are
-   * (re)embedded. A full miss (no cache file, v1 legacy file, or corruption)
-   * falls back to embedding the whole catalog.
-   */
-  private ensureToolEmbeddings(): Promise<void> {
-    if (this.toolEmbeddings || !this.embeddingEngine) {
-      return Promise.resolve();
-    }
-    if (this.prewarmPromise) {
-      return this.prewarmPromise;
-    }
-    if (Date.now() < this.embeddingRetryAfterMs) {
-      return Promise.resolve();
-    }
-
-    const tools = this.docs.map((doc): import('./EmbeddingCache').ToolEmbeddingKey => ({
-      name: doc.name,
-      description: `${doc.name.replace(/_/g, ' ')}: ${doc.description}`,
-    }));
-    const modelId = this.vectorModelId;
-    const engine = this.embeddingEngine;
-    const run = (async () => {
-      try {
-        const partial = await loadToolEmbeddingsCachePartial(modelId, tools);
-        let embeddings: Float32Array[];
-
-        if (partial) {
-          const missingIndexes: number[] = [];
-          for (const [index, cached] of partial.entries()) {
-            if (!cached) missingIndexes.push(index);
-          }
-          if (missingIndexes.length === 0) {
-            this.toolEmbeddings = partial as Float32Array[];
-            this.embeddingRetryAfterMs = 0;
-            // Queries served while embeddings were absent cached lexical-only
-            // results; with the vector signal now live those entries are stale.
-            this.queryCache.clear();
-            return;
-          }
-          const fresh = await engine.embedBatch(
-            missingIndexes.map((index) => tools[index]!.description),
-          );
-          for (const [offset, index] of missingIndexes.entries()) {
-            partial[index] = fresh[offset] ?? null;
-          }
-          embeddings = partial as Float32Array[];
-        } else {
-          embeddings = await engine.embedBatch(tools.map((tool) => tool.description));
-        }
-
-        this.toolEmbeddings = embeddings;
-        this.embeddingRetryAfterMs = 0;
-        // Same staleness as the all-cached fast path: results computed before
-        // embeddings existed must not outlive the readiness transition.
-        this.queryCache.clear();
-        await saveToolEmbeddingsCacheV2(modelId, tools, embeddings);
-      } catch (error) {
-        // Embeddings are optional; BM25 and trigram remain available.
-        this.embeddingRetryAfterMs = Date.now() + Math.max(0, SEARCH_VECTOR_RETRY_COOLDOWN_MS);
-        logger.warn(
-          `[search] vector embeddings unavailable; using lexical search for ${Math.max(0, SEARCH_VECTOR_RETRY_COOLDOWN_MS)}ms: ` +
-            `${error instanceof Error ? error.message : String(error)}`,
-        );
-      } finally {
-        this.prewarmPromise = null;
-      }
-    })();
-    this.prewarmPromise = run;
-    return run;
-  }
-
-  /**
-   * Compute dense vector cosine similarity scores for query vs all tools.
-   * Returns Map<docIndex, cosineScore>, or `null` when the vector signal is
-   * unavailable (engine disabled, catalog embeddings not yet warmed, or the
-   * query embedding failed) — the caller treats `null` as "did not
-   * participate" rather than "matched nothing".
-   *
-   * Prewarm-in-progress fast path: when the background embedding job hasn't
-   * finished seeding `toolEmbeddings` yet, return `null` immediately rather
-   * than awaiting the in-flight prewarm (which would block the search for the
-   * full cold-start duration). The engine falls back to BM25 + trigram for
-   * this query; subsequent queries pick up the vector signal once prewarm
-   * lands.
-   */
+  /** Dense path removed; kept as a no-op for callers. */
   /**
    * Record feedback from a tool call.
    *
-   * - Updates the adaptive vector weight via FeedbackTracker.
    * - Records the invocation timestamp for the recency / frequency boost.
    *
-   * Learning is bound to `lastWitness`: a tool the latest search did not
-   * return does not move the vector weight. The weight itself moves only
-   * when a fold commits, which bumps the cache epoch.
-   *
    * @param toolName The tool that was invoked
-   * @param lastQuery The search query that led to this tool call. Recorded by
-   *   FeedbackTracker for quality analysis (no learning is done from it yet);
-   *   the call_tool proxy path has no query in scope and passes an empty
-   *   string.
+   * @param _lastQuery Reserved for call-site compatibility; no query state is
+   *   retained after feedback learning was removed.
    */
-  recordToolCallFeedback(toolName: string, lastQuery: string): void {
-    const witness = this.lastWitness;
-    if (witness && witness.returnedTools.includes(toolName)) {
-      const vectorParticipated = witness.vectorRanking !== null;
-      this.feedbackTracker.recordToolCallFeedback(toolName, !!this.embeddingEngine, lastQuery, {
-        searchId: witness.searchId,
-        vectorParticipated,
-        vectorRank: vectorParticipated ? (witness.vectorRanking!.get(toolName) ?? null) : null,
-      });
-    } else {
-      this.feedbackTracker.noteQuery(lastQuery);
-    }
+  // fallow-ignore-next-line unused-class-member
+  recordToolCallFeedback(toolName: string, _lastQuery: string): void {
     // Move-to-end ensures LRU ordering via Map insertion-order semantics.
     this.recencyTracker.delete(toolName);
     this.recencyTracker.set(toolName, Date.now());
@@ -1466,11 +1275,6 @@ export class ToolSearchEngine {
   getSearchQualityTracker(): import('./SearchQualityTracker').SearchQualityTracker {
     return this.qualityTracker;
   }
-
-  getFeedbackTracker(): import('./FeedbackTracker').FeedbackTracker {
-    return this.feedbackTracker;
-  }
-
   /**
    * Apply curated intent bonuses as a final ranking band.
    * Any tool with an explicit routing bonus should outrank non-bonus matches,

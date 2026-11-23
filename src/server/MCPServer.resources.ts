@@ -7,8 +7,6 @@ import { getAllRegistrations, getAllKnownDomains } from '@server/registry/index'
 import { allTools as allCatalogTools } from '@server/ToolCatalog';
 import { getSearchEngine } from '@server/MCPServer.search.helpers';
 import { getRuntimeState } from '@server/runtime/ServerRuntimeState';
-import { getEmbeddingDimensionHint } from '@server/search/EmbeddingModels';
-import { SEARCH_VECTOR_MODEL_ID } from '@src/constants/search';
 
 function asJsonResource(uri: string, payload: unknown) {
   return {
@@ -152,10 +150,10 @@ export function registerServerResources(ctx: MCPServerContext): void {
         // registry not yet initialised
       }
       let indexedTools = 0;
-      let embeddingDimension = 0;
+      const embeddingDimension = 0;
       let bm25Available = false;
       let trigramAvailable = false;
-      let embeddingAvailable = false;
+      const embeddingAvailable = false;
       let lastIndexedAt: string | null = null;
 
       try {
@@ -164,12 +162,6 @@ export function registerServerResources(ctx: MCPServerContext): void {
         indexedTools = summary.reduce((acc, s) => acc + s.count, 0);
         bm25Available = true;
         trigramAvailable = true;
-        embeddingAvailable = ctx.config.search.vectorEnabled ?? false;
-        if (embeddingAvailable) {
-          embeddingDimension = getEmbeddingDimensionHint(
-            ctx.config.search.vectorModelId ?? SEARCH_VECTOR_MODEL_ID,
-          );
-        }
         lastIndexedAt = new Date().toISOString();
       } catch {
         // search engine not yet built — leave defaults

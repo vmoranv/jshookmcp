@@ -19,17 +19,6 @@ vi.mock('@server/ToolCatalog', () => ({
   getToolDomain: state.getToolDomain,
 }));
 
-vi.mock('@server/search/EmbeddingEngine', () => ({
-  EmbeddingEngine: class {
-    async embedBatch() {
-      return [];
-    }
-    async embed() {
-      return new Float32Array(0);
-    }
-  },
-}));
-
 vi.mock('@src/constants', () => ({
   SEARCH_AFFINITY_BOOST_FACTOR: 0.2,
   SEARCH_AFFINITY_TOP_N: 3,

@@ -2,19 +2,7 @@
 
 export interface CachedSearchEntry {
   kind: 'quick' | 'full';
-  feedbackEpoch: number;
-  /**
-   * Whether the vector signal existed when this entry was computed.
-   *
-   * Without it, an entry written while embeddings were absent outlived the
-   * readiness transition: the bootstrap clears the cache on completion, but a
-   * query that scored BEFORE the clear and wrote its entry AFTER it survived,
-   * and `isCachedEntryFresh` (which only compares the feedback epoch) kept
-   * replaying lexical-only results with the vector signal already live.
-   */
-  vectorReady: boolean;
   preAdjust: Array<[number, number]>;
-  vectorRanking: Array<[string, number]> | null;
 }
 
 class LRUCache<K, V> {
@@ -28,7 +16,6 @@ class LRUCache<K, V> {
   get(key: K): V | undefined {
     const value = this.map.get(key);
     if (value !== undefined) {
-      // Move to end (most recently used)
       this.map.delete(key);
       this.map.set(key, value);
     }
@@ -39,7 +26,6 @@ class LRUCache<K, V> {
     this.map.delete(key);
     this.map.set(key, value);
     if (this.map.size > this.capacity) {
-      // Delete oldest (first entry in insertion order)
       const firstKey = this.map.keys().next().value!;
       this.map.delete(firstKey);
     }
@@ -69,6 +55,8 @@ export class SearchResultCache {
     this.cache.set(key, entry);
   }
 
+  // Used by the query-cache invalidation test; keep the public clear surface.
+  // fallow-ignore-next-line unused-class-member
   clear(): void {
     this.cache.clear();
   }

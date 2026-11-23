@@ -20,7 +20,7 @@ const RRSI_HOLDOUT_GAP_TOLERANCE = 0.15;
  * './worker'` pointed at a module that was inlined into optimize.ts (the
  * type-only import was silently erased at runtime, so the stale reference
  * never surfaced). `failedCases` stays optional: the tune writer does not
- * serialize it (compare-static-model does, with the same row shape).
+ * serialize it.
  */
 interface TrialResult {
   trialId: string;

@@ -35,8 +35,6 @@ export const SEARCH_TUNE_PARAM_KEYS = [
   'SEARCH_AFFINITY_TOP_N',
   'SEARCH_PARAM_TOKEN_WEIGHT',
   'SEARCH_SYNONYM_EXPANSION_LIMIT',
-  'SEARCH_VECTOR_BM25_SKIP_THRESHOLD',
-  'SEARCH_VECTOR_COSINE_WEIGHT',
   'SEARCH_RECENCY_MAX_BOOST',
   'SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER',
   'SEARCH_SCENE_KEYWORD_WEIGHT',
@@ -68,7 +66,7 @@ export type TunableParamKey = (typeof SEARCH_TUNE_PARAM_KEYS)[number];
 export const VECTOR_SCORING_PARAM_KEYS = [
   'SEARCH_VECTOR_BM25_SKIP_THRESHOLD',
   'SEARCH_VECTOR_COSINE_WEIGHT',
-] as const satisfies readonly TunableParamKey[];
+] as const;
 
 /**
  * Every vector-related key that can appear in a HISTORICAL trials.jsonl (runs
@@ -111,8 +109,6 @@ export const SEARCH_TUNE_DEFAULTS: Readonly<Record<TunableParamKey, number>> = {
   SEARCH_AFFINITY_TOP_N: 9,
   SEARCH_PARAM_TOKEN_WEIGHT: 1.1,
   SEARCH_SYNONYM_EXPANSION_LIMIT: 2,
-  SEARCH_VECTOR_BM25_SKIP_THRESHOLD: 0,
-  SEARCH_VECTOR_COSINE_WEIGHT: 0.53,
   SEARCH_RECENCY_MAX_BOOST: 0.1,
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 2.4,
   SEARCH_SCENE_KEYWORD_WEIGHT: 0.8,
@@ -191,8 +187,6 @@ export const PARAM_DEFS: readonly TunableParamDef[] = [
   { key: 'SEARCH_AFFINITY_TOP_N', type: 'int', min: 2, max: 12, step: 1, phase: 1 },
   { key: 'SEARCH_PARAM_TOKEN_WEIGHT', type: 'float', min: 0.3, max: 3.5, step: 0.1, phase: 1 },
   { key: 'SEARCH_SYNONYM_EXPANSION_LIMIT', type: 'int', min: 0, max: 10, step: 1, phase: 1 },
-  { key: 'SEARCH_VECTOR_BM25_SKIP_THRESHOLD', type: 'float', min: 0, max: 30, step: 1, phase: 1 },
-  { key: 'SEARCH_VECTOR_COSINE_WEIGHT', type: 'float', min: 0.05, max: 0.8, step: 0.01, phase: 1 },
   { key: 'SEARCH_RECENCY_MAX_BOOST', type: 'float', min: 0.0, max: 1.0, step: 0.05, phase: 1 },
   { key: 'SEARCH_SCENE_KEYWORD_WEIGHT', type: 'float', min: 0.5, max: 5.0, step: 0.1, phase: 1 },
   {

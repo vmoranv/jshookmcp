@@ -61,10 +61,6 @@ describe('config utilities', () => {
     delete process.env.MCP_ALLOW_INSECURE;
     delete process.env.MCP_RATE_LIMIT_MAX;
     delete process.env.MCP_LOG_LEVEL;
-    delete process.env.SEARCH_VECTOR_ENABLED;
-    delete process.env.SEARCH_VECTOR_MODEL_ID;
-    delete process.env.SEARCH_VECTOR_COSINE_WEIGHT;
-    delete process.env.SEARCH_VECTOR_DYNAMIC_WEIGHT;
     mockMissingEnvFile();
   });
 
@@ -126,42 +122,7 @@ describe('config utilities', () => {
     expect(config.reverseEngineering.reverseSession.runMaxSteps).toBe(50);
     expect(config.search.queryCategoryProfiles.length).toBeGreaterThan(0);
     expect(config.search.cjkQueryAliases.length).toBeGreaterThan(0);
-    expect(config.search.intentToolBoostRules.length).toBeGreaterThan(0);
-    expect(config.search.vectorEnabled).toBe(true);
-    expect(config.search.vectorModelId).toBe('minishlab/potion-code-16M-v2');
-  });
-
-  it('keeps the vector default independent of the transport', async () => {
-    // The retrieval quality target does not depend on how the client connects,
-    // so stdio and HTTP must agree — the old transport-derived default made
-    // the same query behave differently per transport.
-    process.env.MCP_TRANSPORT = 'http';
-    const http = await import('@utils/config');
-    const httpEnabled = http.getConfig().search.vectorEnabled;
-
-    vi.resetModules();
-    process.env.MCP_TRANSPORT = 'stdio';
-    const stdio = await import('@utils/config');
-
-    expect(httpEnabled).toBe(true);
-    expect(stdio.getConfig().search.vectorEnabled).toBe(true);
-  });
-
-  it('honors explicit vector search overrides in runtime configuration', async () => {
-    process.env.MCP_TRANSPORT = 'http';
-    process.env.SEARCH_VECTOR_ENABLED = 'false';
-    process.env.SEARCH_VECTOR_MODEL_ID = 'local/test-model';
-    process.env.SEARCH_VECTOR_COSINE_WEIGHT = '0.25';
-    process.env.SEARCH_VECTOR_DYNAMIC_WEIGHT = 'false';
-    const { getConfig } = await import('@utils/config');
-    const search = getConfig().search;
-
-    expect(search).toMatchObject({
-      vectorEnabled: false,
-      vectorModelId: 'local/test-model',
-      vectorCosineWeight: 0.25,
-      vectorDynamicWeight: false,
-    });
+    expect(config.search.intentToolBoostRules).toEqual([]);
   });
 
   it('reads MCP server metadata from environment', async () => {

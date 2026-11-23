@@ -4,8 +4,6 @@
  * Scores that are expensive to rebuild (BM25, RRF, intent, graph) are cached
  * under `BakedStatement`. Recency, tier, explicit mention, and the final
  * re-rank are reapplied on every hit, so they stay out of the cache key.
- * `SearchWitness` is the private evidence a later tool call may learn from.
- * It never enters the key.
  */
 
 export interface BakedStatement {
@@ -17,20 +15,6 @@ export interface BakedStatement {
    * prior mode (index-time doc.tokenSet and query-time folding would disagree).
    */
   readonly stemMode: string;
-}
-
-export interface FeedbackEvidence {
-  readonly searchId: string;
-  /** False when this search did not run the vector signal. */
-  readonly vectorParticipated: boolean;
-  /** Null when the signal ran and the tool was absent from it. */
-  readonly vectorRank: number | null;
-}
-
-export interface SearchWitness {
-  readonly searchId: string;
-  readonly returnedTools: readonly string[];
-  readonly vectorRanking: ReadonlyMap<string, number> | null;
 }
 
 export function buildSearchCacheKey(statement: BakedStatement): string {
@@ -55,14 +39,4 @@ export function materializeScores(
   const scores = new Float64Array(size);
   for (const [index, score] of entries) scores[index] = score;
   return scores;
-}
-
-export function resolveFeedbackFoldSize(
-  configured: number | undefined,
-  fromEnv: number | undefined,
-): number {
-  const raw = configured ?? fromEnv;
-  if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 1) return Math.floor(raw);
-  // Tests that mock `@src/constants` without this knob keep one-step learning.
-  return 1;
 }

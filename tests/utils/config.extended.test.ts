@@ -123,13 +123,13 @@ describe('config validation – extended checks', () => {
 
     expect(config.search.queryCategoryProfiles.length).toBeGreaterThan(0);
     expect(config.search.cjkQueryAliases.length).toBeGreaterThan(0);
-    expect(config.search.intentToolBoostRules.length).toBeGreaterThan(0);
+    expect(config.search.intentToolBoostRules).toEqual([]);
   });
 
   it('validateConfig reports invalid search regex patterns', () => {
     const config = getConfig();
     config.search.queryCategoryProfiles[0]!.pattern = '[invalid';
-    config.search.intentToolBoostRules[0]!.pattern = '[invalid';
+    config.search.intentToolBoostRules = [{ pattern: '[invalid', flags: 'i', boosts: [] }];
 
     const result = validateConfig(config);
 

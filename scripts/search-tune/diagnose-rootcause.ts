@@ -58,7 +58,6 @@ async function main() {
   }
   const engine = new ToolSearchEngine(allTools, domainMap, undefined, undefined, undefined);
   // 等向量预热完成，避免 self-RAG quick path 之外的信号未就绪
-  await (engine as any).waitForEmbeddings?.().catch(() => {});
 
   // ── trigram threshold 对 typo 的灵敏度验证 ──
   // "nagivate page" vs page_navigate 的 trigram Jaccard 手算 ≈ 0.167，

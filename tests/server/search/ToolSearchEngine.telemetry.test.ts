@@ -124,8 +124,9 @@ describe('ToolSearchEngine telemetry', () => {
     expect(instrumentation.spans).toHaveLength(1);
     const span = instrumentation.spans[0]!;
     expect(span.name).toBe('search.query');
+    expect(typeof span.attrs['search.id']).toBe('string');
     expect(span.endAttrs['search.quick_path']).toBe(false);
-    expect(span.endAttrs['search.vector_participated']).toBe(false);
+    expect(span.endAttrs['search.vector_participated']).toBeUndefined();
     expect(typeof span.endAttrs['search.result_count']).toBe('number');
     expect(typeof span.endAttrs['search.latency_ms']).toBe('number');
   });

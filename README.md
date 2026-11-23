@@ -156,16 +156,15 @@ native binaries; native runtimes are optional and loaded on demand.
 ### Share one daemon across multiple agents
 
 The default stdio configuration starts one full jshook process per MCP host. To share the
-embedding model, browser runtime, and caches, start one local Streamable HTTP daemon:
+browser runtime and caches, start one local Streamable HTTP daemon:
 
 ```bash
 pnpm build
 pnpm daemon
 ```
 
-Vector search is on by default on every transport — a lightweight static model whose catalog
-embeddings persist to disk, loaded lazily and released when idle. Set `SEARCH_VECTOR_ENABLED=false`
-when lexical search is sufficient.
+Search is lexical-only (BM25 + trigram + RRF). The embedding path was removed in the search simplification:
+no model download, worker, embedding cache, or cold-start.
 
 Then point every MCP client at `http://127.0.0.1:3000/mcp` using its HTTP/URL server
 configuration. Each client receives its own MCP session and response route while heavyweight
@@ -227,7 +226,7 @@ The server supports two transports out of the box.
 | Transport | When to use | Notes |
 | --- | --- | --- |
 | **stdio** | Default for Claude Desktop, Cursor, and other single-host clients | One full process per MCP host; lightweight profile recommended |
-| **Streamable HTTP** | Multiple agents sharing the embedding model, browser runtime, and caches | Loopback bind by default; set `MCP_AUTH_TOKEN` before exposing externally |
+| **Streamable HTTP** | Multiple agents sharing the browser runtime and caches | Loopback bind by default; set `MCP_AUTH_TOKEN` before exposing externally |
 
 Both transports expose the same tool surface. `coverage_report` shows which domains are
 activated in each session — long-running sessions restore browser attach state, coverage state,
@@ -314,3 +313,5 @@ runtimes (ONNX, Z3, Binaryen, Camoufox, Playwright) depending on the profile.
 ## License
 
 [AGPLv3](./LICENSE).
+
+

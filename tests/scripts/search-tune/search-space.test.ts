@@ -36,21 +36,26 @@ describe('search-tune/search-space vector gating', () => {
     expect(keys).toContain('SEARCH_RRF_BM25_BLEND');
   });
 
-  it('keeps vector-scoring keys in phase 1 when vector is enabled', () => {
-    const vector = getPhaseParams(PARAM_DEFS, 1, { vectorEnabled: true });
-    const keys = vector.map((d) => d.key);
-    for (const key of VECTOR_SCORING_PARAM_KEYS) {
-      expect(keys).toContain(key);
+  it('never includes vector-scoring keys after the dense-path removal', () => {
+    for (const keys of [
+      getPhaseParams(PARAM_DEFS, 1, { vectorEnabled: true }).map((d) => d.key),
+      getPhaseParams(PARAM_DEFS, 1, { vectorEnabled: false }).map((d) => d.key),
+      getPhaseParams(PARAM_DEFS, 1).map((d) => d.key),
+    ]) {
+      for (const key of VECTOR_SCORING_PARAM_KEYS) {
+        expect(keys).not.toContain(key);
+      }
     }
   });
 
-  it('keeps vector-scoring keys when no option is passed (explicit opt-out only)', () => {
-    const keys = getPhaseParams(PARAM_DEFS, 1).map((d) => d.key);
-    for (const key of VECTOR_SCORING_PARAM_KEYS) {
-      expect(keys).toContain(key);
+  it('never includes vector-scoring keys in phases 2-4', () => {
+    for (const phase of [2, 3, 4] as const) {
+      const keys = getPhaseParams(PARAM_DEFS, phase).map((d) => d.key);
+      for (const key of VECTOR_SCORING_PARAM_KEYS) {
+        expect(keys).not.toContain(key);
+      }
     }
   });
-
   it('sampling the lexical phase never yields a vector key', () => {
     const lexicalDefs = getPhaseParams(PARAM_DEFS, 1, { vectorEnabled: false });
     for (let seed = 1; seed <= 20; seed++) {
