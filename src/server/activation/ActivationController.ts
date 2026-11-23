@@ -430,7 +430,7 @@ export class ActivationController {
 
 /**
  * Read-only accessor for the default rule table, used by
- * `scripts/audit-event-contracts.mjs`.
+ * `scripts/audit/event-contracts.mjs`.
  *
  * That audit exists because nothing else can validate these event names. The
  * `[key: string]: unknown` index signature on `ServerEventMap`

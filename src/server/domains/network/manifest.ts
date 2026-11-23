@@ -120,7 +120,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 //
 // Query phrases a user would type that bridge to this tool's vocabulary but
 // do NOT share tokens with its name/description (those are already indexed).
-// Folded by scripts/generate-domains-index.mjs into generated-tool-catalog.ts
+// Folded by scripts/generate/domains-index.mjs into generated-tool-catalog.ts
 // and fed to ToolSearchEngine as sceneKeywords (SEARCH_SCENE_KEYWORD_WEIGHT).
 // Bilingual on purpose — SynonymExpander is bilingual and so are real queries.
 // Expansion phrases are retrieval metadata, not a security feature library.

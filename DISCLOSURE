@@ -123,7 +123,7 @@ invokes a tool that does.
   - The package declares NO install-time lifecycle script. There is no
     `preinstall`, `install`, `postinstall` or `prepare` hook, so installing
     `@jshookmcp/jshook` executes no package code. A dev-only helper
-    (`scripts/postinstall.cjs`) still exists in the repository for contributors,
+    (`scripts/dev/postinstall.cjs`) still exists in the repository for contributors,
     but it is not published, is not wired to any lifecycle event, and is run
     explicitly with `pnpm run hooks:install`.
   - Telemetry is ON by default (opt-out): the server exports minimal tool-call

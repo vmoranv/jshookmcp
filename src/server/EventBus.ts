@@ -24,13 +24,13 @@ export interface ServerEventMap {
    * Removing the signature surfaced five events that were being emitted
    * undeclared and unchecked: `frida:spawned`, `network:http2_probed`,
    * `network:http2_frame_build_completed`, `network:rtt_measured` and
-   * `task:update`. `scripts/audit-event-contracts.mjs` fails the build if the
+   * `task:update`. `scripts/audit/event-contracts.mjs` fails the build if the
    * signature ever comes back.
    *
    * ONE event below is declared with no producer: `domain:unloaded`. It is
    * groundwork, not dead code — kept because the registry has no teardown path
    * to report. See `UNEMITTED_EVENT_BASELINE` in
-   * `scripts/audit-event-contracts.mjs` for the evidence (caches are
+   * `scripts/audit/event-contracts.mjs` for the evidence (caches are
    * append-only; AutoPruner and the domain TTL only change VISIBILITY, which is
    * not an unload).
    *
@@ -46,7 +46,7 @@ export interface ServerEventMap {
    * src/server/http/SseStream.ts:62 can now actually fire; note `SseStream.ts:68`
    * calls `sendEvent`, which forwards to an HTTP client and is NOT a producer).
    *
-   * `scripts/audit-event-contracts.mjs` enforces this as check 9. It fails when
+   * `scripts/audit/event-contracts.mjs` enforces this as check 9. It fails when
    * a NEW declared-but-unemitted name appears, when a baseline name is no longer
    * declared at all, and when a baseline name GAINS a producer (that entry is
    * then stale and must be deleted from the baseline, otherwise the guard would
@@ -137,7 +137,7 @@ export interface ServerEventMap {
    * Task progress mirrored to SSE subscribers by `src/server/http/SseStream.ts`.
    * SseStream is not constructed anywhere under src/ yet, so nothing emits this
    * today — declared so the subscription is type-checked. The general
-   * missing-producer check lives in scripts/audit-event-contracts.mjs.
+   * missing-producer check lives in scripts/audit/event-contracts.mjs.
    */
   'task:update': {
     taskId: string;

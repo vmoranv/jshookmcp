@@ -167,7 +167,7 @@ export class MCPServer implements MCPServerContext {
   /**
    * Ordered, replayable tool-call trace recorder (P2 — A²E-style action-layer
    * audit). Buffers tool:called events per session; the offline analyzer
-   * (scripts/audit-tool-traces.mjs) reads the flushed JSONL to compute rule-based
+   * (scripts/audit/tool-traces.mjs) reads the flushed JSONL to compute rule-based
    * metrics (repetition, plan depth, failure follow-up). Wired in start(), the
    * trace is flushed to `.ccg/traces/` in closeServer() — same lifecycle as the
    * latency tracker; the recorder stays in-memory so recording never blocks the

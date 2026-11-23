@@ -41,7 +41,7 @@ engines:
       # constant, never interpolated from input). The other two scripts that
       # spawn commands (run-vitest-smart.mjs, verify-packed-install.mjs) are
       # NOT excluded.
-      - 'scripts/run-check-parallel.mjs'
+      - 'scripts/ci/check-parallel.mjs'
 
       # Script search primitives. Compiling a caller-supplied search term into
       # a RegExp IS this module's purpose, so the "RegExp constructor called

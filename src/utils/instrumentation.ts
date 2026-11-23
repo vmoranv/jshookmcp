@@ -11,7 +11,7 @@
  * This contract was added on 2026-03-03 and sat with ZERO consumers for six
  * months, while its own header claimed it was "used by default". The names in
  * `SpanNames`/`MetricNames` are now emitted from real call sites, and
- * `scripts/audit-event-contracts.mjs` fails the build if a declared name loses
+ * `scripts/audit/event-contracts.mjs` fails the build if a declared name loses
  * its producer — so the claim cannot quietly rot back into a lie.
  */
 

@@ -42,7 +42,7 @@
  * Recording must never be the reason a tool call fails, and it must never do
  * blocking work on the execution path. This class therefore writes nothing:
  * `toJSONL()` returns a string, and the caller decides whether to persist it
- * (see `scripts/audit-tool-traces.mjs` for the offline analyzer). That also
+ * (see `scripts/audit/tool-traces.mjs` for the offline analyzer). That also
  * keeps the class unit-testable without a temp directory.
  *
  * BOUNDED ON PURPOSE

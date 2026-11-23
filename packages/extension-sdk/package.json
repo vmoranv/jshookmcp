@@ -41,7 +41,7 @@
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
-    "clean": "node ../../scripts/clean-dist.mjs",
+    "clean": "node ../../scripts/build/clean-dist.mjs",
     "build": "pnpm run clean && tsdown",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

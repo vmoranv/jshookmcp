@@ -37,7 +37,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // ── Document-expansion keywords (search retrieval layer) ──
 // Query phrases bridging user vocabulary to this tool's vocabulary without
 // duplicating name/description tokens. Folded into generated-tool-catalog by
-// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+// scripts/generate/domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   binary_decode: [
     'decode base64 blob',

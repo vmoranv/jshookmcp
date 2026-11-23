@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 const require = createRequire(import.meta.url);
-const { shouldSkipPostinstall, isNpxTempDir } = require('../../scripts/postinstall.cjs') as {
+const { shouldSkipPostinstall, isNpxTempDir } = require('../../scripts/dev/postinstall.cjs') as {
   shouldSkipPostinstall: (
     env: Record<string, string | undefined>,
     cwd: string,

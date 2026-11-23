@@ -108,7 +108,7 @@ on:
 #        "Verify no install-time script or injection helper ships" step:
 #          - NO install-time lifecycle script (`preinstall` / `install` /
 #            `postinstall` / `prepare`). A `postinstall` used to run
-#            `scripts/postinstall.cjs`, which was a no-op for every consumer yet
+#            `scripts/dev/postinstall.cjs`, which was a no-op for every consumer yet
 #            read to a scanner as exactly an install-time payload. The logic
 #            moved to the dev-only `hooks:install` script, which no lifecycle
 #            event invokes, and the file left `files`.
@@ -343,7 +343,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate registry index
-        run: node scripts/generate-domains-index.mjs
+        run: node scripts/generate/domains-index.mjs
 
       # `pnpm run check` runs the `server` vitest project, which includes the
       # CI-strict `per-tool/layers-actually-measured` gate (added in the eval
@@ -478,7 +478,7 @@ jobs:
       # The published package must contain NO install-time lifecycle script and NO
       # injection helper. Both were removed deliberately (2026-10-09) to get past
       # npm's publish-time automated review:
-      #   - `postinstall` ran `scripts/postinstall.cjs`. That script was a no-op
+      #   - `postinstall` ran `scripts/dev/postinstall.cjs`. That script was a no-op
       #     for every consumer (it exited 0 unless it could see a dev checkout —
       #     `.git` / `src/index.ts` / `tsconfig.json`, none of which are
       #     published), yet a `postinstall` key reads to a scanner as exactly an
@@ -654,7 +654,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate registry index
-        run: node scripts/generate-domains-index.mjs
+        run: node scripts/generate/domains-index.mjs
 
       - name: Verify and build SDK
         run: |

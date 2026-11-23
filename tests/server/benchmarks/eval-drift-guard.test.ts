@@ -5,7 +5,7 @@
  * are EXEMPT — the guard must never "clean them up".
  */
 import { describe, expect, it } from 'vitest';
-import { checkConsistency } from '../../../scripts/audit-eval-consistency.mjs';
+import { checkConsistency } from '../../../scripts/audit/eval-consistency.mjs';
 
 function base(over: Record<string, unknown> = {}) {
   return {

@@ -626,7 +626,7 @@ const registrations = IS_WIN32
 // ── Document-expansion keywords (search retrieval layer) ──
 // Query phrases bridging user vocabulary to this tool's vocabulary without
 // duplicating name/description tokens. Folded into generated-tool-catalog by
-// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+// scripts/generate/domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   memory_allocate: ['allocate memory in the target', 'reserve a memory block'],
   memory_anticheat_detect: ['which anticheat is watching', 'detect the ac module'],

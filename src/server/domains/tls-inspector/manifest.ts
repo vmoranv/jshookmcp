@@ -81,7 +81,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 // ── Document-expansion keywords (search retrieval layer) ──
 // Query phrases bridging user vocabulary to this tool's vocabulary without
 // duplicating name/description tokens. Folded into generated-tool-catalog by
-// scripts/generate-domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
+// scripts/generate/domains-index.mjs; weighted SEARCH_SCENE_KEYWORD_WEIGHT.
 const SCENE_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   tls_open: ['open raw tls socket', 'connect tls endpoint manually', 'open a tls connection'],
   tls_write: ['send bytes on tls', 'push data into tls session', 'write data to the tls socket'],
@@ -176,7 +176,7 @@ const manifest = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  // Inline array literal, not a named constant. scripts/generate-domains-index.mjs
+  // Inline array literal, not a named constant. scripts/generate/domains-index.mjs
   // scrapes the `profiles` array literal out of the manifest source to build
   // DOMAIN_PROFILE_MAP, which the runtime `getDomainsForProfile` gate reads.
   // Routing it through a `const PROFILES: Array<...>` declaration made that

@@ -8,7 +8,7 @@
  * separately (see trace-capture.e2e check in verify).
  */
 import { describe, expect, it } from 'vitest';
-import { buildTraceArtifact, classifySource } from '../../../scripts/capture-trace-audit.mjs';
+import { buildTraceArtifact, classifySource } from '../../../scripts/trace/capture-trace-audit.mjs';
 
 const auditJson = {
   file: 'D:/proj/.ccg/traces',

@@ -262,7 +262,7 @@ const SYNONYM_GROUPS: SynonymGroup[] = [
     synonyms: ['mojo', 'ipc', 'message', 'interface', 'channel', 'interprocess'],
     // Renamed at the registry: `mojo_send_message` -> `mojo_encode_message`,
     // `mojo_get_messages` -> `mojo_messages_get`, `mojo_intercept` -> `mojo_monitor`.
-    // `node scripts/audit-domain-integrity.mjs` now fails if this list drifts again.
+    // `node scripts/audit/domain-integrity.mjs` now fails if this list drifts again.
     tools: ['mojo_encode_message', 'mojo_messages_get', 'mojo_monitor'],
     confidence: 0.9,
     description: 'Encode, capture, or monitor Mojo IPC messages',
@@ -365,7 +365,7 @@ export function querySynonyms(query: string, maxResults = 10): SynonymMatchResul
 /**
  * Return the raw synonym graph.
  *
- * Exists so `scripts/audit-domain-integrity.mjs` can assert that every tool
+ * Exists so `scripts/audit/domain-integrity.mjs` can assert that every tool
  * name in the graph is still registered. This list has already rotted once:
  * three `mojo_*` tools, `native_emulator_launch` and `syscall_get_events` were
  * renamed upstream while the graph kept recommending the old names, so

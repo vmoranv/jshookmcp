@@ -111,11 +111,11 @@ contains the gate. `coverage-final.json` is the one exception — the gate exemp
 in-progress `COVERAGE_FULL=true` run, since that same run writes the file.
 
 `bench:e2e:local` is served by a deterministic, dependency-free local fixture
-(`scripts/serve-e2e-fixture.mjs`, `http://127.0.0.1:4173/`) instead of a public
+(`scripts/bench/serve-e2e-fixture.mjs`, `http://127.0.0.1:4173/`) instead of a public
 site: it serves a real document on `/` plus a catch-all for any path (so
 `<target>/level/3` resolves), sub-resources for network capture, HEAD/OPTIONS,
 and the `.VPNav`/`.VPHero`/`.VPFeatures` + `#e2e_*` selectors the real-task e2e
-files assert. The wrapper (`scripts/bench-e2e-local.mjs`) starts the server,
+files assert. The wrapper (`scripts/bench/e2e-local.mjs`) starts the server,
 waits for readiness, runs `bench:e2e`, and always stops it — CI and local use
 the same single entry point. No external network, no third-party deploy.
 `PUPPETEER_HEADLESS=true` is set.

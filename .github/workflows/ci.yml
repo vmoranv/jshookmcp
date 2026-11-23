@@ -75,7 +75,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate registry index
-        run: node scripts/generate-domains-index.mjs
+        run: node scripts/generate/domains-index.mjs
 
       - name: Assert generated registry is committed and current
         # The step above OVERWRITES the three generated-*.ts files, so every
@@ -89,7 +89,7 @@ jobs:
         # `--exit-code` (not `--stat`) so the diff is actually visible in the log.
         run: |
           if ! git diff --exit-code -- src/server/registry/generated-domains.ts src/server/registry/generated-tool-catalog.ts src/server/registry/generated-tool-domains.ts; then
-            echo "::error::Committed generated-*.ts is stale. Run 'node scripts/generate-domains-index.mjs' and commit the result."
+            echo "::error::Committed generated-*.ts is stale. Run 'node scripts/generate/domains-index.mjs' and commit the result."
             exit 1
           fi
 
@@ -101,7 +101,7 @@ jobs:
         # `metadata:check` guards BOTH copies of the tool count: the generated
         # registry block and the hand-written README prose. The prose copy is the
         # one that drifted unnoticed from 2026-10-04 to 2026-10-09 — see
-        # scripts/audit-readme-counts.mjs for the guard and why it exists.
+        # scripts/audit/readme-counts.mjs for the guard and why it exists.
         #
         # Four of these five previously ran only through `pnpm run check`, which
         # is invoked solely by publish-packages.yml, a tag-triggered workflow —
@@ -147,7 +147,7 @@ jobs:
       # After the gate passes, `bench:tools` regenerates the scorecard from
       # all three REAL measurements and the result is uploaded, so the numbers
       # are actually consumed instead of being dead-end artifacts.
-      # The e2e layer is served locally by scripts/serve-e2e-fixture.mjs
+      # The e2e layer is served locally by scripts/bench/serve-e2e-fixture.mjs
       # (deterministic, no external network) — see the e2e step below.
 
       - name: Bootstrap measurement artifacts (fresh checkout)
@@ -162,8 +162,8 @@ jobs:
         # Produces artifacts/benchmarks/e2e-results.json, the input for the
         # scorecard's e2e-tasks column.
         #
-        # `bench:e2e:local` (scripts/bench-e2e-local.mjs) owns the whole
-        # server lifecycle: it starts scripts/serve-e2e-fixture.mjs (a
+        # `bench:e2e:local` (scripts/bench/e2e-local.mjs) owns the whole
+        # server lifecycle: it starts scripts/bench/serve-e2e-fixture.mjs (a
         # deterministic, dependency-free local HTTP origin at 127.0.0.1:4173),
         # waits for readiness, runs the real 3-round pass^k measurement against
         # it, then ALWAYS stops the server — even on failure/signal. Keeping
@@ -307,7 +307,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate registry index
-        run: node scripts/generate-domains-index.mjs
+        run: node scripts/generate/domains-index.mjs
 
       - name: Build project
         run: pnpm run build

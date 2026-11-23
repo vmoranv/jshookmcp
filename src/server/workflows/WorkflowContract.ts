@@ -6,7 +6,7 @@
  * consumes so existing `@server/workflows/WorkflowContract` imports keep
  * working. The `WorkflowSpanNames` constant stays here, beside its
  * server-internal producers/consumers (`MacroRunner`, `WorkflowEngine`,
- * `scripts/audit-event-contracts.mjs`).
+ * `scripts/audit/event-contracts.mjs`).
  */
 export {
   type BranchNode,
@@ -43,7 +43,7 @@ export {
  * a consumer that agree by coincidence instead of by construction. The only
  * difference was that it had not gone off yet.
  *
- * `scripts/audit-event-contracts.mjs` fails the build if a name declared here
+ * `scripts/audit/event-contracts.mjs` fails the build if a name declared here
  * loses its producer.
  */
 export const WorkflowSpanNames = {

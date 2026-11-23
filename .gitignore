@@ -14,7 +14,7 @@ dist/
 # scripts/generate-domains-index.mjs but are committed on purpose — production
 # code imports them, so a fresh clone must typecheck without running the
 # generator first. Do not add them here.
-build/
+/build/
 stats.html
 *.tsbuildinfo
 plugins/**/manifest.js

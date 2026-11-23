@@ -1,9 +1,9 @@
 /**
- * Pure helpers for scripts/generate-openapi.mjs — OpenAPI 3.1 tool spec generation.
+ * Pure helpers for scripts/generate/openapi.mjs — OpenAPI 3.1 tool spec generation.
  *
  * Everything in this module is deterministic and side-effect free so that the
  * `--check` mode can recompute the document and byte-compare it against the
- * checked-in openapi.json (same contract as scripts/generate-metadata.mjs).
+ * checked-in openapi.json (same contract as scripts/generate/metadata.mjs).
  */
 
 export const OPENAPI_SPEC_VERSION = '3.1.0';

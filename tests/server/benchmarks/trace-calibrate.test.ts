@@ -9,7 +9,7 @@ import {
   CALIBRATION_DISCLAIMER,
   DEFAULT_THRESHOLDS_SNAPSHOT,
   calibrationHeader,
-} from '../../../scripts/trace-calibrate.mjs';
+} from '../../../scripts/trace/trace-calibrate.mjs';
 
 const combined = {
   repeatedToolCallRate: 0.55,

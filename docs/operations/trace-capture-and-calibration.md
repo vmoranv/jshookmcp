@@ -66,13 +66,13 @@ pnpm trace:calibrate
 
 > OBSERVATIONS ONLY — these are NOT compliance limits. A HUMAN must judge and edit `DEFAULT_THRESHOLDS` before `--fail-on-severity` is considered.
 
-`DEFAULT_THRESHOLDS` 位于 `scripts/audit-tool-traces.mjs`,当前数值是"未经真实流量标定"的观察触发器,**不是**合规线。
+`DEFAULT_THRESHOLDS` 位于 `scripts/audit/tool-traces.mjs`,当前数值是"未经真实流量标定"的观察触发器,**不是**合规线。
 
 ### 4. 人工判断 → 才考虑 gate
 
 只有积累足够**真实**会话、由人判断后,才在**同一个可审计 commit** 里:
 
-- 编辑 `scripts/audit-tool-traces.mjs` 的 `DEFAULT_THRESHOLDS`(以及 `scripts/trace-calibrate.mjs` 的只读镜像快照 `DEFAULT_THRESHOLDS_SNAPSHOT`,保持同步);
+- 编辑 `scripts/audit/tool-traces.mjs` 的 `DEFAULT_THRESHOLDS`(以及 `scripts/trace/trace-calibrate.mjs` 的只读镜像快照 `DEFAULT_THRESHOLDS_SNAPSHOT`,保持同步);
 - 讨论是否把 `--fail-on-severity` 纳入 CI(这是**另一个明确决策**,本 change 不做)。
 
 **不要**用 `trace:calibrate` 的输出自动回填阈值——那等于让现状自证,和 `search-tune/{critic,holdout}.ts` 的防过拟合纪律相悖。
@@ -85,7 +85,7 @@ pnpm trace:calibrate
 ## 相关文件
 
 - 生产端:`src/server/observability/ToolCallTraceRecorder.ts`、`src/server/MCPServer.transport.ts`(`flushToolTracesOnShutdown` / `resolveTraceFlushDir`)
-- 消费端:`scripts/audit-tool-traces.mjs`(默认语义未改)
-- 第三跳:`scripts/capture-trace-audit.mjs`(`eval:trace`)、`scripts/generate-eval-cross-view.mjs`、 `scripts/lib/eval-cross-view.mjs`
-- 标定:`scripts/trace-calibrate.mjs`
+- 消费端:`scripts/audit/tool-traces.mjs`(默认语义未改)
+- 第三跳:`scripts/trace/capture-trace-audit.mjs`(`eval:trace`)、`scripts/trace/generate-eval-cross-view.mjs`、 `scripts/lib/eval-cross-view.mjs`
+- 标定:`scripts/trace/trace-calibrate.mjs`
 - 契约测试:`tests/server/benchmarks/trace-*.test.ts`、`tests/server/benchmarks/cross-view.pipeline.test.ts`
