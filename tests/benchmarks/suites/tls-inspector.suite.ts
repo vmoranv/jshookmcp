@@ -11,10 +11,11 @@
  */
 import { TlsInspectorTlsHandlers } from '@server/domains/tls-inspector/handlers/tls-handlers';
 import { body, type BenchSuite } from '../harness';
-import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { TEST_CERT_DER } from '../../fixtures/tls-self-signed';
 
 const handlers = new TlsInspectorTlsHandlers();
 
@@ -27,38 +28,8 @@ process.once('exit', () => {
   }
 });
 
-// REAL self-signed X.509 minted by the system OpenSSL binary (no homemade DER)
-import { execFileSync } from 'node:child_process';
-const keyPath = join(tmp, 'bench-key.pem');
-const certPemPath = join(tmp, 'bench-cert.pem');
-execFileSync(
-  'openssl',
-  [
-    'req',
-    '-x509',
-    '-newkey',
-    'rsa:2048',
-    '-keyout',
-    keyPath,
-    '-out',
-    certPemPath,
-    '-days',
-    '1',
-    '-nodes',
-    '-subj',
-    '/CN=bench.jshook.local',
-    '-sha256',
-  ],
-  { stdio: 'ignore' },
-);
-const certDer = (() => {
-  const pem = readFileSync(certPemPath, 'utf8');
-  const b64 = pem
-    .replace(/-----BEGIN CERTIFICATE-----/, '')
-    .replace(/-----END CERTIFICATE-----/, '')
-    .replace(/\s+/g, '');
-  return Buffer.from(b64, 'base64');
-})();
+// Committed fixture (CN=localhost) — no system openssl dependency.
+const certDer = TEST_CERT_DER;
 const CERT_FINGERPRINT = createHash('sha256').update(certDer).digest('hex');
 
 // TLS Certificate message wrapper (RFC 8446 §4.4.2): 3B total len, 3B cert len, cert
@@ -175,7 +146,7 @@ export const tlsSuite: BenchSuite = {
         const text = JSON.stringify(b).toLowerCase();
         if (!text.includes(CERT_FINGERPRINT))
           return `SHA-256 fingerprint mismatch (expected ${CERT_FINGERPRINT.slice(0, 16)}…)`;
-        if (!text.includes('cn=bench')) return 'subject CN not parsed';
+        if (!text.includes('cn=localhost')) return 'subject CN not parsed';
         return true;
       },
     },

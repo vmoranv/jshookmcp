@@ -11,14 +11,14 @@
 import { createServer as createNetServer, createConnection } from 'node:net';
 import { createServer as createTlsServer } from 'node:tls';
 import { createSocket as createUdpSocket } from 'node:dgram';
-import { execFileSync } from 'node:child_process';
 import { createCipheriv, randomBytes } from 'node:crypto';
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { TLSKeyLogExtractor } from '@modules/tls-inspector';
 import { TlsInspectorHandlers } from '@server/domains/tls-inspector/handlers/handler-class';
 import { body, type BenchSuite } from '../harness';
+import { TEST_CERT_PEM, TEST_KEY_PEM } from '../../fixtures/tls-self-signed';
 
 const tmp = mkdtempSync(join(tmpdir(), 'jshook-bench-tlsfull-'));
 process.once('exit', () => {
@@ -29,31 +29,9 @@ process.once('exit', () => {
   }
 });
 
-// Mint ephemeral self-signed key/cert via system OpenSSL for loopback TLS cases
-const tlsKeyPath = join(tmp, 'tls-key.pem');
-const tlsCertPath = join(tmp, 'tls-cert.pem');
-execFileSync(
-  'openssl',
-  [
-    'req',
-    '-x509',
-    '-newkey',
-    'rsa:2048',
-    '-keyout',
-    tlsKeyPath,
-    '-out',
-    tlsCertPath,
-    '-days',
-    '1',
-    '-nodes',
-    '-subj',
-    '/CN=127.0.0.1',
-    '-sha256',
-  ],
-  { stdio: 'ignore' },
-);
-const TLS_KEY = readFileSync(tlsKeyPath, 'utf8');
-const TLS_CERT = readFileSync(tlsCertPath, 'utf8');
+// Committed self-signed fixture (CN=localhost) — no system openssl dependency.
+const TLS_KEY = TEST_KEY_PEM;
+const TLS_CERT = TEST_CERT_PEM;
 
 const CLIENT_RANDOM = 'a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90';
 const SECRET_HEX = '11'.repeat(48);
@@ -588,7 +566,7 @@ export const tlsInspectorFullSuite: BenchSuite = {
       tool: 'tls_probe_endpoint',
       origin: 'external-vector',
       reference:
-        'probes a local OpenSSL-backed TLS server and inspects negotiated TLS version and certificate CN=127.0.0.1',
+        'probes a local TLS server and inspects negotiated TLS version and the fixture certificate CN=localhost',
       run: async () => {
         const server = createTlsServer({ key: TLS_KEY, cert: TLS_CERT }, (s) => s.end());
         await new Promise<void>((resolve, reject) => {
@@ -613,8 +591,8 @@ export const tlsInspectorFullSuite: BenchSuite = {
       validate: (v) => {
         const b = body(v);
         if (b.ok !== true) return `tls_probe_endpoint failed: ${JSON.stringify(b)}`;
-        if (!JSON.stringify(b).includes('127.0.0.1'))
-          return `missing peer cert subject 127.0.0.1: ${JSON.stringify(b).slice(0, 200)}`;
+        if (!JSON.stringify(b).includes('localhost'))
+          return `missing peer cert subject localhost: ${JSON.stringify(b).slice(0, 200)}`;
         return true;
       },
     },
