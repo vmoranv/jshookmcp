@@ -1,0 +1,5 @@
+secrets:
+  - id: private-key
+    paths:
+      - scripts/runtime-probes/constants.mjs
+    statement: Test-only TLS key generated for the local runtime probes, never used for production traffic.

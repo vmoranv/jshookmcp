@@ -1,6 +1,6 @@
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import { evaluateWithTimeout } from '@modules/collector/PageController';
-import { isPrivateHost } from '@utils/network/ssrf-policy';
+import { isSsrfTarget } from '@utils/network/ssrf-policy';
 
 export type JsonRecord = Record<string, unknown>;
 
@@ -338,7 +338,7 @@ export class SourcemapToolHandlersParseBase {
 
   protected async fetchSourceMapText(resolvedUrl: string): Promise<string> {
     // SSRF guard: block protected/reserved network addresses on server-side fetch
-    this.validateFetchUrl(resolvedUrl);
+    await this.validateFetchUrl(resolvedUrl);
 
     // Server-side fetch with AbortController timeout (10s)
     {
@@ -395,7 +395,7 @@ export class SourcemapToolHandlersParseBase {
     return fetched;
   }
 
-  protected validateFetchUrl(url: string): void {
+  protected async validateFetchUrl(url: string): Promise<void> {
     let parsed: URL;
     try {
       parsed = new URL(url);
@@ -407,16 +407,10 @@ export class SourcemapToolHandlersParseBase {
       throw new Error(`Blocked: unsupported protocol "${parsed.protocol}"`);
     }
 
-    const hostname = parsed.hostname.toLowerCase();
-
-    const blockedHostnames = ['localhost', 'metadata.google.internal', 'metadata'];
-
-    if (blockedHostnames.includes(hostname)) {
-      throw new Error(`SSRF blocked: hostname "${hostname}" is not allowed`);
-    }
-
-    if (isPrivateHost(hostname)) {
-      throw new Error(`SSRF blocked: protected/reserved IP "${hostname}" is not allowed`);
+    // Resolve every DNS answer and reject protected addresses. Checking only
+    // the literal hostname leaves a DNS-rebinding gap (public name -> 127.0.0.1).
+    if (await isSsrfTarget(parsed.toString())) {
+      throw new Error(`SSRF blocked: "${parsed.hostname}" resolves to a protected address`);
     }
   }
 

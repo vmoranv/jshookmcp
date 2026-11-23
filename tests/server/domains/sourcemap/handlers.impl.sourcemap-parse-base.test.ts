@@ -122,16 +122,18 @@ describe('SourcemapToolHandlersParseBase', () => {
 
   describe('validateFetchUrl', () => {
     it('allows valid URLs', async () => {
-      expect(() => handlers.testValidateFetchUrl(`${TEST_HTTP_URLS.root}/`)).not.toThrow();
-      expect(() => handlers.testValidateFetchUrl(`${TEST_URLS.root}/`)).not.toThrow();
+      await expect(
+        handlers.testValidateFetchUrl(`${TEST_HTTP_URLS.root}/`),
+      ).resolves.toBeUndefined();
+      await expect(handlers.testValidateFetchUrl(`${TEST_URLS.root}/`)).resolves.toBeUndefined();
     });
     it('blocks unsupported protocols', async () => {
-      expect(() => handlers.testValidateFetchUrl(`${TEST_FTP_URLS.root}/`)).toThrow(
+      await expect(handlers.testValidateFetchUrl(`${TEST_FTP_URLS.root}/`)).rejects.toThrow(
         'unsupported protocol',
       );
     });
     it('blocks invalid URLs', async () => {
-      expect(() => handlers.testValidateFetchUrl('not a url')).toThrow('Invalid URL');
+      await expect(handlers.testValidateFetchUrl('not a url')).rejects.toThrow('Invalid URL');
     });
     it('blocks SSRF targets', async () => {
       const targets = [
@@ -150,11 +152,10 @@ describe('SourcemapToolHandlersParseBase', () => {
         'http://[fd00::1]',
       ];
       for (const t of targets) {
-        expect(() => handlers.testValidateFetchUrl(t)).toThrow('SSRF blocked');
+        await expect(handlers.testValidateFetchUrl(t)).rejects.toThrow('SSRF blocked');
       }
     });
   });
-
   describe('fetchSourceMapText', () => {
     it('fetches via native fetch', async () => {
       const oldFetch = global.fetch;

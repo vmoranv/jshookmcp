@@ -45,22 +45,26 @@ jobs:
       id-token: write # required for GitHub OIDC auth to the registry
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Verify server.json agrees with the requested version
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           SJ=$(node -p "require('./server.json').version")
-          if [ "$SJ" != "${{ inputs.version }}" ]; then
-            echo "::error::server.json says '${SJ}' but you asked to publish '${{ inputs.version }}'. Update server.json first (pnpm run metadata:sync)."
+          if [ "$SJ" != "$VERSION" ]; then
+            echo "::error::server.json says '${SJ}' but you asked to publish '$VERSION'. Update server.json first (pnpm run metadata:sync)."
             exit 1
           fi
           echo "server.json agrees: ${SJ}"
 
       - name: Verify the version is live on npm
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          V="${{ inputs.version }}"
+          V="$VERSION"
           LIVE=$(npm view "@jshookmcp/jshook@${V}" version 2>/dev/null || true)
           if [ "$LIVE" != "$V" ]; then
             echo "::error::@jshookmcp/jshook@${V} is not live on npm (npm returned '${LIVE}'). Approve the staged release first."

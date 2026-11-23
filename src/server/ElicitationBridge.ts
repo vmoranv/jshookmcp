@@ -225,7 +225,7 @@ export class ElicitationBridge {
     opts: { ttlMs?: number; kind?: string } = {},
   ): string {
     const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', getRequestStateKey(), iv);
+    const cipher = createCipheriv('aes-256-gcm', getRequestStateKey(), iv, { authTagLength: 16 });
     const plaintext = Buffer.from(
       JSON.stringify({
         kind: opts.kind ?? 'generic',
@@ -259,6 +259,7 @@ export class ElicitationBridge {
         'aes-256-gcm',
         getRequestStateKey(),
         Buffer.from(ivB64, 'base64url'),
+        { authTagLength: 16 },
       );
       decipher.setAuthTag(Buffer.from(tagB64, 'base64url'));
       const plaintext = Buffer.concat([

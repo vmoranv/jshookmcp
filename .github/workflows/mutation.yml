@@ -6,6 +6,7 @@ name: Mutation Testing
 #
 # Inputs are maintainer-supplied: workflow_dispatch requires write access, and
 # they are exported as env vars rather than interpolated into shell commands.
+# checkov:skip=CKV_GHA_7: Maintainer-triggered mutation runs intentionally accept base/project/budget parameters.
 # Codacy's workflow policy rejects inputs categorically, so this file is
 # excluded from that engine in .codacy.yml / .codacy.yaml; actionlint validates
 # the workflow in CI.
@@ -49,12 +50,12 @@ jobs:
       INPUT_TIME_BUDGET: ${{ inputs.time_budget }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
           package-manager-cache: false
@@ -87,7 +88,7 @@ jobs:
 
       - name: Upload mutation report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: mutation-report
           path: .fallow/mutation/

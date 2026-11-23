@@ -1,4 +1,5 @@
 import { createCodeCollectorMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -271,10 +272,8 @@ describe('PerformanceHandlers (composition, ex-runtime-performance)', () => {
       );
       expect(body.success).toBe(true);
       expect(body.artifactPath).toBe(join(tmpdir(), 'jshook-custom-profile.cpuprofile'));
-      expect(writeFileMock).toHaveBeenCalledWith(
-        join(tmpdir(), 'jshook-custom-profile.cpuprofile'),
-        expect.any(String),
-        'utf-8',
+      expect(readFileSync(join(tmpdir(), 'jshook-custom-profile.cpuprofile'), 'utf8')).toContain(
+        'nodes',
       );
       expect(resolveArtifactPathMock).not.toHaveBeenCalled();
     });

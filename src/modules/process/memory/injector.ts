@@ -3,6 +3,7 @@
  */
 
 import { promises as fs } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { logger } from '@utils/logger';
@@ -541,8 +542,8 @@ def inject():
 
 inject()
 `;
-      const scriptPath = join(tmpdir(), `gdb_inject_${pid}_${Date.now()}.py`);
-      await fs.writeFile(scriptPath, pyScript, 'utf8');
+      const scriptPath = join(tmpdir(), `gdb_inject_${pid}_${randomUUID()}.py`);
+      await fs.writeFile(scriptPath, pyScript, { encoding: 'utf8', flag: 'wx' });
       try {
         const { stdout, stderr } = await execAsync(`gdb -p ${pid} -batch -x ${scriptPath}`, {
           timeout: MEMORY_INJECT_TIMEOUT_MS,

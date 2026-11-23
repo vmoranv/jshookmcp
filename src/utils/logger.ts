@@ -39,7 +39,8 @@ class Logger {
         formattedArgs = ' [unserializable]';
       }
     }
-    return `${prefix} ${message}${formattedArgs}`;
+    // Replace CR/LF so caller-controlled text cannot forge additional log lines.
+    return `${prefix} ${message}${formattedArgs}`.replace(/[\r\n]/g, ' ');
   }
 
   private emit(level: LogLevel, message: string, args: unknown[]): void {

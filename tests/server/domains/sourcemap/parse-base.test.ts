@@ -353,64 +353,61 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   describe('validateFetchUrl', () => {
     it('allows public http(s) urls', async () => {
       const tool = createTool();
-      expect(() => tool.testValidateFetchUrl(withPath(TEST_URLS.root, 'a.map'))).not.toThrow();
-      expect(() => tool.testValidateFetchUrl(withPath(TEST_HTTP_URLS.root, 'a.map'))).not.toThrow();
+      await expect(
+        tool.testValidateFetchUrl(withPath(TEST_URLS.root, 'a.map')),
+      ).resolves.toBeUndefined();
+      await expect(
+        tool.testValidateFetchUrl(withPath(TEST_HTTP_URLS.root, 'a.map')),
+      ).resolves.toBeUndefined();
     });
 
     it('blocks localhost and metadata hostnames', async () => {
       const tool = createTool();
 
-      expect(() => tool.testValidateFetchUrl('http://localhost/a.map')).toThrow(
-        'SSRF blocked: hostname "localhost" is not allowed',
+      await expect(tool.testValidateFetchUrl('http://localhost/a.map')).rejects.toThrow(
+        'SSRF blocked',
       );
-      expect(() => tool.testValidateFetchUrl('http://metadata.google.internal/a.map')).toThrow(
-        'SSRF blocked: hostname "metadata.google.internal" is not allowed',
-      );
-      expect(() => tool.testValidateFetchUrl('http://metadata/a.map')).toThrow(
-        'SSRF blocked: hostname "metadata" is not allowed',
+      await expect(
+        tool.testValidateFetchUrl('http://metadata.google.internal/a.map'),
+      ).rejects.toThrow('SSRF blocked');
+      await expect(tool.testValidateFetchUrl('http://metadata/a.map')).rejects.toThrow(
+        'SSRF blocked',
       );
     });
 
     it('blocks protected/reserved IPv4 ranges', async () => {
       const tool = createTool();
-
-      expect(() => tool.testValidateFetchUrl('http://127.0.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "127.0.0.1" is not allowed',
-      );
-      expect(() => tool.testValidateFetchUrl('http://10.0.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "10.0.0.1" is not allowed',
-      );
-      expect(() => tool.testValidateFetchUrl('http://172.16.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "172.16.0.1" is not allowed',
-      );
-      expect(() => tool.testValidateFetchUrl('http://172.31.255.255/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "172.31.255.255" is not allowed',
-      );
-      expect(() => tool.testValidateFetchUrl('http://192.168.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "192.168.0.1" is not allowed',
-      );
-      expect(() => tool.testValidateFetchUrl('http://169.254.0.1/a.map')).toThrow(
-        'SSRF blocked: protected/reserved IP "169.254.0.1" is not allowed',
-      );
+      const hosts = [
+        '127.0.0.1',
+        '10.0.0.1',
+        '172.16.0.1',
+        '172.31.255.255',
+        '192.168.0.1',
+        '169.254.0.1',
+      ];
+      for (const host of hosts) {
+        await expect(tool.testValidateFetchUrl(`http://${host}/a.map`)).rejects.toThrow(
+          'SSRF blocked',
+        );
+      }
     });
 
     it('blocks IPv6 loopback', async () => {
       const tool = createTool();
-      expect(() => tool.testValidateFetchUrl('http://[::1]/a.map')).toThrow(
-        /SSRF blocked: protected\/reserved IP ".*::1.*" is not allowed/,
-      );
+      await expect(tool.testValidateFetchUrl('http://[::1]/a.map')).rejects.toThrow('SSRF blocked');
     });
 
     it('rejects invalid urls and unsupported protocols', async () => {
       const tool = createTool();
 
-      expect(() => tool.testValidateFetchUrl('not a url')).toThrow('Invalid URL: not a url');
-      expect(() => tool.testValidateFetchUrl('file:///etc/passwd')).toThrow(
+      await expect(tool.testValidateFetchUrl('not a url')).rejects.toThrow(
+        'Invalid URL: not a url',
+      );
+      await expect(tool.testValidateFetchUrl('file:///etc/passwd')).rejects.toThrow(
         'Blocked: unsupported protocol "file:"',
       );
     });
   });
-
   describe('decodeDataUriJson', () => {
     it('decodes base64-encoded data: URIs', async () => {
       const tool = createTool();

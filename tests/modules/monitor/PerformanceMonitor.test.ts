@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -274,10 +275,8 @@ describe('PerformanceMonitor', () => {
         categories: expect.any(Array),
       }),
     );
-    expect(writeState.writeFile).toHaveBeenCalledWith(
-      join(tmpdir(), 'jshook-perf-custom-trace.json'),
-      expect.any(String),
-      'utf-8',
+    expect(readFileSync(join(tmpdir(), 'jshook-perf-custom-trace.json'), 'utf8')).toContain(
+      'traceEvents',
     );
     expect(result.eventCount).toBe(1);
   });
@@ -330,11 +329,7 @@ describe('PerformanceMonitor', () => {
 
     expect(result.topAllocations).toHaveLength(1);
     expect(result.topAllocations[0]!.functionName).toBe('heavy');
-    expect(writeState.writeFile).toHaveBeenCalledWith(
-      join(tmpdir(), 'jshook-perf-heap.json'),
-      expect.any(String),
-      'utf-8',
-    );
+    expect(readFileSync(join(tmpdir(), 'jshook-perf-heap.json'), 'utf8')).toContain('heavy');
   });
 
   it('collects the performance timeline and uses the default artifact path for traces', async () => {
@@ -1046,9 +1041,9 @@ describe('PerformanceMonitor', () => {
     });
 
     expect(result.sizeBytes).toBeLessThanOrEqual(1024 * 1024);
-    const written = writeState.writeFile.mock.calls[0]![1];
+    const written = readFileSync(join(tmpdir(), 'jshook-perf-big-trace.json'));
     expect(Buffer.isBuffer(written)).toBe(true);
-    expect((written as Buffer).length).toBe(result.sizeBytes);
+    expect(written.length).toBe(result.sizeBytes);
     expect(loggerState.warn).toHaveBeenCalled();
   });
 

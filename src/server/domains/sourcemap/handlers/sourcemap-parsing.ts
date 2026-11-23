@@ -18,7 +18,7 @@ import {
   asString,
   isIndexedSourceMap,
 } from './shared';
-import { isPrivateHost } from '@utils/network/ssrf-policy';
+import { isSsrfTarget } from '@utils/network/ssrf-policy';
 
 /** A single original scope node in a serializable (JSON-friendly) shape. */
 export interface ScopeSidecarNode {
@@ -447,7 +447,7 @@ export async function fetchSourceMapText(
   if (resolvedUrl.startsWith('data:')) {
     return decodeDataUriJson(resolvedUrl);
   }
-  validateFetchUrl(resolvedUrl);
+  await validateFetchUrl(resolvedUrl);
   {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 10000);
@@ -488,7 +488,7 @@ export async function fetchSourceMapText(
   return fetched;
 }
 
-function validateFetchUrl(url: string): void {
+async function validateFetchUrl(url: string): Promise<void> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -498,12 +498,10 @@ function validateFetchUrl(url: string): void {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`Blocked: unsupported protocol "${parsed.protocol}"`);
   }
-  const hostname = parsed.hostname.toLowerCase();
-  const blockedHostnames = ['localhost', 'metadata.google.internal', 'metadata'];
-  if (blockedHostnames.includes(hostname))
-    throw new Error(`SSRF blocked: hostname "${hostname}" is not allowed`);
-  if (isPrivateHost(hostname)) {
-    throw new Error(`SSRF blocked: protected/reserved IP "${hostname}" is not allowed`);
+  // Resolve every DNS answer and reject protected addresses. Checking only the
+  // literal hostname leaves a DNS-rebinding gap (public name -> 127.0.0.1).
+  if (await isSsrfTarget(parsed.toString())) {
+    throw new Error(`SSRF blocked: "${parsed.hostname}" resolves to a protected address`);
   }
 }
 

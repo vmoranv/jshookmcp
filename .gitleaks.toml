@@ -1,0 +1,14 @@
+title = "jshookmcp"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Checked-in test fixtures, intentionally fake credentials, and probe-only TLS keys"
+paths = [
+  '''tests/.*''',
+  '''src/.*\.test\.ts''',
+  '''scripts/runtime-probes/constants\.mjs''',
+  '''scripts/audit-runtime-probes\.mjs''',
+  '''src/utils/obfuscated-strings\.ts''',
+]

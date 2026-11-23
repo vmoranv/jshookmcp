@@ -15,6 +15,7 @@ import {
   type Entry as ZipEntry,
   type ZipFile as YauzlZipFile,
 } from 'yauzl';
+import { randomUUID } from 'node:crypto';
 import { readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -150,9 +151,12 @@ async function locateInApk(apkPath: string): Promise<LocateResult | null> {
                     /[^a-z0-9.-]/gi,
                     '_',
                   );
-                  const tmpPath = join(tmpdir(), `jshook-obf-${base}-${process.pid}`);
+                  const tmpPath = join(
+                    tmpdir(),
+                    `jshook-obf-${base}-${process.pid}-${randomUUID()}`,
+                  );
                   try {
-                    await writeFile(tmpPath, bytes);
+                    await writeFile(tmpPath, bytes, { flag: 'wx' });
                   } catch (writeErr) {
                     reject(
                       new ToolError(

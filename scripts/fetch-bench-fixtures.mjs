@@ -11,7 +11,7 @@
  * depend on network access; re-run this script to refresh them.
  */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, rmSync, existsSync, readdirSync } from 'node:fs';
+import { mkdirSync, rmSync, existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
 const root = process.cwd();
@@ -34,7 +34,7 @@ console.log('[fetch] detect-gpu official benchmark data…');
     console.error('  npm registry unreachable');
     process.exit(1);
   }
-  const meta = JSON.parse(spawnSync('cat', [metaTmp], { encoding: 'utf8' }).stdout);
+  const meta = JSON.parse(readFileSync(metaTmp, 'utf8'));
   const tgz = '/tmp/detect-gpu.tgz';
   if (!curl(meta.dist.tarball, tgz)) {
     console.error('  tarball download failed');

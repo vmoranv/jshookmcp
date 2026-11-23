@@ -1,13 +1,5 @@
-import {
-  mkdir,
-  lstat,
-  open,
-  realpath,
-  rename,
-  rm,
-  writeFile,
-  type FileHandle,
-} from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, lstat, open, realpath, rename, rm, type FileHandle } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, normalize, relative, resolve, sep } from 'node:path';
 
 export interface ResolveSafeOutputPathOptions {
@@ -141,11 +133,10 @@ export async function writeOutputFile(
   options: ResolveSafeOutputPathOptions,
 ): Promise<string> {
   const absolutePath = await resolveSafeOutputPath(requestedPath, options);
-  await mkdir(dirname(absolutePath), { recursive: true });
   if (typeof content === 'string') {
-    await writeFile(absolutePath, content, 'utf-8');
+    await writeTextFileAtomically(absolutePath, content, { allowedRoots: options.allowedRoots });
   } else {
-    await writeFile(absolutePath, content);
+    await writeBinaryFileAtomically(absolutePath, content, { allowedRoots: options.allowedRoots });
   }
   return absolutePath;
 }
@@ -270,7 +261,7 @@ async function writeFileAtomically(
 
   const tempPath = resolve(
     parentDir,
-    `.${fileBaseName}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`,
+    `.${fileBaseName}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`,
   );
 
   let handle: FileHandle | null = null;

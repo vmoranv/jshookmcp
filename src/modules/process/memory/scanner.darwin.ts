@@ -2,6 +2,9 @@
  * macOS memory scanner — uses native Mach API (zero-pause) with lldb fallback.
  */
 import { promises as fs } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { logger } from '@utils/logger';
 import type { MemoryScanResult } from '@modules/process/memory/types';
 import { execAsync } from '@modules/process/memory/types';
@@ -111,8 +114,8 @@ async function scanMemoryMacLldb(
   const byteList = patternBytes.map((b) => `0x${b.toString(16)}`).join(',');
   const maskList = patternMask.join(',');
   const tag = `${pid}_${Date.now()}`;
-  const pyFile = `/tmp/lldb_scan_${tag}.py`;
-  const cmdFile = `/tmp/lldb_scan_${tag}.txt`;
+  const pyFile = join(tmpdir(), `lldb_scan_${tag}_${randomUUID()}.py`);
+  const cmdFile = join(tmpdir(), `lldb_scan_${tag}_${randomUUID()}.txt`);
 
   // Keep caps in sync with the native fast-path above (MEMORY_SCAN_* constants).
   const pyScript = `
@@ -161,8 +164,11 @@ def __lldb_init_module(debugger, internal_dict):
     sys.stdout.flush()
 `;
 
-  await fs.writeFile(pyFile, pyScript, 'utf8');
-  await fs.writeFile(cmdFile, `command script import ${pyFile}\nprocess detach\n`, 'utf8');
+  await fs.writeFile(pyFile, pyScript, { encoding: 'utf8', flag: 'wx' });
+  await fs.writeFile(cmdFile, `command script import ${pyFile}\nprocess detach\n`, {
+    encoding: 'utf8',
+    flag: 'wx',
+  });
   try {
     const { stdout } = await execAsync(`lldb --batch -p ${pid} --source ${cmdFile}`, {
       timeout: MEMORY_SCAN_TIMEOUT_MS,
