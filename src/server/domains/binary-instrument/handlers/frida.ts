@@ -7,6 +7,8 @@ import { mkdir } from 'node:fs/promises';
 import { ToolError } from '@errors/ToolError';
 import { fridaDeviceArgs, type FridaDevice } from '@modules/binary-instrument';
 import { getReverseEngineeringConfig } from '@utils/reverseEngineeringConfig';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { resolveSafeOutputPath } from '@utils/safeOutput';
 import { probeCommand } from '@modules/external/ToolProbe';
 import {
   readRequiredString,
@@ -19,7 +21,10 @@ import {
 
 export class FridaHandlers {
   async handleFridaDexDump(args: Record<string, unknown>): Promise<unknown> {
-    const outputDir = readRequiredString(args, 'outputDir');
+    const outputDir = await resolveSafeOutputPath(readRequiredString(args, 'outputDir'), {
+      allowedRoots: getSafeOutputRoots(),
+      allowedRootsDescription: 'project root or system temp directory',
+    });
     const target = readOptionalString(args, 'target');
     const pid = readOptionalNumber(args, 'pid');
     const usb = readOptionalBoolean(args, 'usb') ?? true;

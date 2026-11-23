@@ -2,8 +2,8 @@
  * Shared types and state for WASM sub-handlers.
  */
 
-import { tmpdir } from 'node:os';
 import { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
+import { getSafeOutputRoots } from '@utils/outputPaths';
 import { resolveSafeOutputPath } from '@utils/safeOutput';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 
@@ -92,7 +92,7 @@ export const hasErrorResult = (value: unknown): value is EvalErrorResult =>
 export async function validateOutputPath(outputPath: string): Promise<string> {
   try {
     return await resolveSafeOutputPath(outputPath, {
-      allowedRoots: [process.cwd(), tmpdir()],
+      allowedRoots: getSafeOutputRoots(),
       allowedRootsDescription: 'project root or temp directory',
     });
   } catch (error) {

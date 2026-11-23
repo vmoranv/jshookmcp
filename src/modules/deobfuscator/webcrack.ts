@@ -8,6 +8,8 @@ import type {
   DeobfuscateSavedArtifact,
 } from '@internal-types/deobfuscator';
 import { logger } from '@utils/logger';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { resolveSafeDeletableDir, resolveSafeOutputPath } from '@utils/safeOutput';
 import {
   WEBCRACK_JOB_TIMEOUT_MS,
   resolveWebcrackUrl,
@@ -224,27 +226,18 @@ async function collectSavedArtifacts(
 }
 
 /**
- * Resolve and validate `outputDir` against the project root. Rejects absolute
- * paths outside cwd and any path traversal (see the inline security note this
- * was extracted from).
+ * Resolve and validate `outputDir` against the allowed output roots. When the
+ * caller asked to clear the directory first, use the destructive guard so an
+ * allowed root (or an ancestor of one) can never be removed.
  */
-function resolveSafeOutputDir(outputDir: string): string {
-  const savedTo = path.resolve(outputDir);
-
-  // SECURITY: Ensure outputDir stays within cwd or a safe parent.
-  // Reject absolute paths outside the project and any path traversal.
-  const cwd = process.cwd();
-  const relFromCwd = path.relative(cwd, savedTo);
-  if (
-    path.isAbsolute(relFromCwd) ||
-    relFromCwd.startsWith('..') ||
-    savedTo === '/' ||
-    savedTo === path.parse(savedTo).root
-  ) {
-    throw new Error(`outputDir must resolve to a path within the project root. Got: ${savedTo}`);
-  }
-
-  return savedTo;
+async function resolveSafeOutputDir(outputDir: string, deleteBefore: boolean): Promise<string> {
+  const options = {
+    allowedRoots: getSafeOutputRoots(),
+    allowedRootsDescription: 'project root or system temp directory',
+  };
+  return deleteBefore
+    ? await resolveSafeDeletableDir(outputDir, options)
+    : await resolveSafeOutputPath(outputDir, options);
 }
 
 /** Rebuild the Map-based bundle shape the mapping/summarize/save helpers expect. */
@@ -347,7 +340,7 @@ export async function runWebcrack(
       let savedTo: string | undefined;
       let savedArtifacts: DeobfuscateSavedArtifact[] | undefined;
       if (typeof options.outputDir === 'string' && options.outputDir.trim().length > 0) {
-        savedTo = resolveSafeOutputDir(options.outputDir);
+        savedTo = await resolveSafeOutputDir(options.outputDir, options.forceOutput === true);
         if (options.forceOutput) {
           await rm(savedTo, { recursive: true, force: true });
         }
@@ -393,7 +386,7 @@ export async function runWebcrack(
     let savedTo: string | undefined;
     let savedArtifacts: DeobfuscateSavedArtifact[] | undefined;
     if (typeof options.outputDir === 'string' && options.outputDir.trim().length > 0) {
-      savedTo = resolveSafeOutputDir(options.outputDir);
+      savedTo = await resolveSafeOutputDir(options.outputDir, options.forceOutput === true);
 
       if (options.forceOutput) {
         await rm(savedTo, { recursive: true, force: true });

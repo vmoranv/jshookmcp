@@ -1,9 +1,11 @@
 import { execFile } from 'node:child_process';
-import { mkdir, open, stat, writeFile } from 'node:fs/promises';
+import { mkdir, open, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { ToolError } from '@errors/ToolError';
 import { probeCommand } from '@modules/external/ToolProbe';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { resolveSafeOutputPath, writeOutputFile } from '@utils/safeOutput';
 import {
   ADB_COLD_START_LOGCAT_TAIL_DEFAULT,
   ADB_COLD_START_LOGCAT_TAIL_MAX,
@@ -704,7 +706,13 @@ export class ADBBridgeHandlers {
       const packageName = argString(args, 'packageName');
       let pid = argString(args, 'pid');
       const includeRaw = argBool(args, 'includeRaw') ?? false;
-      const localPath = argString(args, 'localPath');
+      const requestedLocalPath = argString(args, 'localPath');
+      const localPath = requestedLocalPath
+        ? await resolveSafeOutputPath(requestedLocalPath, {
+            allowedRoots: getSafeOutputRoots(),
+            allowedRootsDescription: 'project root or system temp directory',
+          })
+        : undefined;
       if (!pid && packageName) {
         pid = await this.resolvePackagePid(serial, packageName);
       }
@@ -728,8 +736,10 @@ export class ADBBridgeHandlers {
         },
       );
       if (localPath) {
-        await mkdir(dirname(localPath), { recursive: true });
-        await writeFile(localPath, stdout, 'utf8');
+        await writeOutputFile(localPath, stdout, {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        });
       }
       const modules = parseProcMaps(stdout);
       return {
@@ -858,9 +868,15 @@ export class ADBBridgeHandlers {
   async handleScreenshot(args: Record<string, unknown>): Promise<ToolResponse> {
     return this.run('adb_screenshot', async () => {
       const serial = argStringRequired(args, 'serial');
-      const localPath =
-        argString(args, 'localPath') ??
-        join(tmpdir(), `jshook-adb-screenshot-${sanitizeLocalName(serial)}-${Date.now()}.png`);
+      const requestedLocalPath = argString(args, 'localPath');
+      const localPath = await resolveSafeOutputPath(
+        requestedLocalPath ??
+          join(tmpdir(), `jshook-adb-screenshot-${sanitizeLocalName(serial)}-${Date.now()}.png`),
+        {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        },
+      );
       const adb = await this.resolveAdb();
       const result = await execAdb(adb, [...serialArgs(serial), 'exec-out', 'screencap', '-p'], {
         allowNonZero: true,
@@ -878,8 +894,10 @@ export class ADBBridgeHandlers {
         };
       }
 
-      await mkdir(dirname(localPath), { recursive: true });
-      await writeFile(localPath, result.stdout);
+      await writeOutputFile(localPath, result.stdout, {
+        allowedRoots: getSafeOutputRoots(),
+        allowedRootsDescription: 'project root or system temp directory',
+      });
       const localStat = await stat(localPath);
       return {
         success: true,
@@ -895,9 +913,15 @@ export class ADBBridgeHandlers {
   async handleScreenrecord(args: Record<string, unknown>): Promise<ToolResponse> {
     return this.run('adb_screenrecord', async () => {
       const serial = argStringRequired(args, 'serial');
-      const localPath =
-        argString(args, 'localPath') ??
-        join(tmpdir(), `jshook-adb-screenrecord-${sanitizeLocalName(serial)}-${Date.now()}.mp4`);
+      const requestedLocalPath = argString(args, 'localPath');
+      const localPath = await resolveSafeOutputPath(
+        requestedLocalPath ??
+          join(tmpdir(), `jshook-adb-screenrecord-${sanitizeLocalName(serial)}-${Date.now()}.mp4`),
+        {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        },
+      );
       const remotePath =
         argString(args, 'remotePath') ??
         `/sdcard/Download/jshook-screenrecord-${sanitizeLocalName(serial)}-${Date.now()}.mp4`;
@@ -1161,8 +1185,17 @@ export class ADBBridgeHandlers {
     return this.run('adb_apk_pull', async () => {
       const serial = argStringRequired(args, 'serial');
       const packageName = argString(args, 'packageName');
-      const outputPath = argString(args, 'outputPath') ?? '.';
-      const outputFile = argString(args, 'outputFile');
+      const outputPath = await resolveSafeOutputPath(argString(args, 'outputPath') ?? '.', {
+        allowedRoots: getSafeOutputRoots(),
+        allowedRootsDescription: 'project root or system temp directory',
+      });
+      const requestedOutputFile = argString(args, 'outputFile');
+      const outputFile = requestedOutputFile
+        ? await resolveSafeOutputPath(requestedOutputFile, {
+            allowedRoots: getSafeOutputRoots(),
+            allowedRootsDescription: 'project root or system temp directory',
+          })
+        : undefined;
       const includeSplits = argBool(args, 'includeSplits') ?? false;
       const validateZip = argBool(args, 'validateZip') ?? true;
       if (!packageName) return { success: false, error: 'packageName is required' };
@@ -1597,7 +1630,12 @@ export class ADBBridgeHandlers {
     return this.run('adb_file_pull', async () => {
       const serial = argStringRequired(args, 'serial');
       const remotePath = argStringRequired(args, 'remotePath');
-      const localPath = argStringRequired(args, 'localPath').replace(/\\/g, '/');
+      const localPath = (
+        await resolveSafeOutputPath(argStringRequired(args, 'localPath'), {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        })
+      ).replace(/\\/g, '/');
       const adb = await this.resolveAdb();
       await mkdir(dirname(localPath), { recursive: true });
 
@@ -1657,7 +1695,10 @@ export class ADBBridgeHandlers {
     return this.run('adb_pull_native_libs', async () => {
       const serial = argStringRequired(args, 'serial');
       const packageName = argStringRequired(args, 'packageName');
-      const outputPath = argString(args, 'outputPath') ?? '.';
+      const outputPath = await resolveSafeOutputPath(argString(args, 'outputPath') ?? '.', {
+        allowedRoots: getSafeOutputRoots(),
+        allowedRootsDescription: 'project root or system temp directory',
+      });
       const includeSystemLibs = argBool(args, 'includeSystemLibs') ?? false;
       const adb = await this.resolveAdb();
 
@@ -1863,12 +1904,18 @@ export class ADBBridgeHandlers {
     return handleSafe(async () => {
       const serial = argStringRequired(args, 'serial');
       const includeRawXml = argBool(args, 'includeRawXml', false);
-      const localPath = argString(args, 'localPath');
+      const requestedLocalPath = argString(args, 'localPath');
       const timeoutMs = argNumber(args, 'timeoutMs') ?? ADB_SHELL_TIMEOUT_MS;
 
       const adb = await this.resolveAdb();
       const remoteXmlPath = '/sdcard/window_dump.xml';
-      const pulledPath = localPath ?? join(tmpdir(), `ui_dump_${serial}_${Date.now()}.xml`);
+      const pulledPath = await resolveSafeOutputPath(
+        requestedLocalPath ?? join(tmpdir(), `ui_dump_${serial}_${Date.now()}.xml`),
+        {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        },
+      );
 
       // Run uiautomator dump
       const dumpResult = await execAdb(

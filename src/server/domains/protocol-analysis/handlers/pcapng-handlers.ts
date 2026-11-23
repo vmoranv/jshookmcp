@@ -180,7 +180,7 @@ export class ProtocolAnalysisPcapngHandlers extends ProtocolAnalysisFingerprintH
     error?: string;
   }> {
     try {
-      const path = this.parseRequiredPath(args);
+      const path = await this.parseRequiredWritePath(args);
       const endianness = args.endianness === 'big' ? 'big' : 'little';
       const majorVersion =
         args.majorVersion === undefined

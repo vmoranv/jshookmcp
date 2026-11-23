@@ -16,6 +16,8 @@ import {
   buildHotFunctions,
   toCpuProfilePayload,
 } from './network-types';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { writeOutputFile } from '@utils/safeOutput';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import type { ToolResponse } from '@server/types';
 
@@ -113,8 +115,10 @@ export class PerformanceHandlers {
       let savedPath: string;
 
       if (artifactPath) {
-        await writeFile(artifactPath, profileJson, 'utf-8');
-        savedPath = artifactPath;
+        savedPath = await writeOutputFile(artifactPath, profileJson, {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        });
       } else {
         const { absolutePath, displayPath } = await resolveArtifactPath({
           category: 'profiles',

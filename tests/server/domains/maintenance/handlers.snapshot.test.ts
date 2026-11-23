@@ -109,7 +109,11 @@ describe('CoreMaintenanceHandlers snapshot tools', () => {
   });
 
   it('snapshot_create normalizes relative traversal paths against the roots', async () => {
-    const body = parseJson<any>(await handlers.handleSnapshotCreate({ targetDir: '../..' }));
+    const body = parseJson<any>(
+      await handlers.handleSnapshotCreate({
+        targetDir: '../../../../../../jshook-not-allowed-snapshot',
+      }),
+    );
 
     expect(body.success).toBe(false);
     expect(factoryCalls).toHaveLength(0);

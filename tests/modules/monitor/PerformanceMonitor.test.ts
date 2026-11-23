@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -27,9 +29,10 @@ vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('node:fs/promises', () => ({
-  writeFile: writeState.writeFile,
-}));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  return { ...actual, writeFile: writeState.writeFile };
+});
 
 vi.mock('@src/utils/concurrency', () => ({
   cdpLimit: cdpState.cdpLimit,
@@ -262,7 +265,9 @@ describe('PerformanceMonitor', () => {
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startTracing();
-    const result = await monitor.stopTracing({ artifactPath: '/tmp/custom-trace.json' });
+    const result = await monitor.stopTracing({
+      artifactPath: join(tmpdir(), 'jshook-perf-custom-trace.json'),
+    });
 
     expect(page.tracing.start).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -270,7 +275,7 @@ describe('PerformanceMonitor', () => {
       }),
     );
     expect(writeState.writeFile).toHaveBeenCalledWith(
-      '/tmp/custom-trace.json',
+      join(tmpdir(), 'jshook-perf-custom-trace.json'),
       expect.any(String),
       'utf-8',
     );
@@ -285,7 +290,9 @@ describe('PerformanceMonitor', () => {
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startTracing();
-    const result = await monitor.stopTracing({ artifactPath: '/tmp/compact-trace.json' });
+    const result = await monitor.stopTracing({
+      artifactPath: join(tmpdir(), 'jshook-perf-compact-trace.json'),
+    });
 
     expect(result.eventCount).toBe(2);
     expect(parseSpy).not.toHaveBeenCalled();
@@ -316,12 +323,15 @@ describe('PerformanceMonitor', () => {
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startHeapSampling({ samplingInterval: 1024 });
-    const result = await monitor.stopHeapSampling({ artifactPath: '/tmp/heap.json', topN: 1 });
+    const result = await monitor.stopHeapSampling({
+      artifactPath: join(tmpdir(), 'jshook-perf-heap.json'),
+      topN: 1,
+    });
 
     expect(result.topAllocations).toHaveLength(1);
     expect(result.topAllocations[0]!.functionName).toBe('heavy');
     expect(writeState.writeFile).toHaveBeenCalledWith(
-      '/tmp/heap.json',
+      join(tmpdir(), 'jshook-perf-heap.json'),
       expect.any(String),
       'utf-8',
     );
@@ -493,7 +503,7 @@ describe('PerformanceMonitor', () => {
     await monitor.startCPUProfiling();
     await monitor.startHeapSampling({ samplingInterval: 1024 });
     const result = await monitor.stopHeapSampling({
-      artifactPath: '/tmp/heap-sampled.json',
+      artifactPath: join(tmpdir(), 'jshook-perf-heap-sampled.json'),
       topN: 1,
     });
 
@@ -1031,7 +1041,7 @@ describe('PerformanceMonitor', () => {
 
     await monitor.startTracing();
     const result = await monitor.stopTracing({
-      artifactPath: '/tmp/big-trace.json',
+      artifactPath: join(tmpdir(), 'jshook-perf-big-trace.json'),
       maxSizeMB: 1,
     });
 

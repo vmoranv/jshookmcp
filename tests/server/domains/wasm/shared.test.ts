@@ -11,7 +11,7 @@
  *    downstream.
  */
 import { mkdtemp, rm, symlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -22,8 +22,9 @@ describe('wasm shared — validateOutputPath', () => {
     await expect(validateOutputPath('/etc/passwd')).rejects.toThrow('Path traversal blocked');
   });
 
-  it('rejects parent-directory segments', async () => {
-    await expect(validateOutputPath('../../etc/passwd')).rejects.toThrow('Path traversal blocked');
+  it('rejects an absolute path outside every allowed root', async () => {
+    const outside = join(homedir(), '.jshook-not-allowed', 'passwd');
+    await expect(validateOutputPath(outside)).rejects.toThrow('Path traversal blocked');
   });
 
   it('rejects an empty output path', async () => {

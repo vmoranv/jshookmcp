@@ -1,4 +1,13 @@
-import { mkdir, lstat, open, realpath, rename, rm, type FileHandle } from 'node:fs/promises';
+import {
+  mkdir,
+  lstat,
+  open,
+  realpath,
+  rename,
+  rm,
+  writeFile,
+  type FileHandle,
+} from 'node:fs/promises';
 import { basename, dirname, isAbsolute, normalize, relative, resolve, sep } from 'node:path';
 
 export interface ResolveSafeOutputPathOptions {
@@ -77,6 +86,68 @@ export async function resolveSafeOutputPath(
   }
 
   return candidatePath;
+}
+
+/**
+ * Guard a destructive operation (e.g. `rm -rf`).
+ *
+ * `resolveSafeOutputPath` accepts a path that is *equal* to an allowed root,
+ * which is correct for writes but catastrophic for recursive deletion: it
+ * would remove the whole project or system temp root. This rejects any target
+ * that is equal to, or an ancestor of, an allowed root; only strict
+ * descendants are deletable.
+ */
+export async function assertSafeRemovalTarget(
+  targetPath: string,
+  allowedRoots: string[],
+): Promise<void> {
+  const normalizedTarget = normalizeAbsolutePath(targetPath);
+  // Only resolve the real path when the target itself exists; a not-yet-created
+  // child must not inherit its parent root's real path or every delete beneath
+  // the root would be rejected.
+  const realTarget = await realpathIfExists(normalizedTarget);
+  for (const rootPath of allowedRoots) {
+    const normalizedRoot = normalizeAbsolutePath(rootPath);
+    const realRoot = (await realpathIfExists(normalizedRoot)) ?? normalizedRoot;
+    const targets = realTarget ? [normalizedTarget, realTarget] : [normalizedTarget];
+    for (const target of targets) {
+      // `root` inside (or equal to) `target` means the target is the root
+      // itself or one of its ancestors.
+      if (isPathInsideOrEqual(target, normalizedRoot) || isPathInsideOrEqual(target, realRoot)) {
+        throw new Error('Refusing to remove an allowed output root or one of its ancestors.');
+      }
+    }
+  }
+}
+
+/** Resolve a directory that is about to be recursively removed. */
+export async function resolveSafeDeletableDir(
+  requestedPath: string,
+  options: ResolveSafeOutputPathOptions,
+): Promise<string> {
+  const resolved = await resolveSafeOutputPath(requestedPath, options);
+  await assertSafeRemovalTarget(resolved, options.allowedRoots);
+  return resolved;
+}
+
+/**
+ * Resolve a caller-supplied path against the allowed roots, then write it.
+ * Covers both text (string) and binary (Uint8Array) payloads. Parent
+ * directories are created only after containment has been verified.
+ */
+export async function writeOutputFile(
+  requestedPath: string,
+  content: string | Uint8Array,
+  options: ResolveSafeOutputPathOptions,
+): Promise<string> {
+  const absolutePath = await resolveSafeOutputPath(requestedPath, options);
+  await mkdir(dirname(absolutePath), { recursive: true });
+  if (typeof content === 'string') {
+    await writeFile(absolutePath, content, 'utf-8');
+  } else {
+    await writeFile(absolutePath, content);
+  }
+  return absolutePath;
 }
 
 function isReplaceTargetError(error: unknown): boolean {

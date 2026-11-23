@@ -1,5 +1,5 @@
 import { existsSync, unlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TraceToolHandlers } from '@server/domains/trace/handlers';
@@ -1528,7 +1528,7 @@ describe('TraceToolHandlers', () => {
       const recorder = new TraceRecorder();
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
-      const outsidePath = process.platform === 'win32' ? '..\\..\\trace.json' : '../../trace.json';
+      const outsidePath = join(homedir(), `.jshook-not-allowed-trace-${Date.now()}.json`);
 
       await expect(
         handler.handleExportTrace({

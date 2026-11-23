@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, symlink, readdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -6,6 +6,9 @@ import {
   resolveSafeOutputPath,
   writeTextFileAtomically,
   writeBinaryFileAtomically,
+  assertSafeRemovalTarget,
+  resolveSafeDeletableDir,
+  writeOutputFile,
 } from '@utils/safeOutput';
 
 /**
@@ -167,6 +170,92 @@ describe('safeOutput security', () => {
     } finally {
       await rm(root, { force: true, recursive: true });
       await rm(outside, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('safeOutput destructive and write helpers', () => {
+  async function makeRoot(): Promise<string> {
+    return await mkdtemp(join(tmpdir(), 'jshook-sec-helper-'));
+  }
+
+  it('assertSafeRemovalTarget rejects an allowed root itself', async () => {
+    const root = await makeRoot();
+    try {
+      await expect(assertSafeRemovalTarget(root, [root])).rejects.toThrow(
+        'Refusing to remove an allowed output root',
+      );
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it('assertSafeRemovalTarget rejects an ancestor of an allowed root', async () => {
+    const root = await makeRoot();
+    try {
+      await expect(assertSafeRemovalTarget(join(root, '..'), [root])).rejects.toThrow(
+        'Refusing to remove an allowed output root',
+      );
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it('assertSafeRemovalTarget accepts a strict descendant', async () => {
+    const root = await makeRoot();
+    const child = join(root, 'child');
+    try {
+      await mkdir(child, { recursive: true });
+      await expect(assertSafeRemovalTarget(child, [root])).resolves.toBeUndefined();
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it('resolveSafeDeletableDir rejects the root and resolves a descendant', async () => {
+    const root = await makeRoot();
+    const child = join(root, 'child');
+    const options = { allowedRoots: [root], allowedRootsDescription: 'test root' };
+    try {
+      await mkdir(child, { recursive: true });
+      await expect(resolveSafeDeletableDir(root, options)).rejects.toThrow(
+        'Refusing to remove an allowed output root',
+      );
+      await expect(resolveSafeDeletableDir(child, options)).resolves.toBe(child);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it('writeOutputFile rejects a path outside the allowed roots', async () => {
+    const root = await makeRoot();
+    const outside = await makeRoot();
+    try {
+      await expect(
+        writeOutputFile(join(outside, 'x.json'), 'x', {
+          allowedRoots: [root],
+          allowedRootsDescription: 'test root',
+        }),
+      ).rejects.toThrow('outputPath must be within the test root');
+    } finally {
+      await rm(root, { force: true, recursive: true });
+      await rm(outside, { force: true, recursive: true });
+    }
+  });
+
+  it('writeOutputFile creates parent directories and writes inside an allowed root', async () => {
+    const root = await makeRoot();
+    const target = join(root, 'nested', 'out.json');
+    try {
+      await expect(
+        writeOutputFile(target, '{"ok":true}', {
+          allowedRoots: [root],
+          allowedRootsDescription: 'test root',
+        }),
+      ).resolves.toBe(target);
+      await expect(readFile(target, 'utf8')).resolves.toBe('{"ok":true}');
+    } finally {
+      await rm(root, { force: true, recursive: true });
     }
   });
 });

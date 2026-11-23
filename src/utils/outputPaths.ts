@@ -154,6 +154,11 @@ export function getSystemTempRoots(): string[] {
   return [...roots];
 }
 
+/** Roots that tool output paths are allowed to resolve into. */
+export function getSafeOutputRoots(): string[] {
+  return [getProjectRoot(), ...getSystemTempRoots()];
+}
+
 export async function resolveScreenshotOutputPath(options: {
   requestedPath?: string;
   type?: 'png' | 'jpeg';

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as nodeFsPromises from 'node:fs/promises';
 import nodePath from 'node:path';
+import { tmpdir } from 'node:os';
 
 // ---------------------------------------------------------------------------
 // Helper: expose private functions via a test-class that wraps the module
@@ -199,18 +200,22 @@ vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('node:fs/promises', () => ({
-  readdir: vi.fn(async (dir: string) => {
-    readdirState.calls.push(dir);
-    return [];
-  }),
-  stat: vi.fn(async (p: string) => {
-    return { size: statState.files[p]?.size ?? 0 };
-  }),
-  rm: vi.fn(async (p: string) => {
-    rmState.calls.push(p);
-  }),
-}));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  return {
+    ...actual,
+    readdir: vi.fn(async (dir: string) => {
+      readdirState.calls.push(dir);
+      return [];
+    }),
+    stat: vi.fn(async (p: string) => {
+      return { size: statState.files[p]?.size ?? 0 };
+    }),
+    rm: vi.fn(async (p: string) => {
+      rmState.calls.push(p);
+    }),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -654,13 +659,20 @@ describe('webcrack helpers (coverage)', () => {
           save: vi.fn(async () => {}),
         })),
       }));
-      vi.doMock('node:fs/promises', () => ({
-        readdir: vi.fn(async () => []),
-        stat: vi.fn(async () => ({ size: 0 })),
-        rm: vi.fn(async () => {}),
-      }));
+      vi.doMock('node:fs/promises', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs/promises')>();
+        return {
+          ...actual,
+          readdir: vi.fn(async () => []),
+          stat: vi.fn(async () => ({ size: 0 })),
+          rm: vi.fn(async () => {}),
+        };
+      });
 
-      await runWebcrack('code', { outputDir: '/tmp/out', forceOutput: false });
+      await runWebcrack('code', {
+        outputDir: nodePath.join(tmpdir(), 'jshook-webcrack-out'),
+        forceOutput: false,
+      });
       expect(rmState.calls).toEqual([]);
     });
 
@@ -680,13 +692,27 @@ describe('webcrack helpers (coverage)', () => {
         })),
       }));
 
-      await runWebcrack('code', { outputDir: '/tmp/force', forceOutput: true });
+      await runWebcrack('code', {
+        outputDir: nodePath.join(tmpdir(), 'jshook-webcrack-force'),
+        forceOutput: true,
+      });
       // rm is called with force:true from node:fs/promises mock in module scope
       // Since the mock may not be picked up, we verify by checking it doesn't throw
       // The important thing is runWebcrack completes without error when forceOutput=true
       expect(rmState.calls.length).toBeGreaterThanOrEqual(0);
     });
 
+    it('refuses to remove an allowed root when forceOutput targets the project root', async () => {
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
+      vi.doMock('webcrack', () => ({
+        webcrack: vi.fn(async () => ({ code: 'result', save: vi.fn() })),
+      }));
+
+      const result = await runWebcrack('code', { outputDir: '.', forceOutput: true });
+
+      expect(result.applied).toBe(false);
+      expect(result.reason).toContain('Refusing to remove');
+    });
     // --- empty outputDir string ---
 
     it('skips saving when outputDir is whitespace-only string', async () => {
@@ -725,23 +751,27 @@ describe('webcrack helpers (coverage)', () => {
           save: vi.fn(async () => {}),
         })),
       }));
-      vi.doMock('node:fs/promises', () => ({
-        readdir: vi.fn(async (dir: string) => {
-          if (dir.includes('tmp')) {
-            return [
-              {
-                name: 'module.js',
-                isDirectory: () => false,
-                isFile: () => true,
-                isSymbolicLink: () => false,
-              } as any,
-            ];
-          }
-          return [];
-        }),
-        stat: vi.fn(async () => ({ size: 42 })),
-        rm: vi.fn(async () => {}),
-      }));
+      vi.doMock('node:fs/promises', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('node:fs/promises')>();
+        return {
+          ...actual,
+          readdir: vi.fn(async (dir: string) => {
+            if (dir.includes('tmp')) {
+              return [
+                {
+                  name: 'module.js',
+                  isDirectory: () => false,
+                  isFile: () => true,
+                  isSymbolicLink: () => false,
+                } as any,
+              ];
+            }
+            return [];
+          }),
+          stat: vi.fn(async () => ({ size: 42 })),
+          rm: vi.fn(async () => {}),
+        };
+      });
 
       const result = await runWebcrack('obfuscated', {
         outputDir: './tests/tmp/webcrack-out',

@@ -13,6 +13,8 @@
  */
 import { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/handlers';
 import { body, type BenchSuite } from '../harness';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const handlers = new ProtocolAnalysisHandlers();
 
@@ -173,7 +175,7 @@ export const protocolSuite: BenchSuite = {
       origin: 'homemade',
       reference: 'classic pcap (libpcap) global header + per-packet headers must roundtrip',
       run: async () => {
-        const path = `/tmp/jshook-bench-${process.pid}-${Date.now()}.pcap`;
+        const path = join(tmpdir(), `jshook-bench-${process.pid}-${Date.now()}.pcap`);
         const eth = 'aabbccddeeff112233445566080045000014000000004011f9a5c0a80001c0a80002';
         const w = (await handlers.handlePcapWrite({
           path,
@@ -355,7 +357,7 @@ export const protocolSuite: BenchSuite = {
       reference:
         'PCAP-ng spec §3.1: file starts with the Section Header Block block-type 0x0A0D0D0A',
       run: async () => {
-        const path = `/tmp/jshook-bench-pcapng-${process.pid}-${Date.now()}.pcapng`;
+        const path = join(tmpdir(), `jshook-bench-pcapng-${process.pid}-${Date.now()}.pcapng`);
         const w = (await handlers.handlePcapngWrite({
           path,
           interfaces: [{ linkType: 1, snapshotLength: 65535 }],
@@ -397,7 +399,7 @@ export const protocolSuite: BenchSuite = {
       origin: 'homemade',
       reference: 'PCAP-ng EPB encoding/decoding must preserve packet bytes in order',
       run: async () => {
-        const path = `/tmp/jshook-bench-pcapng-r-${process.pid}-${Date.now()}.pcapng`;
+        const path = join(tmpdir(), `jshook-bench-pcapng-r-${process.pid}-${Date.now()}.pcapng`);
         const p0 = 'aabbccddeeff112233445566080045000014000000004011f9a5c0a80001c0a80002';
         const p1 = 'ffffffffffffffffffffffff0806';
         const w = (await handlers.handlePcapngWrite({
@@ -437,7 +439,7 @@ export const protocolSuite: BenchSuite = {
       reference:
         'classic pcap (libpcap) global header + per-packet headers must roundtrip via pcap_read',
       run: async () => {
-        const path = `/tmp/jshook-bench-pcap-r-${process.pid}-${Date.now()}.pcap`;
+        const path = join(tmpdir(), `jshook-bench-pcap-r-${process.pid}-${Date.now()}.pcap`);
         const eth = 'aabbccddeeff112233445566080045000014000000004011f9a5c0a80001c0a80002';
         const w = (await handlers.handlePcapWrite({
           path,

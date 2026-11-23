@@ -5,6 +5,8 @@ import { cdpLimit } from '@utils/concurrency';
 import { writeFile } from 'node:fs/promises';
 import { setImmediate as waitForImmediate } from 'node:timers/promises';
 import { resolveArtifactPath } from '@utils/artifacts';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { writeOutputFile } from '@utils/safeOutput';
 import type { CPUProfile } from './PerformanceMonitor.types';
 import { isCDPHeapSamplingPayload, collectTopHeapAllocations } from './PerformanceMonitor.types';
 
@@ -97,8 +99,10 @@ export async function stopHeapSampling(
     const profileJson = JSON.stringify(profile);
     let savedPath: string | undefined;
     if (options?.artifactPath) {
-      await writeFile(options.artifactPath, profileJson, 'utf-8');
-      savedPath = options.artifactPath;
+      savedPath = await writeOutputFile(options.artifactPath, profileJson, {
+        allowedRoots: getSafeOutputRoots(),
+        allowedRootsDescription: 'project root or system temp directory',
+      });
     } else {
       const { absolutePath, displayPath } = await resolveArtifactPath({
         category: 'profiles',

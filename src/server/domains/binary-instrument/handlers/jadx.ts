@@ -20,6 +20,8 @@ import {
 import { decodeApkManifest, listZipEntries } from '@modules/binary-instrument/apk-zip-inspection';
 import { ToolError } from '@errors/ToolError';
 import { getReverseEngineeringConfig } from '@utils/reverseEngineeringConfig';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { assertSafeRemovalTarget, resolveSafeOutputPath } from '@utils/safeOutput';
 import type { BinaryInstrumentState } from './shared';
 import {
   readRequiredString,
@@ -178,10 +180,19 @@ export class JadxHandlers {
       });
     }
 
-    const decompileDir =
-      outputDir ?? (await mkdtemp(join(tmpdir(), `jshook-jadx-${basename(apkPath)}-`)));
+    const allowedRoots = getSafeOutputRoots();
+    const decompileDir = outputDir
+      ? await resolveSafeOutputPath(outputDir, {
+          allowedRoots,
+          allowedRootsDescription: 'project root or system temp directory',
+        })
+      : await mkdtemp(join(tmpdir(), `jshook-jadx-${basename(apkPath)}-`));
     if (outputDir && force) {
-      await rm(outputDir, { recursive: true, force: true });
+      // resolveSafeOutputPath() accepts a path equal to an allowed root, which
+      // is fine for writes but catastrophic for `rm -rf`. Refuse to delete a
+      // root (or an ancestor of one) itself.
+      await assertSafeRemovalTarget(decompileDir, allowedRoots);
+      await rm(decompileDir, { recursive: true, force: true });
     }
     await mkdir(decompileDir, { recursive: true });
 

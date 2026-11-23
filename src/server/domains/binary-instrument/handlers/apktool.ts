@@ -4,6 +4,8 @@
 
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { resolveSafeOutputPath } from '@utils/safeOutput';
 import { tmpdir } from 'node:os';
 import { probeCommand } from '@modules/external/ToolProbe';
 import {
@@ -30,7 +32,12 @@ export class ApktoolHandlers {
       });
     }
 
-    const outputDir = explicitOutputDir ?? join(tmpdir(), `jshook-apktool-${Date.now()}`);
+    const outputDir = explicitOutputDir
+      ? await resolveSafeOutputPath(explicitOutputDir, {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        })
+      : join(tmpdir(), `jshook-apktool-${Date.now()}`);
     if (explicitOutputDir) {
       await mkdir(outputDir, { recursive: true });
     }
@@ -62,7 +69,13 @@ export class ApktoolHandlers {
 
   async handleApktoolBuild(args: Record<string, unknown>): Promise<unknown> {
     const sourceDir = readRequiredString(args, 'sourceDir');
-    const outputPath = readOptionalString(args, 'outputPath');
+    const requestedOutputPath = readOptionalString(args, 'outputPath');
+    const outputPath = requestedOutputPath
+      ? await resolveSafeOutputPath(requestedOutputPath, {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        })
+      : undefined;
     const force = readOptionalBoolean(args, 'force') ?? false;
     const apktoolProbe = await probeCommand('apktool', ['--version']);
     if (!apktoolProbe.available) {
@@ -110,7 +123,13 @@ export class ApktoolHandlers {
     const keystorePassword = readOptionalString(args, 'keystorePassword');
     const keyAlias = readOptionalString(args, 'keyAlias');
     const keyPassword = readOptionalString(args, 'keyPassword');
-    const outputPath = readOptionalString(args, 'outputPath');
+    const requestedOutputPath = readOptionalString(args, 'outputPath');
+    const outputPath = requestedOutputPath
+      ? await resolveSafeOutputPath(requestedOutputPath, {
+          allowedRoots: getSafeOutputRoots(),
+          allowedRootsDescription: 'project root or system temp directory',
+        })
+      : undefined;
     const signerProbe = await probeCommand('apksigner', ['--version']);
     if (!signerProbe.available) {
       return jsonResponse({

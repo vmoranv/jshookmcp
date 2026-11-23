@@ -5,6 +5,8 @@ import { logger } from '@utils/logger';
 import { cdpLimit } from '@utils/concurrency';
 import { writeFile } from 'node:fs/promises';
 import { resolveArtifactPath } from '@utils/artifacts';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { writeOutputFile } from '@utils/safeOutput';
 import { countTraceEvents } from './PerformanceMonitor.types';
 
 /** Default cap on saved trace size; larger traces are truncated with a warning. */
@@ -95,8 +97,10 @@ export async function stopTracing(
     // Save to artifact file
     let savedPath: string | undefined;
     if (options?.artifactPath) {
-      await writeFile(options.artifactPath, traceData ?? outBuffer, 'utf-8');
-      savedPath = options.artifactPath;
+      savedPath = await writeOutputFile(options.artifactPath, traceData ?? outBuffer, {
+        allowedRoots: getSafeOutputRoots(),
+        allowedRootsDescription: 'project root or system temp directory',
+      });
     } else {
       const { absolutePath, displayPath } = await resolveArtifactPath({
         category: 'traces',

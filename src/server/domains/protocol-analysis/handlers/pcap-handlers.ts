@@ -3,6 +3,8 @@
  */
 
 import type { ToolArgs } from '@server/types';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { resolveSafeOutputPath } from '@utils/safeOutput';
 import type {
   PacketEndianness,
   PacketTimestampPrecision,
@@ -96,7 +98,7 @@ export class ProtocolAnalysisPcapHandlers extends ProtocolAnalysisPacketBuildHan
     error?: string;
   }> {
     try {
-      const path = this.parseRequiredPath(args);
+      const path = await this.parseRequiredWritePath(args);
       if (!Array.isArray(args.packets)) {
         throw new Error('packets must be an array');
       }
@@ -218,6 +220,13 @@ export class ProtocolAnalysisPcapHandlers extends ProtocolAnalysisPacketBuildHan
         error: this.errorMessage(error),
       };
     }
+  }
+
+  protected async parseRequiredWritePath(args: ToolArgs): Promise<string> {
+    return await resolveSafeOutputPath(this.parseRequiredPath(args), {
+      allowedRoots: getSafeOutputRoots(),
+      allowedRootsDescription: 'project root or system temp directory',
+    });
   }
 
   protected parseRequiredPath(args: ToolArgs): string {

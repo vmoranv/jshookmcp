@@ -1,4 +1,6 @@
 import { createCodeCollectorMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const writeFileMock = vi.fn();
@@ -14,9 +16,10 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
 
 vi.mock('@modules/monitor/PerformanceMonitor', () => ({ PerformanceMonitor: vi.fn() }));
 
-vi.mock('node:fs/promises', () => ({
-  writeFile: (...args: any[]) => writeFileMock(...args),
-}));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  return { ...actual, writeFile: (...args: any[]) => writeFileMock(...args) };
+});
 
 vi.mock('@src/utils/artifacts', () => ({
   resolveArtifactPath: (...args: any[]) => resolveArtifactPathMock(...args),
@@ -262,12 +265,14 @@ describe('PerformanceHandlers (composition, ex-runtime-performance)', () => {
       writeFileMock.mockResolvedValue(undefined);
 
       const body = parseJson<any>(
-        await handler.handleProfilerCpuStop({ artifactPath: '/custom/profile.cpuprofile' }),
+        await handler.handleProfilerCpuStop({
+          artifactPath: join(tmpdir(), 'jshook-custom-profile.cpuprofile'),
+        }),
       );
       expect(body.success).toBe(true);
-      expect(body.artifactPath).toBe('/custom/profile.cpuprofile');
+      expect(body.artifactPath).toBe(join(tmpdir(), 'jshook-custom-profile.cpuprofile'));
       expect(writeFileMock).toHaveBeenCalledWith(
-        '/custom/profile.cpuprofile',
+        join(tmpdir(), 'jshook-custom-profile.cpuprofile'),
         expect.any(String),
         'utf-8',
       );

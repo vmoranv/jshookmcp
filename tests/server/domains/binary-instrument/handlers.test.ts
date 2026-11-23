@@ -6,7 +6,7 @@ import { GhidraAnalyzer } from '@modules/binary-instrument/GhidraAnalyzer';
 import * as fsPromises from 'node:fs/promises';
 import * as childProcess from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
@@ -679,6 +679,23 @@ describe('BinaryInstrumentHandlers', () => {
       expect(text).toContain('not installed');
     });
 
+    it('rejects jadx outputDir outside the allowed roots before any deletion', async () => {
+      vi.mocked(probeCommand).mockResolvedValueOnce({
+        available: true,
+        path: 'jadx',
+      } as Awaited<ReturnType<typeof probeCommand>>);
+      const handlers = createHandlers();
+      const victimDir = join(homedir(), `.jshook-advisory-victim-${Date.now()}`);
+
+      await expect(
+        handlers.handleJadxDecompileApk({
+          apkPath: '/tmp/sample.apk',
+          outputDir: victimDir,
+          force: true,
+        }),
+      ).rejects.toThrow('outputPath must be within');
+      await expect(fsPromises.stat(victimDir)).rejects.toThrow();
+    });
     it('handleJadxDecompileApk runs jadx.bat through an escaped cmd.exe line on Windows', async () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, 'platform', { value: 'win32' });
@@ -699,9 +716,10 @@ describe('BinaryInstrumentHandlers', () => {
         }) as unknown as typeof childProcess.execFile);
 
         const handlers = createHandlers();
+        const outputDir = join(tmpdir(), `jshook-jadx-win-${Date.now()}`);
         const result = await handlers.handleJadxDecompileApk({
           apkPath: 'C:\\apks\\sample app.apk',
-          outputDir: 'C:\\out',
+          outputDir,
           threadsCount: 2,
         });
 
@@ -714,7 +732,9 @@ describe('BinaryInstrumentHandlers', () => {
             '/s',
             '/c',
             '"C:\\tools\\jadx\\bin\\jadx.bat ^"--no-debug-info^" ^"-j^" ^"2^" ' +
-              '^"-d^" ^"C:\\out^" ^"C:\\apks\\sample^ app.apk^""',
+              '^"-d^" ^"' +
+              outputDir +
+              '^" ^"C:\\apks\\sample^ app.apk^""',
           ],
           expect.objectContaining({ windowsVerbatimArguments: true, windowsHide: true }),
           expect.any(Function),
@@ -752,9 +772,10 @@ describe('BinaryInstrumentHandlers', () => {
         const events: string[] = [];
         mockHungBatchTool(events);
 
+        const outputDir = join(tmpdir(), `jshook-jadx-timeout-${Date.now()}`);
         const result = await createHandlers().handleJadxDecompileApk({
           apkPath: 'C:\\apks\\sample.apk',
-          outputDir: 'C:\\out',
+          outputDir,
           timeoutMs: 20,
         });
         await new Promise((resolve) => setImmediate(resolve));
@@ -825,16 +846,17 @@ describe('BinaryInstrumentHandlers', () => {
       }) as unknown as typeof childProcess.execFile);
 
       const handlers = createHandlers();
+      const outputDir = join(tmpdir(), `jshook-apktool-out-${Date.now()}`);
       const result = await handlers.handleApktoolDecode({
         apkPath: '/tmp/app.apk',
-        outputDir: '/tmp/out',
+        outputDir,
         force: true,
       });
 
       const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
       const parsed = JSON.parse(text);
       expect(parsed.available).toBe(true);
-      expect(parsed.outputDir).toBe('/tmp/out');
+      expect(parsed.outputDir).toBe(outputDir);
       expect(fsPromises.mkdir).toHaveBeenCalled();
     });
 
@@ -857,9 +879,10 @@ describe('BinaryInstrumentHandlers', () => {
       }) as unknown as typeof childProcess.execFile);
 
       const handlers = createHandlers();
+      const outputPath = join(tmpdir(), `jshook-apktool-build-${Date.now()}.apk`);
       const result = await handlers.handleApktoolBuild({
         sourceDir: '/tmp/src',
-        outputPath: '/tmp/out.apk',
+        outputPath,
         force: true,
       });
 
@@ -867,8 +890,8 @@ describe('BinaryInstrumentHandlers', () => {
       const parsed = JSON.parse(text);
       expect(parsed.available).toBe(true);
       expect(parsed.sourceDir).toBe('/tmp/src');
-      expect(parsed.outputPath).toBe('/tmp/out.apk');
-      expect(execCalls[0]).toEqual(['b', '/tmp/src', '-o', '/tmp/out.apk', '-f']);
+      expect(parsed.outputPath).toBe(outputPath);
+      expect(execCalls[0]).toEqual(['b', '/tmp/src', '-o', outputPath, '-f']);
     });
 
     it('handleApktoolBuild reports unavailable when apktool missing', async () => {
@@ -921,19 +944,20 @@ describe('BinaryInstrumentHandlers', () => {
       }) as unknown as typeof childProcess.execFile);
 
       const handlers = createHandlers();
+      const outputPath = join(tmpdir(), `jshook-apktool-signed-${Date.now()}.apk`);
       const result = await handlers.handleApktoolSign({
         apkPath: '/tmp/app.apk',
         keystore: '/tmp/debug.keystore',
         keystorePassword: 'android',
         keyAlias: 'androiddebugkey',
-        outputPath: '/tmp/signed.apk',
+        outputPath,
       });
 
       const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
       const parsed = JSON.parse(text);
       expect(parsed.available).toBe(true);
       expect(parsed.signed).toBe(true);
-      expect(parsed.outputPath).toBe('/tmp/signed.apk');
+      expect(parsed.outputPath).toBe(outputPath);
       expect(execCalls[0]).toEqual([
         'sign',
         '--ks',
@@ -943,7 +967,7 @@ describe('BinaryInstrumentHandlers', () => {
         '--ks-key-alias',
         'androiddebugkey',
         '--out',
-        '/tmp/signed.apk',
+        outputPath,
         '/tmp/app.apk',
       ]);
     });

@@ -504,7 +504,7 @@ describe('ADBBridgeHandlers', () => {
     const result = await handlers.handleApkPull({
       serial: 'emulator-5554',
       packageName: 'com.example.app',
-      outputPath: '/tmp',
+      outputPath: join(tmpdir(), 'jshook-adb-output-test'),
     });
     const parsed = parseResult(result);
     expect(parsed.success).toBe(true);
@@ -554,7 +554,7 @@ describe('ADBBridgeHandlers', () => {
     const result = await handlers.handlePullNativeLibs({
       serial: 'emulator-5554',
       packageName: 'com.example.app',
-      outputPath: '/tmp',
+      outputPath: join(tmpdir(), 'jshook-adb-output-test'),
     });
     const parsed = parseResult(result);
     expect(parsed.success).toBe(true);

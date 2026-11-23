@@ -1,5 +1,5 @@
 import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/handlers';
@@ -575,6 +575,15 @@ describe('ProtocolAnalysisHandlers', () => {
   });
 
   describe('handlePcapWrite/handlePcapRead', () => {
+    it('rejects a write path outside the allowed roots', async () => {
+      const result = await handlers.handlePcapWrite({
+        path: join(homedir(), `.jshook-not-allowed-${Date.now()}.pcap`),
+        packets: [],
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('outputPath must be within');
+    });
+
     it('writes and reads a compact classic PCAP file', async () => {
       const path = join(tmpdir(), `protocol-analysis-${Date.now()}-${Math.random()}.pcap`);
 

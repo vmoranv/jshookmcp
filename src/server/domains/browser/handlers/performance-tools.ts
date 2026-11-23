@@ -24,6 +24,8 @@ import {
 import { handleSafe, R } from '@server/domains/shared/ResponseBuilder';
 import { logger } from '@utils/logger';
 import { resolveArtifactPath } from '@utils/artifacts';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { writeOutputFile } from '@utils/safeOutput';
 import { writeFile } from 'node:fs/promises';
 import {
   buildHotFunctions,
@@ -373,8 +375,14 @@ export async function handleV8TypeProfile(
       };
 
       if (artifactPath) {
-        await writeFile(artifactPath, JSON.stringify(profile, null, 2), 'utf-8');
-        result.artifactPath = artifactPath;
+        result.artifactPath = await writeOutputFile(
+          artifactPath,
+          JSON.stringify(profile, null, 2),
+          {
+            allowedRoots: getSafeOutputRoots(),
+            allowedRootsDescription: 'project root or system temp directory',
+          },
+        );
       } else {
         const { absolutePath, displayPath } = await resolveArtifactPath({
           category: 'profiles',
@@ -516,8 +524,10 @@ export async function handleBrowserCpuProfileStop(
     const profileJson = JSON.stringify(profile, null, 2);
     let savedPath: string;
     if (artifactPath) {
-      await writeFile(artifactPath, profileJson, 'utf-8');
-      savedPath = artifactPath;
+      savedPath = await writeOutputFile(artifactPath, profileJson, {
+        allowedRoots: getSafeOutputRoots(),
+        allowedRootsDescription: 'project root or system temp directory',
+      });
     } else {
       const { absolutePath, displayPath } = await resolveArtifactPath({
         category: 'profiles',
