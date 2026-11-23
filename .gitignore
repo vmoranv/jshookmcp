@@ -170,3 +170,8 @@ docs/agents
 /tests/server/benchmarks/autoresearch-metric.debt.test.ts
 /checks.sh
 snapshots/
+
+# Local search-tuning research output (ablation runs and generated baselines) —
+# machine-local byproducts, not deliverables.
+/docs/research/
+/scripts/search-tune/baselines/
