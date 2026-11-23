@@ -868,10 +868,9 @@ function emitToolCallTelemetry(
   });
   const searchQualityTracker = getTypedDomain(ctx, 'searchQualityTracker');
   searchQualityTracker?.associateLastSearch(name);
-  // Learning signal for the search engine (adaptive vector weight +
-  // recency boost) fires on the direct-call path too, not just the
-  // call_tool proxy — this is the common path for agents invoking an
-  // already-active tool. Registered by getSearchEngine; absent until the
+  // Recency signal for the search engine fires on the direct-call path too,
+  // not just the call_tool proxy — this is the common path for agents invoking
+  // an already-active tool. Registered by getSearchEngine; absent until the
   // first search builds the engine (no signal to learn from before that).
   try {
     const searchEngine = getTypedDomain(ctx, 'searchEngine');

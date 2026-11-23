@@ -397,7 +397,6 @@ vi.mock('@src/constants', async (importOriginal) => ({
   SEARCH_AUTO_ACTIVATE_DOMAINS: true,
   ACTIVATION_TTL_MINUTES: 30,
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
-  SEARCH_VECTOR_ENABLED: false,
 }));
 
 vi.mock('@server/extensions/ExtensionManager', () => ({

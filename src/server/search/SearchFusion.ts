@@ -1,9 +1,8 @@
 /**
  * RRF fusion stage for tool search.
  *
- * Combines BM25 and trigram rankings. The dense-vector signal was removed in
- * the dense path, so this stage is lexical-only and has no model or feedback-weight
- * dependency.
+ * Combines BM25 and trigram rankings. Search is lexical-only (ADR-0005):
+ * no dense-vector signal, model, or feedback weight participates here.
  */
 import { SEARCH_RRF_K, SEARCH_TRIGRAM_THRESHOLD, SEARCH_TRIGRAM_WEIGHT } from '@src/constants';
 import type { TrigramIndex } from './TrigramIndex';
@@ -20,10 +19,6 @@ export interface SearchFusionDeps {
 
 export interface SearchFusionResult {
   topBm25Score: number;
-  /** Always false after the dense-path removal; kept for telemetry/cache schema compatibility. */
-  vectorParticipated: false;
-  /** Always null after the dense-path removal; kept for telemetry/cache schema compatibility. */
-  vectorRanking: null;
   hasSignal: boolean;
 }
 
@@ -67,6 +62,6 @@ export class SearchFusion {
       blendRrfIntoScores(scores, fusedRrfScores);
     }
 
-    return { topBm25Score, vectorParticipated: false, vectorRanking: null, hasSignal };
+    return { topBm25Score, hasSignal };
   }
 }

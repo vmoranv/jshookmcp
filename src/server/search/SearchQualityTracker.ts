@@ -1,6 +1,5 @@
 import { RingBuffer } from '@utils/RingBuffer';
 import type { SnapshotSource } from '@server/persistence/RuntimeSnapshotScheduler';
-import { SEARCH_VECTOR_BM25_SKIP_THRESHOLD } from '@src/constants';
 import {
   getGlobalInstrumentation,
   MetricNames,
@@ -45,12 +44,9 @@ export interface SearchQueryRecord {
   /**
    * Raw top BM25 score of the full ranking pipeline (quick-path/exact-match
    * queries carry no score — they bypass the pipeline by construction).
-   * Feeds the vector-eligibility decision statistic: a query is
-   * vector-eligible when this is below SEARCH_VECTOR_BM25_SKIP_THRESHOLD.
+   * Used as the confidence distribution for offline tuning.
    */
   bm25TopScore?: number;
-  /** True when the dense vector signal was fused into this query's ranking. */
-  vectorParticipated?: boolean;
 }
 
 export interface SearchQualityMetrics {
@@ -62,14 +58,6 @@ export interface SearchQualityMetrics {
   avgUsedRank: number;
   mrr: number;
   topKDistribution: Record<string, number>;
-  /** Full-path queries whose top BM25 score is below the vector skip threshold. */
-  bm25WeakQueries: number;
-  /** Full-path queries at or above the threshold (vector would be skipped). */
-  bm25ConfidentQueries: number;
-  /** bm25WeakQueries / (weak + confident); 0 when no full-path samples exist. */
-  bm25WeakRatio: number;
-  /** vectorParticipated share over full-path samples; 0 when none exist. */
-  vectorParticipatedRate: number;
 }
 
 /**
@@ -105,7 +93,7 @@ export class SearchQualityTracker implements SnapshotSource {
     returnedTools: string[],
     returnedScores: number[],
     latencyMs: number,
-    options?: { id?: string; bm25TopScore?: number; vectorParticipated?: boolean },
+    options?: { id?: string; bm25TopScore?: number },
   ): string {
     const id = options?.id ?? generateId();
     const record: SearchQueryRecord = {
@@ -116,9 +104,6 @@ export class SearchQualityTracker implements SnapshotSource {
       returnedScores,
       latencyMs,
       ...(options?.bm25TopScore !== undefined ? { bm25TopScore: options.bm25TopScore } : {}),
-      ...(options?.vectorParticipated !== undefined
-        ? { vectorParticipated: options.vectorParticipated }
-        : {}),
     };
     this.records.push(record);
     this.lastRecordId = id;
@@ -189,10 +174,6 @@ export class SearchQualityTracker implements SnapshotSource {
         avgUsedRank: 0,
         mrr: 0,
         topKDistribution: {},
-        bm25WeakQueries: 0,
-        bm25ConfidentQueries: 0,
-        bm25WeakRatio: 0,
-        vectorParticipatedRate: 0,
       };
     }
 
@@ -226,24 +207,6 @@ export class SearchQualityTracker implements SnapshotSource {
       mrr = reciprocalSum / usedRecords.length;
     }
 
-    // Vector-eligibility statistics over full-path samples (records with a
-    // captured raw BM25 score). Quick-path queries bypass the ranking
-    // pipeline and are excluded from the denominator by design: they never
-    // reach the skip decision the ratio is meant to inform.
-    let bm25WeakQueries = 0;
-    let bm25ConfidentQueries = 0;
-    let vectorParticipatedCount = 0;
-    for (const record of arr) {
-      if (record.bm25TopScore === undefined) continue;
-      if (record.bm25TopScore < SEARCH_VECTOR_BM25_SKIP_THRESHOLD) {
-        bm25WeakQueries++;
-      } else {
-        bm25ConfidentQueries++;
-      }
-      if (record.vectorParticipated === true) vectorParticipatedCount++;
-    }
-    const fullPathSamples = bm25WeakQueries + bm25ConfidentQueries;
-
     return {
       totalQueries,
       avgLatencyMs: totalLatency / totalQueries,
@@ -253,10 +216,6 @@ export class SearchQualityTracker implements SnapshotSource {
       avgUsedRank,
       mrr,
       topKDistribution,
-      bm25WeakQueries,
-      bm25ConfidentQueries,
-      bm25WeakRatio: fullPathSamples > 0 ? bm25WeakQueries / fullPathSamples : 0,
-      vectorParticipatedRate: fullPathSamples > 0 ? vectorParticipatedCount / fullPathSamples : 0,
     };
   }
 
@@ -338,15 +297,10 @@ export class SearchQualityTracker implements SnapshotSource {
       }
       if (record.usedTool !== undefined && typeof record.usedTool !== 'string') return;
       if (record.usedToolRank !== undefined && typeof record.usedToolRank !== 'number') return;
-      // Additive vector-eligibility fields: absent in pre-instrumentation
-      // snapshots, validated only when present.
+      // Additive confidence field: absent in pre-instrumentation snapshots,
+      // validated only when present. Unknown legacy fields (e.g. the removed
+      // vectorParticipated flag) are ignored.
       if (record.bm25TopScore !== undefined && typeof record.bm25TopScore !== 'number') return;
-      if (
-        record.vectorParticipated !== undefined &&
-        typeof record.vectorParticipated !== 'boolean'
-      ) {
-        return;
-      }
 
       const tools = record.returnedTools as unknown[];
       if (tools.some((t) => typeof t !== 'string')) return;
@@ -364,9 +318,6 @@ export class SearchQualityTracker implements SnapshotSource {
         usedToolRank: record.usedToolRank as number | undefined,
         ...(record.bm25TopScore !== undefined
           ? { bm25TopScore: record.bm25TopScore as number }
-          : {}),
-        ...(record.vectorParticipated !== undefined
-          ? { vectorParticipated: record.vectorParticipated as boolean }
           : {}),
       });
     }

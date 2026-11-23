@@ -1,9 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import { ToolSearchEngine } from '@server/ToolSearch';
 import { initRegistry } from '@server/registry/index';
+import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
+import type { SearchConfig } from '@src/types/config';
 import type { Tool } from '@modelcontextprotocol/server';
 
 await initRegistry();
+
+/**
+ * Intent boosts are opt-in configuration now that shipped defaults carry an
+ * empty rule list (ADR-0005 / lexical-only search). These cases exercise the
+ * IntentBoost mechanism itself by supplying an explicit rule.
+ */
+const REGISTRATION_INTENT_CONFIG = {
+  ...DEFAULT_SEARCH_CONFIG,
+  intentToolBoostRules: [
+    {
+      pattern: 'register|signup|sign\\s*up|verify|账号注册|验证码|keygen',
+      flags: 'i',
+      boosts: [
+        { tool: 'run_extension_workflow', bonus: 12 },
+        { tool: 'list_extension_workflows', bonus: 8 },
+      ],
+    },
+  ],
+} satisfies SearchConfig;
 
 /* ---------- helper ---------- */
 
@@ -172,7 +193,13 @@ describe('ToolSearchEngine', () => {
       ['page_type', 'browser'],
     ]);
     const domainScoreMultipliers = new Map<string, number>([['workflow', 1.5]]);
-    const engine = new ToolSearchEngine(rankedTools, domainOverrides, domainScoreMultipliers);
+    const engine = new ToolSearchEngine(
+      rankedTools,
+      domainOverrides,
+      domainScoreMultipliers,
+      undefined,
+      REGISTRATION_INTENT_CONFIG,
+    );
     const results = await engine.search('register signup verify');
 
     expect(results.length).toBeGreaterThan(0);
@@ -191,11 +218,21 @@ describe('ToolSearchEngine', () => {
       ['page_navigate', 'browser'],
     ]);
     const domainScoreMultipliers = new Map<string, number>([['workflow', 1.5]]);
-    const engine = new ToolSearchEngine(rankedTools, domainOverrides, domainScoreMultipliers);
+    const engine = new ToolSearchEngine(
+      rankedTools,
+      domainOverrides,
+      domainScoreMultipliers,
+      undefined,
+      REGISTRATION_INTENT_CONFIG,
+    );
     const results = await engine.search('register account verify');
 
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]!.name).toBe('run_extension_workflow');
+  });
+
+  it('ships with an empty default intent boost rule list', () => {
+    expect(DEFAULT_SEARCH_CONFIG.intentToolBoostRules).toEqual([]);
   });
 
   it('applies tool score multipliers for extension-priority ranking', async () => {
@@ -226,7 +263,13 @@ describe('ToolSearchEngine', () => {
       ['page_type', 'browser'],
     ]);
     const domainScoreMultipliers = new Map<string, number>([['workflow', 1.5]]);
-    const engine = new ToolSearchEngine(rankedTools, domainOverrides, domainScoreMultipliers);
+    const engine = new ToolSearchEngine(
+      rankedTools,
+      domainOverrides,
+      domainScoreMultipliers,
+      undefined,
+      REGISTRATION_INTENT_CONFIG,
+    );
     const results = await engine.search('账号注册 验证码 keygen');
 
     expect(results.length).toBeGreaterThan(0);

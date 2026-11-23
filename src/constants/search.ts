@@ -82,9 +82,6 @@ export const SEARCH_QUERY_CACHE_CAPACITY = int('SEARCH_QUERY_CACHE_CAPACITY', 50
  */
 export const SEARCH_MIN_CONTENT_TOKENS = int('SEARCH_MIN_CONTENT_TOKENS', 1);
 
-/* @deprecated dense scoring was removed; only the historical quality metric reads this. */
-export const SEARCH_VECTOR_BM25_SKIP_THRESHOLD = float('SEARCH_VECTOR_BM25_SKIP_THRESHOLD', 0);
-
 /* ================================================================== */
 /*  Semantic search: synonym, trigram, RRF                             */
 /* ================================================================== */

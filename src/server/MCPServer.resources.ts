@@ -150,10 +150,8 @@ export function registerServerResources(ctx: MCPServerContext): void {
         // registry not yet initialised
       }
       let indexedTools = 0;
-      const embeddingDimension = 0;
       let bm25Available = false;
       let trigramAvailable = false;
-      const embeddingAvailable = false;
       let lastIndexedAt: string | null = null;
 
       try {
@@ -170,11 +168,9 @@ export function registerServerResources(ctx: MCPServerContext): void {
       return asJsonResource(uri.toString(), {
         totalTools,
         indexedTools,
-        embeddingDimension,
         lastIndexedAt,
         bm25Available,
         trigramAvailable,
-        embeddingAvailable,
       });
     },
   );

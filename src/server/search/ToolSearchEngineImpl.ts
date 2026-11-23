@@ -125,8 +125,8 @@ interface ToolDocument {
 /**
  * Pre-adjust scores for one query. Recency, tier, explicit mention, and the
  * re-ranker are replayed on hit so they can change without a new BM25 pass.
- * `feedbackEpoch` invalidates full-path entries when a fold moves the vector
- * weight. Quick-path entries do not read that weight.
+ * The cache key carries the query, catalog etag, and stem mode, so scores are
+ * never replayed across a catalog or index-mode change.
  */
 // ── ToolSearchEngine ──
 
@@ -745,7 +745,7 @@ export class ToolSearchEngine {
       stemMode: this.stemMode,
     });
     const cached = this.queryCache.get(cacheKey);
-    if (cached && this.isCachedEntryFresh(cached)) {
+    if (cached) {
       const results = this.replayCached(
         cached,
         query,
@@ -765,8 +765,8 @@ export class ToolSearchEngine {
       return results;
     }
 
-    // Exact tool names skip RRF and embeddings. A single token does not:
-    // intent and affinity still have to run.
+    // Exact tool names skip RRF and the full scoring pipeline. A single
+    // token does not: intent and affinity still have to run.
     if (SEARCH_SELF_RAG_ENABLED && this.isExactNameQuery(query)) {
       const { quickResults, preAdjust, quickLatencyMs } = this.executeQuickPathSearch(
         query,
@@ -1003,16 +1003,6 @@ export class ToolSearchEngine {
     );
 
     return results;
-  }
-
-  /**
-   * Full-path entries die when a feedback fold moves the vector weight, or when
-   * the vector signal has become available since they were computed — a
-   * lexical-only ranking must not outlive the readiness transition whose whole
-   * point was to add that signal.
-   */
-  private isCachedEntryFresh(entry: CachedSearchEntry): boolean {
-    return entry.kind === 'quick' || entry.kind === 'full';
   }
 
   private replayCached(

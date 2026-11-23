@@ -88,11 +88,8 @@ function makeEngine(): ToolSearchEngine {
     ['probe_hook_fetch', 'probe'],
     ['probe_decode_base64', 'probe'],
   ]);
-  // Pin vector OFF explicitly. This file asserts telemetry SHAPE, and
-  // DEFAULT_SEARCH_CONFIG is the lexical-only baseline — passing it keeps the
-  // test independent of the process-wide SEARCH_VECTOR_ENABLED default, which
-  // is now on for every transport. Left implicit, the engine spawned a real
-  // embedding worker and reported vector_participated=true.
+  // Pass DEFAULT_SEARCH_CONFIG explicitly so telemetry-shape assertions cannot
+  // drift if process-wide search defaults change.
   return new ToolSearchEngine(
     makeTools(),
     domainOverrides,

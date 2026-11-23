@@ -84,7 +84,6 @@ vi.mock('@src/constants', async (importOriginal) => ({
   SEARCH_EXTENSION_TOOL_BOOST_MULTIPLIER: 3.33,
   SEARCH_WORKFLOW_TOOL_BOOST_MULTIPLIER: 2.22,
   SEARCH_WORKFLOW_LIST_TOOL_BOOST_MULTIPLIER: 1.11,
-  SEARCH_VECTOR_ENABLED: false,
 }));
 
 vi.mock('@server/ToolSearch', () => ({

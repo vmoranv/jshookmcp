@@ -4,7 +4,6 @@ import {
   MetricNames,
 } from '@server/observability/InstrumentationContract';
 import { SearchQualityTracker } from '@server/search/SearchQualityTracker';
-import { SEARCH_VECTOR_BM25_SKIP_THRESHOLD } from '@src/constants';
 
 describe('SearchQualityTracker', () => {
   let tracker: SearchQualityTracker;
@@ -477,84 +476,51 @@ describe('SearchQualityTracker', () => {
     });
   });
 
-  describe('vector-eligibility instrumentation', () => {
-    it('records bm25TopScore and vectorParticipated when provided', () => {
-      tracker.recordSearch('weak query', ['a'], [0.4], 5, {
-        bm25TopScore: 3.2,
-        vectorParticipated: true,
-      });
+  describe('BM25 confidence instrumentation', () => {
+    it('records bm25TopScore when provided', () => {
+      tracker.recordSearch('weak query', ['a'], [0.4], 5, { bm25TopScore: 3.2 });
       const record = tracker.getRecentRecords()[0]!;
       expect(record.bm25TopScore).toBe(3.2);
-      expect(record.vectorParticipated).toBe(true);
     });
 
-    it('omits the fields when not provided (quick-path records)', () => {
-      tracker.recordSearch('exact name', ['page_navigate'], [0.9], 2, {
-        vectorParticipated: false,
-      });
+    it('omits bm25TopScore when not provided (quick-path records)', () => {
+      tracker.recordSearch('exact name', ['page_navigate'], [0.9], 2);
       const record = tracker.getRecentRecords()[0]!;
       expect(record.bm25TopScore).toBeUndefined();
-      expect(record.vectorParticipated).toBe(false);
     });
 
-    it('computes weak ratio over full-path records below the skip threshold', () => {
-      // Relative to the live threshold, so this stays valid whichever default
-      // SEARCH_VECTOR_BM25_SKIP_THRESHOLD ships with (0 canary, 8 original).
-      const threshold = SEARCH_VECTOR_BM25_SKIP_THRESHOLD;
-      // With threshold 0 nothing can be "below" it; pin an offset-based
-      // classification instead so the weak/confident split stays exercised.
-      const weakScore = threshold === 0 ? -1 : threshold - 2;
-      const confidentScore = threshold === 0 ? 1 : threshold + 1;
-      tracker.recordSearch('q1', ['a'], [0.9], 5, { bm25TopScore: weakScore });
-      tracker.recordSearch('q2', ['b'], [0.9], 5, { bm25TopScore: confidentScore });
-      tracker.recordSearch('q3', ['c'], [0.9], 5, {
-        bm25TopScore: threshold === 0 ? -0.5 : threshold - 0.5,
-      });
-      // Quick-path record excluded from the denominator.
-      tracker.recordSearch('q4', ['d'], [0.9], 5, { vectorParticipated: false });
-
-      const metrics = tracker.computeMetrics();
-      expect(metrics.bm25WeakQueries).toBe(2);
-      expect(metrics.bm25ConfidentQueries).toBe(1);
-      expect(metrics.bm25WeakRatio).toBeCloseTo(2 / 3, 10);
-      expect(metrics.totalQueries).toBe(4);
-    });
-
-    it('computes vector participation rate over full-path records', () => {
-      tracker.recordSearch('q1', ['a'], [0.9], 5, { bm25TopScore: 3, vectorParticipated: true });
-      tracker.recordSearch('q2', ['b'], [0.9], 5, { bm25TopScore: 3, vectorParticipated: true });
-      tracker.recordSearch('q3', ['c'], [0.9], 5, { bm25TopScore: 9, vectorParticipated: false });
-
-      const metrics = tracker.computeMetrics();
-      expect(metrics.vectorParticipatedRate).toBeCloseTo(2 / 3, 10);
-    });
-
-    it('returns zero ratios when no full-path samples exist', () => {
-      tracker.recordSearch('q1', ['a'], [0.9], 5, { vectorParticipated: false });
-      const metrics = tracker.computeMetrics();
-      expect(metrics.bm25WeakRatio).toBe(0);
-      expect(metrics.vectorParticipatedRate).toBe(0);
-    });
-
-    it('restores the additive fields from a snapshot', () => {
-      // A score below the live threshold classifies as weak regardless of
-      // what the current default is (0 canary / 8 original).
-      const weakScore = SEARCH_VECTOR_BM25_SKIP_THRESHOLD === 0 ? -3 : 3;
-      tracker.recordSearch('q1', ['a'], [0.9], 5, {
-        bm25TopScore: weakScore,
-        vectorParticipated: true,
-      });
+    it('restores bm25TopScore from a snapshot', () => {
+      tracker.recordSearch('q1', ['a'], [0.9], 5, { bm25TopScore: 7.5 });
       const snapshot = tracker.exportSnapshot();
+      const restored = new SearchQualityTracker();
+      restored.restoreSnapshot(snapshot);
+      expect(restored.getRecentRecords()[0]!.bm25TopScore).toBe(7.5);
+    });
 
+    it('ignores the removed vectorParticipated field in legacy snapshots', () => {
+      const snapshot = {
+        lastRecordId: 'sq-1-1',
+        records: [
+          {
+            id: 'sq-1-1',
+            query: 'legacy query',
+            timestamp: 1,
+            returnedTools: ['a'],
+            returnedScores: [0.9],
+            latencyMs: 5,
+            bm25TopScore: 4,
+            vectorParticipated: true,
+          },
+        ],
+      };
       const restored = new SearchQualityTracker();
       restored.restoreSnapshot(snapshot);
       const record = restored.getRecentRecords()[0]!;
-      expect(record.bm25TopScore).toBe(weakScore);
-      expect(record.vectorParticipated).toBe(true);
-      expect(restored.computeMetrics().bm25WeakQueries).toBe(1);
+      expect(record.bm25TopScore).toBe(4);
+      expect(record).not.toHaveProperty('vectorParticipated');
     });
 
-    it('restores pre-instrumentation snapshots without the new fields', () => {
+    it('restores pre-instrumentation snapshots without the field', () => {
       const snapshot = {
         lastRecordId: 'sq-1-1',
         records: [
@@ -572,10 +538,10 @@ describe('SearchQualityTracker', () => {
       restored.restoreSnapshot(snapshot);
       const record = restored.getRecentRecords()[0]!;
       expect(record.bm25TopScore).toBeUndefined();
-      expect(restored.computeMetrics().bm25WeakRatio).toBe(0);
+      expect(restored.computeMetrics().totalQueries).toBe(1);
     });
 
-    it('rejects snapshots with malformed additive fields', () => {
+    it('rejects snapshots with a malformed bm25TopScore', () => {
       const snapshot = {
         lastRecordId: null,
         records: [

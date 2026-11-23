@@ -84,7 +84,7 @@ describe('MCPServer.resources', () => {
       selectedTools: [],
       metaToolsByName: new Map<string, unknown>(),
       config: {
-        search: { vectorEnabled: false },
+        search: {},
       },
       ...(overrides.mcpLog ? { mcpLog: overrides.mcpLog } : {}),
     };
@@ -178,8 +178,8 @@ describe('MCPServer.resources', () => {
     expect(payload).toHaveProperty('indexedTools');
     expect(payload).toHaveProperty('bm25Available');
     expect(payload).toHaveProperty('trigramAvailable');
-    expect(payload).toHaveProperty('embeddingAvailable');
-    expect(payload.embeddingDimension).toBe(0);
+    expect(payload).not.toHaveProperty('embeddingAvailable');
+    expect(payload).not.toHaveProperty('embeddingDimension');
   });
 
   it('serves token budget stats', async () => {
@@ -401,7 +401,7 @@ describe('MCPServer.resources', () => {
       baseTier: 'full',
       clientSupportsListChanged: true,
       extensionToolsByName: new Map<string, unknown>(),
-      config: { search: { vectorEnabled: false } },
+      config: { search: {} },
       mcpLog: { getFilePath: () => logPath },
     };
 
