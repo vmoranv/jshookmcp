@@ -48,19 +48,26 @@ export function extractShaderMetadata(code: string): ShaderMetadata {
   // Shared dedup set so struct-field and function-param attributes don't double-count.
   const seenAttrs = new Set<string>();
 
+  // Run the metadata regexes over a comment-masked copy so commented-out
+  // declarations are not reported, while keeping character offsets aligned
+  // with the original source for brace/body extraction.
+  const searchable = maskComments(code);
+
   // Entry points: @vertex/@fragment/@compute followed by `fn name`.
   // Use global regex to capture multiple entry points of the same stage.
-  const vertexMatches = code.matchAll(/@vertex\s+fn\s+(\w+)/g);
+  const vertexMatches = searchable.matchAll(/@vertex\s+fn\s+(\w+)/g);
   for (const m of vertexMatches) {
     const name = m[1];
     if (name) entryPoints.push({ name, stage: 'vertex' });
   }
-  const fragmentMatches = code.matchAll(/@fragment\s+fn\s+(\w+)/g);
+  const fragmentMatches = searchable.matchAll(/@fragment\s+fn\s+(\w+)/g);
   for (const m of fragmentMatches) {
     const name = m[1];
     if (name) entryPoints.push({ name, stage: 'fragment' });
   }
-  const computeMatches = code.matchAll(/@compute\s+(?:@workgroup_size\s*\([^)]*\)\s*)?fn\s+(\w+)/g);
+  const computeMatches = searchable.matchAll(
+    /@compute\s+(?:@workgroup_size\s*\([^)]*\)\s*)?fn\s+(\w+)/g,
+  );
   for (const m of computeMatches) {
     const name = m[1];
     if (name) entryPoints.push({ name, stage: 'compute' });
@@ -70,7 +77,7 @@ export function extractShaderMetadata(code: string): ShaderMetadata {
   // field whose type annotation contains `{...}` is rare in WGSL, but the
   // scanner is robust against it and against nested struct definitions in
   // comments). Falls back to a warning if depth exceeds the spec limit.
-  for (const structMatch of code.matchAll(/struct\s+(\w+)\s*\{/g)) {
+  for (const structMatch of searchable.matchAll(/struct\s+(\w+)\s*\{/g)) {
     const name = structMatch[1];
     const bodyStart =
       structMatch.index !== undefined ? structMatch.index + structMatch[0].length : -1;
@@ -91,7 +98,7 @@ export function extractShaderMetadata(code: string): ShaderMetadata {
   // Type capture is broadened to include `[]`, `<>`, `()`, and whitespace.
   const bindingRegex =
     /@group\s*\(\s*(\d+)\s*\)\s*@binding\s*\(\s*(\d+)\s*\)[\s\S]*?\bvar(?:<[^>]*>)?\s+(\w+)\s*:\s*([^\n;]+)/g;
-  for (const match of code.matchAll(bindingRegex)) {
+  for (const match of searchable.matchAll(bindingRegex)) {
     const groupStr = match[1];
     const bindingStr = match[2];
     const name = match[3];
@@ -117,7 +124,7 @@ export function extractShaderMetadata(code: string): ShaderMetadata {
   // Vertex attributes in function params: `@location(l) name : type`.
   // Struct-field locations were captured above; dedupe by (location,name).
   const attributeRegex = /@location\s*\(\s*(\d+)\s*\)\s*(\w+)\s*:/g;
-  for (const match of code.matchAll(attributeRegex)) {
+  for (const match of searchable.matchAll(attributeRegex)) {
     const locationStr = match[1];
     const name = match[2];
     if (locationStr === undefined || name === undefined) continue;
@@ -258,6 +265,51 @@ function parseStructFields(
   }
 
   return fields;
+}
+
+/**
+ * Replace line and block comments with spaces, preserving character offsets so
+ * metadata regex matches can still be mapped back to the original source.
+ */
+function maskComments(s: string): string {
+  const out = s.split('');
+  let i = 0;
+  let inString: '"' | "'" | null = null;
+  while (i < s.length) {
+    if (inString !== null) {
+      if (s[i] === '\\') {
+        i += 2;
+        continue;
+      }
+      if (s[i] === inString) inString = null;
+      i++;
+      continue;
+    }
+    if (s[i] === '"' || s[i] === "'") {
+      inString = s[i] as '"' | "'";
+      i++;
+      continue;
+    }
+    if (s[i] === '/' && s[i + 1] === '/') {
+      while (i < s.length && s[i] !== '\n') {
+        out[i] = ' ';
+        i++;
+      }
+      continue;
+    }
+    if (s[i] === '/' && s[i + 1] === '*') {
+      const start = i;
+      i += 2;
+      while (i < s.length && !(s[i] === '*' && s[i + 1] === '/')) i++;
+      i = Math.min(s.length, i + 2);
+      for (let j = start; j < i; j++) {
+        if (out[j] !== '\n') out[j] = ' ';
+      }
+      continue;
+    }
+    i++;
+  }
+  return out.join('');
 }
 
 /**
@@ -437,7 +489,7 @@ export function extractShaderAst(code: string): ShaderAst {
   const metadata = extractShaderMetadata(code);
 
   const functions: string[] = [];
-  for (const match of code.matchAll(/\bfn\s+(\w+)/g)) {
+  for (const match of maskComments(code).matchAll(/\bfn\s+(\w+)/g)) {
     const name = match[1];
     if (name) functions.push(name);
   }

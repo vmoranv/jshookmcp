@@ -111,9 +111,9 @@ export class PackerDeobfuscator {
       }
 
       return {
-        p: (params[0] as string) || '',
-        a: (params[1] as number) || 0,
-        c: (params[2] as number) || 0,
+        p: typeof params[0] === 'string' ? params[0] : '',
+        a: typeof params[1] === 'number' && Number.isFinite(params[1]) ? params[1] : 0,
+        c: typeof params[2] === 'number' && Number.isFinite(params[2]) ? params[2] : 0,
         k: (typeof params[3] === 'string' ? params[3] : '').split('|'),
         e:
           (params[4] as Function) ||
@@ -164,6 +164,16 @@ export class PackerDeobfuscator {
 
   private base(num: number, radix: number): string {
     const digits = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    // Packer-supplied radix: radix 0/1 (or non-integers) makes the reduction
+    // loop diverge (`num / 1 === num`); the digit table supports up to 62.
+    if (!Number.isInteger(radix) || radix < 2 || radix > digits.length) {
+      return '0';
+    }
+    if (!Number.isFinite(num) || num <= 0) {
+      return '0';
+    }
+    num = Math.floor(num);
 
     if (num === 0) {
       return '0';

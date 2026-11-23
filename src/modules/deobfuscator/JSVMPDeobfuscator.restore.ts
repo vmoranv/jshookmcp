@@ -95,10 +95,27 @@ async function restoreObfuscatorIO(
         });
         const stringArray = sandboxResult.ok ? sandboxResult.output : undefined;
 
+        if (!sandboxResult.ok) {
+          // Surface the failure instead of silently returning a half-restored
+          // result that looks as if the array had been resolved.
+          const reason =
+            typeof sandboxResult.error === 'string'
+              ? sandboxResult.error
+              : 'string-array sandbox evaluation failed';
+          warnings.push(`String array unresolved: ${reason}`);
+          unresolvedParts.push({
+            location: 'String Array',
+            reason,
+            suggestion: 'The string array could not be evaluated lazily; review it manually.',
+          });
+        }
+
         if (Array.isArray(stringArray)) {
           logger.info(`String array detected, ${stringArray.length} strings found`);
 
-          const refPattern = new RegExp(`${arrayName}\\[(\\d+)\\]`, 'g');
+          // Anchor the array name with a word boundary so `_0x12[0]` does not
+          // also rewrite `_0x123[0]`.
+          const refPattern = new RegExp(`${arrayName}(?!\\w)\\[(\\d+)\\]`, 'g');
           restored = restored.replace(refPattern, (_match, index) => {
             const idx = parseInt(index, 10);
             if (idx < stringArray.length) {

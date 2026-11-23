@@ -38,7 +38,6 @@ export function initializeTraceSchema(db: import('better-sqlite3').Database): vo
       CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
       CREATE INDEX IF NOT EXISTS idx_events_category_type ON events(category, event_type);
       CREATE INDEX IF NOT EXISTS idx_events_script_id ON events(script_id);
-      CREATE INDEX IF NOT EXISTS idx_events_request_id ON events(request_id);
 
       CREATE TABLE IF NOT EXISTS memory_deltas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,6 +177,10 @@ export function initializeTraceSchema(db: import('better-sqlite3').Database): vo
   ensureColumn(db, 'events', 'monotonic_time', 'REAL');
   ensureColumn(db, 'events', 'request_id', 'TEXT');
   ensureColumn(db, 'events', 'sequence', 'INTEGER');
+
+  // Create the request_id index only after ensureColumn has backfilled the
+  // column on databases created by an older schema.
+  db.exec('CREATE INDEX IF NOT EXISTS idx_events_request_id ON events(request_id);');
 }
 
 export function prepareTraceStatements(db: import('better-sqlite3').Database): TraceDBStatements {

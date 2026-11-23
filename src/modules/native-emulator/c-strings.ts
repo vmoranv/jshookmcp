@@ -73,12 +73,36 @@ export function writeGuestCString(
 }
 
 export function formatGuestCString(
-  ctx: Pick<HostContext, 'x' | 'read'>,
+  ctx: Pick<HostContext, 'x' | 'read' | 'sp'>,
   formatAddress: number,
   firstVarargRegister: number,
 ): string {
   let argRegister = firstVarargRegister;
-  return formatGuestCStringFromReader(ctx, formatAddress, () => ctx.x(argRegister++));
+  let stackOffset = 0;
+  return formatGuestCStringFromReader(ctx, formatAddress, () => {
+    // AAPCS64 passes the first 8 arguments in x0-x7; the 9th and later live on
+    // the stack, so reading x8+ would return unrelated callee-saved registers.
+    if (argRegister <= 7) {
+      return ctx.x(argRegister++);
+    }
+    const sp = ctx.sp;
+    if (sp === undefined) {
+      // No stack pointer exposed: preserve the legacy (approximate) behavior.
+      return ctx.x(argRegister++);
+    }
+    const address = Number(sp) + stackOffset;
+    stackOffset += 8;
+    try {
+      const bytes = ctx.read(address, 8);
+      let value = 0n;
+      for (let i = 7; i >= 0; i--) {
+        value = (value << 8n) | BigInt(bytes[i] ?? 0);
+      }
+      return value;
+    } catch {
+      return 0n;
+    }
+  });
 }
 
 /** Format using an AArch64 glibc/bionic `va_list` structure in guest memory. */
@@ -172,7 +196,17 @@ function formatValue(
 ): string {
   switch (parsed.specifier) {
     case 's': {
-      const text = value === 0n ? '(null)' : readGuestCString(ctx, Number(value));
+      if (value === 0n) {
+        return '(null)';
+      }
+      let text: string;
+      try {
+        text = readGuestCString(ctx, Number(value));
+      } catch {
+        // glibc/bionic print garbage rather than aborting the whole call when a
+        // printf %s pointer is unmapped.
+        return '(invalid)';
+      }
       return parsed.precision === undefined ? text : text.slice(0, parsed.precision);
     }
     case 'd':

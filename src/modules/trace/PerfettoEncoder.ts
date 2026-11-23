@@ -200,6 +200,13 @@ export function encodePerfettoTrace(
 ): Uint8Array {
   const chunks: number[][] = [];
 
+  // Descriptors are keyed by track.uuid, but events only carry a tid in this
+  // schema. Resolve tid → uuid so slices/counters attach to the descriptor track.
+  const uuidByTid = new Map<number, number>();
+  for (const track of tracks) {
+    uuidByTid.set(track.tid, track.uuid);
+  }
+
   // 1. Track descriptors
   for (const track of tracks) {
     const descriptor = buildTrackDescriptor({
@@ -217,7 +224,7 @@ export function encodePerfettoTrace(
   for (const slice of slices) {
     // Begin
     const beginBody = buildTrackEvent({
-      trackUuid: slice.tid, // our UUID = tid
+      trackUuid: uuidByTid.get(slice.tid) ?? slice.tid,
       name: slice.name,
       category: slice.category,
       type: 1, // TYPE_SLICE_BEGIN
@@ -231,7 +238,7 @@ export function encodePerfettoTrace(
 
     // End
     const endBody = buildTrackEvent({
-      trackUuid: slice.tid,
+      trackUuid: uuidByTid.get(slice.tid) ?? slice.tid,
       name: slice.name,
       category: slice.category,
       type: 2, // TYPE_SLICE_END
@@ -244,16 +251,14 @@ export function encodePerfettoTrace(
     chunks.push(encodeTracePacketField(endPacket));
   }
 
-  // 3. Counter events (instant events with counter_value)
+  // 3. Counter events (counter-track points)
   for (const counter of counters) {
-    const body = buildTrackEvent({
-      trackUuid: counter.tid,
-      name: counter.name,
-      category: counter.category,
-      type: 3, // TYPE_INSTANT
-      timestampUs: counter.timestampUs,
-      counterValue: counter.value,
-    });
+    const body: number[] = [];
+    fieldVarint(body, 11, uuidByTid.get(counter.tid) ?? counter.tid); // track_uuid
+    fieldVarint(body, 9, 4); // type = TYPE_COUNTER so Perfetto renders a counter track
+    if (counter.name) fieldString(body, 23, counter.name);
+    if (counter.category) fieldString(body, 22, counter.category);
+    fieldFixed64(body, 44, counter.value); // double_counter_value (double)
     const packet = buildTracePacket({
       timestampUs: counter.timestampUs,
       trackEvent: body,

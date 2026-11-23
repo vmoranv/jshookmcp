@@ -357,11 +357,19 @@ class WorkerPoolImpl {
       this.handleTaskTimeout(worker, controller.task.id);
     }, controller.timeoutMs);
 
-    worker.postMessage({
-      type: controller.task.type,
-      id: controller.task.id,
-      payload: controller.task.payload,
-    });
+    try {
+      worker.postMessage({
+        type: controller.task.type,
+        id: controller.task.id,
+        payload: controller.task.payload,
+      });
+    } catch {
+      // postMessage throws synchronously for non-cloneable payloads or a worker
+      // that already exited. Retire the worker (fails the current task) and let
+      // the queue drain instead of leaving this task pending forever.
+      this.removeWorker(worker);
+      this.scheduleDispatch();
+    }
   }
 
   private handleWorkerMessage(worker: Worker, message: unknown): void {

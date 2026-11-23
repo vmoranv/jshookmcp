@@ -765,7 +765,10 @@ export function sha512h(vd: Uint8Array, vn: Uint8Array, vm: Uint8Array): Uint8Ar
   const [n0, n1] = lanes64(vn);
   const [m0, m1] = lanes64(vm);
   const newD1 = BigInt64(d1 + Sigma1_512(m1) + ch64(m1, n0, n1));
-  const newD0 = BigInt64(d0 + Sigma1_512(newD1 + m0) + ch64(newD1 + m0, m1, n0));
+  // Truncate the 65-bit sum before feeding it to the 64-bit rotate: a rotate of
+  // a 65-bit value shifts the carry bit back into the low word.
+  const round2 = BigInt64(newD1 + m0);
+  const newD0 = BigInt64(d0 + Sigma1_512(round2) + ch64(round2, m1, n0));
   return packLanes64(newD0, newD1);
 }
 

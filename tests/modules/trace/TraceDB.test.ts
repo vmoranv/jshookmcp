@@ -107,9 +107,9 @@ describe('TraceDB', () => {
     try {
       smallDb.insertEvent(makeEvent());
       smallDb.insertEvent(makeEvent());
-      // After 2 events, should not be flushed yet
+      // Raw queries flush pending rows first, so both events are visible.
       const before = smallDb.query('SELECT COUNT(*) as cnt FROM events');
-      expect(before.rows[0]![0]).toBe(0);
+      expect(before.rows[0]![0]).toBe(2);
 
       // Third event triggers auto-flush
       smallDb.insertEvent(makeEvent());

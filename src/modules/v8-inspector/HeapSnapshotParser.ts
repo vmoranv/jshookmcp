@@ -526,7 +526,7 @@ export class HeapSnapshotParser {
         while (pending.length > 0) {
           const node = pending.pop();
           if (!node) continue;
-          const entry = histogramMap.get(node.name);
+          const entry = histogramMap.get(node.name || `(${node.type})`);
           if (entry) {
             entry.retainedSize += node.retainedSize;
           }

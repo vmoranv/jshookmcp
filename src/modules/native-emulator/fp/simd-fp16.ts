@@ -92,7 +92,10 @@ export function f16RoundBits(value: number): bigint {
   if (mag < minSub / 2) return sign ? 0x8000n : 0n; // rounds to ±0
 
   const maxNormal = (2 - Math.pow(2, -10)) * Math.pow(2, 15); // ≈ 65504
-  if (mag > maxNormal) return sign ? 0xfc00n : 0x7c00n; // overflow → ±Inf
+  // Values in (65504, 65520) still round DOWN to 65504; only at the halfway
+  // point 65520 (ties-to-even → 2^16, unrepresentable) does it overflow.
+  const overflowThreshold = maxNormal + Math.pow(2, 15 - 10 - 1); // = 65520
+  if (mag >= overflowThreshold) return sign ? 0xfc00n : 0x7c00n; // overflow → ±Inf
 
   // |x| = m * 2^e with 1 ≤ m < 2 for normals. e = floor(log2(|x|)).
   const e = Math.floor(Math.log2(mag));

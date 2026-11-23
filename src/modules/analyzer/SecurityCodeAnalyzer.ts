@@ -113,8 +113,12 @@ function checkTimerStringArg(
   line: number,
 ): SecurityRisk | null {
   const firstArg = node.arguments[0];
+  // Only string literals (or expression-free templates) are evaluated by the
+  // timer. A bare identifier is normally a function reference — flagging every
+  // `setTimeout(callback, ...)` was a false positive.
   const isEvaluated =
-    t.isStringLiteral(firstArg) || (t.isIdentifier(firstArg) && firstArg.name !== 'function');
+    t.isStringLiteral(firstArg) ||
+    (t.isTemplateLiteral(firstArg) && firstArg.expressions.length === 0);
   if (!isEvaluated) return null;
   return {
     type: 'other',

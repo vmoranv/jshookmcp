@@ -134,7 +134,9 @@ export class Deobfuscator {
       }
     }
     result.cached = false;
-    this.resultCache.set(cacheKey, result);
+    // Store a copy so a caller mutating the returned object cannot poison the
+    // cache entry for later callers.
+    this.resultCache.set(cacheKey, { ...result });
 
     return result;
   }

@@ -32,9 +32,9 @@ const handlers = new WebGPUHandlers(
 
 const SPIRV_MAGIC = 0x07230203;
 const OP_ENTRY_POINT = 15;
-const OP_NAME = 19;
-const OP_MEMBER_NAME = 20;
-const OP_TYPE_VOID = 17;
+const OP_NAME = 5;
+const OP_MEMBER_NAME = 6;
+const OP_TYPE_VOID = 19;
 const OP_TYPE_FLOAT = 22;
 const OP_TYPE_VECTOR = 23;
 const OP_TYPE_STRUCT = 30;

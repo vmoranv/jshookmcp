@@ -39,6 +39,13 @@ describe('ShaderCache', () => {
       expect(cache.has(shader)).toBe(true);
     });
 
+    it('has() is true for a cached null result', () => {
+      const shader = '@vertex fn main() {}';
+      cache.set(shader, null as unknown as { compiled: boolean });
+      expect(cache.has(shader)).toBe(true);
+      expect(cache.get(shader)).toBeNull();
+    });
+
     it('should handle different shader codes separately', () => {
       const shader1 = '@vertex fn main() {}';
       const shader2 = '@fragment fn main() {}';

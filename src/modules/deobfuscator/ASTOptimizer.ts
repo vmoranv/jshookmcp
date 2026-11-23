@@ -15,6 +15,20 @@ const MAX_USAGE_COUNT = 3;
 /** Valid JS identifier shape: `$`/`_`/alpha start, then word characters. */
 const DUPLICATE_IDENTIFIER_PATTERN = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 
+/**
+ * Only propagate/inline genuine literals. `t.isLiteral` also matches template
+ * literals with embedded expressions and regex literals, whose duplication at a
+ * reference site would re-evaluate non-constant code.
+ */
+function isSafeConstantLiteral(node: t.Node): node is t.Expression {
+  return (
+    t.isNumericLiteral(node) ||
+    t.isStringLiteral(node) ||
+    t.isBooleanLiteral(node) ||
+    t.isNullLiteral(node)
+  );
+}
+
 export class ASTOptimizer {
   optimize(
     code: string,
@@ -100,6 +114,12 @@ export class ASTOptimizer {
               return;
           }
 
+          // `numericLiteral(Infinity | -0)` would emit the bare `Infinity`
+          // identifier (shadowable) or lose `-0`; leave those expressions alone.
+          if (!Number.isFinite(result) || Object.is(result, -0)) {
+            return;
+          }
+
           path.replaceWith(t.numericLiteral(result));
         }
 
@@ -138,7 +158,7 @@ export class ASTOptimizer {
       VariableDeclarator(path) {
         const { id, init } = path.node;
 
-        if (t.isIdentifier(id) && init && t.isLiteral(init)) {
+        if (t.isIdentifier(id) && init && isSafeConstantLiteral(init)) {
           const binding = path.scope.getBinding(id.name);
           if (binding && binding.constant && binding.path === path) {
             constants.set(binding.identifier, init);
@@ -148,6 +168,15 @@ export class ASTOptimizer {
 
       Identifier(path) {
         if (!path.isReferencedIdentifier()) {
+          return;
+        }
+        // Replacing a callee with a scalar (`const f = 1; f()`) produces
+        // unparseable `1()`; leave call/new targets alone.
+        const parent = path.parentPath;
+        if (
+          (parent.isCallExpression() || parent.isNewExpression()) &&
+          parent.node.callee === path.node
+        ) {
           return;
         }
         const binding = path.scope.getBinding(path.node.name);
@@ -206,6 +235,12 @@ export class ASTOptimizer {
       BinaryExpression(path) {
         const { left, right, operator } = path.node;
 
+        // These identities only hold for numbers: `'1' + 0` is `'10'`, and
+        // `NaN * 0` is `NaN`, so require a numeric left operand.
+        if (!t.isNumericLiteral(left)) {
+          return;
+        }
+
         if (operator === '+' && t.isNumericLiteral(right) && right.value === 0) {
           path.replaceWith(left);
         }
@@ -244,7 +279,7 @@ export class ASTOptimizer {
       VariableDeclarator(path) {
         const { id, init } = path.node;
 
-        if (t.isIdentifier(id) && init && t.isLiteral(init)) {
+        if (t.isIdentifier(id) && init && isSafeConstantLiteral(init)) {
           const binding = path.scope.getBinding(id.name);
           if (binding && binding.constant && binding.path === path) {
             inlineCandidates.set(binding.identifier, { value: init, usageCount: 0 });
@@ -302,6 +337,11 @@ export class ASTOptimizer {
         const { key, computed } = path.node;
 
         if (computed && t.isStringLiteral(key) && key.value) {
+          // `{ ['__proto__']: v }` creates an own property, whereas
+          // `{ __proto__: v }` sets the prototype; keep the computed form.
+          if (key.value === '__proto__') {
+            return;
+          }
           if (DUPLICATE_IDENTIFIER_PATTERN.test(key.value)) {
             (path.node as t.ObjectProperty).computed = false;
             (path.node as t.ObjectProperty).key = t.identifier(key.value);
@@ -321,6 +361,20 @@ export class ASTOptimizer {
         }
 
         if (path.parentPath.isExpressionStatement()) {
+          // Only split into multiple statements where a statement list is legal
+          // (Program/Block/SwitchCase). Expanding a braceless `if (c) a, b;`
+          // would leave the `if` with two statements.
+          const statementParent = path.parentPath.parentPath;
+          if (
+            !statementParent ||
+            !(
+              statementParent.isProgram() ||
+              statementParent.isBlockStatement() ||
+              statementParent.isSwitchCase()
+            )
+          ) {
+            return;
+          }
           const statements = expressions.map((expr: t.Expression) => t.expressionStatement(expr));
           path.parentPath.replaceWithMultiple(statements);
         }

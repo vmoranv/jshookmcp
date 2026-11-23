@@ -69,6 +69,8 @@ export class AxmlParser {
   private offset = 0;
   private stringPool: StringPool = { strings: [], styleOffsets: [] };
   private namespaceMap = new Map<number, string>();
+  /** URI → prefix, for rendering attribute names as `prefix:name`. */
+  private namespacePrefixByUri = new Map<string, string>();
 
   constructor(buffer: Buffer) {
     this.buffer = buffer;
@@ -167,8 +169,12 @@ export class AxmlParser {
       strings.push(this.readStringAt(absoluteOffset, isUtf8));
     }
 
-    // Skip to end of chunk
-    this.offset = poolStart + chunkSize;
+    // Skip to end of chunk, but never rewind: a chunkSize smaller than the
+    // header we just consumed would otherwise loop forever.
+    const chunkEnd = poolStart + chunkSize;
+    if (chunkEnd > this.offset) {
+      this.offset = Math.min(chunkEnd, this.buffer.length);
+    }
 
     return { strings, styleOffsets };
   }
@@ -184,8 +190,8 @@ export class AxmlParser {
     try {
       if (isUtf8) {
         // UTF-8 format: two length bytes (char count, byte count), then data, then null terminator
-        this.readUInt8(); // charCount (unused)
-        const byteCount = this.readUInt8();
+        this.readUtf8Length(); // charCount (unused)
+        const byteCount = this.readUtf8Length();
 
         if (byteCount === 0) {
           this.offset = savedOffset;
@@ -272,6 +278,8 @@ export class AxmlParser {
     if (prefixIdx !== 0xffffffff && uriIdx !== 0xffffffff) {
       const uri = this.getString(uriIdx);
       this.namespaceMap.set(prefixIdx, uri);
+      const prefix = this.getString(prefixIdx);
+      if (prefix) this.namespacePrefixByUri.set(uri, prefix);
     }
 
     return null; // namespace declarations don't generate events
@@ -414,7 +422,10 @@ export class AxmlParser {
   }
 
   private formatAttribute(attr: XmlAttribute): string {
-    const name = attr.namespace ? `${attr.namespace}:${attr.name}` : attr.name;
+    // attr.namespace is a URI, not a prefix; resolve the declared prefix so the
+    // output is valid XML (`android:name`), falling back to the bare name.
+    const prefix = attr.namespace ? this.namespacePrefixByUri.get(attr.namespace) : undefined;
+    const name = prefix ? `${prefix}:${attr.name}` : attr.name;
     const value = this.formatAttributeValue(attr);
     return `${name}="${this.escapeXml(value)}"`;
   }
@@ -455,6 +466,17 @@ export class AxmlParser {
       return '';
     }
     return this.stringPool.strings[index] ?? '';
+  }
+
+  /**
+   * Android's UTF-8 string pool encodes lengths in 1 or 2 bytes: a high bit in
+   * the first byte signals a 15-bit extended length.
+   */
+  private readUtf8Length(): number {
+    const first = this.readUInt8();
+    if ((first & 0x80) === 0) return first;
+    const second = this.readUInt8();
+    return ((first & 0x7f) << 8) | second;
   }
 
   private readUInt8(): number {

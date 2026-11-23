@@ -156,10 +156,10 @@ export function calculateLogPriority(log: ConsoleMessage): number {
 export function filterCriticalLogs(logs: ConsoleMessage[]): ConsoleMessage[] {
   return logs
     .filter((log) => {
+      if (!log.text || log.text.trim().length === 0) return false;
+
       const isFrameworkLog = FRAMEWORK_LOG_KEYWORDS.some((keyword) => log.text.includes(keyword));
       if (isFrameworkLog) return false;
-
-      if (!log.text || log.text.trim().length === 0) return false;
 
       if (log.type === 'error' || log.type === 'warn') return true;
 

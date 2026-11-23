@@ -50,6 +50,11 @@ describe('Android SOTA 3-Phase Engine Test Suite', () => {
     recorder.setMemoryTaint(0x1004, true);
     expect(recorder.isMemoryTainted(0x1000)).toBe(true); // aligned to 8-byte
 
+    // Addresses above 0x7fffffff must align without 32-bit wrapping.
+    recorder.setMemoryTaint(0x1_0000_0008, true);
+    expect(recorder.isMemoryTainted(0x1_0000_0008)).toBe(true);
+    expect(recorder.isMemoryTainted(0x8)).toBe(false);
+
     recorder.recordStep({
       step: 1,
       pc: 0x1000,

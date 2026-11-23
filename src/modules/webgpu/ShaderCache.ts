@@ -83,7 +83,16 @@ export class ShaderCache<T = any> {
    * @returns True if cached and valid
    */
   has(code: string): boolean {
-    return this.get(code) !== null;
+    const hash = this.hashCode(code);
+    const entry = this.cache.get(hash);
+    if (!entry) {
+      return false;
+    }
+    if (Date.now() - entry.timestamp > this.ttl) {
+      this.cache.delete(hash);
+      return false;
+    }
+    return true;
   }
 
   /**

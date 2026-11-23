@@ -68,7 +68,9 @@ export class Arm64TraceRecorder {
   }
 
   setMemoryTaint(address: number, tainted: boolean): void {
-    const aligned = address & ~0x7;
+    // `address & ~7` coerces to signed 32-bit and wraps AArch64 addresses above
+    // 0x7fffffff. Addresses here are JS numbers (< 2^53), so align arithmetically.
+    const aligned = Math.floor(address / 8) * 8;
     if (tainted) {
       this.taintedMemory.add(aligned);
     } else {
@@ -77,7 +79,7 @@ export class Arm64TraceRecorder {
   }
 
   isMemoryTainted(address: number): boolean {
-    const aligned = address & ~0x7;
+    const aligned = Math.floor(address / 8) * 8;
     return this.taintedMemory.has(aligned);
   }
 

@@ -41,16 +41,29 @@ export function roundToInt(value: number, mode: RoundingMode): number {
   if (!Number.isFinite(value)) return value; // ±Inf, NaN pass through
   if (value === 0) return value; // ±0 pass through (preserve sign)
 
+  let rounded: number;
   switch (mode) {
     case RoundingMode.RN:
-      return roundTiesToEven(value);
+      rounded = roundTiesToEven(value);
+      break;
     case RoundingMode.RP:
-      return Math.ceil(value);
+      rounded = Math.ceil(value);
+      break;
     case RoundingMode.RM:
-      return Math.floor(value);
+      rounded = Math.floor(value);
+      break;
     case RoundingMode.RZ:
-      return Math.trunc(value);
+      rounded = Math.trunc(value);
+      break;
+    default:
+      rounded = value;
+      break;
   }
+  // FRINTN(-0.4) must yield -0.0, not +0.0: `1 - 0.6` etc. lose the sign.
+  if (rounded === 0 && value < 0) {
+    return -0;
+  }
+  return rounded;
 }
 
 /**

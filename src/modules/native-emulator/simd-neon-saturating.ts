@@ -270,6 +270,13 @@ export function neonSqshl(
     // ARM ARM: the shift is the SIGNED lane value; negative = right shift.
     const shift = Number(shiftRaw);
 
+    // Shifting zero by any amount stays zero and must not raise QC even when the
+    // shift count equals/exceeds the lane width.
+    if (value === 0n) {
+      writeLane(vd, i, size, 0n);
+      continue;
+    }
+
     let result: bigint;
     if (shift >= 0) {
       // Left shift with saturation
@@ -310,6 +317,11 @@ export function neonUqshl(
     const shiftRaw = readLaneSigned(vm, i, size);
     // ARM ARM: the shift is the SIGNED lane value; negative = right shift.
     const shift = Number(shiftRaw);
+
+    if (value === 0n) {
+      writeLane(vd, i, size, 0n);
+      continue;
+    }
 
     let result: bigint;
     if (shift >= 0) {

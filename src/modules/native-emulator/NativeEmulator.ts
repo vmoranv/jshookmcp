@@ -373,6 +373,9 @@ export class NativeEmulator {
    */
   allocGuestMemory(size: number, fillBytes?: Uint8Array): number {
     this.checkNotDisposed();
+    if (!Number.isFinite(size) || size <= 0) {
+      throw new RangeError(`allocGuestMemory size must be a positive finite number (got ${size})`);
+    }
     const pageSize = getReverseEngineeringConfig().nativeEmulator.guestPageSizeBytes;
     const aligned = Math.ceil(size / pageSize) * pageSize;
     if (this.nextAllocAddr + aligned > NativeEmulator.HEAP_CEIL) {

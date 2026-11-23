@@ -165,6 +165,7 @@ export class MemoryManager {
    * @param bytes - Data to write
    */
   writeMemory(address: number, bytes: Uint8Array): void {
+    if (this.isWriteProtected(address, bytes.length)) return;
     const region = this.findRegion(address, bytes.length, true);
     const offset = address - region.base;
     region.data.set(bytes, offset);
