@@ -18,14 +18,17 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-const TEST_DIR = join(tmpdir(), `detailed-data-lifecycle-${Date.now()}`);
+// Unique per test: Windows can keep an unlinked metadata file locked long
+// enough for the next manager's async init() to load a previous test's entry,
+// which surfaces as a phantom cacheSize increment.
+let TEST_DIR = '';
+let PERSIST_DIR = '';
+let METADATA_PATH = '';
+let dirCounter = 0;
 
 vi.mock('@utils/artifacts', () => ({
   getArtifactDir: (sub: string) => join(TEST_DIR, sub),
 }));
-
-const PERSIST_DIR = join(TEST_DIR, 'tmp', 'detailed-data');
-const METADATA_PATH = join(PERSIST_DIR, '.metadata.jsonl');
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -58,6 +61,10 @@ describe('DetailedDataManager disk lifecycle', () => {
   let manager: DetailedDataManager;
 
   beforeEach(async () => {
+    dirCounter += 1;
+    TEST_DIR = join(tmpdir(), `detailed-data-lifecycle-${process.pid}-${Date.now()}-${dirCounter}`);
+    PERSIST_DIR = join(TEST_DIR, 'tmp', 'detailed-data');
+    METADATA_PATH = join(PERSIST_DIR, '.metadata.jsonl');
     await mkdir(TEST_DIR, { recursive: true });
     await mkdir(PERSIST_DIR, { recursive: true });
     manager = new DetailedDataManager();
