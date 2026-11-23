@@ -271,7 +271,8 @@ export function ReadProcessMemory(hProcess: bigint, lpBaseAddress: bigint, size:
     throw new Error(`ReadProcessMemory failed. Error: 0x${error.toString(16)}`);
   }
 
-  return buffer;
+  const bytesRead = Number(bytesReadBuf.readBigUInt64LE(0));
+  return bytesRead < size ? buffer.subarray(0, bytesRead) : buffer;
 }
 
 /**
@@ -344,7 +345,8 @@ export async function ReadProcessMemoryAsync(
     throw new Error('ReadProcessMemory failed');
   }
 
-  return buffer;
+  const bytesRead = Number(bytesReadBuf.readBigUInt64LE(0));
+  return bytesRead < size ? buffer.subarray(0, bytesRead) : buffer;
 }
 
 /**

@@ -33,6 +33,9 @@ import {
 
 // ── types ───────────────────────────────────────────────────────────────────
 
+/** Maximum bytes we will buffer while waiting for one packet's terminator. */
+const MAX_PACKET_BUFFER = 0x3fff + 16;
+
 export interface GdbServerConfig {
   host: string;
   port: number;
@@ -97,7 +100,8 @@ export class GdbRspServer extends EventEmitter {
   private nextClientId = 1;
   private totalConnections = 0;
   private startedAt: Date | null = null;
-  private noAckMode = false;
+  /** Clients that negotiated `QStartNoAckMode` (per-connection state). */
+  private noAckClients = new Set<number>();
   private serverRunning = false;
 
   constructor(config: GdbServerConfig) {
@@ -125,7 +129,7 @@ export class GdbRspServer extends EventEmitter {
       clients: Array.from(this.clients.values()).map((c) => ({ ...c.info })),
       totalConnections: this.totalConnections,
       startedAt: this.startedAt,
-      noAckMode: this.noAckMode,
+      noAckMode: this.noAckClients.size > 0,
     };
   }
 
@@ -133,14 +137,27 @@ export class GdbRspServer extends EventEmitter {
     if (this.serverRunning) return;
 
     return new Promise<void>((resolve, reject) => {
-      this.server = net.createServer((socket) => this.handleConnection(socket));
+      const server = net.createServer((socket) => this.handleConnection(socket));
+      this.server = server;
 
-      this.server.on('error', (err) => {
+      server.on('error', (err) => {
         this.serverRunning = false;
-        reject(err);
+        // A failed listen leaves an unusable server instance behind; drop it so
+        // a later start() creates a fresh one instead of leaking the old one.
+        if (this.server === server) {
+          this.server = null;
+          this.startedAt = null;
+        }
+        try {
+          server.close();
+        } catch {
+          /* not listening / already closed */
+        }
+        this.emit('server-error', err);
+        reject(err); // no-op once start() has already resolved
       });
 
-      this.server.listen(this.config.port, this.config.host, () => {
+      server.listen(this.config.port, this.config.host, () => {
         this.serverRunning = true;
         this.startedAt = new Date();
         this.emit('started', { host: this.config.host, port: this.config.port });
@@ -158,6 +175,7 @@ export class GdbRspServer extends EventEmitter {
         client.socket.destroy();
       }
       this.clients.clear();
+      this.noAckClients.clear();
 
       if (this.server) {
         this.server.close(() => {
@@ -221,11 +239,8 @@ export class GdbRspServer extends EventEmitter {
 
         const dollarIdx = buffer.indexOf('$');
         if (dollarIdx < 0) {
-          // No packet start found — discard noise or wait for more data.
-          if (buffer.length > 0 && dollarIdx < 0) {
-            // Keep the buffer for incomplete packets.
-            break;
-          }
+          // Anything before a packet start is noise per the RSP spec. Drop it
+          // so a client streaming garbage cannot grow the buffer without bound.
           buffer = '';
           break;
         }
@@ -238,7 +253,11 @@ export class GdbRspServer extends EventEmitter {
         // Find the end of packet (#checksum)
         const hashIdx = buffer.indexOf('#');
         if (hashIdx < 0) {
-          // Incomplete packet — wait for more data.
+          // Incomplete packet — wait for more data, but never beyond the
+          // advertised packet size.
+          if (buffer.length > MAX_PACKET_BUFFER) {
+            buffer = '';
+          }
           break;
         }
 
@@ -251,25 +270,27 @@ export class GdbRspServer extends EventEmitter {
         buffer = buffer.slice(hashIdx + 3);
         info.packetsReceived++;
 
-        // Send ACK unless in no-ack mode.
-        if (!this.noAckMode) {
+        // Send ACK unless this client negotiated no-ack mode.
+        if (!this.noAckClients.has(id)) {
           socket.write('+');
           info.bytesSent++;
         }
 
-        const response = this.processPacket(packet);
+        const response = this.processPacket(packet, id);
         this.sendResponse(socket, info, response);
       }
     });
 
     socket.on('close', () => {
       this.clients.delete(id);
+      this.noAckClients.delete(id);
       this.emit('client-disconnected', info);
     });
 
     socket.on('error', (err) => {
       this.emit('client-error', { id, error: err.message });
       this.clients.delete(id);
+      this.noAckClients.delete(id);
     });
   }
 
@@ -283,7 +304,7 @@ export class GdbRspServer extends EventEmitter {
 
   // ── packet dispatch ───────────────────────────────────────────────────────
 
-  private processPacket(packet: string): string {
+  private processPacket(packet: string, clientId: number): string {
     const { data, valid } = decodeRspPacket(packet);
     if (!valid) {
       return encodeRspPacket('E01');
@@ -296,7 +317,9 @@ export class GdbRspServer extends EventEmitter {
 
     // Handle QStartNoAckMode
     if (data === 'QStartNoAckMode') {
-      this.noAckMode = true;
+      // No-ack is per-connection; toggling it server-wide would desynchronize
+      // other clients that still expect ACKs.
+      this.noAckClients.add(clientId);
       return encodeRspPacket('OK');
     }
 
@@ -400,7 +423,7 @@ export class GdbRspServer extends EventEmitter {
       'qXfer:threads:read+',
       'vContSupported+',
       'multiprocess+',
-      'swbreak+',
+      'swbreak-',
       'hwbreak-',
       'no-resumed+',
     ];
@@ -417,7 +440,11 @@ export class GdbRspServer extends EventEmitter {
     const regHex = GDB_REG_NAMES.map((name) => {
       try {
         const val = eng.readRegister(name);
-        return val.toString(16).padStart(16, '0');
+        // Normalize to unsigned 64-bit: a negative or sign-bit-set value would
+        // otherwise render as "-1a2b…" and corrupt the whole `g` packet.
+        return BigInt.asUintN(64, BigInt(Math.trunc(val)))
+          .toString(16)
+          .padStart(16, '0');
       } catch {
         return '0000000000000000';
       }
@@ -541,46 +568,18 @@ export class GdbRspServer extends EventEmitter {
   private handleSetBreakpoint(data: string): string {
     // Z0,addr,kind — set software breakpoint.
     // Z1,addr,kind — set hardware breakpoint.
-    // Stub: acknowledge, actual bp implementation deferred to session.
-    const parts = data.split(',');
-    if (parts.length < 2) return encodeRspPacket('E22');
-
-    const bpType = parts[0]?.slice(1); // e.g. "0" from "Z0"
-    const addrStr = parts[1];
-    if (!addrStr) return encodeRspPacket('E22');
-
-    const addr = parseInt(addrStr, 16);
-    if (Number.isNaN(addr)) return encodeRspPacket('E22');
-
-    // Store breakpoint in session metadata.
-    const session = this.config.getSession(this.config.sessionId);
-    const eng = session.emulator.engine;
-
-    // Read original byte at address.
-    try {
-      const origByte = eng.readMemory(addr, 1);
-      const origHex = bytesToHex(origByte);
-      // Inject breakpoint instruction (BRK #0 = 0xD4200000 for ARM64, but for memory bps we use a simple flag).
-      // For now, this is a tracking stub — actual breakpoint hit is checked in step/continue.
-      this.emit('breakpoint-set', { type: bpType, addr, orig: origHex });
-      return encodeRspPacket('OK');
-    } catch {
-      return encodeRspPacket('E22');
-    }
+    // This emulator transport does not install breakpoints in the target and
+    // step/continue never check hit state, so acknowledging with OK would make
+    // GDB believe a breakpoint exists. An empty response = unsupported packet.
+    void data;
+    return encodeRspPacket('');
   }
 
   private handleClearBreakpoint(data: string): string {
-    // z0,addr,kind — clear software breakpoint.
-    const parts = data.split(',');
-    if (parts.length < 2) return encodeRspPacket('E22');
-    const bpType = parts[0]?.slice(1);
-    const addrStr = parts[1];
-    if (!addrStr) return encodeRspPacket('E22');
-    const addr = parseInt(addrStr, 16);
-    if (Number.isNaN(addr)) return encodeRspPacket('E22');
-
-    this.emit('breakpoint-cleared', { type: bpType, addr });
-    return encodeRspPacket('OK');
+    // z0/z1 — no breakpoints are ever installed, so there is nothing to clear.
+    // Reply "unsupported" rather than falsely confirming removal.
+    void data;
+    return encodeRspPacket('');
   }
 
   private handleVCont(data: string): string {

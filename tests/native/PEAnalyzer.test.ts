@@ -762,16 +762,18 @@ describe('PEAnalyzer', () => {
       expect(imports[0]!.dllName.charAt(0)).toBe('B');
     });
 
-    it('should fallback to FirstThunk if OriginalFirstThunk is 0', async () => {
+    it('lists the DLL without functions when OriginalFirstThunk is 0', async () => {
       const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
       const originalRPM = RPMLocal as any;
 
       originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         const offset = Number(addr);
-        if (size === 20 && offset === 0x2200) {
+        if (size === 20 && offset === 0x3000) {
           // This is reading the first IMPORT DESCRIPTOR!
           const desc = Buffer.from(mockPE.subarray(offset, offset + size));
-          // Wipe OriginalFirstThunk (bytes 0-3) to force fall-through to FirstThunk (bytes 16-19)
+          // Wipe OriginalFirstThunk (bytes 0-3); FirstThunk now holds
+          // loader-resolved addresses in a live process, so it must not be
+          // interpreted as an INT.
           desc.writeUInt32LE(0, 0);
           return desc;
         }
@@ -783,8 +785,8 @@ describe('PEAnalyzer', () => {
       });
       const imports = await analyzer.parseImports(1234, '0x0');
       expect(imports.length).toBe(1);
-      // The thunks should still map!
-      expect(imports[0]!.functions.length).toBe(2);
+      // Names cannot be recovered without the INT; do not fabricate them.
+      expect(imports[0]!.functions.length).toBe(0);
     });
   });
 

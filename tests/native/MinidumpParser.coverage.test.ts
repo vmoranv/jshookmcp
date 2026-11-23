@@ -80,6 +80,28 @@ describe('parseMinidump — file read + header validation', () => {
     expect(r.success).toBe(false);
     expect(r.error).toBeDefined();
   });
+
+  it('rejects a stream directory RVA past the end of the file', () => {
+    mockReadFileSync.mockReturnValue(header(1, 0xfffffff0));
+    const r = parseMinidump('/bad-dir.dmp');
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/out of bounds/);
+  });
+
+  it('skips a truncated stream without fabricating entries', () => {
+    // ThreadListStream claims 2 threads but the stream holds only the count.
+    const dirOffset = 32;
+    const streamOffset = dirOffset + 12;
+    const stream = Buffer.alloc(4);
+    stream.writeUInt32LE(2, 0);
+
+    const buf = Buffer.concat([header(1, dirOffset), dirEntry(3, 48, streamOffset), stream]);
+    mockReadFileSync.mockReturnValue(buf);
+
+    const r = parseMinidump('/trunc-stream.dmp');
+    expect(r.success).toBe(true);
+    expect(r.threads).toEqual([]);
+  });
 });
 
 describe('parseMinidump — stream directory loop', () => {

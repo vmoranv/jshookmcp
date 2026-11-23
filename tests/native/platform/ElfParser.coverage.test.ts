@@ -14,7 +14,7 @@ vi.mock('node:fs', () => ({
 
 import { parseElfHeader, parseElfSections, parseElfSymbols } from '@native/platform/ElfParser';
 
-/** Minimal 64-byte ELF64 header (magic + ELFCLASS64, all other fields zero). */
+/** Minimal 64-byte ELF64 header (magic + ELFCLASS64 + LE, other fields zero). */
 function elf64Header(over: Record<number, number> = {}): Buffer {
   const b = Buffer.alloc(64);
   b[0] = 0x7f;
@@ -22,6 +22,7 @@ function elf64Header(over: Record<number, number> = {}): Buffer {
   b[2] = 0x4c; // L
   b[3] = 0x46; // F
   b[4] = 0x02; // ELFCLASS64
+  b[5] = 0x01; // ELFDATA2LSB
   for (const [off, val] of Object.entries(over)) b.writeUInt8(val, Number(off));
   return b;
 }
@@ -46,6 +47,12 @@ describe('parseElfHeader', () => {
   it('returns null for a sub-64-byte buffer', () => {
     mockReadFileSync.mockReturnValue(Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02]));
     expect(parseElfHeader('/x')).toBeNull();
+  });
+
+  it('returns null for a big-endian ELF64 header (all reads are LE)', () => {
+    mockReadFileSync.mockReturnValue(elf64Header({ 5: 0x02 })); // ELFDATA2MSB
+    expect(parseElfHeader('/x')).toBeNull();
+    expect(parseElfSections('/x')).toEqual([]);
   });
 
   it('parses a minimal valid ELF64 header', () => {

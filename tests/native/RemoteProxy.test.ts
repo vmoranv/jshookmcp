@@ -160,6 +160,33 @@ describe('RemoteProxy connect flow (mock ws)', () => {
 
     await expect(fastProxy.connect()).rejects.toThrow('timed out');
     expect(proxy.status.connected).toBe(false);
+    // The socket under construction must be closed, not leaked.
+    expect(mockWs.close).toHaveBeenCalled();
+  });
+
+  it('shares one in-flight connect across concurrent callers', async () => {
+    const factory = vi.fn(() => mockWs as unknown as WsLike);
+    const sharedProxy = new RemoteProxy({
+      url: 'ws://127.0.0.1:17171',
+      connectTimeoutMs: 5000,
+      wsFactory: factory,
+    });
+
+    const p1 = sharedProxy.connect();
+    const p2 = sharedProxy.connect();
+    expect(factory).toHaveBeenCalledTimes(1);
+
+    setTimeout(() => mockWs.triggerOpen(), 10);
+    await Promise.all([p1, p2]);
+    expect(sharedProxy.status.connected).toBe(true);
+    sharedProxy.disconnect();
+  });
+
+  it('rejects a connect() that closes before opening instead of waiting for timeout', async () => {
+    const pending = proxy.connect();
+    mockWs.triggerClose(1006, 'refused');
+    await expect(pending).rejects.toThrow(/closed before open/);
+    expect(proxy.status.connected).toBe(false);
   });
 
   it('rejects on WebSocket creation error', async () => {
@@ -321,6 +348,15 @@ describe('RemoteProxy forward tool call (mock ws)', () => {
 
     await expect(proxy.forward('test_tool', {})).rejects.toThrow('WebSocket not open');
     expect(proxy.status.errors).toBe(1);
+  });
+
+  it('rejects in-flight requests immediately when the connection closes', async () => {
+    const forwardPromise = proxy.forward('pending_tool', {});
+    expect(mockWs.send).toHaveBeenCalledTimes(1);
+
+    mockWs.triggerClose(1006, 'connection lost');
+
+    await expect(forwardPromise).rejects.toThrow(/Connection closed/);
   });
 });
 

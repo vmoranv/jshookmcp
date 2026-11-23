@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryController } from '@native/MemoryController';
-import { VirtualProtectEx, WriteProcessMemory } from '@native/Win32API';
+import { ReadProcessMemory, VirtualProtectEx, WriteProcessMemory } from '@native/Win32API';
 
 // Mock Win32API
 vi.mock('@native/Win32API', () => ({
@@ -73,6 +73,27 @@ describe('MemoryController', () => {
       expect(entry.oldValue.length).toBeGreaterThan(0);
       expect(entry.newValue.length).toBeGreaterThan(0);
     });
+
+    it('refuses to write when the undo snapshot read is short', async () => {
+      // 4-byte value requested, but only 2 bytes could be read.
+      vi.mocked(ReadProcessMemory).mockImplementationOnce(() => Buffer.from([0xaa, 0xbb]));
+
+      await expect(ctrl.writeValue(1234, '0x1000', '42', 'int32')).rejects.toThrow(
+        /complete undo snapshot/,
+      );
+      expect(WriteProcessMemory).not.toHaveBeenCalled();
+    });
+
+    it('restores the original protection even when the write throws', async () => {
+      vi.mocked(WriteProcessMemory).mockImplementationOnce(() => {
+        throw new Error('write failed');
+      });
+
+      await expect(ctrl.writeValue(1234, '0x1000', '42', 'int32')).rejects.toThrow('write failed');
+      // One call to make it writable, one to restore.
+      expect(VirtualProtectEx).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(VirtualProtectEx).mock.calls[1]![3]).toBe(0x04); // oldProtect
+    });
   });
 
   describe('undo/redo', () => {
@@ -97,6 +118,21 @@ describe('MemoryController', () => {
 
     it('should return null when nothing to redo', async () => {
       expect(await ctrl.redo()).toBeNull();
+    });
+
+    it('keeps the redo entry when the redo write fails', async () => {
+      await ctrl.writeValue(1234, '0x1000', '42', 'int32');
+      await ctrl.undo();
+
+      vi.mocked(WriteProcessMemory).mockImplementationOnce(() => {
+        throw new Error('redo write failed');
+      });
+      await expect(ctrl.redo()).rejects.toThrow('redo write failed');
+
+      // The entry must still be redoable after a transient failure.
+      const redone = await ctrl.redo();
+      expect(redone).not.toBeNull();
+      expect(redone!.undone).toBe(false);
     });
 
     it('should clear redo stack on new write', async () => {

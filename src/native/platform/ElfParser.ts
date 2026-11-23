@@ -49,6 +49,8 @@ export interface ElfSymbolTable {
 }
 
 const ELFCLASS64 = 2;
+/** EI_DATA value for little-endian. Every read below uses the *LE decoders. */
+const ELFDATA2LSB = 1;
 const SHF_EXECINSTR = 0x4;
 const SHF_WRITE = 0x1;
 const SHF_ALLOC = 0x2;
@@ -74,7 +76,8 @@ function readElf64(filePath: string): Buffer | null {
     data[1] !== 0x45 ||
     data[2] !== 0x4c ||
     data[3] !== 0x46 ||
-    data[4] !== ELFCLASS64
+    data[4] !== ELFCLASS64 ||
+    data[5] !== ELFDATA2LSB // reject BE/invalid encoding — reads below are LE
   )
     return null;
   return data;

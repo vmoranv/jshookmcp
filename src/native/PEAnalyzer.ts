@@ -211,8 +211,16 @@ export class PEAnalyzer {
           .subarray(0, nullIdx > 0 ? nullIdx : MAX_DLL_NAME_BYTES)
           .toString('ascii');
 
-        // Read thunk array (simplified — just collect names)
-        const originalFirstThunkRva = desc.readUInt32LE(0) || desc.readUInt32LE(16);
+        // OriginalFirstThunk is the Import Name Table (INT). In a live process
+        // it can be absent; FirstThunk (the IAT) has then been overwritten with
+        // loader-resolved addresses, so parsing it as hint/name RVAs would emit
+        // bogus names and bogus IAT-hook findings. List the DLL only.
+        const originalFirstThunkRva = desc.readUInt32LE(0);
+        if (originalFirstThunkRva === 0) {
+          imports.push({ dllName, functions: [] });
+          descOffset += IMPORT_DESCRIPTOR_SIZE;
+          continue;
+        }
         const functions = this.readThunkArray(
           hProcess,
           base,

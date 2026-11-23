@@ -94,6 +94,8 @@ export class RemoteProxy extends EventEmitter {
   private lastError: string | undefined;
   private connectedAt: Date | null = null;
   private intentionalClose = false;
+  /** In-flight connect, shared so concurrent callers cannot open two sockets. */
+  private connectPromise: Promise<void> | null = null;
 
   constructor(config: RemoteProxyConfig) {
     super();
@@ -125,7 +127,17 @@ export class RemoteProxy extends EventEmitter {
 
   async connect(): Promise<void> {
     if (this.connected) return;
+    // The factory resolution below yields, so without this guard two callers
+    // (or a reconnect racing a caller) would each open a socket and the last
+    // assignment would orphan the first.
+    if (this.connectPromise) return this.connectPromise;
+    this.connectPromise = this.doConnect().finally(() => {
+      this.connectPromise = null;
+    });
+    return this.connectPromise;
+  }
 
+  private async doConnect(): Promise<void> {
     this.intentionalClose = false;
     const connectTimeout = this.config.connectTimeoutMs;
 
@@ -143,13 +155,18 @@ export class RemoteProxy extends EventEmitter {
       })());
 
     return new Promise<void>((resolve, reject) => {
+      let ws: WebSocketLike | undefined;
+      let opened = false;
+
       const timer = setTimeout(() => {
-        this.ws?.close();
+        // `this.ws` is the socket under construction (assigned below) — close
+        // it, otherwise the connection attempt outlives the rejected promise.
+        if (this.ws === ws) this.ws = null;
+        ws?.close();
         this.lastError = `Connection to ${this.config.url} timed out after ${connectTimeout}ms`;
         reject(new Error(this.lastError));
       }, connectTimeout);
 
-      let ws: WebSocketLike;
       try {
         const headers: Record<string, string> = {};
         if (this.config.authToken) {
@@ -163,10 +180,15 @@ export class RemoteProxy extends EventEmitter {
         return;
       }
 
+      // Track the socket from the start so disconnect() can abort an in-flight
+      // connect (previously it was only assigned on 'open').
+      this.ws = ws;
+
       ws.on('open', () => {
         clearTimeout(timer);
-        this.connected = true;
+        opened = true;
         this.ws = ws;
+        this.connected = true;
         this.reconnectAttempts = 0;
         this.lastError = undefined;
         this.connectedAt = new Date();
@@ -181,10 +203,28 @@ export class RemoteProxy extends EventEmitter {
       });
 
       ws.on('close', () => {
+        // Settle a connect() that never opened instead of waiting for timeout.
+        clearTimeout(timer);
+        // Ignore close events from a socket superseded by a newer connection.
+        if (this.ws !== null && this.ws !== ws) return;
+
         this.connected = false;
         this.ws = null;
         this.connectedAt = null;
+
+        // Fail in-flight requests immediately instead of letting them run out
+        // their timers on a connection that can no longer answer.
+        for (const [id, pending] of this.pending) {
+          clearTimeout(pending.timer);
+          pending.reject(new Error('Connection closed'));
+          this.pending.delete(id);
+        }
+
         this.emit('disconnected');
+
+        if (!opened) {
+          reject(new Error('Connection closed before open'));
+        }
 
         if (!this.intentionalClose) {
           this.scheduleReconnect();

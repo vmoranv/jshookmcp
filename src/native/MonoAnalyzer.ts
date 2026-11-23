@@ -77,7 +77,9 @@ const ROOT_DOMAIN_SYMBOLS = ['mono_root_domain', 'mono_get_root_domain'];
 const MONO_OBJECT_HEADER_SIZE_64 = 16;
 
 /** MonoClassField offsets on x64: type(8) + name(8) + parent(8) + offset(4). */
-const MONO_CLASS_FIELD_SIZE = 24;
+// x64 MonoClassField is 28 bytes, padded to 32 (offset(4) + 4 tail padding).
+// Striding by 24 would land inside the previous entry's offset field.
+const MONO_CLASS_FIELD_SIZE = 32;
 const MONO_CLASS_FIELD_OFFSET_OFF = 24; // offset of the 'offset' field within MonoClassField
 
 // MonoThreadsSync size on x64 = 8 (approximated, reference for MonoString size calc).
@@ -235,13 +237,26 @@ export class MonoAnalyzer {
    * This scans heap regions for vtable pointers matching known class vtables.
    */
   async findObjects(pid: number, classNamePattern: string): Promise<MonoObjectInfo[]> {
-    // First resolve the class to get its vtable address.
-    const classes = await this.listClasses(pid, classNamePattern);
-    const matching = classes.filter(
-      (c) =>
-        c.name.toLowerCase().includes(classNamePattern.toLowerCase()) ||
-        c.fullName.toLowerCase().includes(classNamePattern.toLowerCase()),
-    );
+    // `listClasses` selects an assembly (not a class), so resolve the class by
+    // iterating every loaded assembly and filtering the returned classes.
+    const assemblies = await this.listAssemblies(pid);
+    const matching: MonoClassInfo[] = [];
+    const pattern = classNamePattern.toLowerCase();
+    for (const assembly of assemblies) {
+      try {
+        const classes = await this.listClasses(pid, assembly.name);
+        for (const c of classes) {
+          if (
+            c.name.toLowerCase().includes(pattern) ||
+            c.fullName.toLowerCase().includes(pattern)
+          ) {
+            matching.push(c);
+          }
+        }
+      } catch {
+        // Assembly without a readable class table — skip it.
+      }
+    }
 
     if (matching.length === 0) {
       throw new Error(`No class matching "${classNamePattern}" found`);
@@ -717,7 +732,7 @@ export class MonoAnalyzer {
 
     if (tables !== 0n) {
       // Table index 2 = MONO_TABLE_TYPEDEF
-      const TABLE_SIZE = 12; // MonoTableInfo: base(8) + rows(4) + row_size(4)
+      const TABLE_SIZE = 16; // MonoTableInfo: base(8) + rows(4) + row_size(4)
       const tableOff = tables + BigInt(2 * TABLE_SIZE);
       try {
         const tableData = ReadProcessMemory(handle, tableOff, TABLE_SIZE);
@@ -805,10 +820,10 @@ export class MonoAnalyzer {
       for (const off of nameOffsets) {
         try {
           const candidate = readPtr(handle, classAddr + BigInt(off), true);
-          if (candidate !== 0n && !name) {
+          if (candidate !== 0n) {
             const s = readString(handle, candidate);
             if (s && s.length > 0) {
-              // First readable string is likely the name.
+              // First readable string is likely the name, the next the namespace.
               if (!name) {
                 name = s;
               } else if (!namespace) {
@@ -844,9 +859,11 @@ export class MonoAnalyzer {
 
       for (const off of fieldOffsets) {
         try {
-          // First try: the field table is an array of MonoClassField pointers.
+          // The field table is an array of MonoClassField structs; each entry's
+          // stride is MONO_CLASS_FIELD_SIZE. x64 heap pointers are normally
+          // above 4 GB, so only reject null/low pointers here.
           const candidate = readPtr(handle, classAddr + BigInt(off), true);
-          if (candidate !== 0n && candidate < 0x7fffffffn) {
+          if (candidate > 0x10000n) {
             // Also read count from the previous 4 bytes.
             const count = readU32(handle, classAddr + BigInt(off - 4));
             if (count > 0 && count <= 200) {

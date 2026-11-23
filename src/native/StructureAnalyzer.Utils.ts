@@ -24,7 +24,9 @@ export class StructAnalyzerUtils {
       const buf = (await this.provider.readMemory(handle, address, maxLen)).data;
       const nullIdx = buf.indexOf(0);
       if (nullIdx < 0) return null;
-      const str = buf.subarray(0, nullIdx).toString('ascii');
+      // latin1 is a 1:1 byte mapping; 'ascii' masks the high bit (0xC1 → 'A')
+      // and would make non-ASCII garbage look printable.
+      const str = buf.subarray(0, nullIdx).toString('latin1');
       // Validate it's printable ASCII
       if (/^[\x20-\x7E]+$/.test(str) && str.length >= 1) {
         return str;

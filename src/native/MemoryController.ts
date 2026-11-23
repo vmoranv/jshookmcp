@@ -66,8 +66,13 @@ export class MemoryController {
       const handle = openProcessForMemory(pid, true);
       try {
         const { oldProtect } = VirtualProtectEx(handle, address, data.length, PAGE.READWRITE);
-        WriteProcessMemory(handle, address, data);
-        VirtualProtectEx(handle, address, data.length, oldProtect);
+        try {
+          WriteProcessMemory(handle, address, data);
+        } finally {
+          // Restore the original protection even when the write throws — a
+          // failed write must not leave the target region PAGE_READWRITE.
+          VirtualProtectEx(handle, address, data.length, oldProtect);
+        }
       } finally {
         CloseHandle(handle);
       }
@@ -111,6 +116,12 @@ export class MemoryController {
     const newBuf = Buffer.from(patternBytes);
 
     const oldBuf = await this.readBuffer(pid, addr, newBuf.length);
+    if (oldBuf.length !== newBuf.length) {
+      throw new Error(
+        `Memory read returned ${oldBuf.length} of ${newBuf.length} bytes at ${address}; ` +
+          `refusing to write without a complete undo snapshot`,
+      );
+    }
     await this.writeBuffer(pid, addr, newBuf);
 
     const entry: WriteHistoryEntry = {
@@ -173,12 +184,16 @@ export class MemoryController {
     for (let i = this.undoneStack.length - 1; i >= 0; i--) {
       const entry = this.undoneStack[i]!;
       if (pid !== undefined && entry.pid !== pid) continue;
-      this.undoneStack.splice(i, 1);
 
       const addr = BigInt(entry.address);
       const newBuf = Buffer.from(entry.newValue);
 
+      // Write before mutating the redo stack: if the write rejects, the entry
+      // must stay available for a later redo attempt.
       await this.writeBuffer(entry.pid, addr, newBuf);
+
+      const idx = this.undoneStack.indexOf(entry);
+      if (idx >= 0) this.undoneStack.splice(idx, 1);
 
       entry.undone = false;
       return entry;

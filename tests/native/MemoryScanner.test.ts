@@ -815,6 +815,29 @@ describe('MemoryScanner', () => {
 
       expect(regions).toEqual([]);
     });
+
+    it('stops when a provider reports a non-advancing region', () => {
+      // A zero-sized region whose base equals the queried address would make
+      // `address` stay put forever; the walk must break instead of spinning.
+      mockProvider.queryRegion.mockImplementation(() => ({
+        baseAddress: 0n,
+        size: 0,
+        protection: 0x04,
+        state: 'committed',
+        type: 'private',
+        isReadable: false,
+        isWritable: false,
+        isExecutable: false,
+      }));
+
+      const regions = (scanner as any).getFilteredRegions(
+        { pid: 1234, writeAccess: false } satisfies ProcessHandle,
+        { valueType: 'int32' },
+      );
+
+      expect(regions).toEqual([]);
+      expect(mockProvider.queryRegion).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('event-loop yielding (a4-01 / b3-09)', () => {

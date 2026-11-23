@@ -15,6 +15,7 @@ import {
   listGdbServers,
 } from '@native/GdbRspServer';
 import type { GdbEmulatorEngine } from '@native/GdbRspServer.types';
+import { decodeRspPacket, encodeRspPacket, rleDecode } from '@native/GdbRspProtocol';
 import type { EmulatorSession } from '@modules/native-emulator/SessionManager';
 
 function createMockSession(): EmulatorSession {
@@ -94,6 +95,53 @@ describe('GdbRspServer lifecycle', () => {
     await srv.start();
     expect(srv.status.port).toBeGreaterThan(0);
     await srv.stop();
+  });
+});
+
+describe('GdbRspServer packet handling', () => {
+  const engine: GdbEmulatorEngine = {
+    readRegister: (name) => (name === 'pc' ? -2 : 0),
+    writeRegister: () => {},
+    readMemory: () => new Uint8Array(0),
+  };
+  const session = {
+    id: 'pkt-session',
+    emulator: { engine },
+    createdAt: 0,
+    lastUsedAt: 0,
+  } as unknown as EmulatorSession;
+  const srv = new GdbRspServer({
+    host: '127.0.0.1',
+    port: 0,
+    sessionId: 'pkt-session',
+    getSession: () => session,
+  });
+
+  it('formats a negative register as unsigned 64-bit hex (no minus sign)', () => {
+    const packet = (
+      srv as unknown as { processPacket: (p: string, id: number) => string }
+    ).processPacket(encodeRspPacket('g'), 1);
+    const { data, valid } = decodeRspPacket(packet);
+    expect(valid).toBe(true);
+
+    const registers = rleDecode(data);
+    // x0..x30 + sp + pc = 33 registers, 16 hex chars each.
+    expect(registers).toHaveLength(33 * 16);
+    expect(registers).not.toContain('-');
+    expect(registers.slice(32 * 16)).toBe('fffffffffffffffe');
+  });
+
+  it('answers Z0/z0 with an unsupported-packet empty response, not OK', () => {
+    const proc = (p: string) =>
+      decodeRspPacket(
+        (srv as unknown as { processPacket: (p: string, id: number) => string }).processPacket(
+          encodeRspPacket(p),
+          1,
+        ),
+      ).data;
+
+    expect(proc('Z0,1000,1')).toBe('');
+    expect(proc('z0,1000,1')).toBe('');
   });
 });
 

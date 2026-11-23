@@ -155,25 +155,47 @@ class FileView {
     this.buf = buf;
   }
 
+  /**
+   * Validate that `n` bytes are available at the current cursor. All typed
+   * reads go through this so a truncated/hostile dump fails deterministically
+   * instead of producing a raw Buffer RangeError (or a silently short slice).
+   */
+  private ensure(n: number): void {
+    if (!Number.isInteger(n) || n < 0) {
+      throw new RangeError(`Invalid minidump read length: ${n}`);
+    }
+    if (!this.valid(this.pos, n)) {
+      throw new RangeError(
+        `Minidump read out of bounds: need ${n} byte(s) at 0x${this.pos.toString(16)} ` +
+          `(file size ${this.buf.length})`,
+      );
+    }
+  }
+
   readU8(): number {
+    this.ensure(1);
     return this.buf.readUInt8(this.pos++);
   }
   readU16(): number {
+    this.ensure(2);
     const v = this.buf.readUInt16LE(this.pos);
     this.pos += 2;
     return v;
   }
   readU32(): number {
+    this.ensure(4);
     const v = this.buf.readUInt32LE(this.pos);
     this.pos += 4;
     return v;
   }
   readU64(): bigint {
+    this.ensure(8);
     const v = this.buf.readBigUInt64LE(this.pos);
     this.pos += 8;
     return v;
   }
   readBytes(n: number): Buffer {
+    this.ensure(n);
     const b = this.buf.subarray(this.pos, this.pos + n);
     this.pos += n;
     return b;
@@ -204,6 +226,9 @@ class FileView {
     return this.buf.toString('utf16le', start, start + len);
   }
   seek(off: number): void {
+    if (!Number.isInteger(off) || !this.valid(off, 0)) {
+      throw new RangeError(`Minidump seek out of bounds: 0x${off.toString(16)}`);
+    }
     this.pos = off;
   }
   tell(): number {

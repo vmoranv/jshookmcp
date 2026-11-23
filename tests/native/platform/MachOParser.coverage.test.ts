@@ -116,6 +116,49 @@ describe('parseMachoSections', () => {
     expect(sections[0]!.isExecutable).toBe(true);
     expect(sections[0]!.isWritable).toBe(false);
   });
+
+  it('rebases section offsets by the FAT slice offset', () => {
+    const SLICE = 0x100;
+    const b = Buffer.alloc(SLICE + 184, 0);
+    // FAT header: magic, nfat_arch=1, then one big-endian fat_arch.
+    b.writeUInt32LE(0xcafebabe, 0);
+    b.writeUInt32BE(1, 4);
+    b.writeUInt32BE(0x0100000c, 8); // CPU_TYPE_ARM64
+    b.writeUInt32BE(0, 12); // cpusubtype
+    b.writeUInt32BE(SLICE, 16); // offset
+    b.writeUInt32BE(184, 20); // size
+
+    const o = SLICE;
+    b.writeUInt32LE(0xfeedfacf, o); // MH_MAGIC_64
+    b.writeUInt32LE(0x0100000c, o + 4);
+    b.writeUInt32LE(1, o + 16); // ncmds
+    b.writeUInt32LE(152, o + 20); // sizeofcmds
+
+    const seg = o + 32;
+    b.writeUInt32LE(0x19, seg); // LC_SEGMENT_64
+    b.writeUInt32LE(152, seg + 4);
+    b.write('__TEXT\0', seg + 8, 'ascii');
+    b.writeUInt32LE(1, seg + 64); // nsects
+
+    const sec = seg + 72;
+    b.write('__text\0', sec, 'ascii');
+    b.writeBigUInt64LE(0x4000n, sec + 40); // size
+    b.writeUInt32LE(0x40, sec + 48); // slice-relative file offset
+
+    mockReadFileSync.mockReturnValue(b);
+    const sections = parseMachoSections('/x');
+
+    expect(sections).toHaveLength(1);
+    // 0x40 is relative to the embedded slice at 0x100.
+    expect(sections[0]!.fileOffset).toBe(SLICE + 0x40);
+  });
+
+  it('returns [] for a truncated FAT header (no nfat_arch field)', () => {
+    mockReadFileSync.mockReturnValue(Buffer.from([0xca, 0xfe, 0xba, 0xbe, 0x00, 0x00]));
+    expect(parseMachOHeader('/x')).toBeNull();
+    expect(parseMachoSections('/x')).toEqual([]);
+    expect(parseMachOSymbols('/x')).toEqual({ imports: [], exports: [] });
+  });
 });
 
 describe('parseMachOSymbols', () => {

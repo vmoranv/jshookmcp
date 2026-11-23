@@ -427,9 +427,16 @@ describe('Win32Debug', () => {
       expect(info?.exceptionCode).toBe(0xc0000005);
       expect(info?.firstChance).toBe(false);
 
-      // Timeout
+      // Timeout (ERROR_SEM_TIMEOUT = 121) is the only FALSE that means "no event".
       mockFunc.mockReturnValueOnce(0);
+      vi.mocked(Win32API.GetLastError).mockReturnValueOnce(121);
       expect(WaitForDebugEvent(0)).toBeNull();
+    });
+
+    it('throws on a WaitForDebugEvent failure other than ERROR_SEM_TIMEOUT', () => {
+      mockFunc.mockReturnValueOnce(0);
+      vi.mocked(Win32API.GetLastError).mockReturnValueOnce(6); // ERROR_INVALID_HANDLE
+      expect(() => WaitForDebugEvent(0)).toThrow(/WaitForDebugEvent failed/);
     });
   });
 

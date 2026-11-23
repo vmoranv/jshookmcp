@@ -122,7 +122,9 @@ export class FieldClassifier {
   ): Promise<FieldClassification | null> {
     if (offset !== 0 || val64 === 0n) return null;
 
-    if (!this.isValidExecutablePointer(handle, val64)) return null;
+    // The vtable itself lives in read-only data (.rdata/.rodata) — only its
+    // entries must be executable.
+    if (!this.isValidReadablePointer(handle, val64)) return null;
 
     // Verify it's a vtable: check if the pointed-to location is also full of executable pointers
     try {

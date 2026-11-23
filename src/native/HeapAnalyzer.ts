@@ -10,7 +10,7 @@
  * (memory_heap_enumerate / memory_heap_stats / memory_heap_anomalies) see
  * real data on every OS, not empty placeholders.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, openSync, readSync, closeSync } from 'node:fs';
 import { logger } from '@utils/logger';
 import { requireKoffi } from './koffi-loader';
 import { openProcessForMemory, CloseHandle, ReadProcessMemory } from '@native/Win32API';
@@ -44,7 +44,9 @@ function winLoadHeapApis() {
     Heap32First: k32.func('Heap32First', 'bool', ['_Inout_ uint8_t *', 'uint32', 'uintptr_t']),
     Heap32Next: k32.func('Heap32Next', 'bool', ['_Inout_ uint8_t *']),
     CloseHandle: k32.func('int CloseHandle(intptr)'),
-    HEAPLIST32_SIZE: 36,
+    // x64 HEAPLIST32: SIZE_T dwSize(0), DWORD th32ProcessID(8), pad(12),
+    // ULONG_PTR th32HeapID(16), DWORD dwFlags(24) → sizeof = 32.
+    HEAPLIST32_SIZE: 32,
     HEAPENTRY32_SIZE: 56,
   };
 }
@@ -151,14 +153,24 @@ function regionToBlock(r: RawRegion, id: string): HeapBlock {
 }
 
 function readRegionSample(pid: number, addr: bigint, size: number): Buffer | null {
+  let fd: number | null = null;
   try {
-    const fd = (require('node:fs') as typeof import('fs')).openSync(`/proc/${pid}/mem`, 'r');
+    fd = openSync(`/proc/${pid}/mem`, 'r');
     const buf = Buffer.alloc(size);
-    (require('node:fs') as typeof import('fs')).readSync(fd, buf, 0, size, Number(addr));
-    (require('node:fs') as typeof import('fs')).closeSync(fd);
-    return buf;
+    const bytesRead = readSync(fd, buf, 0, size, Number(addr));
+    // `/proc/pid/mem` can return a short read; do not count the zero-filled
+    // tail as sampled data (it would skew the entropy result).
+    return bytesRead > 0 ? buf.subarray(0, bytesRead) : null;
   } catch {
     return null;
+  } finally {
+    if (fd !== null) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* ignore close errors */
+      }
+    }
   }
 }
 
@@ -217,16 +229,29 @@ export class HeapAnalyzer {
     }
 
     const totalBlocks = heaps.reduce((s, h) => s + h.blockCount, 0);
+    const buckets = emptyBuckets();
+    let totalSize = 0;
+    let largest = 0;
+    let smallest = Number.MAX_SAFE_INTEGER;
+    for (const r of regions) {
+      totalSize += r.size;
+      if (r.size > largest) largest = r.size;
+      if (r.size < smallest) smallest = r.size;
+      const idx = classify(r.size);
+      buckets[idx]!.count++;
+      buckets[idx]!.totalBytes += r.size;
+    }
+    if (smallest === Number.MAX_SAFE_INTEGER) smallest = 0;
     const stats: HeapStats = {
       totalHeaps: heaps.length,
       totalBlocks,
-      totalSize: 0,
+      totalSize,
       freeSize: 0,
-      usedSize: 0,
-      largestBlock: 0,
-      smallestBlock: 0,
-      averageBlockSize: 0,
-      sizeDistribution: emptyBuckets(),
+      usedSize: totalSize,
+      largestBlock: largest,
+      smallestBlock: smallest,
+      averageBlockSize: regions.length > 0 ? Math.round(totalSize / regions.length) : 0,
+      sizeDistribution: buckets,
       fragmentationRatio: 0,
     };
     return {
@@ -250,11 +275,15 @@ export class HeapAnalyzer {
     const results: HeapBlock[] = [];
 
     for (const r of regions) {
-      const path = r.path || (r.path === '' ? 'anon' : 'anon');
-      const hid = heapId === 'anon' ? 'anon' : path;
-      if (hid !== heapId && heapId !== '*' && heapId !== 'anon' && !path.includes(heapId)) continue;
+      const path = r.path || 'anon';
+      if (heapId === 'anon') {
+        // The synthetic anonymous heap must only contain path-less regions.
+        if (r.path) continue;
+      } else if (heapId !== '*' && path !== heapId && !path.includes(heapId)) {
+        continue;
+      }
       if (results.length >= max) break;
-      results.push(regionToBlock(r, hid));
+      results.push(regionToBlock(r, path));
     }
     return results;
   }
@@ -383,8 +412,8 @@ export class HeapAnalyzer {
       let ok = apis.Heap32ListFirst(hSnap, hlBuf);
       while (ok) {
         const processId = hlBuf.readUInt32LE(8);
-        const heapId = hlBuf.readBigUInt64LE(12);
-        const flags = hlBuf.readUInt32LE(20);
+        const heapId = hlBuf.readBigUInt64LE(16);
+        const flags = hlBuf.readUInt32LE(24);
         const blocks = await this.winEnumBlocks(pid, heapId, HEAP_ENUMERATE_MAX_BLOCKS);
         heaps.push({
           heapId: `0x${heapId.toString(16)}`,

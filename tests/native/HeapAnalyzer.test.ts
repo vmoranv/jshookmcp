@@ -63,8 +63,8 @@ vi.mock('koffi', () => {
               if (state.heapListCalled) return false;
               state.heapListCalled = true;
               buf.writeUInt32LE(1234, 8); // th32ProcessID
-              buf.writeBigUInt64LE(0x100n, 12); // th32HeapID
-              buf.writeUInt32LE(1, 20); // flags (HF32_DEFAULT)
+              buf.writeBigUInt64LE(0x100n, 16); // th32HeapID (ULONG_PTR, 8-byte aligned)
+              buf.writeUInt32LE(1, 24); // flags (HF32_DEFAULT)
               return true;
             });
           }

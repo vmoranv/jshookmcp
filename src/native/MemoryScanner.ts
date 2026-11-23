@@ -808,7 +808,13 @@ export class MemoryScanner {
         }
       }
 
-      address = regionInfo.baseAddress + BigInt(regionInfo.size);
+      const nextAddress = regionInfo.baseAddress + BigInt(regionInfo.size);
+      if (nextAddress <= address) {
+        // Defensive stop: a provider that reports a non-advancing region would
+        // otherwise spin this walk forever (it is used by every scan path).
+        break;
+      }
+      address = nextAddress;
     }
 
     return regions;
