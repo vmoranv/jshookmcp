@@ -142,6 +142,13 @@ export class PackerDeobfuscator {
     const { p, a, k } = params;
     let { c } = params;
 
+    // `c` is attacker-controlled packer input. A non-integer/negative value
+    // makes `while (c--)` never terminate; cap the count at the token table.
+    if (!Number.isInteger(c) || c < 0) {
+      return p;
+    }
+    c = Math.min(c, k.length);
+
     let result = p;
 
     while (c--) {

@@ -112,6 +112,30 @@ export class KeyExtractor {
     const hits: RawHit[] = [];
     const seen = new Set<string>();
 
+    // Bounded accumulation: a low-entropy/adversarial file can produce tens of
+    // millions of window hits per chunk. Keep an entropy-ranked working set
+    // instead of growing without limit (final top-K is unaffected: anything
+    // dropped is outside the best `maxResults` seen so far).
+    const HIT_BUFFER_LIMIT = Math.min(Math.max(cfg.maxResults * 4, 1000), 200_000);
+    let pruned = false;
+    const hitKey = (hit: RawHit): string =>
+      `${hit.format}@${hit.absOffset}:${hit.length}:${hit.customCategory ?? ''}`;
+    const pruneHits = (): void => {
+      hits.sort((a, b) => {
+        const ea = shannonEntropy(a.bytes, 0, a.length);
+        const eb = shannonEntropy(b.bytes, 0, b.length);
+        return eb - ea || a.absOffset - b.absOffset;
+      });
+      hits.length = Math.min(
+        Math.max(cfg.maxResults, Math.ceil(HIT_BUFFER_LIMIT / 2)),
+        HIT_BUFFER_LIMIT,
+      );
+      // Bound the dedupe set too; a cleared set only risks re-recording a
+      // duplicate, which the final dedupe below removes.
+      if (seen.size > HIT_BUFFER_LIMIT * 4) seen.clear();
+      pruned = true;
+    };
+
     if (expectedScannedBytes === 0) {
       return {
         candidates: [],
@@ -141,7 +165,8 @@ export class KeyExtractor {
       const combined = pending.length === 0 ? chunk : Buffer.concat([pending, chunk]);
 
       scanChunk(combined, pendingStart, cfg, (hit) => {
-        const key = `${hit.format}@${hit.absOffset}:${hit.length}:${hit.customCategory ?? ''}`;
+        if (hits.length >= HIT_BUFFER_LIMIT) pruneHits();
+        const key = hitKey(hit);
         if (seen.has(key)) return;
         seen.add(key);
         hits.push(hit);
@@ -156,8 +181,14 @@ export class KeyExtractor {
       pendingStart = nextAbs - keep;
     }
 
-    // Sort by entropy desc, then offset asc.
-    const scored = hits.map((h) => ({
+    // Sort by entropy desc, then offset asc. Dedupe first: pruning clears the
+    // incremental `seen` set when it grows too large.
+    const uniqueHits = new Map<string, RawHit>();
+    for (const hit of hits) {
+      const key = hitKey(hit);
+      if (!uniqueHits.has(key)) uniqueHits.set(key, hit);
+    }
+    const scored = Array.from(uniqueHits.values()).map((h) => ({
       hit: h,
       entropy: shannonEntropy(h.bytes, 0, h.length),
     }));
@@ -166,7 +197,7 @@ export class KeyExtractor {
       return a.hit.absOffset - b.hit.absOffset;
     });
 
-    const truncated = scored.length > cfg.maxResults;
+    const truncated = pruned || scored.length > cfg.maxResults;
     const top = truncated ? scored.slice(0, cfg.maxResults) : scored;
 
     // Materialize ASCII/hex previews & context. The current implementation

@@ -54,25 +54,12 @@ import * as vm from 'node:vm';
 const { code, timeoutMs } = workerData;
 
 try {
-  // Create an isolated context with minimal globals
-  const sandbox = {
-    // Safe built-ins only
-    parseInt, parseFloat, isNaN, isFinite,
-    encodeURIComponent, decodeURIComponent,
-    encodeURI, decodeURI,
-    JSON: { parse: JSON.parse, stringify: JSON.stringify },
-    Math,
-    String, Number, Boolean, Array, Object, Map, Set,
-    Date, RegExp, Error, TypeError, RangeError,
-    Promise,
-    Symbol,
-    undefined,
-    NaN,
-    Infinity,
-    // Explicitly denied: require, process, __filename, __dirname, Buffer, setTimeout, setInterval, fetch
-  };
-
-  const context = vm.createContext(sandbox, {
+  // The context gets its own fresh intrinsics (Object, Array, Function, JSON,
+  // Math, Promise, ...). Do NOT pass host-realm built-ins in here: a host
+  // function/object exposes the host realm through .constructor, e.g.
+  // ({}).constructor.constructor("return process")() escapes the sandbox.
+  // Explicitly denied: require, process, __filename, __dirname, Buffer, setTimeout, setInterval, fetch
+  const context = vm.createContext({}, {
     name: 'jshook-sandbox',
     codeGeneration: { strings: false, wasm: false },
   });

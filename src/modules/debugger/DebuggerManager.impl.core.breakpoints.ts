@@ -200,6 +200,15 @@ export async function setBreakpointOnFunctionCallCore(
     throw new Error('functionName parameter is required');
   }
 
+  // `functionName` is evaluated in the page. Restrict it to a plain identifier
+  // path so a caller cannot inject arbitrary script via this parameter.
+  if (!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(functionName)) {
+    throw new Error(
+      `functionName must be a plain identifier path (e.g. "myFn" or "app.myFn"), got '${functionName}'`,
+    );
+  }
+
+  const objectGroup = 'jshook-breakpoint-function';
   try {
     // Resolve the function reference via globalThis lookup. The bare name is
     // evaluated in the global context; returnByValue:false keeps the handle.
@@ -209,6 +218,8 @@ export async function setBreakpointOnFunctionCallCore(
     }>('Runtime.evaluate', {
       expression: functionName,
       returnByValue: false,
+      objectGroup,
+      throwOnSideEffect: true,
     });
 
     if (evalResult?.exceptionDetails) {
@@ -246,6 +257,10 @@ export async function setBreakpointOnFunctionCallCore(
   } catch (error: unknown) {
     logger.error(`Failed to set breakpoint on function '${functionName}':`, error);
     throw error;
+  } finally {
+    // Release the remote object handle obtained above; the breakpoint itself
+    // keeps the target function alive.
+    await coreCtx.cdpSession?.send('Runtime.releaseObjectGroup', { objectGroup }).catch(() => {});
   }
 }
 

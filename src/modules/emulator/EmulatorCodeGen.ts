@@ -4,6 +4,11 @@ import type {
   EmulationCode,
 } from '@internal-types/index';
 
+/** Escape text interpolated into the Python triple-quoted `env_code` string. */
+function escapeForPython(text: string): string {
+  return text.replace(/\\/g, '\\\\').replace(/"""/g, '\\"\\"\\"');
+}
+
 export function generateEmulationCode(
   manifest: Record<string, unknown>,
   targetRuntime: 'nodejs' | 'python' | 'both',
@@ -244,19 +249,21 @@ export function generatePythonCode(
       const parts = path.split('.');
       if (parts.length === 1) continue;
 
-      const objName = parts[0];
-      const propPath = parts.slice(1).join('.');
-
       // env_code is a Python triple-quoted string: escape backslashes so JSON
       // escapes inside the JS literals (\n, \u, ...) survive Python parsing
       // intact, and triple quotes so values cannot terminate the string early.
-      const jsValue = formatValueForJS(value).replace(/\\/g, '\\\\').replace(/"""/g, '\\"\\"\\"');
+      // Path segments are interpolated too, so they get the same treatment —
+      // otherwise a crafted segment containing `"""` breaks out of the string.
+      const objName = escapeForPython(parts[0]!);
+      const propPath = parts.slice(1).map(escapeForPython).join('.');
+
+      const jsValue = escapeForPython(formatValueForJS(value));
 
       if (parts.length === 2) {
         lines.push(`${objName}.${propPath} = ${jsValue};`);
       } else {
-        const parentPath = parts.slice(0, -1).join('.');
-        const lastProp = parts[parts.length - 1];
+        const parentPath = parts.slice(0, -1).map(escapeForPython).join('.');
+        const lastProp = escapeForPython(parts[parts.length - 1]!);
         lines.push(`if (!${parentPath}) ${parentPath} = {};`);
         lines.push(`${parentPath}.${lastProp} = ${jsValue};`);
       }

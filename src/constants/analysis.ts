@@ -46,23 +46,25 @@ export const ANALYSIS_MAX_SAFE_RESPONSE_BYTES = int('ANALYSIS_MAX_SAFE_RESPONSE_
  * Hard cap (UTF-8 bytes) for `code` inputs to CPU-heavy analysis tools.
  * Oversized payloads are rejected before any engine is invoked (b4-02).
  */
-export const MAX_ANALYSIS_CODE_BYTES = int('MAX_ANALYSIS_CODE_BYTES', 5 * 1024 * 1024);
+export const MAX_ANALYSIS_CODE_BYTES = int('MAX_ANALYSIS_CODE_BYTES', 5 * 1024 * 1024, {
+  min: 1,
+});
 
 /* ================================================================== */
 /*  Symbolic execution server-side budget clamps (b4-03)              */
 /* ================================================================== */
 
 /** Server cap for user-supplied maxPaths on js_symbolic_execute. */
-export const SYMBOLIC_CLAMP_MAX_PATHS = int('SYMBOLIC_CLAMP_MAX_PATHS', 200);
+export const SYMBOLIC_CLAMP_MAX_PATHS = int('SYMBOLIC_CLAMP_MAX_PATHS', 200, { min: 1 });
 
 /** Server cap for user-supplied maxDepth on js_symbolic_execute. */
-export const SYMBOLIC_CLAMP_MAX_DEPTH = int('SYMBOLIC_CLAMP_MAX_DEPTH', 32);
+export const SYMBOLIC_CLAMP_MAX_DEPTH = int('SYMBOLIC_CLAMP_MAX_DEPTH', 32, { min: 1 });
 
 /** Server cap for user-supplied timeout (ms) on symbolic execution tools. */
-export const SYMBOLIC_CLAMP_TIMEOUT_MS = int('SYMBOLIC_CLAMP_TIMEOUT_MS', 60_000);
+export const SYMBOLIC_CLAMP_TIMEOUT_MS = int('SYMBOLIC_CLAMP_TIMEOUT_MS', 60_000, { min: 1 });
 
 /** Server cap for user-supplied maxSteps on js_symbolic_execute_jsvmp. */
-export const SYMBOLIC_CLAMP_MAX_STEPS = int('SYMBOLIC_CLAMP_MAX_STEPS', 5_000);
+export const SYMBOLIC_CLAMP_MAX_STEPS = int('SYMBOLIC_CLAMP_MAX_STEPS', 5_000, { min: 1 });
 
 /* ================================================================== */
 /*  LLM-assisted analysis (ai_suggest_exploits)                        */
@@ -129,7 +131,9 @@ export const PATTERN_CONFIDENCE_ENCRYPTION_LOG = float('PATTERN_CONFIDENCE_ENCRY
 export const PATTERN_PRIORITY_METHOD_WEIGHT = int('PATTERN_PRIORITY_METHOD_WEIGHT', 10);
 export const PATTERN_PRIORITY_KEYWORD_WEIGHT = int('PATTERN_PRIORITY_KEYWORD_WEIGHT', 5);
 export const PATTERN_PRIORITY_POSTDATA_WEIGHT = int('PATTERN_PRIORITY_POSTDATA_WEIGHT', 5);
-export const PATTERN_PRIORITY_URL_LENGTH_DIVISOR = int('PATTERN_PRIORITY_URL_LENGTH_DIVISOR', 100);
+export const PATTERN_PRIORITY_URL_LENGTH_DIVISOR = int('PATTERN_PRIORITY_URL_LENGTH_DIVISOR', 100, {
+  min: 1,
+});
 
 /** Critical-log priority scoring weights (ranking, higher first). */
 export const PATTERN_LOG_PRIORITY_ERROR = int('PATTERN_LOG_PRIORITY_ERROR', 20);

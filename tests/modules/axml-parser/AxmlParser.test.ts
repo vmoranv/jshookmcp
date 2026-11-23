@@ -90,3 +90,54 @@ describe('AxmlParser', () => {
     });
   });
 });
+
+describe('AxmlParser string pool decoding', () => {
+  it('reads the chunk size (not the chunk type) and resolves strings', () => {
+    // Minimal AXML: file header + UTF-8 string pool ("manifest") + start/end tag.
+    const buffer = Buffer.alloc(112);
+    buffer.writeUInt32LE(0x00080003, 0);
+    buffer.writeUInt32LE(112, 4);
+
+    // STRING_POOL chunk at 8 (28-byte header + 4-byte offset table + 11-byte
+    // UTF-8 string + 1 pad = 44).
+    buffer.writeUInt32LE(0x001c0001, 8);
+    buffer.writeUInt32LE(44, 12);
+    buffer.writeUInt32LE(1, 16); // string count
+    buffer.writeUInt32LE(0, 20); // style count
+    buffer.writeUInt32LE(0x00000100, 24); // UTF-8 flag
+    buffer.writeUInt32LE(32, 28); // strings start (relative to chunk)
+    buffer.writeUInt32LE(0, 32); // styles start
+    buffer.writeUInt32LE(0, 36); // string offset 0
+    buffer.writeUInt8(8, 40); // char count
+    buffer.writeUInt8(8, 41); // byte count
+    buffer.write('manifest', 42, 'utf8');
+    buffer.writeUInt8(0, 50);
+
+    // START_TAG at 52, name index 0.
+    buffer.writeUInt32LE(0x00100102, 52);
+    buffer.writeUInt32LE(36, 56);
+    buffer.writeUInt32LE(1, 60);
+    buffer.writeUInt32LE(0xffffffff, 64);
+    buffer.writeUInt32LE(0xffffffff, 68);
+    buffer.writeUInt32LE(0, 72);
+    buffer.writeUInt16LE(20, 76);
+    buffer.writeUInt16LE(20, 78);
+    buffer.writeUInt16LE(0, 80);
+    buffer.writeUInt16LE(0, 82);
+    buffer.writeUInt16LE(0, 84);
+    buffer.writeUInt16LE(0, 86);
+
+    // END_TAG at 88.
+    buffer.writeUInt32LE(0x00100103, 88);
+    buffer.writeUInt32LE(24, 92);
+    buffer.writeUInt32LE(2, 96);
+    buffer.writeUInt32LE(0xffffffff, 100);
+    buffer.writeUInt32LE(0xffffffff, 104);
+    buffer.writeUInt32LE(0, 108);
+
+    const xml = parseAxml(buffer);
+    expect(xml).not.toBeNull();
+    expect(xml).toContain('<manifest>');
+    expect(xml).toContain('</manifest>');
+  });
+});

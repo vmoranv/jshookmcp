@@ -186,11 +186,11 @@ const OPCODE_NAMES: Record<number, string> = {
 
 // ─── Decoration enum values (SPIR-V spec) ────────────────────────────────────
 
-const DecorationBlock = 1;
-const DecorationBufferBlock = 2;
-const DecorationLocation = 28;
-const DecorationBinding = 31;
-const DecorationDescriptorSet = 32;
+const DecorationBlock = 2;
+const DecorationBufferBlock = 3;
+const DecorationLocation = 30;
+const DecorationBinding = 33;
+const DecorationDescriptorSet = 34;
 const DecorationBuiltIn = 11;
 
 // ─── ExecutionModel enum (SPIR-V spec) ───────────────────────────────────────

@@ -343,4 +343,23 @@ describe('MemoryManager', () => {
       expect(mm.loadValue(0x1001, 2)).toBe(0x3456n);
     });
   });
+
+  describe('shadow memory write behavior', () => {
+    test('write paths bypass the read hook and mutate real memory', () => {
+      const mm = new MemoryManager();
+      mm.mapMemory(0x1000, 16);
+      const shadow = new Uint8Array(16).fill(0xaa);
+      mm.readHook = (address, length) => (address === 0x1000 ? shadow.subarray(0, length) : null);
+
+      mm.writeMemory(0x1000, new Uint8Array([1, 2, 3]));
+      mm.storeValue(0x1004, 1, 0x55n);
+
+      // Drop the hook to observe the real region.
+      mm.readHook = null;
+      expect(Array.from(mm.readMemory(0x1000, 3))).toEqual([1, 2, 3]);
+      expect(mm.loadValue(0x1004, 1)).toBe(0x55n);
+      // The shadow overlay must not have received guest stores.
+      expect(shadow.every((b) => b === 0xaa)).toBe(true);
+    });
+  });
 });

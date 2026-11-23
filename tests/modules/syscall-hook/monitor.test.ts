@@ -260,6 +260,28 @@ describe('SyscallMonitor', () => {
     ]);
   });
 
+  it('parses two-column dtrace printf output (no CPU prefix)', async () => {
+    const child = createFakeChildProcess();
+    mockSpawn.mockImplementationOnce(() => {
+      queueMicrotask(() => child.emit('spawn'));
+      return child as any;
+    });
+
+    (monitor as any).activeState = { startedAt: Date.now() };
+    await (monitor as any).captureWithDTrace(2468);
+    // printf("%d %d %s:return ...", pid, pid, probefunc, ...) → two columns.
+    child.emitStdout('5678  5678  open_nocancel:return  3  1000\n');
+
+    const events = await monitor.captureEvents();
+    expect(events).toEqual([
+      expect.objectContaining({
+        pid: 5678,
+        syscall: 'open_nocancel',
+        returnValue: 3,
+      }),
+    ]);
+  });
+
   it('pairs dtrace entry/return probes to capture returnValue and duration', async () => {
     const child = createFakeChildProcess();
     mockSpawn.mockImplementationOnce(() => {

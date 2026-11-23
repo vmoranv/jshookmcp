@@ -216,6 +216,20 @@ describe('disassembleArm64', () => {
     expect(result).toContain('x0, x1');
   });
 
+  // ─── Logical (shifted register) ──────────────────────────────────
+  it('decodes AND/ORR/EOR/ANDS and inverted BIC/ORN/EON/BICS', () => {
+    // w-register forms with Rd=w0, Rn=w1, Rm=w2, no shift.
+    expect(disassembleArm64(0x0a020020, 0x1000n)).toContain('and ');
+    expect(disassembleArm64(0x2a020020, 0x1000n)).toContain('orr ');
+    expect(disassembleArm64(0x4a020020, 0x1000n)).toContain('eor ');
+    expect(disassembleArm64(0x6a020020, 0x1000n)).toContain('ands');
+    // N bit (21) set selects the inverted forms.
+    expect(disassembleArm64(0x0a220020, 0x1000n)).toContain('bic ');
+    expect(disassembleArm64(0x2a220020, 0x1000n)).toContain('orn ');
+    expect(disassembleArm64(0x4a220020, 0x1000n)).toContain('eon ');
+    expect(disassembleArm64(0x6a220020, 0x1000n)).toContain('bics');
+  });
+
   // ─── CSEL ────────────────────────────────────────────────────────
   it('decodes CSEL', () => {
     // CSEL x0, x1, x2, eq → 0x9A820020

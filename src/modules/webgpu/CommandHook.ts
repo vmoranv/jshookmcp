@@ -607,7 +607,7 @@ export async function uninstallGPUCommandHook(page: Page): Promise<void> {
  * attached before the trace is returned.
  */
 export async function getGPUCommandTrace(page: Page): Promise<GPUCommandTrace> {
-  const trace = await page.evaluate(async () => {
+  const trace = await page.evaluate(async (maxWaitMs: number) => {
     const t = (window as any).webgpuHookState?.commandTrace;
     const tsq = (window as any).webgpuHookState?.timestampQuery;
     if (!t) {
@@ -615,7 +615,7 @@ export async function getGPUCommandTrace(page: Page): Promise<GPUCommandTrace> {
     }
 
     if (tsq && tsq.resolving) {
-      const deadline = tsq.resolveStartedAt + TIMESTAMP_RESOLVE_WAIT_MS;
+      const deadline = tsq.resolveStartedAt + maxWaitMs;
       while (tsq.resolving && performance.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, 25));
       }
@@ -649,7 +649,7 @@ export async function getGPUCommandTrace(page: Page): Promise<GPUCommandTrace> {
           }
         : { supported: false },
     };
-  });
+  }, TIMESTAMP_RESOLVE_WAIT_MS);
 
   if (!trace) {
     return {

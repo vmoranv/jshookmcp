@@ -279,5 +279,24 @@ export const chromeEnvironmentTemplate = {
 };
 
 export function getChromeEnvironment(): Record<string, unknown> {
-  return JSON.parse(JSON.stringify(chromeEnvironmentTemplate)) as Record<string, unknown>;
+  return cloneEnvironment(chromeEnvironmentTemplate) as Record<string, unknown>;
+}
+
+/**
+ * Deep-clone the plain-object structure while preserving functions and
+ * built-in/class instances by reference. A JSON round-trip would silently drop
+ * `console.*`, `crypto.getRandomValues`, `constructors.*`, etc.
+ */
+function cloneEnvironment<T>(value: T): T {
+  if (typeof value === 'function') return value;
+  if (Array.isArray(value)) return value.map((item) => cloneEnvironment(item)) as unknown as T;
+  if (value && typeof value === 'object') {
+    if (Object.prototype.toString.call(value) !== '[object Object]') return value;
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = cloneEnvironment(item);
+    }
+    return result as T;
+  }
+  return value;
 }

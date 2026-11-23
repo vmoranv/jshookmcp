@@ -36,6 +36,9 @@ export class MemoryMonitorManager {
             monitor.lastValue = result.data;
           }
         }
+      } catch {
+        // A failed read must not become an unhandled rejection (which would
+        // terminate the host process); skip this tick and keep polling.
       } finally {
         monitor.inFlight = false;
       }

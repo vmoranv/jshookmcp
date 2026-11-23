@@ -172,7 +172,13 @@ export class NativeSymbolicDeobfuscator {
       };
 
       solver.add(build(cond));
-      return (await solver.check()) === 'sat';
+      const status = await solver.check();
+      if (status === 'sat') return true;
+      if (status === 'unsat') return false;
+      // 'unknown' (e.g. the solver-level timeout fired): report "no verdict"
+      // instead of mapping it to UNSAT, which would let callers delete a live
+      // branch.
+      return null;
     }, NATIVE_DEOBF_Z3_TIMEOUT_MS);
     return result;
   }

@@ -108,9 +108,13 @@ export class AxmlParser {
     // Parse XML events
     const events: XmlEvent[] = [];
     while (this.offset < this.buffer.length) {
+      const chunkStart = this.offset;
       const chunkType = this.readUInt32();
       const event = this.readXmlChunk(chunkType);
       if (event) events.push(event);
+      // Corrupt chunk headers (e.g. chunkSize 0) would otherwise leave the
+      // offset unchanged and spin forever on the same bytes.
+      if (this.offset <= chunkStart) break;
     }
 
     return this.eventsToXml(events);
@@ -130,6 +134,7 @@ export class AxmlParser {
   }
 
   private readStringPool(): StringPool {
+    this.readUInt32(); // chunkType (validated by parse(); offset is rewound to chunk start)
     const chunkSize = this.readUInt32();
     const stringCount = this.readUInt32();
     const styleCount = this.readUInt32();
@@ -252,8 +257,8 @@ export class AxmlParser {
       case CHUNK_TYPE.XML_TEXT:
         return this.readText();
       default:
-        // Skip unknown chunk
-        this.offset = chunkStart + chunkSize;
+        // Skip unknown chunk (always advance past the 8-byte header).
+        this.offset = chunkStart + Math.max(chunkSize, 8);
         return null;
     }
   }
