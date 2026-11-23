@@ -82,7 +82,7 @@
 
 | 能力域 | 亮点 |
 | --- | --- |
-| **工具档位** | `search`（约 3K token，BM25 + 混合向量排序）· `workflow`（复合脚本）· `full`（全部 739 工具） |
+| **工具档位** | `search`（约 3K token，BM25 + trigram 词法排序）· `workflow`（复合脚本）· `full`（全部 739 工具） |
 | **浏览器自动化** | Chromium 与 Camoufox · CDP 附着已有目标 · 反检测预设 · 显式输入 CAPTCHA 求解 · 弹窗、下载、权限、协议拦截器 |
 | **网络拦截** | HTTP/1.1 + HTTP/2 帧级构造 · MITM 代理自动生成 CA · WebSocket 抓包 · GraphQL 自省辅助 · Burp Suite 桥接 |
 | **JS Hook 与分析** | LLM 驱动的反混淆 · 加密逻辑识别 · AST 深度理解 · Source Map 重建 · 脚本提取与回放 |
@@ -149,14 +149,14 @@ tree-shaking 分析——该数值并不代表实际安装的 CLI/服务。本�
 
 ### 多个 Agent 共用一个本地进程
 
-默认 stdio 配置会让每个 MCP 宿主启动一份完整的 jshook。若要共享 embedding 模型、浏览器运行时和缓存，可以启动一个本地 Streamable HTTP daemon：
+默认 stdio 配置会让每个 MCP 宿主启动一份完整的 jshook。若要共享浏览器运行时和缓存，可以启动一个本地 Streamable HTTP daemon：
 
 ```bash
 pnpm build
 pnpm daemon
 ```
 
-向量搜索在所有传输下默认开启：轻量静态模型，工具目录 embedding 落盘缓存，按需加载、空闲释放。只需词法搜索时可设置 `SEARCH_VECTOR_ENABLED=false`。
+搜索为纯词法实现（BM25 + trigram + RRF）：无模型下载、无 worker、无 embedding 缓存、无冷启动。
 
 然后在各 MCP 客户端的 HTTP/URL server 配置中统一指向 `http://127.0.0.1:3000/mcp`。每个客户端拥有独立的 MCP 会话和响应路由，重量级运行时资源只保留一份。建议保持默认的本机回环监听；如需对外暴露，必须先设置 `MCP_AUTH_TOKEN`。
 
@@ -207,7 +207,7 @@ OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer <token>"
 | 传输 | 何时使用 | 说明 |
 | --- | --- | --- |
 | **stdio** | Claude Desktop、Cursor 等单宿主客户端默认 | 每个 MCP 宿主一个完整进程；建议使用轻量档位 |
-| **Streamable HTTP** | 多个智能体共享 embedding 模型、浏览器运行时和缓存 | 默认本机回环监听；对外暴露前必须设置 `MCP_AUTH_TOKEN` |
+| **Streamable HTTP** | 多个智能体共享浏览器运行时和缓存 | 默认本机回环监听；对外暴露前必须设置 `MCP_AUTH_TOKEN` |
 
 两种传输暴露相同的工具面。`coverage_report` 展示每个会话已激活的域——长运行会话在重连后恢复浏览器 attach 状态、coverage 状态与工具激活。
 
@@ -242,7 +242,7 @@ OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer <token>"
 
 - **运行时注册表** — 域通过 `manifest.ts` 自发现；新增域只需创建一个文件。
 - **延迟初始化** — Handler 在首次调用时实例化，而非启动时预加载。
-- **BM25 + 向量搜索** — `search_tools` 混合排序 + 自适应权重。
+- **BM25 + trigram 搜索** — `search_tools` 采用 RRF 融合与规则化词法重排。
 - **MCP `ToolAnnotations`** — 每个工具携带 `readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`。
 - **档位阶梯** — `search`（约 3K token）→ `workflow`（复合脚本）→ `full`（全部 739 工具）。
 - **传输对称** — stdio 与 Streamable HTTP 暴露相同工具面；按客户端隔离会话。

@@ -91,23 +91,11 @@ Clone 仓库后，在项目根目录创建 `.env` 文件（参考 `.env.example`
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | plugin 在 boost 时自动注册的默认档位。                | `full`                    |
 | `MCP_SKILLS_DIR`                          | Skills 扩展（SEP-2640）目录：空 = 内置 `<projectRoot>/skills` 指南 + 各插件 root 下 `skills/` 目录聚合（同名技能首定义胜出）；`off` = 禁用扩展；其他路径 = 仅服务该自定义目录（每个子目录需含带 name/description frontmatter 的 SKILL.md）。 | 默认：空（内置 + 插件聚合） |
 | `SEARCH_AUTO_ACTIVATE_DOMAINS`            | 搜索到某域的工具时自动激活该域。                      | `true`                    |
-| `SEARCH_VECTOR_ENABLED`                   | 向量搜索信号总开关（默认使用静态轻量模型）。所有传输下默认开启；模型按需加载、worker 空闲即释放，代价是一次有界的冷启动而非常驻内存。只需词法搜索时设为 `false`。 | `true` |
-| `SEARCH_VECTOR_MODEL_ID`                  | Model2Vec 兼容的 HuggingFace 静态嵌入模型 ID。         | `minishlab/potion-code-16M-v2` |
-| `SEARCH_VECTOR_COSINE_WEIGHT`             | 向量余弦信号在 RRF 融合中的初始权重。                 | `0.53`                    |
-| `SEARCH_VECTOR_DYNAMIC_WEIGHT`            | 根据工具调用反馈自动调节向量权重。                    | `true`                    |
-| `SEARCH_VECTOR_LEARN_UP`                  | 选中工具在向量 top-N 内时的权重上调步长。             | `0.13`                    |
-| `SEARCH_VECTOR_LEARN_DOWN`                | 选中工具在向量 top-N 外时的权重下调步长。             | `0.02`                    |
-| `SEARCH_VECTOR_LEARN_TOP_N`               | 区分向量"命中"与"未命中"的排名阈值。                  | `3`                       |
-| `SEARCH_VECTOR_PREWARM`                   | 搜索引擎启动时是否立即加载 embedding 模型；共享 daemon 默认按需加载。 | `false`              |
-| `SEARCH_VECTOR_WORKER_IDLE_MS`            | embedding worker 空闲多久后释放；`0` 表示常驻。          | stdio：`15000`；HTTP：`300000` |
-| `SEARCH_VECTOR_FETCH_TIMEOUT_MS`          | 静态模型/tokenizer 单次下载请求超时。                    | `15000`                 |
 | `JSHOOK_OBSERVABILITY_EXPORTER`          | 遥测后端：`none`（零开销 no-op）/ `memory`（进程内缓冲）/ `otlp`（标准 OTLP/HTTP 导出，任意 collector 式端点可接）。 | `none` |
 | `JSHOOK_OBSERVABILITY_MAX_SPANS`         | `memory` 后端的 span 窗口上限。                          | `500`                   |
 | `JSHOOK_OTLP_QUERY_TEXT`                 | `search.query` span 的查询文本采集策略：`off` / `truncated`（前 64 字符+溢出标记）/ `full`（逆向查询可能内嵌敏感信息，慎用 full）。 | `truncated` |
-| `SEARCH_VECTOR_RETRY_COOLDOWN_MS`         | embedding 加载失败后的重试冷却时间。                     | `60000`                 |
-| `SEARCH_VECTOR_CACHE_ENABLED`             | 是否将工具目录 embedding 持久化到磁盘。                  | `true`                  |
-| `JSHOOK_EMBEDDING_CACHE_DIR`              | embedding 磁盘缓存目录覆盖值。                            | `~/.jshookmcp/cache/embeddings` |
-| `JSHOOK_EMBEDDING_MODEL_CACHE_DIR`        | 下载的 tokenizer 和模型文件缓存目录覆盖值。              | `~/.jshookmcp/cache/models` |
+
+搜索为纯词法实现（ADR-0005）：`SEARCH_VECTOR_*` 与 `JSHOOK_EMBEDDING_*` 变量已随 dense 路径移除。
 
 ### 4. 传输、HTTP 与安全
 
@@ -131,7 +119,7 @@ Clone 仓库后，在项目根目录创建 `.env` 文件（参考 `.env.example`
 
 多个 Agent 共用一个进程时，先运行 `pnpm build && pnpm daemon`，再让所有 MCP 客户端连接
 `http://127.0.0.1:3000/mcp`。HTTP transport 会按 `Mcp-Session-Id` 分离请求和响应路由，
-同时共享 embedding、缓存与浏览器运行时。仅在 localhost 使用时可以不设 token；绑定到其他
+同时共享缓存与浏览器运行时。仅在 localhost 使用时可以不设 token；绑定到其他
 地址前必须配置 `MCP_AUTH_TOKEN`。
 
 #### 浏览器 session 与 worker

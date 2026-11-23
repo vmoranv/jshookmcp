@@ -86,7 +86,7 @@ A scan of what's in the box. Each row links to the detailed [Capability overview
 
 | Area | Highlights |
 | --- | --- |
-| **Tool profiles** | `search` (~3K tokens, BM25 + hybrid vector ranking) · `workflow` (composite scripts) · `full` (all 739 tools) |
+| **Tool profiles** | `search` (~3K tokens, BM25 + trigram lexical ranking) · `workflow` (composite scripts) · `full` (all 739 tools) |
 | **Browser automation** | Chromium and Camoufox · CDP attach to existing targets · anti-detection presets · explicit-input CAPTCHA solver · popup, download, permission, and protocol interceptors |
 | **Network interception** | HTTP/1.1 + HTTP/2 frame building · MITM proxy with auto-generated CA · WebSocket capture · GraphQL introspection helpers · Burp Suite bridge |
 | **JS hooks and analysis** | LLM-powered deobfuscation · crypto routine detection · AST comprehension · source-map reconstruction · script/scriptlet extraction and replay |
@@ -263,7 +263,7 @@ The built-in surface below is generated from the runtime registry and checked in
 
 - **Runtime registry** — domains auto-discovered via `manifest.ts`; add a domain by creating one file.
 - **Lazy initialization** — handlers instantiated on first call, not at startup.
-- **BM25 + vector search** — `search_tools` meta-tool with hybrid ranking and adaptive weights.
+- **BM25 + trigram search** — `search_tools` meta-tool with RRF fusion and rule-based lexical reranking.
 - **MCP `ToolAnnotations`** — every tool carries `readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`.
 - **Profile ladder** — `search` (~3K tokens) → `workflow` (composite scripts) → `full` (all 739 tools).
 - **Transport symmetry** — stdio and Streamable HTTP expose the same surface; sessions are isolated per client.
@@ -313,5 +313,3 @@ runtimes (ONNX, Z3, Binaryen, Camoufox, Playwright) depending on the profile.
 ## License
 
 [AGPLv3](./LICENSE).
-
-

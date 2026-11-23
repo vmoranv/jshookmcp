@@ -90,23 +90,11 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | JSON override for explicit intent-to-tool ranking boosts.         | no default                       |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | Default tier for plugin auto-registration during boost.           | `full`                           |
 | `SEARCH_AUTO_ACTIVATE_DOMAINS`            | Auto-activate a domain when its tool is searched.                 | `true`                           |
-| `SEARCH_VECTOR_ENABLED`                   | Master switch for embedding-based search using a lightweight static model. On for every transport by default; the model loads lazily and the worker is released when idle, so the cost is a bounded cold start rather than a resident model. Set `false` for lexical-only search. | `true` |
-| `SEARCH_VECTOR_MODEL_ID`                  | HuggingFace ID of a Model2Vec-compatible static embedding model.  | `minishlab/potion-code-16M-v2`   |
-| `SEARCH_VECTOR_COSINE_WEIGHT`             | Initial weight of the vector cosine signal in RRF fusion.         | `0.53`                           |
-| `SEARCH_VECTOR_DYNAMIC_WEIGHT`            | Self-tune vector weight based on tool-call feedback.              | `true`                           |
-| `SEARCH_VECTOR_LEARN_UP`                  | Weight step-up when selected tool is in vector top-N.             | `0.13`                           |
-| `SEARCH_VECTOR_LEARN_DOWN`                | Weight step-down when selected tool is outside vector top-N.      | `0.02`                           |
-| `SEARCH_VECTOR_LEARN_TOP_N`               | Rank threshold separating "hit" from "miss" for learning.         | `3`                              |
-| `SEARCH_VECTOR_PREWARM`                   | Load the embedding model when the search engine starts; shared daemons load lazily by default. | `false`   |
-| `SEARCH_VECTOR_WORKER_IDLE_MS`            | Release the embedding worker after this idle period; `0` keeps it resident. | stdio: `15000`; HTTP: `300000` |
-| `SEARCH_VECTOR_FETCH_TIMEOUT_MS`          | Per-request timeout for static model/tokenizer downloads.         | `15000`                          |
 | `JSHOOK_OBSERVABILITY_EXPORTER`          | Telemetry backend: `none` (zero-overhead no-op) / `memory` (in-process buffer) / `otlp` (standard OTLP/HTTP export; any collector-style endpoint works). | `none` |
 | `JSHOOK_OBSERVABILITY_MAX_SPANS`         | Span window cap for the `memory` backend.                           | `500`                            |
 | `JSHOOK_OTLP_QUERY_TEXT`                 | Query-text capture policy for `search.query` spans: `off` / `truncated` (first 64 chars + overflow marker) / `full` (queries can embed sensitive reverse-engineering material — use `full` with care). | `truncated` |
-| `SEARCH_VECTOR_RETRY_COOLDOWN_MS`         | Retry cooldown after an embedding load failure.                   | `60000`                          |
-| `SEARCH_VECTOR_CACHE_ENABLED`             | Persist catalog embeddings on disk.                               | `true`                           |
-| `JSHOOK_EMBEDDING_CACHE_DIR`              | Override the embedding cache directory.                           | `~/.jshookmcp/cache/embeddings`  |
-| `JSHOOK_EMBEDDING_MODEL_CACHE_DIR`        | Override the downloaded tokenizer and model cache directory.      | `~/.jshookmcp/cache/models`      |
+
+Search is lexical-only (ADR-0005): the `SEARCH_VECTOR_*` and `JSHOOK_EMBEDDING_*` variables were removed with the dense path.
 
 ### 4. Transport, HTTP, and security
 
@@ -130,7 +118,7 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 
 To share one process across agents, run `pnpm build && pnpm daemon`, then configure every MCP
 client to connect to `http://127.0.0.1:3000/mcp`. The HTTP transport separates request and
-response routing by `Mcp-Session-Id` while sharing embeddings, caches, and browser runtime.
+response routing by `Mcp-Session-Id` while sharing caches and browser runtime.
 Authentication is optional on the loopback default; configure `MCP_AUTH_TOKEN` before binding to
 any non-local interface.
 

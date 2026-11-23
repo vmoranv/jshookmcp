@@ -35,7 +35,7 @@ JSHOOK_OBSERVABILITY_EXPORTER=none
 | Signal | Content | Never includes |
 |--------|---------|----------------|
 | `tool.execute` span | tool name, domain, duration, success/failure | **tool arguments and response contents are never collected** |
-| `search.query` span | query text (see policy below), top-K, result count, latency, BM25 confidence score, vector participation, correlation id search.id | search result contents |
+| `search.query` span | query text (see policy below), top-K, result count, latency, BM25 confidence score, correlation id search.id | search result contents |
 | `search_feedback_used` metric | rank bucket of the invoked tool (top1/3/5/10) + tool name + search_id (joins to search.query) | — |
 | `tool.execute` span arguments | **argument KEY NAMES only by default** (`shape` — keys are already public in the tool schemas; values are never collected). Setting `JSHOOK_OTLP_TOOL_ARGS=truncated/full` opts into values, with credential-ish keys (authorization/cookie/token/secret…) masked as `***` and a total size cap | full argument values are not collected by default |
 | Resource identity | `service.name=jshookmcp`, per-process `service.instance.id`, anonymous random install UUID `install.id` | **no hostname, no username, no IP, no machine fingerprint** — install.id is a random UUID generated locally on first run |
