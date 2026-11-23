@@ -19260,7 +19260,7 @@
   "info": {
     "description": "MCP server with built-in tools across multiple domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
     "title": "@jshookmcp/jshook",
-    "version": "0.4.8"
+    "version": "0.4.9"
   },
   "openapi": "3.1.0",
   "paths": {
