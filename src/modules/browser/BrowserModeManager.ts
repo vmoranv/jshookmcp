@@ -206,7 +206,32 @@ export class BrowserModeManager {
     return page;
   }
 
-  private async finalizeClose(): Promise<void> {
+  /**
+   * Bound a teardown promise and clear the timer on both outcomes, so a resolved
+   * close does not leave a 5 s timer pinning the event loop.
+   */
+  private static async withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+    void promise.catch(() => undefined);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`${label} timed out`)),
+            BrowserModeManager.BROWSER_CLOSE_TIMEOUT_MS,
+          );
+          timer.unref?.();
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  private async finalizeClose(
+    closeFailureMessage = 'browser.close() failed or timed out, attempting force-kill:',
+  ): Promise<void> {
     try {
       const browser = this.browser;
       const pid = this.chromePid;
@@ -216,18 +241,10 @@ export class BrowserModeManager {
 
       if (browser) {
         try {
-          await Promise.race([
-            browser.close(),
-            new Promise<never>((_, reject) =>
-              setTimeout(
-                () => reject(new Error('browser.close() timed out')),
-                BrowserModeManager.BROWSER_CLOSE_TIMEOUT_MS,
-              ),
-            ),
-          ]);
+          await BrowserModeManager.withTimeout(browser.close(), 'browser.close()');
           logger.info('Browser closed');
         } catch (error) {
-          logger.warn('browser.close() failed or timed out, attempting force-kill:', error);
+          logger.warn(closeFailureMessage, error);
           BrowserModeManager.forceKillPid(pid);
         }
       }
@@ -248,7 +265,14 @@ export class BrowserModeManager {
     await targetPage.goto(url, { waitUntil: toChromeCompatibleWaitUntil() });
 
     if (this.config.autoDetectCaptcha) {
+      const pageBeforeCaptchaHandling = this.currentPage;
       await this.checkAndHandleCaptcha(targetPage, url);
+      // A headed switch closes this browser and creates a new page: return the
+      // live page. An unchanged currentPage means no switch happened, so an
+      // explicitly supplied `page` is still the right return value.
+      if (this.currentPage && this.currentPage !== pageBeforeCaptchaHandling) {
+        return this.currentPage;
+      }
     }
 
     return targetPage;
@@ -305,14 +329,11 @@ export class BrowserModeManager {
 
     await this.saveSessionData(currentPage);
 
-    const oldPid = this.chromePid;
-    try {
-      await this.browser?.close();
-    } catch (error) {
-      logger.warn('Failed to close old browser during mode switch:', error);
-      BrowserModeManager.forceKillPid(oldPid);
-    }
-    this.chromePid = null;
+    // Reuse the shutdown path: it detaches the browser/page references *before*
+    // relaunching and bounds close() with BROWSER_CLOSE_TIMEOUT_MS. Leaving the
+    // stale reference in place would let launch() short-circuit on a dead
+    // browser and hand back a page from the old headless instance.
+    await this.finalizeClose('Failed to close old browser during mode switch:');
 
     this.isHeadless = false;
     await this.launch();

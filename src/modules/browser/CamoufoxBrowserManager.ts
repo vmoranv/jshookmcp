@@ -101,6 +101,12 @@ export class CamoufoxBrowserManager {
   private config: CamoufoxBrowserConfig;
   private isClosing = false;
   private launchPromise?: Promise<CamoufoxBrowserLike>;
+  /**
+   * Incremented by every close(). A close that completes entirely while an
+   * unrelated await is in flight (e.g. launchAsServer) resets `isClosing`;
+   * comparing the epoch still detects that shutdown intervened.
+   */
+  private shutdownEpoch = 0;
 
   constructor(config: CamoufoxBrowserConfig = {}) {
     this.config = {
@@ -195,11 +201,10 @@ export class CamoufoxBrowserManager {
   }
 
   async newPage(): Promise<CamoufoxPageLike> {
-    if (!this.browser) {
-      await this.launch();
-    }
-
-    const page = await this.browser!.newPage();
+    // Use the handle returned by launch(): `this.browser` can still be null when
+    // launch() failed or a concurrent close() nulled it right after the await.
+    const browser = this.browser?.isConnected() ? this.browser : await this.launch();
+    const page = await browser.newPage();
     logger.info('New Camoufox page created');
     return page;
   }
@@ -214,13 +219,18 @@ export class CamoufoxBrowserManager {
 
   async close(): Promise<void> {
     this.isClosing = true;
+    this.shutdownEpoch += 1;
 
     const pendingLaunch = this.launchPromise;
     if (pendingLaunch) {
       void pendingLaunch
         .catch(() => undefined)
         .finally(() => {
-          void this.finalizeClose();
+          // close() already returned to the caller; a teardown failure here has
+          // nowhere to go, so log it instead of raising an unhandled rejection.
+          void this.finalizeClose().catch((error) => {
+            logger.warn('Failed to finalize Camoufox teardown after in-flight launch:', error);
+          });
         });
       return;
     }
@@ -230,22 +240,47 @@ export class CamoufoxBrowserManager {
 
   private static readonly BROWSER_CLOSE_TIMEOUT_MS = 5000;
 
+  /**
+   * Bound a teardown promise. The timer is cleared in `finally` (otherwise it
+   * keeps the event loop alive for the full timeout) and a late rejection from
+   * the losing branch is swallowed so it cannot surface as unhandled.
+   */
+  private static async withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+    void promise.catch(() => undefined);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`${label} timed out`)),
+            CamoufoxBrowserManager.BROWSER_CLOSE_TIMEOUT_MS,
+          );
+          timer.unref?.();
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   private async finalizeClose(): Promise<void> {
+    let firstError: unknown;
     try {
       const browser = this.browser;
       this.browser = null;
 
       if (browser) {
-        await Promise.race([
-          browser.close(),
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () => reject(new Error('camoufox browser.close() timed out')),
-              CamoufoxBrowserManager.BROWSER_CLOSE_TIMEOUT_MS,
-            ),
-          ),
-        ]);
-        logger.info('Camoufox browser closed');
+        // Guard browser and server teardown separately: a failing browser close
+        // must never skip closing the WebSocket server (which would leak its
+        // process/port), but it must still reach the caller that awaits close().
+        try {
+          await CamoufoxBrowserManager.withTimeout(browser.close(), 'camoufox browser.close()');
+          logger.info('Camoufox browser closed');
+        } catch (error) {
+          firstError = error;
+          logger.warn('Failed to close Camoufox browser:', error);
+        }
       }
 
       // A WebSocket server launched via launchAsServer must be closed too —
@@ -253,19 +288,20 @@ export class CamoufoxBrowserManager {
       const server = this.browserServer;
       this.browserServer = null;
       if (server) {
-        await Promise.race([
-          server.close(),
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () => reject(new Error('camoufox server.close() timed out')),
-              CamoufoxBrowserManager.BROWSER_CLOSE_TIMEOUT_MS,
-            ),
-          ),
-        ]);
-        logger.info('Camoufox server closed');
+        try {
+          await CamoufoxBrowserManager.withTimeout(server.close(), 'camoufox server.close()');
+          logger.info('Camoufox server closed');
+        } catch (error) {
+          firstError ??= error;
+          logger.warn('Failed to close Camoufox server:', error);
+        }
       }
     } finally {
       this.isClosing = false;
+    }
+
+    if (firstError) {
+      throw firstError;
     }
   }
 
@@ -274,6 +310,10 @@ export class CamoufoxBrowserManager {
    * Returns the WebSocket endpoint URL (e.g. ws://127.0.0.1:8888/<path>).
    */
   async launchAsServer(port?: number, ws_path?: string): Promise<string> {
+    if (this.isClosing) {
+      throw new Error('Cannot launch Camoufox server while closing');
+    }
+
     logger.info(`Launching Camoufox server [os=${this.config.os}, port=${port ?? 'auto'}]...`);
 
     let launchServer: typeof import('camoufox-js').launchServer;
@@ -301,8 +341,22 @@ export class CamoufoxBrowserManager {
       this.browserServer = null;
     }
 
+    const epochAtStart = this.shutdownEpoch;
     const server = await launchServer(serverOptions);
     this.browserServer = server;
+
+    // close() may have run to completion while launchServer() was awaiting: it
+    // saw browserServer === null, so this server would otherwise leak its
+    // process/port with no owner.
+    if (this.isClosing || this.shutdownEpoch !== epochAtStart) {
+      this.browserServer = null;
+      await server
+        .close()
+        .catch((error) =>
+          logger.warn('Failed to close Camoufox server launched during shutdown:', error),
+        );
+      throw new Error('Camoufox server launch aborted because close was requested');
+    }
 
     const serverAny = this.browserServer as unknown as Record<string, unknown>;
     if (typeof serverAny.process === 'function') {

@@ -84,3 +84,47 @@ describe('UnifiedBrowserManager bug fixes', () => {
     expect(chromeState.instances[0]?.close).toHaveBeenCalled();
   });
 });
+
+const puppeteerConnectMock = vi.hoisted(() => vi.fn());
+vi.mock('rebrowser-puppeteer-core', () => ({ connect: puppeteerConnectMock }));
+
+describe('UnifiedBrowserManager connect lifecycle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    chromeState.instances = [];
+    chromeState.launchImpl = null;
+  });
+
+  it('releases a connection that completes after close() already finished', async () => {
+    const gate = deferred<any>();
+    puppeteerConnectMock.mockReturnValue(gate.promise);
+    const attached = { connected: true, disconnect: vi.fn(async () => {}) };
+
+    const manager = new UnifiedBrowserManager({ driver: 'chrome' });
+    const connectPromise = manager.connect('ws://127.0.0.1:9222');
+    const connectRejection = expect(connectPromise).rejects.toThrow(/close was requested/);
+
+    await manager.close();
+    gate.resolve(attached);
+
+    await connectRejection;
+    expect(attached.disconnect).toHaveBeenCalledTimes(1);
+    expect(manager.getBrowser()).toBeNull();
+  });
+
+  it('closes the previously launched manager before replacing it with an attachment', async () => {
+    const manager = new UnifiedBrowserManager({ driver: 'chrome' });
+    await manager.launch();
+    const launchedManager = chromeState.instances[0];
+    expect(launchedManager?.close).not.toHaveBeenCalled();
+
+    const attached = { connected: true, disconnect: vi.fn(async () => {}) };
+    puppeteerConnectMock.mockResolvedValue(attached);
+
+    await manager.connect('ws://127.0.0.1:9222');
+
+    // Replacing a launched manager without closing it leaks the Chrome process.
+    expect(launchedManager?.close).toHaveBeenCalledTimes(1);
+    expect(manager.getBrowser()).toBe(attached);
+  });
+});

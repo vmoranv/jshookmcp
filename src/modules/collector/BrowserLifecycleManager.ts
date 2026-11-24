@@ -291,7 +291,13 @@ export class BrowserLifecycleManager {
     _markExplicitlyClosed: boolean,
     clearAllData: () => Promise<void>,
   ): Promise<void> {
-    if (this.closePromise) return this.closePromise;
+    if (this.closePromise) {
+      // Join the in-flight teardown, but still honour this caller's data-clear:
+      // otherwise close() reports "all data cleared" while dropping the callback.
+      await this.closePromise;
+      await clearAllData();
+      return;
+    }
     const run = this.disposeCurrentBrowserInner(clearAllData);
     this.closePromise = run;
     try {

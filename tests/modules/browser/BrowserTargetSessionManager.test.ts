@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 const networkMonitorHarness = vi.hoisted(() => {
   const instances: any[] = [];
 
@@ -793,6 +794,137 @@ describe('BrowserTargetSessionManager', () => {
     await vi.waitFor(() => {
       expect(manager.getAttachedTargetSession()).toBeNull();
       expect(manager.getAttachedTargetInfo()).toBeNull();
+    });
+  });
+});
+
+describe('BrowserTargetSessionManager lifecycle hardening', () => {
+  beforeEach(() => {
+    networkMonitorHarness.instances.length = 0;
+  });
+
+  function createManager(parentSession: unknown) {
+    const browser = {
+      target: () => ({
+        createCDPSession: vi.fn(async () => parentSession),
+      }),
+    };
+    return new BrowserTargetSessionManager(() => browser as never);
+  }
+
+  it('shares one browser CDP session between concurrent callers', async () => {
+    const parentSession = new FakeParentSession();
+    const createCDPSession = vi.fn(async () => parentSession);
+    const browser = {
+      target: () => ({ createCDPSession }),
+    };
+    const manager = new BrowserTargetSessionManager(() => browser as never);
+    const privateManager = manager as unknown as {
+      ensureBrowserSession: () => Promise<unknown>;
+    };
+
+    const [first, second] = await Promise.all([
+      privateManager.ensureBrowserSession(),
+      privateManager.ensureBrowserSession(),
+    ]);
+
+    expect(first).toBe(second);
+    expect(createCDPSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables per-entry network monitors even when detach throws during dispose', async () => {
+    const parentSession = new FakeParentSession();
+    const manager = createManager(parentSession);
+
+    await manager.enable();
+    const monitors = networkMonitorHarness.instances;
+    expect(monitors.length).toBeGreaterThan(0);
+
+    (manager as unknown as { detach: () => Promise<boolean> }).detach = vi.fn(async () => {
+      throw new Error('detach failed');
+    });
+
+    await expect(manager.dispose()).resolves.toBeUndefined();
+
+    for (const monitor of monitors) {
+      expect(monitor.disableCalls).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('applies registered persistent scripts to bootstrapped managed targets', async () => {
+    const parentSession = new FakeParentSession();
+    const manager = createManager(parentSession);
+
+    const withScripts = manager as unknown as {
+      persistentScripts: Map<string, { id: string; source: string; targetTypes?: string[] }>;
+      bootstrapManagedTargets: () => Promise<void>;
+    };
+    withScripts.persistentScripts.set('preload', {
+      id: 'preload',
+      source: 'window.__preload = true;',
+      targetTypes: ['page', 'iframe'],
+    });
+
+    await withScripts.bootstrapManagedTargets();
+
+    expect(parentSession.pageSession.send).toHaveBeenCalledWith(
+      'Page.addScriptToEvaluateOnNewDocument',
+      { source: 'window.__preload = true;' },
+    );
+    const registry = manager as unknown as {
+      registry: { all: () => IterableIterator<{ appliedPersistentScripts: Map<string, string> }> };
+    };
+    const applied = [...registry.registry.all()].filter(
+      (entry) => entry.appliedPersistentScripts.get('preload') === 'window.__preload = true;',
+    );
+    // Both bootstrapped targets (page + iframe) receive the preload script.
+    expect(applied).toHaveLength(2);
+  });
+
+  it('detaches the temporary worker session when Debugger.enable throws', async () => {
+    const tempSession = {
+      send: vi.fn(async (method: string) => {
+        if (method === 'Debugger.enable') {
+          throw new Error('enable failed');
+        }
+        return {};
+      }),
+      on: vi.fn(),
+      off: vi.fn(),
+      id: () => 'temp-session',
+    };
+    const parentSession = {
+      send: vi.fn(async (method: string) => {
+        if (method === 'Target.getTargets') {
+          return {
+            targetInfos: [
+              {
+                targetId: 'worker-1',
+                type: 'worker',
+                title: 'worker',
+                url: buildTestUrl('artifact', { path: '/w.js' }),
+                attached: false,
+              },
+            ],
+          };
+        }
+        if (method === 'Target.attachToTarget') {
+          return { sessionId: 'temp-session' };
+        }
+        return {};
+      }),
+      on: vi.fn(),
+      off: vi.fn(),
+      connection: () => ({
+        session: (id: string) => (id === 'temp-session' ? tempSession : null),
+      }),
+    };
+    const manager = createManager(parentSession);
+
+    await expect(manager.dumpTargetScripts('worker-1')).rejects.toThrow('enable failed');
+
+    expect(parentSession.send).toHaveBeenCalledWith('Target.detachFromTarget', {
+      sessionId: 'temp-session',
     });
   });
 });

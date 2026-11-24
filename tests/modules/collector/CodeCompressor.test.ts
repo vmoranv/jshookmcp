@@ -54,7 +54,10 @@ describe('CodeCompressor', () => {
     const bad = result.find((item) => item.url === 'bad.js');
     expect(bad).toBeDefined();
     expect(bad?.compressionRatio).toBe(0);
-    expect(bad?.compressed).toBe(Buffer.from('bad-item').toString('base64'));
+    // The fallback must stay decompressible: a bare base64 payload would be
+    // interpreted as gzip and fail every retry.
+    expect(bad?.compressed).toBe(`raw:${Buffer.from('bad-item').toString('base64')}`);
+    await expect(compressor.decompress(bad!.compressed)).resolves.toBe('bad-item');
   });
 
   it('evaluates compression thresholds correctly', () => {

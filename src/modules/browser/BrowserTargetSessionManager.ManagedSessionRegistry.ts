@@ -22,7 +22,13 @@ export class ManagedSessionRegistry {
     const entry = this.managedSessions.get(sessionId);
     if (entry) {
       this.managedSessions.delete(sessionId);
-      this.targetIdToSessionId.delete(entry.targetInfo.targetId);
+      const targetId = entry.targetInfo.targetId;
+      // The same target can have been re-attached to a newer session; only
+      // unmap when this entry still owns the mapping, otherwise the live
+      // session becomes unreachable through getByTargetId().
+      if (this.targetIdToSessionId.get(targetId) === sessionId) {
+        this.targetIdToSessionId.delete(targetId);
+      }
     }
     return entry;
   }

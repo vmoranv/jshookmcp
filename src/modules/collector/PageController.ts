@@ -263,11 +263,17 @@ export class PageController {
       clickOptions.offset = options.offset;
     }
     if (typeof timeout === 'number' && Number.isFinite(timeout) && timeout > 0) {
+      // Restore the timeout that was actually in effect, not a guessed one:
+      // another caller may have configured it differently on this page.
+      const previousTimeout =
+        typeof page.getDefaultTimeout === 'function' ? page.getDefaultTimeout() : undefined;
       page.setDefaultTimeout(timeout);
       try {
         await context.click(selector, clickOptions);
       } finally {
-        page.setDefaultTimeout(this.collector['config']?.timeout ?? PAGE_OPERATION_TIMEOUT_MS);
+        page.setDefaultTimeout(
+          previousTimeout ?? this.collector['config']?.timeout ?? PAGE_OPERATION_TIMEOUT_MS,
+        );
       }
     } else {
       await context.click(selector, clickOptions);

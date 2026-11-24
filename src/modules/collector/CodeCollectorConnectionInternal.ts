@@ -211,6 +211,17 @@ export function buildConnectTimeoutError(
   );
 }
 
+/** Endpoints can carry `user:pass@` userinfo or `?token=` query data. */
+export function redactEndpointForLog(endpoint: string): string {
+  try {
+    const url = new URL(endpoint);
+    const path = url.pathname && url.pathname !== '/' ? url.pathname : '';
+    return `${url.protocol}//${url.host}${path}`;
+  } catch {
+    return '<invalid-endpoint>';
+  }
+}
+
 function shouldAttemptPlaywrightFallback(error: unknown): boolean {
   const message = getUnknownErrorMessage(error);
 
@@ -234,7 +245,8 @@ async function connectWithPlaywrightFallbackImpl(
   }
 
   logger.warn(
-    `[connect-fallback] Rebrowser connect failed. Falling back to Playwright CDP compatibility mode for ${endpoint}.`,
+    `[connect-fallback] Rebrowser connect failed. Falling back to Playwright CDP compatibility mode for ` +
+      `${redactEndpointForLog(endpoint)}.`,
   );
 
   try {
@@ -283,6 +295,14 @@ export async function connectWithTimeoutImpl(
             } catch {
               /* best-effort cleanup for stale connection results */
             }
+            if (!settled) {
+              // Settle now: leaving the promise pending until the timer fires
+              // would reject with a timeout that wrongly triggers the
+              // Playwright fallback for a superseded attempt.
+              settled = true;
+              clearTimeout(timer);
+              reject(new Error('Connection attempt superseded by a newer attempt'));
+            }
             return;
           }
 
@@ -291,12 +311,16 @@ export async function connectWithTimeoutImpl(
           resolve(browser);
         })
         .catch((error) => {
-          if (settled || connectAttemptRef.current !== attemptId) {
+          if (settled) {
             return;
           }
 
           settled = true;
           clearTimeout(timer);
+          if (connectAttemptRef.current !== attemptId) {
+            reject(new Error('Connection attempt superseded by a newer attempt'));
+            return;
+          }
           reject(normalizeConnectError(error, target, endpointOrOptions));
         });
     });

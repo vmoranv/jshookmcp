@@ -10,6 +10,29 @@ export class PageCDPTimeoutGuard {
   private readonly defaultTimeoutMs = 30000;
 
   /**
+   * Race `promise` against a timer, clearing the timer on every outcome so the
+   * process is not kept alive (and the losing rejection stays handled).
+   */
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+    void promise.catch(() => undefined);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+            timeoutMs,
+          );
+          timeoutId.unref?.();
+        }),
+      ]);
+    } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    }
+  }
+
+  /**
    * Pre-flight CDP health check: verify the page CDP target is responsive.
    * After debugger enable + pause/resume, the Playwright CDP session can enter
    * a zombie state where Runtime.evaluate hangs indefinitely without firing
@@ -18,60 +41,6 @@ export class PageCDPTimeoutGuard {
    */
   async checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
     return checkPageCDPHealth(page, timeoutMs);
-  }
-
-  /**
-   * Wrap a page.evaluate() call with:
-   * 1. A CDP pre-flight health check (fails fast at ~3 s instead of 30 s)
-   * 2. A hard timeout (30 s) as a backstop
-   *
-   * Supports both string expressions and function callbacks.
-   */
-  async evaluateOnContextWithTimeout<Args extends readonly unknown[], Result>(
-    page: Page,
-    context: EvaluateContextLike,
-    pageFunction: string | ((...args: never[]) => Result),
-    ...args: Args
-  ): Promise<Awaited<Result> | unknown> {
-    const timeoutMs = this.defaultTimeoutMs;
-
-    // Fail fast: detect zombie CDP sessions before they block evaluate().
-    await this.checkPageCDPHealth(page);
-
-    // Race evaluate against a timer; clear the timer when evaluate wins so we don't
-    // leave a dangling setTimeout. NOTE: Playwright/Puppeteer don't expose a clean
-    // way to cancel an in-flight evaluate(), so the JS still runs to completion in
-    // the page — the timeout only protects the caller from blocking forever.
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    try {
-      return await Promise.race([
-        context.evaluate(
-          pageFunction as string | ((...args: never[]) => Result),
-          ...([...args] as never[]),
-        ),
-        new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(
-            () => reject(new Error(`page.evaluate timed out after ${timeoutMs}ms`)),
-            timeoutMs,
-          );
-        }),
-      ]);
-    } finally {
-      if (timeoutId !== undefined) clearTimeout(timeoutId);
-    }
-  }
-
-  async evaluateWithTimeout<Args extends readonly unknown[], Result>(
-    page: Page,
-    pageFunction: string | ((...args: never[]) => Result),
-    ...args: Args
-  ): Promise<Awaited<Result> | unknown> {
-    return this.evaluateOnContextWithTimeout(
-      page,
-      page,
-      pageFunction as any,
-      ...(args as unknown as never[]),
-    );
   }
 
   /**
@@ -89,18 +58,14 @@ export class PageCDPTimeoutGuard {
     // Fail fast: detect zombie CDP sessions before they block evaluateOnNewDocument().
     await this.checkPageCDPHealth(page);
 
-    return Promise.race([
+    return this.withTimeout(
       page.evaluateOnNewDocument(
         pageFunction as string | ((...args: never[]) => Result),
         ...([...args] as never[]),
       ),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`page.evaluateOnNewDocument timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        ),
-      ),
-    ]);
+      timeoutMs,
+      'page.evaluateOnNewDocument',
+    );
   }
 
   /**
@@ -110,16 +75,11 @@ export class PageCDPTimeoutGuard {
     page: CoveragePage,
     options?: { resetOnNavigation?: boolean; reportAnonymousScripts?: boolean },
   ): Promise<void> {
-    const timeoutMs = this.defaultTimeoutMs;
-    return Promise.race([
+    return this.withTimeout(
       page.coverage.startJSCoverage(options),
-      new Promise<void>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`coverage.startJSCoverage timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        ),
-      ),
-    ]);
+      this.defaultTimeoutMs,
+      'coverage.startJSCoverage',
+    );
   }
 
   /**
@@ -129,61 +89,34 @@ export class PageCDPTimeoutGuard {
     page: CoveragePage,
     options?: { resetOnNavigation?: boolean },
   ): Promise<void> {
-    const timeoutMs = this.defaultTimeoutMs;
-    return Promise.race([
+    return this.withTimeout(
       page.coverage.startCSSCoverage(options),
-      new Promise<void>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`coverage.startCSSCoverage timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        ),
-      ),
-    ]);
+      this.defaultTimeoutMs,
+      'coverage.startCSSCoverage',
+    );
   }
 
   /**
    * Wrap page.coverage.stopJSCoverage() with a timeout.
    */
   async coverageStopJSWithTimeout(page: CoveragePage): Promise<unknown> {
-    const timeoutMs = this.defaultTimeoutMs;
-    return Promise.race([
+    return this.withTimeout(
       page.coverage.stopJSCoverage(),
-      new Promise<unknown>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`coverage.stopJSCoverage timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        ),
-      ),
-    ]);
+      this.defaultTimeoutMs,
+      'coverage.stopJSCoverage',
+    );
   }
 
   /**
    * Wrap page.coverage.stopCSSCoverage() with a timeout.
    */
   async coverageStopCSSWithTimeout(page: CoveragePage): Promise<unknown> {
-    const timeoutMs = this.defaultTimeoutMs;
-    return Promise.race([
+    return this.withTimeout(
       page.coverage.stopCSSCoverage(),
-      new Promise<unknown>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`coverage.stopCSSCoverage timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        ),
-      ),
-    ]);
+      this.defaultTimeoutMs,
+      'coverage.stopCSSCoverage',
+    );
   }
-}
-
-interface EvaluateContextLike {
-  evaluate<Result>(pageFunction: () => Result | Promise<Result>): Promise<Result>;
-  evaluate<Arg, Result>(
-    pageFunction: (arg: Arg) => Result | Promise<Result>,
-    arg: Arg,
-  ): Promise<Result>;
-  evaluate<Args extends readonly unknown[], Result>(
-    pageFunction: string | ((...args: Args) => Result | Promise<Result>),
-    ...args: Args
-  ): Promise<Result>;
 }
 
 /** Structural type for pages with coverage API (Puppeteer / rebrowser-puppeteer). */
@@ -213,13 +146,21 @@ export async function checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<v
     throw new Error('cdp_unreachable');
   });
   let cdp: import('rebrowser-puppeteer-core').CDPSession | null = null;
+  const createPromise = page.createCDPSession();
   try {
-    cdp = await Promise.race([page.createCDPSession(), timer as unknown as Promise<never>]);
+    cdp = await Promise.race([createPromise, timer as unknown as Promise<never>]);
     await Promise.race([
       cdp.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
       timer as unknown as Promise<never>,
     ]);
   } catch (err) {
+    if (!cdp) {
+      // We gave up before createCDPSession() settled: if it resolves later, the
+      // native session must be detached or every health check leaks one.
+      void createPromise
+        .then((orphan) => orphan.detach().catch(() => undefined))
+        .catch(() => undefined);
+    }
     const msg = err instanceof Error ? err.message : String(err);
     if (msg === 'cdp_unreachable') {
       throw new Error(

@@ -76,7 +76,26 @@ export class PageDialogController {
     try {
       const result = await new Promise<{ type: string; dialogMessage: string }>(
         (resolve, reject) => {
+          // Keep the exact handler reference so it can be removed on timeout as
+          // well as on fire; page.once() leaves a stale handler attached when no
+          // dialog arrives and would later swallow an unrelated dialog.
+          const onDialog = async (dialog: {
+            type: () => string;
+            message: () => string;
+            accept: (promptText?: string) => Promise<void>;
+            dismiss: () => Promise<void>;
+          }): Promise<void> => {
+            clearTimeout(timeout);
+            page.off('dialog', onDialog);
+            try {
+              resolve(await handleSingle(dialog));
+            } catch (err) {
+              reject(err);
+            }
+          };
+
           const timeout = setTimeout(() => {
+            page.off('dialog', onDialog);
             reject(
               new Error(
                 `Timed out waiting for a dialog (${PAGE_OPERATION_TIMEOUT_MS / 1000}s). No dialog appeared.`,
@@ -84,14 +103,7 @@ export class PageDialogController {
             );
           }, PAGE_OPERATION_TIMEOUT_MS);
 
-          page.once('dialog', async (dialog) => {
-            clearTimeout(timeout);
-            try {
-              resolve(await handleSingle(dialog));
-            } catch (err) {
-              reject(err);
-            }
-          });
+          page.on('dialog', onDialog);
         },
       );
 

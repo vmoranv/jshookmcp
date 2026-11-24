@@ -98,13 +98,29 @@ export class SmartCodeCollector {
     });
   }
 
+  private compilePatterns(patterns: string[], context: string): RegExp[] {
+    const compiled: RegExp[] = [];
+    for (const pattern of patterns) {
+      try {
+        compiled.push(new RegExp(pattern));
+      } catch (error) {
+        logger.warn(
+          `[SmartCodeCollector] Ignoring invalid ${context} pattern "${pattern}": ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    return compiled;
+  }
+
   private collectByPriority(files: CodeFile[], options: SmartCollectOptions): CodeFile[] {
     const maxTotalSize = options.maxTotalSize || this.DEFAULT_MAX_TOTAL_SIZE;
     const maxFileSize = options.maxFileSize || this.DEFAULT_MAX_FILE_SIZE;
+    const priorityRegexes = this.compilePatterns(options.priorities || [], 'priority');
 
     const scoredFiles = files.map((file) => ({
       file,
-      score: this.calculatePriority(file, options.priorities || []),
+      score: this.calculatePriority(file, priorityRegexes),
     }));
 
     scoredFiles.sort((a, b) => b.score - a.score);
@@ -150,19 +166,19 @@ export class SmartCodeCollector {
   }
 
   private collectIncremental(files: CodeFile[], options: SmartCollectOptions): CodeFile[] {
-    const includePatterns = options.includePatterns || [];
-    const excludePatterns = options.excludePatterns || [];
+    const excludeRegexes = this.compilePatterns(options.excludePatterns || [], 'exclude');
+    const includeRegexes = this.compilePatterns(options.includePatterns || [], 'include');
 
     const filtered = files.filter((file) => {
-      if (excludePatterns.some((pattern) => new RegExp(pattern).test(file.url))) {
+      if (excludeRegexes.some((pattern) => pattern.test(file.url))) {
         return false;
       }
 
-      if (includePatterns.length === 0) {
+      if (includeRegexes.length === 0) {
         return true;
       }
 
-      return includePatterns.some((pattern) => new RegExp(pattern).test(file.url));
+      return includeRegexes.some((pattern) => pattern.test(file.url));
     });
 
     logger.info(`Incremental collection: ${filtered.length}/${files.length} files matched`);
@@ -209,7 +225,7 @@ export class SmartCodeCollector {
     return result;
   }
 
-  private calculatePriority(file: CodeFile, priorities: string[]): number {
+  private calculatePriority(file: CodeFile, priorities: readonly RegExp[]): number {
     let score = 0;
 
     if (file.type === 'inline') score += PRIORITY_INLINE_SCORE;
@@ -217,7 +233,7 @@ export class SmartCodeCollector {
 
     for (let i = 0; i < priorities.length; i++) {
       const pattern = priorities[i];
-      if (pattern && new RegExp(pattern).test(file.url)) {
+      if (pattern?.test(file.url)) {
         score += (priorities.length - i) * PRIORITY_MATCH_WEIGHT;
       }
     }

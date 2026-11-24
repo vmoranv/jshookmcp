@@ -72,6 +72,8 @@ export interface DumpTargetScriptsResult {
 export class BrowserTargetSessionManager implements NetworkMonitorLike {
   private readonly getBrowser: () => Browser | null;
   private browserSession: CDPSession | null = null;
+  /** Single-flight guard for createCDPSession() (concurrent callers share one). */
+  private browserSessionPromise?: Promise<CDPSession>;
   private attachedTargetSession: CDPSessionLike | null = null;
   private attachedTargetInfo: BrowserTargetInfo | null = null;
   private attachedTargetBorrowedFromManaged = false;
@@ -301,59 +303,63 @@ export class BrowserTargetSessionManager implements NetworkMonitorLike {
 
     session.on('Debugger.scriptParsed', onScriptParsed);
     try {
-      await session.send('Debugger.enable', {});
-      // Debugger.enable replays scriptParsed for already-loaded scripts.
-      await this.delay(WORKER_SCRIPT_COLLECT_WAIT_MS);
-    } finally {
-      session.off('Debugger.scriptParsed', onScriptParsed);
-    }
-
-    // Dedupe by scriptId (replay can re-emit) and drop the debugger's own eval frames.
-    const uniqueById = new Map<string, DumpedTargetScript>();
-    for (const script of collected) {
-      if (!uniqueById.has(script.scriptId)) {
-        uniqueById.set(script.scriptId, script);
-      }
-    }
-    const allScripts = Array.from(uniqueById.values());
-    const totalScripts = allScripts.length;
-    const selected = allScripts.slice(0, maxScripts);
-
-    if (includeSource) {
-      for (const script of selected) {
-        await this.hydrateScriptSource(session, script);
-      }
-    }
-
-    try {
-      await session.send('Debugger.disable', {});
-    } catch {
-      // Best-effort; some worker targets tear down before disable lands.
-    }
-
-    if (ownsSession) {
       try {
-        const browserSession = this.browserSession;
-        if (browserSession) {
-          await detachFromFlatTarget(browserSession, session);
+        await session.send('Debugger.enable', {});
+        // Debugger.enable replays scriptParsed for already-loaded scripts.
+        await this.delay(WORKER_SCRIPT_COLLECT_WAIT_MS);
+      } finally {
+        session.off('Debugger.scriptParsed', onScriptParsed);
+      }
+
+      // Dedupe by scriptId (replay can re-emit) and drop the debugger's own eval frames.
+      const uniqueById = new Map<string, DumpedTargetScript>();
+      for (const script of collected) {
+        if (!uniqueById.has(script.scriptId)) {
+          uniqueById.set(script.scriptId, script);
         }
-      } catch (error) {
-        logger.debug(
-          `[BrowserTargetSessionManager] Failed to detach temporary worker session for ${targetId}: ` +
-            `${error instanceof Error ? error.message : String(error)}`,
-        );
+      }
+      const allScripts = Array.from(uniqueById.values());
+      const totalScripts = allScripts.length;
+      const selected = allScripts.slice(0, maxScripts);
+
+      if (includeSource) {
+        for (const script of selected) {
+          await this.hydrateScriptSource(session, script);
+        }
+      }
+
+      try {
+        await session.send('Debugger.disable', {});
+      } catch {
+        // Best-effort; some worker targets tear down before disable lands.
+      }
+
+      return {
+        targetId,
+        targetType: target.type,
+        borrowedManagedSession,
+        totalScripts,
+        returnedScripts: selected.length,
+        truncated: totalScripts > selected.length,
+        scripts: selected,
+      };
+    } finally {
+      // The temporary session must be released on every path: an earlier throw
+      // (Debugger.enable, hydration) used to leave it attached with no owner.
+      if (ownsSession) {
+        try {
+          const browserSession = this.browserSession;
+          if (browserSession) {
+            await detachFromFlatTarget(browserSession, session);
+          }
+        } catch (error) {
+          logger.debug(
+            `[BrowserTargetSessionManager] Failed to detach temporary worker session for ${targetId}: ` +
+              `${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
       }
     }
-
-    return {
-      targetId,
-      targetType: target.type,
-      borrowedManagedSession,
-      totalScripts,
-      returnedScripts: selected.length,
-      truncated: totalScripts > selected.length,
-      scripts: selected,
-    };
   }
 
   private readScriptParsedPayload(payload: unknown): DumpedTargetScript | null {
@@ -787,7 +793,15 @@ export class BrowserTargetSessionManager implements NetworkMonitorLike {
 
   async dispose(): Promise<void> {
     try {
-      await this.detach();
+      // A detach failure (e.g. the browser session already went away) must not
+      // skip disable(): otherwise per-entry network monitors stay listening and
+      // persistent script state is never cleared.
+      await this.detach().catch((error) => {
+        logger.debug(
+          `[BrowserTargetSessionManager] Detach during dispose failed: ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
       await this.disable();
       this.persistentScripts.clear();
 
@@ -801,8 +815,8 @@ export class BrowserTargetSessionManager implements NetworkMonitorLike {
       }
     } finally {
       this.registry.clear();
-      this.registry.clear();
       this.browserSession = null;
+      this.browserSessionPromise = undefined;
       this.autoAttachEnabled = false;
       this.targetListenersBound = false;
     }
@@ -820,13 +834,32 @@ export class BrowserTargetSessionManager implements NetworkMonitorLike {
       return this.browserSession;
     }
 
+    // Two concurrent callers must not each create a CDP session: the loser's
+    // session would leak and only the winner would receive the Target.* events.
+    if (this.browserSessionPromise) {
+      return this.browserSessionPromise;
+    }
+
     const browser = this.getBrowser();
     if (!browser) {
       throw new Error('Browser not connected');
     }
 
-    this.browserSession = await browser.target().createCDPSession();
-    return this.browserSession;
+    const promise = browser
+      .target()
+      .createCDPSession()
+      .then((session) => {
+        this.browserSession = session;
+        return session;
+      });
+    this.browserSessionPromise = promise;
+    try {
+      return await promise;
+    } finally {
+      if (this.browserSessionPromise === promise) {
+        this.browserSessionPromise = undefined;
+      }
+    }
   }
 
   private async ensureAutoAttachEnabled(session: CDPSession): Promise<void> {
@@ -859,10 +892,20 @@ export class BrowserTargetSessionManager implements NetworkMonitorLike {
     }
 
     this.browserSessionListeners.attachedToTarget = (payload: unknown) => {
-      void this.handleAttachedToTarget(payload);
+      void this.handleAttachedToTarget(payload).catch((error) => {
+        logger.debug(
+          `[BrowserTargetSessionManager] attachedToTarget handling failed: ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
     };
     this.browserSessionListeners.detachedFromTarget = (payload: unknown) => {
-      void this.handleDetachedFromTarget(payload);
+      void this.handleDetachedFromTarget(payload).catch((error) => {
+        logger.debug(
+          `[BrowserTargetSessionManager] detachedFromTarget handling failed: ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
     };
     this.browserSessionListeners.targetInfoChanged = (payload: unknown) => {
       this.handleTargetInfoChanged(payload);
@@ -1003,6 +1046,9 @@ export class BrowserTargetSessionManager implements NetworkMonitorLike {
     if (this.aggregatedNetworkEnabled) {
       await this.ensureSessionNetworkMonitor(entry);
     }
+    // Targets bootstrapped from a page scan (enable()/registerPersistentScript)
+    // must receive the same preload scripts as attach()/auto-attach sessions.
+    await this.applyPersistentScriptsToEntry(entry);
   }
 
   private async handleDetachedFromTarget(payload: unknown): Promise<void> {

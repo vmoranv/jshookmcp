@@ -52,3 +52,33 @@ describe('CodeCompressor bug fixes', () => {
     expect(results).toHaveLength(1);
   });
 });
+
+describe('CodeCompressor stream boundary hardening', () => {
+  it('keeps surrogate pairs intact across chunk boundaries', async () => {
+    const compressor = new CodeCompressor();
+    // High surrogate lands exactly on the chunk boundary at index 9.
+    const source = `${'a'.repeat(9)}\u{1f600}${'b'.repeat(10)}`;
+
+    const compressed = await compressor.compressStream(source, { chunkSize: 10 });
+    const restored = await compressor.decompress(compressed.compressed);
+
+    expect(restored).toBe(source);
+  });
+
+  it('falls back to the default chunk size for zero/negative values', async () => {
+    const compressor = new CodeCompressor();
+
+    const zero = await compressor.compressStream('hello', { chunkSize: 0 });
+    expect(zero.chunks).toBeUndefined();
+
+    const negative = await compressor.compressStream('hello', { chunkSize: -5 });
+    expect(negative.chunks).toBeUndefined();
+  });
+
+  it('rejects chunked envelopes whose chunks are not strings', async () => {
+    const compressor = new CodeCompressor();
+    const payload = JSON.stringify({ format: 'code-compressor-chunks', chunks: [42] });
+
+    await expect(compressor.decompress(payload)).rejects.toThrow(/chunked payload/i);
+  });
+});

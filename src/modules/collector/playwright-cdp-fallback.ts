@@ -109,6 +109,22 @@ function getDefaultContext(browser: PlaywrightBrowser): PlaywrightBrowserContext
   return context;
 }
 
+/**
+ * Playwright serializes `addInitScript(fn, arg)` as `(fn)(JSON.stringify(arg))`,
+ * so it forwards only ONE argument (and rejects a string source that has args).
+ * Build an explicit source when several arguments must survive; returns null
+ * when Playwright's native form is sufficient.
+ */
+export function buildMultiArgInitScriptSource(
+  pageFunction: string | ((...args: never[]) => unknown),
+  args: readonly unknown[],
+): string | null {
+  if (typeof pageFunction === 'string' || args.length === 0) {
+    return null;
+  }
+  return `(${pageFunction.toString()})(...${JSON.stringify(args)})`;
+}
+
 function createPageAdapter(
   playwrightPage: PlaywrightPage,
   pageCache: WeakMap<PlaywrightPage, PuppeteerPage>,
@@ -160,7 +176,11 @@ function createPageAdapter(
       pageFunction: string | ((...args: never[]) => unknown),
       ...args: readonly unknown[]
     ) {
-      return await playwrightPage.addInitScript(pageFunction as never, ...([...args] as never[]));
+      const multiArgSource = buildMultiArgInitScriptSource(pageFunction, args);
+      if (multiArgSource === null) {
+        return await playwrightPage.addInitScript(pageFunction as never);
+      }
+      return await playwrightPage.addInitScript(multiArgSource as never);
     },
     async createCDPSession(): Promise<PuppeteerCDPSession> {
       const context = playwrightPage.context() as PlaywrightBrowserContext & {
@@ -241,6 +261,11 @@ function createBrowserAdapter(playwrightBrowser: PlaywrightBrowser): PuppeteerBr
       const page = await context.newPage();
       return createPageAdapter(page, pageCache);
     },
+    // NOTE: Playwright exposes no non-destructive "detach" for connectOverCDP;
+    // browser.close() releases the connection and the contexts Playwright
+    // created. Callers that must not disturb an externally owned browser rely
+    // on the caller-side guards (BrowserLifecycleManager.disposeCurrentBrowser
+    // only reaches here for a connection this adapter owns).
     async disconnect(): Promise<void> {
       await playwrightBrowser.close();
     },

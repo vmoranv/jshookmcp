@@ -32,6 +32,14 @@ const COMPRESS_MIN_THRESHOLD_BYTES = CODE_COMPRESSOR_MIN_THRESHOLD_BYTES;
 /** Max nesting depth for chunked payloads — guards decompress() recursion
  *  against adversarial deeply-nested `{"format":"code-compressor-chunks"}` envelopes. */
 const MAX_RECURSION_DEPTH = CODE_COMPRESSOR_MAX_RECURSION_DEPTH;
+/** Upper bound on chunks in one envelope (crafted payloads otherwise expand
+ *  into an unbounded number of concurrent decompressions). */
+const MAX_CHUNKS = 10_000;
+/** Upper bound on a single gunzip output (zip-bomb guard). */
+const MAX_DECOMPRESSED_BYTES = 512 * 1024 * 1024;
+/** Marks the compressBatch passthrough fallback so decompress() can tell it
+ *  apart from gzip output instead of failing every retry. */
+const RAW_FALLBACK_PREFIX = 'raw:';
 
 export interface CompressedCode {
   compressed: string;
@@ -190,6 +198,12 @@ export class CodeCompressor {
 
   async decompress(compressed: string, maxRetries?: number, depth = 0): Promise<string> {
     const retries = maxRetries ?? this.DEFAULT_MAX_RETRIES;
+    // Uncompressed passthrough produced by compressBatch's failure fallback.
+    // Without this branch the fallback was indistinguishable from gzip output
+    // and every decompress attempt failed.
+    if (compressed.startsWith(RAW_FALLBACK_PREFIX)) {
+      return Buffer.from(compressed.slice(RAW_FALLBACK_PREFIX.length), 'base64').toString('utf-8');
+    }
     // Multi-chunk payload produced by compressStream: a JSON envelope whose
     // chunks are individually gzip+base64 compressed.
     if (compressed.startsWith(CHUNKED_FORMAT_PREFIX)) {
@@ -199,8 +213,17 @@ export class CodeCompressor {
             `Nested chunked payload exceeds max recursion depth ${MAX_RECURSION_DEPTH}`,
           );
         }
-        const parsed = JSON.parse(compressed) as { chunks?: string[] };
-        if (parsed.chunks) {
+        const parsed = JSON.parse(compressed) as { chunks?: unknown };
+        if (parsed.chunks !== undefined) {
+          if (
+            !Array.isArray(parsed.chunks) ||
+            !parsed.chunks.every((chunk): chunk is string => typeof chunk === 'string')
+          ) {
+            throw new Error('Chunked payload chunks must be an array of strings');
+          }
+          if (parsed.chunks.length > MAX_CHUNKS) {
+            throw new Error(`Chunked payload exceeds max chunk count ${MAX_CHUNKS}`);
+          }
           const parts = await Promise.all(
             parsed.chunks.map((chunk) => this.decompress(chunk, retries, depth + 1)),
           );
@@ -217,7 +240,7 @@ export class CodeCompressor {
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         const buffer = Buffer.from(compressed, 'base64');
-        const decompressed = await gunzipAsync(buffer);
+        const decompressed = await gunzipAsync(buffer, { maxOutputLength: MAX_DECOMPRESSED_BYTES });
         return decompressed.toString('utf-8');
       } catch (error) {
         lastError = error as Error;
@@ -282,11 +305,15 @@ export class CodeCompressor {
             };
           } catch (error) {
             logger.error(`Failed to compress ${file.url}:`, error);
+            // Emit a passthrough payload decompress() understands; plain base64
+            // here would be interpreted as gzip and fail forever.
+            const rawBytes = Buffer.byteLength(file.content, 'utf-8');
+            const rawBase64 = Buffer.from(file.content, 'utf-8').toString('base64');
             return {
               url: file.url,
-              compressed: Buffer.from(file.content).toString('base64'),
-              originalSize: file.content.length,
-              compressedSize: file.content.length,
+              compressed: `${RAW_FALLBACK_PREFIX}${rawBase64}`,
+              originalSize: rawBytes,
+              compressedSize: rawBytes,
               compressionRatio: 0,
             };
           }
@@ -329,7 +356,12 @@ export class CodeCompressor {
   }
 
   async compressStream(code: string, options: CompressOptions = {}): Promise<CompressedCode> {
-    const chunkSize = options.chunkSize ?? this.DEFAULT_CHUNK_SIZE;
+    // `chunkSize` drives the loop step: 0/NaN/negative would spin forever.
+    const requestedChunkSize = options.chunkSize ?? this.DEFAULT_CHUNK_SIZE;
+    const chunkSize =
+      Number.isFinite(requestedChunkSize) && requestedChunkSize > 0
+        ? Math.floor(requestedChunkSize)
+        : this.DEFAULT_CHUNK_SIZE;
 
     if (code.length <= chunkSize) {
       return this.compress(code, options);
@@ -338,14 +370,28 @@ export class CodeCompressor {
     const startTime = Date.now();
     const chunks: string[] = [];
 
-    for (let i = 0; i < code.length; i += chunkSize) {
-      const chunk = code.substring(i, i + chunkSize);
+    // Track the real offset: keeping a surrogate pair intact can make a chunk
+    // one code unit longer than chunkSize, so `i * chunkSize` is not reliable.
+    let offset = 0;
+    while (offset < code.length) {
+      let end = Math.min(offset + chunkSize, code.length);
+      if (end < code.length) {
+        const lastCodeUnit = code.charCodeAt(end - 1);
+        // Extend (never shrink) the boundary so both halves of a non-BMP
+        // character stay in the same chunk; shrinking would strand the low
+        // surrogate at the start of the next chunk and lose the pair.
+        if (lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff) {
+          end += 1;
+        }
+      }
+      const chunk = code.substring(offset, end);
       const compressed = await this.compress(chunk, { ...options, useCache: false });
       chunks.push(compressed.compressed);
 
       if (options.onProgress) {
-        options.onProgress((i / code.length) * 100);
+        options.onProgress((end / code.length) * 100);
       }
+      offset = end;
     }
 
     const combined = JSON.stringify({ format: CHUNKED_FORMAT, chunks });

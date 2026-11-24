@@ -4,6 +4,7 @@ import { logger } from '@utils/logger';
 
 interface WorkerTrackingWindow extends Window {
   __workerUrls?: string[];
+  jshookWorkerTrackingInstalled?: boolean;
   Worker: typeof Worker;
 }
 
@@ -15,6 +16,12 @@ export async function setupWebWorkerTracking(page: Page): Promise<void> {
     const originalWorker = workerWindow.Worker;
 
     if (typeof originalWorker !== 'function') {
+      return;
+    }
+
+    // Re-injection must not stack Proxy wrappers: each extra layer would push
+    // the same worker URL again, duplicating collected files.
+    if (workerWindow.jshookWorkerTrackingInstalled) {
       return;
     }
 
@@ -41,6 +48,7 @@ export async function setupWebWorkerTracking(page: Page): Promise<void> {
     });
 
     workerWindow.Worker = trackedWorker as typeof Worker;
+    workerWindow.jshookWorkerTrackingInstalled = true;
   });
 }
 

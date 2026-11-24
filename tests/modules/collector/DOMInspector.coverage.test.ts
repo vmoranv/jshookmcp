@@ -132,6 +132,12 @@ function createElement(options: {
       bottom: y + height,
       right: x + width,
     }),
+    // Real Elements expose the class through the attribute, unlike
+    // `className` which is an SVGAnimatedString for SVG nodes.
+    getAttribute: (name: string) => {
+      if (name === 'class') return className || null;
+      return attributes.find((attr) => attr.name === name)?.value ?? null;
+    },
     querySelectorAll: vi.fn(() => []),
   };
 }
@@ -162,7 +168,12 @@ function createComputedStyle(overrides: Partial<Record<string, string>> = {}) {
 
   return {
     ...values,
-    getPropertyValue: (prop: string) => values[prop] ?? '',
+    // CSSStyleDeclaration.getPropertyValue() takes hyphenated names; mirror a
+    // real declaration so camelCase report keys resolve to their CSS values.
+    getPropertyValue: (prop: string) => {
+      const key = prop.replace(/-([a-z])/g, (_, ch: string) => ch.toUpperCase());
+      return values[key] ?? values[prop] ?? '';
+    },
   };
 }
 

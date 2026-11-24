@@ -26,7 +26,10 @@ vi.mock('@modules/collector/playwright-cdp-fallback', () => ({
   connectPlaywrightCdpFallback: fallbackState.connectPlaywrightCdpFallback,
 }));
 
-import { connectWithTimeoutImpl } from '@modules/collector/CodeCollectorConnectionInternal';
+import {
+  connectWithTimeoutImpl,
+  redactEndpointForLog,
+} from '@modules/collector/CodeCollectorConnectionInternal';
 import { BROWSER_PROTOCOL_TIMEOUT_MS } from '@src/constants';
 
 function makeBrowser() {
@@ -119,5 +122,64 @@ describe('connectWithTimeout attempt superseding', () => {
     expect(connectState.connect).toHaveBeenCalledWith(
       expect.objectContaining({ protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS }),
     );
+  });
+});
+
+describe('connectWithTimeout superseded attempts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('settles a superseded attempt immediately instead of waiting for its timeout', async () => {
+    const ref = { current: 0 };
+    let resolveFirst!: (browser: ReturnType<typeof makeBrowser>) => void;
+    const firstPending = new Promise<ReturnType<typeof makeBrowser>>((resolve) => {
+      resolveFirst = resolve;
+    });
+    connectState.connect.mockReturnValueOnce(firstPending);
+
+    const attempt1 = connectWithTimeoutImpl(
+      { browserWSEndpoint: 'ws://one' },
+      'ws://one',
+      'ws://one',
+      60_000,
+      ref,
+    );
+    const attempt1Rejection = expect(attempt1).rejects.toThrow('superseded');
+
+    connectState.connect.mockResolvedValueOnce(makeBrowser());
+    const attempt2 = connectWithTimeoutImpl(
+      { browserWSEndpoint: 'ws://two' },
+      'ws://two',
+      'ws://two',
+      60_000,
+      ref,
+    );
+
+    const staleBrowser = makeBrowser();
+    resolveFirst(staleBrowser);
+
+    await attempt1Rejection;
+    await expect(attempt2).resolves.toBeDefined();
+    expect(staleBrowser.disconnect).toHaveBeenCalledTimes(1);
+    // A "superseded" rejection must not look like a timeout, otherwise it
+    // triggers an unnecessary Playwright fallback connection.
+    expect(fallbackState.connectPlaywrightCdpFallback).not.toHaveBeenCalled();
+  });
+});
+
+describe('redactEndpointForLog', () => {
+  it('strips userinfo and query/hash from logged endpoints', () => {
+    expect(
+      redactEndpointForLog('ws://user:secret@127.0.0.1:9222/devtools/browser/abc?token=xyz#frag'),
+    ).toBe('ws://127.0.0.1:9222/devtools/browser/abc');
+  });
+
+  it('keeps bare host:port endpoints readable', () => {
+    expect(redactEndpointForLog('ws://127.0.0.1:9222')).toBe('ws://127.0.0.1:9222');
+  });
+
+  it('never echoes an unparseable endpoint', () => {
+    expect(redactEndpointForLog('not a url')).toBe('<invalid-endpoint>');
   });
 });

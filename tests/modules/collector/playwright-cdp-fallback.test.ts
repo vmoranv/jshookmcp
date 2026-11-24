@@ -23,3 +23,24 @@ describe('normalizePlaywrightConnectEndpoint', () => {
     );
   });
 });
+
+import { buildMultiArgInitScriptSource } from '@modules/collector/playwright-cdp-fallback';
+
+describe('buildMultiArgInitScriptSource', () => {
+  it('inlines every argument for a function init script', () => {
+    const initScript = (platform: string, cores: number) => {
+      void platform;
+      void cores;
+    };
+
+    const source = buildMultiArgInitScriptSource(initScript, ['Win32', 8]);
+
+    expect(source).toBe(`(${initScript.toString()})(...["Win32",8])`);
+  });
+
+  it('returns null when Playwright native serialization is sufficient', () => {
+    const initScript = () => {};
+    expect(buildMultiArgInitScriptSource(initScript, [])).toBeNull();
+    expect(buildMultiArgInitScriptSource('window.__x = 1;', ['ignored'])).toBeNull();
+  });
+});

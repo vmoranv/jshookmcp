@@ -87,6 +87,8 @@ interface CollectorInternals {
   cdpListeners: {
     responseReceived?: (params: unknown) => Promise<void> | void;
   };
+  /** In-flight Network.responseReceived handlers (drained before detach). */
+  cdpInFlight?: Set<Promise<void>>;
   MAX_FILES_PER_COLLECT: number;
   MAX_SINGLE_FILE_SIZE: number;
   collectedUrls: Set<string>;
@@ -229,12 +231,22 @@ async function resolveCollectionPage(self: CollectorInternals): Promise<Collecti
     }
   }
 
-  const page =
-    activePageContext !== null
-      ? await activePageContext.newPage()
-      : temporaryContext
-        ? await temporaryContext.newPage()
-        : await browser.newPage();
+  let page: Page;
+  try {
+    page =
+      activePageContext !== null
+        ? await activePageContext.newPage()
+        : temporaryContext
+          ? await temporaryContext.newPage()
+          : await browser.newPage();
+  } catch (error) {
+    // Callers only reach their own try/finally after this resolves; a failure
+    // here would otherwise leak the throwaway browser context.
+    if (temporaryContext) {
+      await temporaryContext.close().catch(() => undefined);
+    }
+    throw error;
+  }
 
   return { page, temporaryContext, previousActivePageIndex };
 }
@@ -393,8 +405,18 @@ async function startCdpCapture(
   await self.cdpSession.send('Network.enable');
   await self.cdpSession.send('Runtime.enable');
 
-  self.cdpListeners.responseReceived = async (params: unknown) => {
-    await handleResponseReceived(self, options, files, appendFilesWithinLimit, params);
+  // Track in-flight handlers so stopCdpCapture() can wait for them before the
+  // caller reads `files` (a late Network.getResponseBody would otherwise append
+  // after truncation/smart-collection/compression already ran).
+  self.cdpInFlight = new Set<Promise<void>>();
+  self.cdpListeners.responseReceived = (params: unknown) => {
+    const task = handleResponseReceived(self, options, files, appendFilesWithinLimit, params).catch(
+      (error) => {
+        logger.warn('[CDP] responseReceived handler failed:', error);
+      },
+    );
+    self.cdpInFlight?.add(task);
+    void task.finally(() => self.cdpInFlight?.delete(task));
   };
 
   self.cdpSession.on('Network.responseReceived', self.cdpListeners.responseReceived);
@@ -442,6 +464,13 @@ async function stopCdpCapture(self: CollectorInternals): Promise<void> {
   if (self.cdpListeners.responseReceived) {
     self.cdpSession.off('Network.responseReceived', self.cdpListeners.responseReceived);
   }
+  // Drain handlers that are already awaiting Network.getResponseBody: they must
+  // finish (and append to `files`) before the caller post-processes the array,
+  // and before the session is detached.
+  if (self.cdpInFlight && self.cdpInFlight.size > 0) {
+    await Promise.allSettled(self.cdpInFlight);
+  }
+  self.cdpInFlight = undefined;
   await self.cdpSession.detach();
   self.cdpSession = null;
   self.cdpListeners = {};
@@ -601,7 +630,13 @@ async function releaseCollectionPage(
     }
     return;
   }
-  await setup.page.close();
+  try {
+    await setup.page.close();
+  } catch (error) {
+    // This runs from a finally: letting close() reject would mask the original
+    // collection result/error and skip restoring the previous active page.
+    logger.debug('Failed to close collection page after code collection:', error);
+  }
   if (setup.previousActivePageIndex !== null && typeof self.selectPage === 'function') {
     try {
       await self.selectPage(setup.previousActivePageIndex);

@@ -1,6 +1,5 @@
 import { logger } from '@utils/logger';
 import type { CodeFile } from '@internal-types/index';
-import { truncateUtf16Safe } from '@modules/collector/collector-utils';
 
 /** Score weight per priority-pattern rank. */
 const PRIORITY_MATCH_WEIGHT = 10;
@@ -41,24 +40,39 @@ export class StreamingCollector {
   private readonly DEFAULT_MAX_CHUNKS = 50;
 
   async *streamFile(file: CodeFile, options: StreamOptions = {}): AsyncGenerator<StreamChunk> {
-    const chunkSize = options.chunkSize || this.DEFAULT_CHUNK_SIZE;
-    const maxChunks = options.maxChunks || this.DEFAULT_MAX_CHUNKS;
+    const chunkSize = this.resolveChunkSize(options.chunkSize);
+    const maxChunks = this.resolveMaxChunks(options.maxChunks);
 
     const content = file.content;
     const totalSize = content.length;
-    const rawTotalChunks = Math.ceil(totalSize / chunkSize);
-    const capped = rawTotalChunks > maxChunks;
-    const totalChunks = Math.min(rawTotalChunks, maxChunks);
+
+    // Precompute boundaries so a surrogate pair kept intact can shift every
+    // following offset: trusting `i * chunkSize` would strand the low surrogate
+    // at the head of the next chunk (silent character corruption) and report a
+    // wrong metadata.offset.
+    const boundaries: Array<{ start: number; end: number }> = [];
+    let offset = 0;
+    while (offset < totalSize && boundaries.length < maxChunks) {
+      let end = Math.min(offset + chunkSize, totalSize);
+      if (end < totalSize) {
+        const lastCode = content.charCodeAt(end - 1);
+        // Extend (never shrink) so the boundary never splits a pair.
+        if (lastCode >= 0xd800 && lastCode <= 0xdbff) {
+          end += 1;
+        }
+      }
+      boundaries.push({ start: offset, end });
+      offset = end;
+    }
+
+    const totalChunks = boundaries.length;
+    const capped = offset < totalSize;
 
     logger.debug(`Streaming file: ${file.url} (${totalChunks} chunks)`);
 
     for (let i = 0; i < totalChunks; i++) {
-      const offset = i * chunkSize;
-      // Do not split a UTF-16 surrogate pair across chunk boundaries — reuse
-      // the same safe-truncation helper as SmartCodeCollector.
-      const chunk = truncateUtf16Safe(content, Math.min(offset + chunkSize, totalSize)).substring(
-        offset,
-      );
+      const { start, end } = boundaries[i]!;
+      const chunk = content.slice(start, end);
       const isLast = !capped && i === totalChunks - 1;
 
       yield {
@@ -74,10 +88,22 @@ export class StreamingCollector {
         metadata: {
           fileSize: totalSize,
           chunkSize: chunk.length,
-          offset,
+          offset: start,
         },
       };
     }
+  }
+
+  private resolveChunkSize(requested: number | undefined): number {
+    return Number.isFinite(requested) && (requested as number) > 0
+      ? Math.floor(requested as number)
+      : this.DEFAULT_CHUNK_SIZE;
+  }
+
+  private resolveMaxChunks(requested: number | undefined): number {
+    return Number.isFinite(requested) && (requested as number) > 0
+      ? Math.floor(requested as number)
+      : this.DEFAULT_MAX_CHUNKS;
   }
 
   async *streamFiles(files: CodeFile[], options: StreamOptions = {}): AsyncGenerator<StreamChunk> {
@@ -112,9 +138,23 @@ export class StreamingCollector {
     priorities: string[],
     options: StreamOptions = {},
   ): AsyncGenerator<StreamChunk> {
+    // Compile once: an invalid pattern must not abort prioritisation, and
+    // rebuilding a RegExp per (file, pattern) pair invites pathological cost.
+    const priorityRegexes: RegExp[] = [];
+    for (const pattern of priorities) {
+      try {
+        priorityRegexes.push(new RegExp(pattern, 'i'));
+      } catch (error) {
+        logger.warn(
+          `[StreamingCollector] Ignoring invalid priority pattern "${pattern}": ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
     const scored = files.map((file) => ({
       file,
-      score: this.calculatePriority(file, priorities),
+      score: this.calculatePriority(file, priorityRegexes),
     }));
 
     scored.sort((a, b) => b.score - a.score);
@@ -126,12 +166,12 @@ export class StreamingCollector {
     }
   }
 
-  private calculatePriority(file: CodeFile, priorities: string[]): number {
+  private calculatePriority(file: CodeFile, priorities: readonly RegExp[]): number {
     let score = 0;
 
     for (let i = 0; i < priorities.length; i++) {
       const pattern = priorities[i];
-      if (pattern && new RegExp(pattern, 'i').test(file.url)) {
+      if (pattern?.test(file.url)) {
         score += (priorities.length - i) * PRIORITY_MATCH_WEIGHT;
       }
     }
