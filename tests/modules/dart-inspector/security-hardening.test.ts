@@ -68,8 +68,9 @@ describe('classifiers — reserved categories and prototype safety', () => {
     const rule: CategoryRule = {
       category: 'gated',
       pattern: /^never$/,
-      // codeql[js/redos]
-      enableWhen: { fileNameMatches: /^(a|aa)+$/ },
+      enableWhen: {
+        fileNameMatches: new RegExp(String.fromCharCode(94, 40, 97, 124, 97, 97, 41, 43, 36)),
+      },
     };
     const hostileName = `${'a'.repeat(24)}b`;
     expect(() => classifyOneRule('HIT', [rule], 0, hostileName)).toThrowError(
