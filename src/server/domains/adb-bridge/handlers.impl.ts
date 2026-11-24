@@ -179,6 +179,67 @@ function isValidAndroidPackageName(value: string): boolean {
   return ANDROID_PACKAGE_NAME_PATTERN.test(value);
 }
 
+/**
+ * `activity` / `package.activity` are appended to an `adb shell` command, so
+ * constrain them to characters legal in a component name (dot-separated
+ * identifiers, `$` for inner classes, one separating slash).
+ */
+const ANDROID_ACTIVITY_COMPONENT_PATTERN = /^[A-Za-z0-9_.$]+\/[A-Za-z0-9_.$]+$/;
+
+/** `dumpsys <service>` service names, e.g. `package`, `media.audio_flinger`. */
+const DUMPSYS_SERVICE_PATTERN = /^[A-Za-z0-9_.:-]+$/;
+
+/** Absolute POSIX device path used as an `adb shell` argument. */
+const POSIX_REMOTE_PATH_PATTERN = /^\/[A-Za-z0-9._/-]*$/;
+
+const PROCESS_ID_PATTERN = /^\d+$/;
+
+const SCREEN_SIZE_PATTERN = /^\d{1,5}x\d{1,5}$/;
+
+function assertValidPackageName(value: string): void {
+  if (!isValidAndroidPackageName(value)) {
+    throw new ToolError(
+      'VALIDATION',
+      `Invalid Android package name: ${value}. Expected dot-separated identifiers.`,
+      { toolName: 'adb-bridge' },
+    );
+  }
+}
+
+function assertValidActivityComponent(value: string): void {
+  if (!ANDROID_ACTIVITY_COMPONENT_PATTERN.test(value)) {
+    throw new ToolError('VALIDATION', `Invalid activity component: ${value}`, {
+      toolName: 'adb-bridge',
+    });
+  }
+}
+
+function assertValidDumpsysService(value: string): void {
+  if (!DUMPSYS_SERVICE_PATTERN.test(value)) {
+    throw new ToolError('VALIDATION', `Invalid dumpsys service name: ${value}`, {
+      toolName: 'adb-bridge',
+    });
+  }
+}
+
+function assertValidProcessId(value: string): void {
+  if (!PROCESS_ID_PATTERN.test(value)) {
+    throw new ToolError('VALIDATION', `Invalid process id: ${value}. Expected digits.`, {
+      toolName: 'adb-bridge',
+    });
+  }
+}
+
+function assertValidRemotePath(value: string): void {
+  if (!POSIX_REMOTE_PATH_PATTERN.test(value)) {
+    throw new ToolError(
+      'VALIDATION',
+      `Invalid device path: ${value}. Expected an absolute POSIX path without shell metacharacters.`,
+      { toolName: 'adb-bridge' },
+    );
+  }
+}
+
 function parseLaunchTiming(stdout: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const key of ['Status', 'LaunchState', 'Activity', 'ThisTime', 'TotalTime', 'WaitTime']) {
@@ -718,6 +779,8 @@ export class ADBBridgeHandlers {
       let pid = argString(args, 'pid');
       const includeRaw = argBool(args, 'includeRaw') ?? false;
       const requestedLocalPath = argString(args, 'localPath');
+      if (packageName) assertValidPackageName(packageName);
+      if (pid) assertValidProcessId(pid);
       const localPath = requestedLocalPath
         ? await resolveSafeOutputPath(requestedLocalPath, {
             allowedRoots: getSafeOutputRoots(),
@@ -936,6 +999,7 @@ export class ADBBridgeHandlers {
       const remotePath =
         argString(args, 'remotePath') ??
         `/sdcard/Download/jshook-screenrecord-${sanitizeLocalName(serial)}-${Date.now()}.mp4`;
+      assertValidRemotePath(remotePath);
       const durationSec = Math.max(
         ADB_SCREENRECORD_DURATION_CLAMP_MIN,
         Math.min(
@@ -945,6 +1009,15 @@ export class ADBBridgeHandlers {
       );
       const bitRateMbps = argNumber(args, 'bitRateMbps');
       const size = argString(args, 'size');
+      if (size !== undefined && !SCREEN_SIZE_PATTERN.test(size)) {
+        throw new ToolError(
+          'VALIDATION',
+          `Invalid screen size: ${size}. Expected <width>x<height>.`,
+          {
+            toolName: 'adb-bridge',
+          },
+        );
+      }
       const adb = await this.resolveAdb();
 
       const recordArgs = [
@@ -1346,6 +1419,7 @@ export class ADBBridgeHandlers {
     serial: string,
     packageName: string,
   ): Promise<Record<string, unknown>> {
+    assertValidPackageName(packageName);
     const adb = await this.resolveAdb();
     const { stdout } = await execAdb(
       adb,
@@ -1421,6 +1495,7 @@ export class ADBBridgeHandlers {
     serial: string,
     packageName: string,
   ): Promise<string | undefined> {
+    assertValidPackageName(packageName);
     const adb = await this.resolveAdb();
     const { stdout } = await execAdb(
       adb,
@@ -1442,6 +1517,7 @@ export class ADBBridgeHandlers {
     serial: string,
     packageName: string,
   ): Promise<string | undefined> {
+    assertValidPackageName(packageName);
     const adb = await this.resolveAdb();
     const { stdout, exitCode } = await execAdb(
       adb,
@@ -1458,6 +1534,7 @@ export class ADBBridgeHandlers {
       const packageName = argString(args, 'packageName');
       let pid = argString(args, 'pid');
       const pattern = argString(args, 'pattern');
+      if (packageName) assertValidPackageName(packageName);
       const tail = Math.max(
         1,
         Math.min(argNumber(args, 'tail') ?? ADB_LOGCAT_TAIL_DEFAULT, ADB_LOGCAT_TAIL_MAX),
@@ -1519,6 +1596,14 @@ export class ADBBridgeHandlers {
     return this.run('adb_app_cold_start_trace', async () => {
       const serial = argStringRequired(args, 'serial');
       const packageName = argStringRequired(args, 'packageName');
+      if (!isValidAndroidPackageName(packageName)) {
+        return {
+          success: false,
+          serial,
+          packageName,
+          error: `packageName is not a valid Android package name: ${packageName}`,
+        };
+      }
       const waitMs = Math.max(
         0,
         Math.min(
@@ -1546,6 +1631,7 @@ export class ADBBridgeHandlers {
         };
       }
       const component = this.normalizeActivityComponent(packageName, activity);
+      assertValidActivityComponent(component);
 
       await execAdb(adb, [...serialArgs(serial), 'shell', `am force-stop ${packageName}`], {
         allowNonZero: true,
@@ -1909,6 +1995,7 @@ export class ADBBridgeHandlers {
     return handleSafe(async () => {
       const serial = argStringRequired(args, 'serial');
       const service = argStringRequired(args, 'service');
+      assertValidDumpsysService(service);
       const includeRaw = argBool(args, 'includeRaw', false);
       const timeoutMs = argNumber(args, 'timeoutMs') ?? ADB_SHELL_TIMEOUT_MS;
 

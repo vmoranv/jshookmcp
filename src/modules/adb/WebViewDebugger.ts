@@ -1,6 +1,7 @@
 import { createServer } from 'node:net';
 import { ToolError } from '@errors/ToolError';
 import { ADBClient } from './ADBClient';
+import { isValidAndroidPackageName } from './validation.js';
 import { ADB_WEBVIEW_HTTP_TIMEOUT_MS, ADB_WEBVIEW_WS_TIMEOUT_MS } from '@src/constants';
 
 interface DevToolsTargetInfo {
@@ -52,6 +53,13 @@ function normalizeSocketName(socketName: string): string {
 export class WebViewDebugger {
   private readonly adbClient: ADBClient;
   private readonly forwardedPorts = new Map<string, number>();
+  /**
+   * In-flight `adb forward` calls per key. Without this, two concurrent
+   * `ensureForward` calls both allocate a port and run `adb forward`; the
+   * second `set` overwrote the first entry and leaked a forward that was never
+   * removed.
+   */
+  private readonly pendingForwards = new Map<string, Promise<number>>();
 
   constructor(adbClient: ADBClient = new ADBClient()) {
     this.adbClient = adbClient;
@@ -118,10 +126,50 @@ export class WebViewDebugger {
       return existingPort;
     }
 
-    const port = await this.getFreePort();
-    await this.adbClient.forward(deviceId, `tcp:${port}`, `localabstract:${webviewId}`);
-    this.forwardedPorts.set(key, port);
-    return port;
+    const pending = this.pendingForwards.get(key);
+    if (pending) {
+      return pending;
+    }
+
+    const forwardPromise = (async () => {
+      const port = await this.getFreePort();
+      try {
+        await this.adbClient.forward(deviceId, `tcp:${port}`, `localabstract:${webviewId}`);
+      } catch (error) {
+        // Never cache a failed forward: the next call must retry.
+        this.forwardedPorts.delete(key);
+        throw error;
+      }
+      this.forwardedPorts.set(key, port);
+      return port;
+    })().finally(() => {
+      this.pendingForwards.delete(key);
+    });
+
+    this.pendingForwards.set(key, forwardPromise);
+    return forwardPromise;
+  }
+
+  /**
+   * Drop a cached forward and remove it from the ADB server. Called when the
+   * forwarded target cannot be reached, so a stale port from a disconnected or
+   * restarted device does not poison every later call.
+   */
+  private async releaseForward(deviceId: string, webviewId: string): Promise<void> {
+    const key = this.getPortKey(deviceId, webviewId);
+    const port = this.forwardedPorts.get(key);
+    this.forwardedPorts.delete(key);
+    this.pendingForwards.delete(key);
+
+    if (typeof port !== 'number') {
+      return;
+    }
+
+    try {
+      await this.adbClient.removeForward(deviceId, `tcp:${port}`);
+    } catch {
+      // Best effort: the device/ADB server may already be gone.
+    }
   }
 
   private async fetchTargets(port: number): Promise<DevToolsTargetInfo[]> {
@@ -170,8 +218,15 @@ export class WebViewDebugger {
       return 0;
     }
 
+    // The socket name is reported by the device and was interpolated into a
+    // device-side shell command. A socket named e.g.
+    // `foo_devtools_remote; reboot` would otherwise inject a command.
+    if (!isValidAndroidPackageName(packageName)) {
+      return 0;
+    }
+
     try {
-      const output = await this.adbClient.shell(deviceId, `pidof -s ${packageName}`);
+      const output = await this.adbClient.shell(deviceId, `pidof -s '${packageName}'`);
       const pidValue = output.split(/\s+/)[0];
       if (typeof pidValue !== 'string') {
         return 0;
@@ -186,7 +241,15 @@ export class WebViewDebugger {
 
   private async getPrimaryTarget(deviceId: string, webviewId: string): Promise<DevToolsTargetInfo> {
     const port = await this.ensureForward(deviceId, webviewId);
-    const targets = await this.fetchTargets(port);
+    let targets: DevToolsTargetInfo[];
+
+    try {
+      targets = await this.fetchTargets(port);
+    } catch (error) {
+      await this.releaseForward(deviceId, webviewId);
+      throw error;
+    }
+
     const primaryTarget = targets.find((target) => target.type === 'page') ?? targets[0];
 
     if (!primaryTarget) {

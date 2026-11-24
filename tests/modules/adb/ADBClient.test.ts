@@ -60,6 +60,40 @@ describe('ADBClient', () => {
     await expect(client.connect('127.0.0.1', 5555)).rejects.toThrow(ToolError);
   });
 
+  it('throws CONNECTION error for "cannot connect" output and does not record a target', async () => {
+    const execFile = await import('node:child_process').then((m) => m.execFile as any);
+    execFile.mockImplementation((_cmd: any, _args: any, _options: any, cb: any) => {
+      // Real `adb connect` failure: exit code 0, reason on stdout.
+      cb(null, {
+        stdout: 'cannot connect to 127.0.0.1:1: Connection refused\n',
+        stderr: '',
+      });
+    });
+
+    await expect(client.connect('127.0.0.1', 1)).rejects.toThrow(ToolError);
+
+    // `connectedTarget` must stay unset: disconnect() should fall back to the
+    // global `adb disconnect` instead of targeting the unreachable host.
+    execFile.mockImplementation((_cmd: any, _args: any, _options: any, cb: any) => {
+      cb(null, { stdout: '', stderr: '' });
+    });
+    await client.disconnect();
+    expect(execFile).toHaveBeenLastCalledWith(
+      'adb',
+      ['disconnect'],
+      expect.any(Object),
+      expect.any(Function),
+    );
+  });
+
+  it('throws CONNECTION error for "error:" output', async () => {
+    const execFile = await import('node:child_process').then((m) => m.execFile as any);
+    execFile.mockImplementation((_cmd: any, _args: any, _options: any, cb: any) => {
+      cb(null, { stdout: 'error: no such device', stderr: '' });
+    });
+    await expect(client.connect('127.0.0.1', 1)).rejects.toThrow(ToolError);
+  });
+
   it('lists devices correctly', async () => {
     const execFile = await import('node:child_process').then((m) => m.execFile as any);
     execFile.mockImplementation((_cmd: any, _args: any, _options: any, cb: any) => {
@@ -145,6 +179,26 @@ my_device              offline
     await client.reverse('device_id', 'tcp:8080', 'tcp:8080');
     await client.forward('device_id', 'tcp:8080', 'tcp:8080');
     expect(execFile).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes a single forward with --remove', async () => {
+    const execFile = await import('node:child_process').then((m) => m.execFile as any);
+    execFile.mockImplementation((_cmd: any, _args: any, _options: any, cb: any) => {
+      cb(null, { stdout: '', stderr: '' });
+    });
+
+    await client.removeForward('c3c3ff6b', 'tcp:12345');
+
+    expect(execFile).toHaveBeenCalledWith(
+      'adb',
+      ['-s', 'c3c3ff6b', 'forward', '--remove', 'tcp:12345'],
+      expect.any(Object),
+      expect.any(Function),
+    );
+  });
+
+  it('rejects an empty forward endpoint', async () => {
+    await expect(client.removeForward('device_id', '')).rejects.toThrow(ToolError);
   });
 
   it('passes ADB_FILE_TRANSFER_TIMEOUT_MS to install/pull/push', async () => {

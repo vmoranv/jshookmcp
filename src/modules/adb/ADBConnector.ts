@@ -10,16 +10,66 @@
 
 import { execSync, execFileSync, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { ADB_VERSION_CHECK_TIMEOUT_MS } from '@src/constants';
+import { ADB_VERSION_CHECK_TIMEOUT_MS, ADB_FILE_TRANSFER_TIMEOUT_MS } from '@src/constants';
 import { createWriteStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
 import type { Duplex, Readable } from 'node:stream';
 import type { ADBDevice, ADBForwardEntry, APKInfo, ADBShellResult, CDPTarget } from './types.js';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
 import { ToolError } from '@errors/ToolError';
+import { assertValidAndroidPackageName, assertValidDeviceSerial } from './validation.js';
 
 const execFileAsync = promisify(execFile);
 const ADB_AVAILABILITY_TTL_MS = 5 * 60_000;
 let adbAvailabilityCache: { value: boolean; expiresAt: number } | null = null;
+
+/**
+ * Sentinel printed after the user command so the real device-side exit status
+ * survives adbkit. adbkit's `shell()` exposes only the merged output stream
+ * (its legacy shell service multiplexes stderr into stdout) and no exit code,
+ * so `shellCommand()` would otherwise report every failure as exit 0.
+ *
+ * Trade-off: stderr cannot be separated from stdout on this transport, so
+ * `ADBShellResult.stderr` stays empty and both streams are returned in
+ * `stdout`. `shellCommand` already buffers the whole stream, so wrapping the
+ * command does not cost streaming behaviour.
+ */
+const EXIT_STATUS_MARKER = '__JSHOOK_ADB_EXIT__';
+
+function buildCommandWithExitStatus(command: string): string {
+  // The subshell keeps an `exit`/`cd`/variable assignment inside the user
+  // command from skipping the status line.
+  return `(\n${command}\n)\n__jshook_adb_status=$?\nprintf '\\n${EXIT_STATUS_MARKER}:%d\\n' "$__jshook_adb_status"`;
+}
+
+interface ParsedShellOutput {
+  stdout: string;
+  exitCode: number;
+}
+
+/**
+ * Remove the partially written local file after a failed pull. The stream may
+ * still hold the handle on Windows, so a failed unlink is not surfaced: leaving
+ * a truncated APK behind is worse, but it must not mask the original error.
+ */
+function discardPartialFile(outputPath: string): void {
+  void unlink(outputPath).catch(() => {});
+}
+
+function parseShellOutput(raw: string): ParsedShellOutput {
+  const match = raw.match(/\r?\n__JSHOOK_ADB_EXIT__:(\d+)\r?\n?$/);
+  if (!match) {
+    // No status line: the shell was killed or the connection dropped before the
+    // command finished. Treat that as failure instead of inventing success.
+    return { stdout: raw.replace(/\r?\n$/, ''), exitCode: 1 };
+  }
+
+  const exitCode = Number.parseInt(match[1] as string, 10);
+  return {
+    stdout: raw.slice(0, match.index).replace(/\r?\n$/, ''),
+    exitCode: Number.isInteger(exitCode) ? exitCode : 1,
+  };
+}
 
 /** Section a `dumpsys package` line belongs to; '' is the package body. */
 type DumpsysSection = '' | 'permissions' | 'activities' | 'services' | 'receivers';
@@ -209,17 +259,20 @@ export class ADBConnector {
    */
   async shellCommand(serial: string, command: string): Promise<ADBShellResult> {
     if (!(await ensureAdbAvailable())) adbUnavailableError();
+    assertValidDeviceSerial(serial);
 
     const client = await getClient();
     const deviceClient = client.getDevice(serial);
-    const socket = await deviceClient.shell(command);
+    const socket = await deviceClient.shell(buildCommandWithExitStatus(command));
     const output = await readStreamAll(socket);
-    const stdout = output.toString('utf8').trimEnd();
+    const parsed = parseShellOutput(output.toString('utf8'));
 
     return {
-      stdout,
+      stdout: parsed.stdout,
+      // adbd's legacy shell service merges stderr into the stream above; the
+      // combined text is preserved in `stdout` rather than silently dropped.
       stderr: '',
-      exitCode: 0,
+      exitCode: parsed.exitCode,
       command,
     };
   }
@@ -233,6 +286,7 @@ export class ADBConnector {
    */
   async forwardPort(serial: string, localPort: number, remotePort: number): Promise<string> {
     if (!(await ensureAdbAvailable())) adbUnavailableError();
+    assertValidDeviceSerial(serial);
 
     const client = await getClient();
     const deviceClient = client.getDevice(serial);
@@ -247,6 +301,7 @@ export class ADBConnector {
    */
   async listForwards(serial: string): Promise<ADBForwardEntry[]> {
     if (!(await ensureAdbAvailable())) adbUnavailableError();
+    assertValidDeviceSerial(serial);
 
     const client = await getClient();
     const deviceClient = client.getDevice(serial);
@@ -268,9 +323,7 @@ export class ADBConnector {
     if (!(await ensureAdbAvailable())) adbUnavailableError();
 
     // Validate serial to prevent command injection
-    if (!/^[a-zA-Z0-9._:@-]+$/.test(serial)) {
-      throw new ToolError('VALIDATION', `Invalid device serial format: ${serial}`);
-    }
+    assertValidDeviceSerial(serial);
 
     // Use execFileSync with argument array to prevent shell injection
     try {
@@ -292,14 +345,20 @@ export class ADBConnector {
    */
   async pullApk(serial: string, packageName: string, outputPath: string): Promise<string> {
     if (!(await ensureAdbAvailable())) adbUnavailableError();
+    assertValidDeviceSerial(serial);
+    assertValidAndroidPackageName(packageName);
 
     // First get the APK path on device
-    const { stdout } = await this.shellCommand(serial, `pm path ${packageName}`);
+    const { stdout, exitCode } = await this.shellCommand(serial, `pm path ${packageName}`);
 
     // Parse "package:/data/app/~~xxx/base.apk" format
     const match = stdout.match(/package:(.+)/);
     if (!match) {
-      throw new ToolError('NOT_FOUND', `Package "${packageName}" not found on device ${serial}`);
+      const detail = exitCode === 0 ? '' : ` (pm path exited ${exitCode}: ${stdout.trim()})`;
+      throw new ToolError(
+        'NOT_FOUND',
+        `Package "${packageName}" not found on device ${serial}${detail}`,
+      );
     }
     const apkPath = match[1] as string;
 
@@ -309,17 +368,61 @@ export class ADBConnector {
     const transfer = await deviceClient.pull(apkPath);
     const writeStream = createWriteStream(outputPath);
     // adbkit 4.1+ emits "error" (then "close") on a failed pull instead of
-    // "end". Without a source error listener the process crashed on the
-    // unhandled event and this promise never settled.
+    // "end". A truncated transfer can also emit "close" without "finish", and
+    // a stalled device never emits anything at all — bound the transfer and
+    // settle on every terminal path so the promise cannot hang.
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      let sourceEnded = false;
+      const readable = transfer as unknown as Readable;
+
+      const timer = setTimeout(() => {
+        fail(
+          new ToolError(
+            'TIMEOUT',
+            `Timed out after ${ADB_FILE_TRANSFER_TIMEOUT_MS} ms while pulling ${apkPath} from ${serial}.`,
+            { toolName: 'adb' },
+          ),
+        );
+      }, ADB_FILE_TRANSFER_TIMEOUT_MS);
+      timer.unref?.();
+
       const fail = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        readable.unpipe?.(writeStream);
+        readable.destroy?.();
         writeStream.destroy();
+        discardPartialFile(outputPath);
         reject(error);
       };
-      transfer.on('error', fail);
-      writeStream.on('error', fail);
-      writeStream.on('finish', resolve);
-      (transfer as unknown as Readable).pipe(writeStream);
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      };
+
+      transfer.once('error', fail);
+      transfer.once('end', () => {
+        sourceEnded = true;
+      });
+      transfer.once('close', () => {
+        if (!settled && !sourceEnded) {
+          fail(
+            new ToolError(
+              'CONNECTION',
+              `APK pull from ${serial} closed before the transfer finished.`,
+              { toolName: 'adb' },
+            ),
+          );
+        }
+      });
+      writeStream.once('error', fail);
+      writeStream.once('finish', finish);
+      readable.pipe(writeStream);
     });
 
     return outputPath;
@@ -333,8 +436,17 @@ export class ADBConnector {
    */
   async parseApkInfo(serial: string, packageName: string): Promise<APKInfo> {
     if (!(await ensureAdbAvailable())) adbUnavailableError();
+    assertValidDeviceSerial(serial);
+    assertValidAndroidPackageName(packageName);
 
     const { stdout } = await this.shellCommand(serial, `dumpsys package ${packageName}`);
+
+    // `dumpsys package <missing>` exits 0 and prints "Unable to find package".
+    // Returning an empty APKInfo made callers treat a missing package as a
+    // package with no metadata.
+    if (/Unable to find package/i.test(stdout)) {
+      throw new ToolError('NOT_FOUND', `Package "${packageName}" not found on device ${serial}`);
+    }
 
     return this.parseDumpsysOutput(stdout, packageName);
   }

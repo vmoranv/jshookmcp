@@ -617,4 +617,99 @@ describe('ADBBridgeHandlers', () => {
     // SEP-1303: the model must see the failure to self-correct.
     expect(result.isError).toBe(true);
   });
+
+  it('rejects a non-numeric pid before interpolating it into a shell command', async () => {
+    mockExecFile([]);
+
+    const result = await handlers.handleProcMapsTool({
+      serial: 'emulator-5554',
+      pid: '1; reboot',
+    });
+    const parsed = ResponseBuilder.parse<Record<string, unknown>>(result);
+
+    expect(parsed.success).toBe(false);
+    expect(String(parsed.message)).toContain('Invalid process id');
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid package name for package analysis before invoking adb', async () => {
+    mockExecFile([]);
+
+    const result = await handlers.handleAnalyzeApkTool({
+      serial: 'emulator-5554',
+      packageName: 'com.example.app; id',
+    });
+    const parsed = ResponseBuilder.parse<Record<string, unknown>>(result);
+
+    expect(parsed.success).toBe(false);
+    expect(String(parsed.message)).toContain('Invalid Android package name');
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid dumpsys service name before invoking adb', async () => {
+    mockExecFile([]);
+
+    const result = await handlers.handleDumpsysTool({
+      serial: 'emulator-5554',
+      service: 'package; id',
+    });
+    const parsed = ResponseBuilder.parse<Record<string, unknown>>(result);
+
+    expect(parsed.success).toBe(false);
+    expect(String(parsed.message)).toContain('Invalid dumpsys service name');
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid cold-start activity component before invoking adb', async () => {
+    mockExecFile([]);
+
+    const result = await handlers.handleAppColdStartTraceTool({
+      serial: 'emulator-5554',
+      packageName: 'com.example.app',
+      activity: '.MainActivity; reboot',
+    });
+    const parsed = ResponseBuilder.parse<Record<string, unknown>>(result);
+
+    expect(parsed.success).toBe(false);
+    expect(String(parsed.message)).toContain('Invalid activity component');
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects screenrecord size and remotePath shell metacharacters', async () => {
+    mockExecFile([]);
+
+    const badSize = await handlers.handleScreenrecordTool({
+      serial: 'emulator-5554',
+      durationSec: 1,
+      size: '1280x720; reboot',
+    });
+    expect(String(ResponseBuilder.parse<Record<string, unknown>>(badSize).message)).toContain(
+      'Invalid screen size',
+    );
+
+    const badPath = await handlers.handleScreenrecordTool({
+      serial: 'emulator-5554',
+      durationSec: 1,
+      remotePath: '/sdcard/a.mp4; reboot',
+    });
+    expect(String(ResponseBuilder.parse<Record<string, unknown>>(badPath).message)).toContain(
+      'Invalid device path',
+    );
+
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid logcat packageName before invoking pidof', async () => {
+    mockExecFile([]);
+
+    const result = await handlers.handleLogcatQueryTool({
+      serial: 'emulator-5554',
+      packageName: 'com.example.app && id',
+    });
+
+    expect(String(ResponseBuilder.parse<Record<string, unknown>>(result).message)).toContain(
+      'Invalid Android package name',
+    );
+    expect(execFile).not.toHaveBeenCalled();
+  });
 });
