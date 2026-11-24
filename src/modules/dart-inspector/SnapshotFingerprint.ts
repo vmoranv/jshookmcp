@@ -97,8 +97,14 @@ interface ResolvedSymbol {
  * Magic-as-little-endian bytes. Stored as a Buffer for fast `indexOf`
  * searches during the byte-scan fallback path.
  */
-const MAGIC_BYTES = Buffer.alloc(4);
-MAGIC_BYTES.writeUInt32LE(DART_SNAPSHOT_MAGIC, 0);
+// Real Flutter AOT images store the magic as the byte sequence f5 f5 dc dc
+// (big-endian), while synthetic fixtures historically used the little-endian
+// encoding. Accept both so a genuine libapp.so is not reported as unknown.
+const MAGIC_BYTES_VARIANTS = [
+  Buffer.from([0xf5, 0xf5, 0xdc, 0xdc]),
+  Buffer.from([0xdc, 0xdc, 0xf5, 0xf5]),
+];
+const BYTE_SWAPPED_MAGIC = 0xdcdcf5f5;
 
 export class SnapshotFingerprint {
   /**
@@ -483,8 +489,11 @@ async function byteScan(
       pending.length === 0
         ? buf.subarray(0, bytesRead)
         : Buffer.concat([pending, buf.subarray(0, bytesRead)]);
-    const idx = combined.indexOf(MAGIC_BYTES);
-    if (idx >= 0) {
+    const indexes = MAGIC_BYTES_VARIANTS.map((magic) => combined.indexOf(magic)).filter(
+      (idx) => idx >= 0,
+    );
+    if (indexes.length > 0) {
+      const idx = Math.min(...indexes);
       return position - pending.length + idx;
     }
     position += bytesRead;
@@ -516,14 +525,14 @@ async function readHeader(
   await fh.read(buf, 0, probeLen, fileOffset);
 
   const magic = buf.readUInt32LE(0);
-  if (magic !== DART_SNAPSHOT_MAGIC) return null;
+  if (magic !== DART_SNAPSHOT_MAGIC && magic !== BYTE_SWAPPED_MAGIC) return null;
 
   // A too-short probe cannot hold either layout's features region. Keep the
   // legacy structured-unknown result using layout A's kind (default/fallback).
   if (probeLen < HEADER_FEATURES_OFFSET) {
     const kindNum = buf.readUInt32LE(HEADER_KIND_OFFSET);
     return {
-      magic,
+      magic: DART_SNAPSHOT_MAGIC,
       kind: KIND_BY_VALUE[kindNum] ?? 'unknown',
       hash: '',
       features: [],
@@ -554,11 +563,16 @@ async function readHeader(
   );
 
   const aSensible = sensibleFeatures(decodedA.features);
+  const bHashIsAscii = /^[0-9a-fA-F]{32}$/.test(
+    buf
+      .subarray(HEADER_B_HASH_OFFSET, HEADER_B_HASH_OFFSET + HEADER_HASH_LENGTH)
+      .toString('latin1'),
+  );
   const bValid = decodedB.kind !== 'unknown' && sensibleFeatures(decodedB.features);
-  const useB = !aSensible && bValid;
+  const useB = bValid && (!aSensible || (decodedA.kind === 'unknown' && bHashIsAscii));
   const chosen = useB ? decodedB : decodedA;
 
-  return { magic, ...chosen };
+  return { magic: DART_SNAPSHOT_MAGIC, ...chosen };
 }
 
 /** Decode one header layout into kind/hash/arch/product at the given offsets. */
@@ -573,7 +587,13 @@ function decodeAtLayout(
     ? Number(buf.readBigUInt64LE(kindOff) & 0xffffffffn)
     : buf.readUInt32LE(kindOff);
   const kind = KIND_BY_VALUE[kindNum] ?? 'unknown';
-  const hash = buf.subarray(hashOff, hashOff + HEADER_HASH_LENGTH).toString('hex');
+  const hashBytes = buf.subarray(hashOff, hashOff + HEADER_HASH_LENGTH);
+  const hashAscii = hashBytes.toString('latin1');
+  // Flutter's AOT snapshot stores the identity hash as 32 ASCII hex chars;
+  // older synthetic fixtures use the raw 32-byte digest. Preserve both.
+  const hash = /^[0-9a-fA-F]{32}$/.test(hashAscii)
+    ? hashAscii.toLowerCase()
+    : hashBytes.toString('hex');
   const features = decodeFeatures(buf, featOff);
   const targetArch = pickArch(features);
   const isProduction = features.includes('product');

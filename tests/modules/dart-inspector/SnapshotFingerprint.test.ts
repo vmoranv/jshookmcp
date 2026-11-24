@@ -186,6 +186,19 @@ function buildStrippedBlob(padBefore: number, opts: SnapshotBlobOpts = {}): Buff
   return buf;
 }
 
+/** Real Flutter AOT shape: big-endian magic, layout B, ASCII hex hash. */
+function makeRealAotBlob(): Buffer {
+  const hash = '65817c30a78bb44c3dc3771876b6010a';
+  const features = 'product no-fp arm64';
+  const buf = Buffer.alloc(0x34 + features.length + 1, 0);
+  Buffer.from([0xf5, 0xf5, 0xdc, 0xdc]).copy(buf, 0);
+  buf.writeUInt32LE(0x99, 0x04); // layout-A kind is not a known value
+  buf.writeUInt32LE(3, 0x0c);
+  Buffer.from(hash, 'latin1').copy(buf, 0x14);
+  Buffer.from(features + '\0', 'latin1').copy(buf, 0x34);
+  return buf;
+}
+
 let tmpDir: string;
 let elfSymbolPath: string;
 let strippedBlobPath: string;
@@ -198,12 +211,17 @@ let elfWithArm32Path: string;
 let elfWithX64Path: string;
 let elfWithIa32Path: string;
 let elfWithRiscvPath: string;
+let realAotPath: string;
 let elfNoProductPath: string;
 let oversizePath: string;
 let elfBoundaryScanPath: string;
 
 beforeAll(async () => {
   tmpDir = await mkdtemp(join(tmpdir(), 'snapshot-fp-'));
+
+  const realAot = makeRealAotBlob();
+  realAotPath = join(tmpDir, 'real-aot.bin');
+  await writeFile(realAotPath, realAot);
 
   const elfSymbol = buildElfWithSymbol({ withSymbol: true });
   elfSymbolPath = join(tmpDir, 'with-symbol.so');
@@ -286,6 +304,19 @@ describe('SnapshotFingerprint.parseHeader', () => {
     expect(out.features).toContain('arm64');
     expect(out.targetArch).toBe('arm64');
     expect(out.isProduction).toBe(true);
+  });
+
+  it('parses a real Flutter AOT header (BE magic, layout B, ASCII hash)', async () => {
+    const fp = new SnapshotFingerprint();
+    const out = await fp.parseHeader(realAotPath);
+    expect(out.magic).toBe(DART_SNAPSHOT_MAGIC);
+    expect(out.source).toBe('byte-scan');
+    expect(out.kind).toBe('full-jit');
+    expect(out.hash).toBe('65817c30a78bb44c3dc3771876b6010a');
+    expect(out.features).toContain('product');
+    expect(out.targetArch).toBe('arm64');
+    expect(out.isProduction).toBe(true);
+    expect(out.fileOffset).toBe(0);
   });
 
   it('falls back to byte-scan when no ELF symbol is present', async () => {
