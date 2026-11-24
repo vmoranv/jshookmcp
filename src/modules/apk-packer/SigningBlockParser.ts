@@ -121,7 +121,7 @@ export class SigningBlockParser {
     // 1. Locate EOCD by reverse-scanning the file tail.
     const tailLen = Math.min(APK_SIGBLOCK_EOCD_SCAN_BYTES, fileSize);
     const tail = Buffer.alloc(tailLen);
-    await fh.read(tail, 0, tailLen, fileSize - tailLen);
+    await readFully(fh, tail, tailLen, fileSize - tailLen, 'EOCD scan window');
     const eocdOffsetInTail = findEOCD(tail);
     if (eocdOffsetInTail < 0) {
       state.anomalies.push({
@@ -144,14 +144,26 @@ export class SigningBlockParser {
     // 3. Read 24 bytes immediately preceding centralDirOffset:
     //    [size_of_block (u64)] [magic (16 B "APK Sig Block 42")].
     const trailer = Buffer.alloc(SIG_BLOCK_TRAILER_SIZE);
-    await fh.read(trailer, 0, SIG_BLOCK_TRAILER_SIZE, centralDirOffset - SIG_BLOCK_TRAILER_SIZE);
+    await readFully(
+      fh,
+      trailer,
+      SIG_BLOCK_TRAILER_SIZE,
+      centralDirOffset - SIG_BLOCK_TRAILER_SIZE,
+      'signing-block trailer',
+    );
     const magicCandidate = trailer.subarray(SIG_BLOCK_SIZE_FIELD);
 
     if (!magicCandidate.equals(SIG_BLOCK_MAGIC_BYTES)) {
       // Magic missing at the canonical position — try a small scan.
       const scanWindow = Math.min(centralDirOffset, APK_SIGBLOCK_EOCD_SCAN_BYTES);
       const scanBuf = Buffer.alloc(scanWindow);
-      await fh.read(scanBuf, 0, scanWindow, centralDirOffset - scanWindow);
+      await readFully(
+        fh,
+        scanBuf,
+        scanWindow,
+        centralDirOffset - scanWindow,
+        'signing-block magic scan window',
+      );
       const at = scanBuf.indexOf(SIG_BLOCK_MAGIC_BYTES);
       if (at < 0) {
         // No signing block — legitimate (v1-only) or stripped.
@@ -200,16 +212,17 @@ export class SigningBlockParser {
       return buildReport(apkPath, fileSize, state, false);
     }
     const block = Buffer.alloc(Number(totalLen));
-    await fh.read(block, 0, Number(totalLen), blockStartOffset);
+    await readFully(fh, block, Number(totalLen), blockStartOffset, 'signing block');
 
-    // 5. Parse ID-value pairs.
+    // 5. Parse ID-value pairs. Malformed payloads degrade into warnings
+    //    rather than rejecting the whole report (see class contract).
     parseIdValuePairs(block, state);
 
     // 6. DEX-prefix heuristic — scan first APK_SIGBLOCK_DEX_PREFIX_HEAD_BYTES bytes for DEX magic.
     if (fileSize >= 4) {
       const headLen = Math.min(APK_SIGBLOCK_DEX_PREFIX_HEAD_BYTES, fileSize);
       const head = Buffer.alloc(headLen);
-      await fh.read(head, 0, headLen, 0);
+      await readFully(fh, head, headLen, 0, 'DEX-prefix head');
       // DEX magic at offset 0 means the file is ambiguous to readers.
       if (head.length >= 4 && head.readUInt32BE(0) === DEX_MAGIC) {
         state.anomalies.push({
@@ -229,6 +242,31 @@ export class SigningBlockParser {
 }
 
 // ── helpers ──
+
+/**
+ * Read exactly `length` bytes at `position`.
+ *
+ * `FileHandle.read()` may legally return fewer bytes than requested (truncated
+ * or racing files, network filesystems, non-regular files). Parsing the
+ * zero-filled tail of a short read would silently produce wrong offsets, so
+ * treat any short read as unusable input.
+ */
+async function readFully(
+  fh: FileHandle,
+  buf: Buffer,
+  length: number,
+  position: number,
+  label: string,
+): Promise<void> {
+  const { bytesRead } = await fh.read(buf, 0, length, position);
+  if (bytesRead !== length) {
+    throw new ToolError(
+      'VALIDATION',
+      `Short read for ${label}: expected ${length} bytes at offset ${position}, got ${bytesRead}`,
+      { details: { label, position, expected: length, bytesRead } },
+    );
+  }
+}
 
 function buildReport(
   apkPath: string,
@@ -275,7 +313,17 @@ function parseIdValuePairs(block: Buffer, state: ParserState): void {
   const payloadEnd = block.length - SIG_BLOCK_TRAILER_SIZE;
   let cursor = payloadStart;
   while (cursor + PAIR_HEADER_SIZE <= payloadEnd) {
-    const pairSize = readU64LEAsNumber(block, cursor);
+    let pairSize: number;
+    try {
+      pairSize = readU64LEAsNumber(block, cursor);
+    } catch (err) {
+      // Oversized u64: treat the rest of the block as unparseable instead of
+      // rejecting the report (documented fail-soft contract).
+      state.warnings.push(
+        `Unreadable ID-value pair header at offset ${cursor}: ${(err as Error).message}`,
+      );
+      return;
+    }
     if (pairSize < 4 || cursor + SIG_BLOCK_SIZE_FIELD + pairSize > payloadEnd) {
       state.warnings.push(`Truncated ID-value pair at offset ${cursor} (pairSize ${pairSize})`);
       return;
@@ -284,7 +332,13 @@ function parseIdValuePairs(block: Buffer, state: ParserState): void {
     const valueStart = cursor + PAIR_HEADER_SIZE;
     const valueEnd = cursor + SIG_BLOCK_SIZE_FIELD + pairSize;
     const value = block.subarray(valueStart, valueEnd);
-    dispatchBlock(id, value, state);
+    try {
+      dispatchBlock(id, value, state);
+    } catch (err) {
+      // Malformed signer payloads (outer length prefixes included) must not
+      // escape as ToolError; degrade into a warning and keep scanning.
+      state.warnings.push(`Skipped malformed block ${toHexId(id)}: ${(err as Error).message}`);
+    }
     cursor = valueEnd;
   }
 }
@@ -306,13 +360,18 @@ function dispatchBlock(id: number, value: Buffer, state: ParserState): void {
     }
     case BLOCK_ID_V3: {
       const signers = parseV2OrV3Signers(value, /* isV3 */ true, state) as V3Signer[];
-      if (state.schemes.v3) {
-        // Mirror the v2 duplicate-scheme check — a second v3 block is a
-        // layout anomaly, and the signers must not be silently dropped.
+      const existing = state.schemes.v3;
+      if (existing) {
+        // A second v3 block is a layout anomaly; merge instead of silently
+        // dropping the previously parsed signers.
         state.anomalies.push({
           kind: 'duplicate-scheme',
           evidence: 'v3 signers block (0xf05368c0) appears more than once',
         });
+        existing.signers.push(...signers);
+        const mergedRotation = collectProofOfRotation(existing.signers);
+        if (mergedRotation) existing.keyRotation = mergedRotation;
+        return;
       }
       const keyRotation = collectProofOfRotation(signers);
       state.schemes.v3 = keyRotation ? { signers, keyRotation } : { signers };
@@ -320,11 +379,14 @@ function dispatchBlock(id: number, value: Buffer, state: ParserState): void {
     }
     case BLOCK_ID_V3_1: {
       const signers = parseV2OrV3Signers(value, /* isV3 */ true, state) as V3Signer[];
-      if (state.schemes.v3_1) {
+      const existing = state.schemes.v3_1;
+      if (existing) {
         state.anomalies.push({
           kind: 'duplicate-scheme',
           evidence: 'v3.1 signers block (0x1b93ad61) appears more than once',
         });
+        existing.signers.push(...signers);
+        return;
       }
       state.schemes.v3_1 = { signers };
       return;
@@ -440,6 +502,19 @@ function parseSingleSigner(signerBuf: Buffer, isV3: boolean): V2Signer | V3Signe
     const oneLen = certsReader.readU32();
     const oneBuf = certsReader.readSlice(oneLen, 'certificate');
     certificates.push(fingerprintCert(oneBuf));
+  }
+
+  // v3 signedData carries a second, signed copy of minSdkVersion/maxSdkVersion
+  // between `certificates` and `additionalAttributes` (AOSP V3SchemeVerifier).
+  // Older synthetic layouts omit them; distinguish the two shapes by checking
+  // whether the length field at offset 8 accounts for the remaining bytes.
+  if (isV3) {
+    const INNER_SDK_FIELDS = 8; // two u32 values preceding the attrs length
+    const maybeAttrsLen = sd.peekU32(INNER_SDK_FIELDS);
+    if (maybeAttrsLen !== undefined && maybeAttrsLen === sd.remaining() - 12) {
+      sd.readU32(); // inner minSdkVersion
+      sd.readU32(); // inner maxSdkVersion
+    }
   }
 
   const attrsLen = sd.readU32();
@@ -637,6 +712,11 @@ class LengthReader {
     const v = this.buf.readUInt32LE(this.cursor);
     this.cursor += 4;
     return v;
+  }
+  /** Read a u32 at a relative offset without advancing the cursor. */
+  peekU32(relativeOffset = 0): number | undefined {
+    if (relativeOffset < 0 || this.remaining() < relativeOffset + 4) return undefined;
+    return this.buf.readUInt32LE(this.cursor + relativeOffset);
   }
   readSlice(len: number, name: string): Buffer {
     if (len < 0 || len > this.remaining()) {

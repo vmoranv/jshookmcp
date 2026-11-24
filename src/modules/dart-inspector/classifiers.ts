@@ -69,6 +69,17 @@ const REDOS_HEURISTICS: readonly RegExp[] = Object.freeze([
   /\([^()]*\|[^()]*\)[+*][^()]*[+*]/,
 ]);
 
+/**
+ * Category names that would collide with object prototype members or with the
+ * reserved `raw` bucket when result objects are assembled.
+ */
+const RESERVED_CATEGORY_KEYS: ReadonlySet<string> = new Set([
+  '__proto__',
+  'prototype',
+  'constructor',
+  'raw',
+]);
+
 function ensureValidationError(message: string, details?: Record<string, unknown>): ToolError {
   return new ToolError('VALIDATION', message, { details });
 }
@@ -89,6 +100,12 @@ function ensureValidationError(message: string, details?: Record<string, unknown
 export function compileRuleInput(input: CategoryRuleInput): CategoryRule {
   if (!input.category || input.category.length === 0) {
     throw ensureValidationError('customRule.category must be a non-empty string');
+  }
+  if (RESERVED_CATEGORY_KEYS.has(input.category)) {
+    throw ensureValidationError(
+      `customRule.category "${input.category}" is reserved and cannot be used`,
+      { category: input.category },
+    );
   }
   if (!input.pattern || input.pattern.length === 0) {
     throw ensureValidationError('customRule.pattern must be a non-empty string', {
@@ -214,12 +231,13 @@ export function classifyOneRule(
   fileName?: string,
 ): CategoryRule | undefined {
   for (const rule of rules) {
-    if (
-      rule.enableWhen?.fileNameMatches &&
-      fileName !== undefined &&
-      !rule.enableWhen.fileNameMatches.test(fileName)
-    ) {
-      continue;
+    const fileNamePredicate = rule.enableWhen?.fileNameMatches;
+    if (fileNamePredicate) {
+      // An unknown filename cannot satisfy a filename gate; skip the rule.
+      // The predicate itself goes through the timed guard so user-supplied
+      // regexes cannot bypass DART_REGEX_TIMEOUT_MS via this path.
+      if (fileName === undefined) continue;
+      if (!timedTest(fileNamePredicate, fileName, timeoutMs, rule.category)) continue;
     }
     if (rule.exclude && timedTest(rule.exclude, value, timeoutMs, rule.category)) continue;
     if (timedTest(rule.pattern, value, timeoutMs, rule.category)) return rule;
@@ -324,7 +342,10 @@ export function categorize(
     else buckets.set(rule.category, [tagged]);
   }
 
-  const result = {} as ExtractedStrings;
+  // Null-prototype object: user-controlled category keys can never mutate the
+  // result's prototype (e.g. a `__proto__` bucket) in addition to the
+  // reserved-key rejection in compileRuleInput.
+  const result = Object.create(null) as ExtractedStrings;
   for (const [key, items] of buckets) {
     result[key] = items.toSorted(sortAscByValue);
   }

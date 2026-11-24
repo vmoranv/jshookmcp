@@ -79,12 +79,14 @@ export class PackageDetector {
       try {
         scannedBytes = (await stat(opts.filePath)).size;
       } catch (cause) {
-        throw new ToolError('NOT_FOUND', `File not found: ${opts.filePath}`, {
-          details: { filePath: opts.filePath },
-          cause: cause as Error,
-        });
+        throw classifyFsError(cause, opts.filePath, 'inspect');
       }
-      const extracted = await this.extractor.extractFromFile(opts.filePath, {});
+      let extracted;
+      try {
+        extracted = await this.extractor.extractFromFile(opts.filePath, {});
+      } catch (cause) {
+        throw classifyFsError(cause, opts.filePath, 'scan');
+      }
       const bucket = extracted['packageRefs'] ?? [];
       refs = bucket.map((s) => ({ value: s.value, offsets: s.offsets }));
     } else {
@@ -243,6 +245,27 @@ export class PackageDetector {
 }
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
+
+/**
+ * Map a filesystem/extraction failure onto the documented ToolError codes.
+ * Existing ToolErrors (e.g. the extractor's own NOT_FOUND/VALIDATION) pass
+ * through unchanged; raw fs errors are classified by `err.code`.
+ */
+function classifyFsError(cause: unknown, filePath: string, action: string): ToolError {
+  if (cause instanceof ToolError) return cause;
+  const code = (cause as NodeJS.ErrnoException | undefined)?.code;
+  const toolCode =
+    code === 'ENOENT' || code === 'ENOTDIR'
+      ? 'NOT_FOUND'
+      : code === 'EACCES' || code === 'EPERM'
+        ? 'PERMISSION'
+        : 'RUNTIME';
+  return new ToolError(
+    toolCode,
+    `Failed to ${action} file: ${filePath} (${(cause as Error | undefined)?.message ?? 'unknown error'})`,
+    { details: { filePath, code }, cause: cause as Error },
+  );
+}
 
 function validateOptions(opts: PackageDetectOptions): void {
   if (opts.packageRefs === undefined && (opts.filePath === undefined || opts.filePath === '')) {

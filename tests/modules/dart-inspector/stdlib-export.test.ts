@@ -28,11 +28,26 @@ describe('flutter-stdlib-packages exports', () => {
   });
 
   it('keeps the curated first-party packages in the exported set', () => {
-    for (const name of ['flutter', 'sky_engine', 'collection', 'io', 'ffi'] as const) {
+    for (const name of ['flutter', 'sky_engine', 'io', 'flutter_test'] as const) {
       expect(FLUTTER_STDLIB_PACKAGES.has(name)).toBe(true);
     }
     expect(FLUTTER_STDLIB_PACKAGES.has('dio')).toBe(false);
     expect(FLUTTER_STDLIB_PACKAGES.has('my_corp_base')).toBe(false);
+  });
+
+  it('does not classify real pub.dev packages as stdlib', () => {
+    for (const name of [
+      'async',
+      'collection',
+      'convert',
+      'ffi',
+      'isolate',
+      'js',
+      'typed_data',
+    ] as const) {
+      expect(FLUTTER_STDLIB_PACKAGES.has(name)).toBe(false);
+      expect(isStdlibPackage(name)).toBe(false);
+    }
   });
 
   it('isStdlibPackage still consults the exported set', () => {

@@ -18,11 +18,136 @@ import type { PackerSignature, PackerSignatureInput, SignatureMode } from './typ
 /**
  * Heuristic patterns that flag catastrophic-backtracking shapes.
  * Not exhaustive - pairs with the runtime APK_PACKER_REGEX_TIMEOUT_MS guard.
+ *
+ * The quantified group may be followed by `*`, `+`, or `{n,}` — accepting
+ * only `[+*]` let `(a+){2,}` slip through.
  */
 const REDOS_HEURISTICS: readonly RegExp[] = Object.freeze([
-  /\([^()]*[+*][^()]*\)[+*]/,
-  /\([^()]*\|[^()]*\)[+*][^()]*[+*]/,
+  /\([^()]*[+*][^()]*\)\s*(?:[+*]|\{\d*,)/,
 ]);
+
+/** A quantified group whose alternatives may consume the same input. */
+const QUANTIFIED_GROUP_RE = /\(([^()]*)\)\s*(?:\*|\+|\{\d*,)/g;
+/** Strip a leading `?:`, `?=`, `?!`, or `?<name>` from group contents. */
+const GROUP_PREFIX_RE = /^\?(?:[:=!]|<[^>]*>)/;
+
+type RegexToken =
+  | { readonly kind: 'literal'; readonly char: string }
+  | { readonly kind: 'class' }
+  | { readonly kind: 'any' }
+  | { readonly kind: 'escape'; readonly char: string };
+
+/**
+ * Approximate a run of regex source as a fixed sequence of single-character
+ * matchers. Returns `null` for constructs this checker does not model
+ * (nested groups, quantifiers, anchors) — callers treat that conservatively.
+ */
+function tokenizeAlternative(source: string): readonly RegexToken[] | null {
+  const tokens: RegexToken[] = [];
+  let i = 0;
+  while (i < source.length) {
+    const ch = source[i] as string;
+    if (ch === '\\') {
+      const escaped = source[i + 1];
+      if (escaped === undefined) return null;
+      tokens.push({ kind: 'escape', char: escaped });
+      i += 2;
+      continue;
+    }
+    if (ch === '[') {
+      let j = i + 1;
+      let closed = false;
+      while (j < source.length) {
+        if (source[j] === '\\') {
+          j += 2;
+          continue;
+        }
+        if (source[j] === ']') {
+          closed = true;
+          break;
+        }
+        j += 1;
+      }
+      if (!closed) return null;
+      tokens.push({ kind: 'class' });
+      i = j + 1;
+      continue;
+    }
+    if (ch === '.') {
+      tokens.push({ kind: 'any' });
+      i += 1;
+      continue;
+    }
+    if ('+*?{}|()^$'.includes(ch)) return null;
+    tokens.push({ kind: 'literal', char: ch });
+    i += 1;
+  }
+  return tokens;
+}
+
+function escapeMatchesLiteral(escape: string, ch: string): boolean {
+  switch (escape) {
+    case 'd':
+      return ch >= '0' && ch <= '9';
+    case 'w':
+      return /[A-Za-z0-9_]/.test(ch);
+    case 's':
+      return /\s/.test(ch);
+    default:
+      // A negated class or a control escape could match anything printable.
+      return !/[A-Za-z0-9]/.test(escape) ? escape === ch : true;
+  }
+}
+
+function tokensCouldOverlap(a: RegexToken, b: RegexToken): boolean {
+  if (a.kind === 'any' || b.kind === 'any') return true;
+  if (a.kind === 'class' || b.kind === 'class') return true;
+  if (a.kind === 'literal' && b.kind === 'literal') return a.char === b.char;
+  if (a.kind === 'escape' && b.kind === 'escape') {
+    if (a.char === b.char) return true;
+    if (!/[A-Za-z]/.test(a.char) && !/[A-Za-z]/.test(b.char)) return false;
+    return true;
+  }
+  if (a.kind === 'escape') return escapeMatchesLiteral(a.char, (b as { char: string }).char);
+  return escapeMatchesLiteral(b.char, (a as { char: string }).char);
+}
+
+/**
+ * True when two alternatives share a compatible prefix, e.g. `a` vs `aa` in
+ * `(a|aa)+`. Such overlap under a quantifier is the canonical ambiguous
+ * alternation shape and backtracks catastrophically on a failing input.
+ */
+function alternativesOverlap(a: readonly RegexToken[], b: readonly RegexToken[]): boolean {
+  const shared = Math.min(a.length, b.length);
+  for (let i = 0; i < shared; i++) {
+    if (!tokensCouldOverlap(a[i] as RegexToken, b[i] as RegexToken)) return false;
+  }
+  return true;
+}
+
+function hasAmbiguousQuantifiedAlternation(source: string): boolean {
+  for (const match of source.matchAll(QUANTIFIED_GROUP_RE)) {
+    const content = (match[1] ?? '').replace(GROUP_PREFIX_RE, '');
+    if (!content.includes('|')) continue;
+    const alternatives = content.split('|').map(tokenizeAlternative);
+    // Unmodelled shapes are treated as unsafe (fail closed).
+    if (alternatives.some((alt) => alt === null)) return true;
+    const tokenized = alternatives as readonly (readonly RegexToken[])[];
+    for (let i = 0; i < tokenized.length; i++) {
+      for (let j = i + 1; j < tokenized.length; j++) {
+        if (
+          alternativesOverlap(
+            tokenized[i] as readonly RegexToken[],
+            tokenized[j] as readonly RegexToken[],
+          )
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
 
 function makeValidation(message: string, details?: Record<string, unknown>): ToolError {
   return new ToolError('VALIDATION', message, { details });
@@ -104,6 +229,12 @@ function assertSafePattern(source: string, name: string): void {
         { name, pattern: source },
       );
     }
+  }
+  if (hasAmbiguousQuantifiedAlternation(source)) {
+    throw makeValidation(
+      'customSignature pattern rejected as potentially catastrophic (ReDoS heuristic match)',
+      { name, pattern: source },
+    );
   }
 }
 

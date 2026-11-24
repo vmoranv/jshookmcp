@@ -99,7 +99,7 @@ describe('loadVersionTable - user merge', () => {
     expect(table.get(collidingHash)?.flutterVersion).toBe('override-1.2.3');
   });
 
-  it('caches the user table — second call does not re-parse', async () => {
+  it('revalidates the cached user table when the file changes on disk', async () => {
     const path = join(tmpDir, 'cache.json');
     await writeFile(
       path,
@@ -108,16 +108,28 @@ describe('loadVersionTable - user merge', () => {
       }),
     );
     const first = await loadVersionTable(path);
-    // Mutate file but expect cache hit.
+    expect(first.get('bb'.repeat(32))?.flutterVersion).toBe('cached-1');
+
+    // Change size and mtime: the stale entry must be replaced.
     await writeFile(
       path,
       JSON.stringify({
-        ['bb'.repeat(32)]: { flutterVersion: 'cached-2' },
+        ['bb'.repeat(32)]: { flutterVersion: 'cached-2', engineCommit: 'new-engine' },
       }),
+      'utf8',
     );
     const second = await loadVersionTable(path);
-    expect(first.get('bb'.repeat(32))?.flutterVersion).toBe('cached-1');
-    expect(second.get('bb'.repeat(32))?.flutterVersion).toBe('cached-1');
+    expect(second.get('bb'.repeat(32))?.flutterVersion).toBe('cached-2');
+  });
+
+  it('keys the cache by resolved path (equivalent spellings share an entry)', async () => {
+    const path = join(tmpDir, 'relative.json');
+    await writeFile(path, JSON.stringify({ ['bc'.repeat(32)]: { flutterVersion: 'rel-1' } }));
+    const absolute = await loadVersionTable(path);
+    const sameAgain = await loadVersionTable(path);
+    expect(sameAgain.get('bc'.repeat(32))?.flutterVersion).toBe(
+      absolute.get('bc'.repeat(32))?.flutterVersion,
+    );
   });
 
   it('lower-cases user-supplied hash keys', async () => {
@@ -139,7 +151,7 @@ describe('loadVersionTable - user merge', () => {
     expect(entry?.abis).toBeUndefined();
   });
 
-  it('drops non-string ABI tokens silently', async () => {
+  it('rejects a partially invalid abis array as a shape error', async () => {
     const path = join(tmpDir, 'bad-abi.json');
     const hash = 'ac'.repeat(32);
     await writeFile(
@@ -148,11 +160,10 @@ describe('loadVersionTable - user merge', () => {
         [hash]: { flutterVersion: '1.0.0', abis: ['arm64', 42, 'not-an-abi'] },
       }),
     );
-    const table = await loadVersionTable(path);
-    expect(table.get(hash)?.abis).toEqual(['arm64']);
+    await expect(loadVersionTable(path)).rejects.toMatchObject({ code: 'RUNTIME' });
   });
 
-  it('omits empty abis array', async () => {
+  it('rejects an abis array with no valid ABI strings', async () => {
     const path = join(tmpDir, 'empty-abi.json');
     const hash = 'ad'.repeat(32);
     await writeFile(
@@ -161,8 +172,14 @@ describe('loadVersionTable - user merge', () => {
         [hash]: { flutterVersion: '1.0.0', abis: [123, 'nope'] },
       }),
     );
-    const table = await loadVersionTable(path);
-    expect(table.get(hash)?.abis).toBeUndefined();
+    await expect(loadVersionTable(path)).rejects.toMatchObject({ code: 'RUNTIME' });
+  });
+
+  it('rejects a non-array abis field', async () => {
+    const path = join(tmpDir, 'string-abi.json');
+    const hash = 'ba'.repeat(32);
+    await writeFile(path, JSON.stringify({ [hash]: { flutterVersion: '1.0.0', abis: 'arm64' } }));
+    await expect(loadVersionTable(path)).rejects.toMatchObject({ code: 'RUNTIME' });
   });
 });
 

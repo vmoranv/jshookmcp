@@ -299,7 +299,11 @@ function findDynamicSymbolTables(
   if (!dynstr || dynstr.type !== 3) return null;
   if (dynstr.offset + dynstr.size > fileSize) return null;
 
-  const symEntSize = dynsym.entsize > 0 ? dynsym.entsize : is64 ? 24 : 16;
+  // Reject an attacker-controlled sh_entsize smaller than the ELF symbol
+  // structure: a tiny stride would read past the end of symBuf.
+  const minSymEntSize = is64 ? 24 : 16;
+  if (dynsym.entsize !== 0 && dynsym.entsize < minSymEntSize) return null;
+  const symEntSize = dynsym.entsize > 0 ? dynsym.entsize : minSymEntSize;
   return { dynsym, dynstr, symEntSize };
 }
 
@@ -396,6 +400,10 @@ function readShdr(
   entSize: number,
   is64: boolean,
 ): ElfShdr | undefined {
+  // e_shentsize is untrusted; reading refuses entries smaller than the
+  // class-appropriate section header (0x40 for ELF64, 0x28 for ELF32).
+  const minEntSize = is64 ? 64 : 40;
+  if (entSize < minEntSize) return undefined;
   const base = index * entSize;
   if (base < 0 || base + entSize > table.length) return undefined;
   if (is64) {
@@ -436,6 +444,8 @@ function readShAddr(
   entSize: number,
   is64: boolean,
 ): number | undefined {
+  const minEntSize = is64 ? 64 : 40;
+  if (entSize < minEntSize) return undefined;
   const base = index * entSize;
   if (base < 0 || base + entSize > table.length) return undefined;
   if (is64) {
@@ -593,8 +603,11 @@ function decodeFeatures(buf: Buffer, start: number): string[] {
 function pickArch(features: readonly string[]): SnapshotArch {
   for (const token of features) {
     const norm = token.toLowerCase();
-    const hit = ARCH_TOKENS[norm];
-    if (hit) return hit;
+    // Own-property check: untrusted feature tokens like `__proto__` or
+    // `constructor` must not resolve to Object.prototype members.
+    if (Object.prototype.hasOwnProperty.call(ARCH_TOKENS, norm)) {
+      return ARCH_TOKENS[norm] as SnapshotArch;
+    }
   }
   return 'unknown';
 }

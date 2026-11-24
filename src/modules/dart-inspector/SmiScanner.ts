@@ -176,13 +176,28 @@ function resolveScanFilters(
       `SmiScanner minValue (${minValue}) must be <= maxValue (${maxValue})`,
     );
   }
+  const maxResults = opts.maxResults ?? DART_MAX_OFFSETS_PER_STRING;
+  if (!Number.isInteger(maxResults) || maxResults < 1) {
+    throw new ToolError(
+      'VALIDATION',
+      `SmiScanner maxResults must be a positive integer (got ${maxResults})`,
+    );
+  }
+  const requestedChunkBytes = opts.maxChunkBytes ?? DART_MAX_CHUNK_BYTES;
+  if (!Number.isInteger(requestedChunkBytes) || requestedChunkBytes < 1) {
+    throw new ToolError(
+      'VALIDATION',
+      `SmiScanner maxChunkBytes must be a positive integer (got ${requestedChunkBytes})`,
+    );
+  }
   return {
     minValue,
     maxValue,
     includeZero: opts.includeZero ?? false,
     includeNegative: opts.includeNegative ?? false,
-    maxResults: opts.maxResults ?? DART_MAX_OFFSETS_PER_STRING,
-    maxChunkBytes: Math.max(opts.maxChunkBytes ?? DART_MAX_CHUNK_BYTES, width * 16),
+    maxResults,
+    // A chunk must hold at least a few words for carry-over alignment.
+    maxChunkBytes: Math.max(requestedChunkBytes, width * 16),
   };
 }
 
@@ -273,6 +288,26 @@ function sweepChunk(
   return { scanned, truncated: false };
 }
 
+/**
+ * Classify a raw fs failure into the documented ToolError codes instead of
+ * reporting every failure as a missing file.
+ */
+function fsFailure(cause: unknown, filePath: string, action: string): ToolError {
+  if (cause instanceof ToolError) return cause;
+  const code = (cause as NodeJS.ErrnoException | undefined)?.code;
+  const toolCode =
+    code === 'ENOENT' || code === 'ENOTDIR'
+      ? 'NOT_FOUND'
+      : code === 'EACCES' || code === 'EPERM'
+        ? 'PERMISSION'
+        : 'RUNTIME';
+  return new ToolError(
+    toolCode,
+    `Failed to ${action} ${filePath}: ${(cause as Error | undefined)?.message ?? 'unknown error'}`,
+    { details: { filePath, code }, cause: cause as Error },
+  );
+}
+
 export class SmiScanner {
   async scanFile(filePath: string, opts: SmiScanOptions = {}): Promise<SmiScanResult> {
     if (!filePath || filePath.length === 0) {
@@ -281,10 +316,7 @@ export class SmiScanner {
     try {
       await stat(filePath);
     } catch (cause) {
-      throw new ToolError('NOT_FOUND', `File not found: ${filePath}`, {
-        details: { filePath },
-        cause: cause as Error,
-      });
+      throw fsFailure(cause, filePath, 'inspect');
     }
 
     const {
@@ -308,51 +340,60 @@ export class SmiScanner {
 
     // Stream the file in chunks. Carry-over (width - 1) bytes so a word that
     // straddles a chunk boundary is still read correctly on the next pass.
-    const stream = createReadStream(filePath, { highWaterMark: maxChunkBytes });
+    let stream: ReturnType<typeof createReadStream>;
+    try {
+      stream = createReadStream(filePath, { highWaterMark: maxChunkBytes });
+    } catch (cause) {
+      throw fsFailure(cause, filePath, 'read');
+    }
     let pending: Buffer = Buffer.alloc(0);
     let nextAbsolute = 0;
 
-    for await (const chunk of stream) {
-      if (truncated) break;
-      const chunkBuf = chunk as Buffer;
-      const baseOffset = nextAbsolute - pending.length;
-      const combined = pending.length === 0 ? chunkBuf : Buffer.concat([pending, chunkBuf]);
-      // Scan every aligned word position inside `combined`.
-      // The last (width - 1) bytes of `combined` are preserved as the next
-      // iteration's pending buffer.
-      const scanEnd = combined.length - (width - 1);
-      // Compute the first absolute offset within this chunk that lies on the
-      // stride grid relative to file start AND inside the window.
-      let absOffset = Math.max(baseOffset, windowStart);
-      // Align absOffset up to the next multiple of stride.
-      const misalignment = absOffset % stride;
-      if (misalignment !== 0) absOffset += stride - misalignment;
+    try {
+      for await (const chunk of stream) {
+        if (truncated) break;
+        const chunkBuf = chunk as Buffer;
+        const baseOffset = nextAbsolute - pending.length;
+        const combined = pending.length === 0 ? chunkBuf : Buffer.concat([pending, chunkBuf]);
+        // Scan every aligned word position inside `combined`.
+        // The last (width - 1) bytes of `combined` are preserved as the next
+        // iteration's pending buffer.
+        const scanEnd = combined.length - (width - 1);
+        // Compute the first absolute offset within this chunk that lies on the
+        // stride grid relative to file start AND inside the window.
+        let absOffset = Math.max(baseOffset, windowStart);
+        // Align absOffset up to the next multiple of stride.
+        const misalignment = absOffset % stride;
+        if (misalignment !== 0) absOffset += stride - misalignment;
 
-      const sweep = sweepChunk(combined, {
-        baseOffset,
-        scanEnd,
-        windowStart,
-        windowEnd,
-        stride,
-        width,
-        decode,
-        includeZero,
-        includeNegative,
-        minValue,
-        maxValue,
-        maxResults,
-        hits,
-        scannedSoFar: scanned,
-      });
-      scanned = sweep.scanned;
-      if (sweep.truncated) {
-        truncated = true;
-        break;
+        const sweep = sweepChunk(combined, {
+          baseOffset,
+          scanEnd,
+          windowStart,
+          windowEnd,
+          stride,
+          width,
+          decode,
+          includeZero,
+          includeNegative,
+          minValue,
+          maxValue,
+          maxResults,
+          hits,
+          scannedSoFar: scanned,
+        });
+        scanned = sweep.scanned;
+        if (sweep.truncated) {
+          truncated = true;
+          break;
+        }
+
+        nextAbsolute += chunkBuf.length;
+        const carry = Math.min(combined.length, width - 1);
+        pending = combined.subarray(combined.length - carry);
       }
-
-      nextAbsolute += chunkBuf.length;
-      const carry = Math.min(combined.length, width - 1);
-      pending = combined.subarray(combined.length - carry);
+    } catch (cause) {
+      throw fsFailure(cause, filePath, 'read');
     }
 
     return { hits, scanned, truncated, width };

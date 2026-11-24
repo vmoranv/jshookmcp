@@ -184,6 +184,33 @@ function decodeDoublePreview(snapshot: Buffer, targetOffset: number): string | u
   return undefined;
 }
 
+function resolveDumpLimits(opts: DumpOptions): { maxSlots: number; previewBytes: number } {
+  const maxSlots = opts.maxSlots ?? DART_PP_MAX_SLOTS;
+  if (!Number.isInteger(maxSlots) || maxSlots <= 0) {
+    throw new ToolError('VALIDATION', `maxSlots must be a positive integer (got ${maxSlots})`);
+  }
+  if (maxSlots > DART_PP_MAX_SLOTS) {
+    throw new ToolError(
+      'VALIDATION',
+      `maxSlots exceeds DART_PP_MAX_SLOTS (${maxSlots} > ${DART_PP_MAX_SLOTS})`,
+    );
+  }
+  const previewBytes = opts.previewBytes ?? DART_PP_PREVIEW_BYTES;
+  if (!Number.isInteger(previewBytes) || previewBytes < 0) {
+    throw new ToolError(
+      'VALIDATION',
+      `previewBytes must be a non-negative integer (got ${previewBytes})`,
+    );
+  }
+  if (previewBytes > DART_PP_PREVIEW_BYTES) {
+    throw new ToolError(
+      'VALIDATION',
+      `previewBytes exceeds DART_PP_PREVIEW_BYTES (${previewBytes} > ${DART_PP_PREVIEW_BYTES})`,
+    );
+  }
+  return { maxSlots, previewBytes };
+}
+
 export class ObjectPoolDumper {
   private readonly fingerprintProbe: SnapshotFingerprint;
 
@@ -195,8 +222,9 @@ export class ObjectPoolDumper {
    * Dump the ObjectPool slots from a Flutter `libapp.so`.
    *
    * Error model:
-   *  - `VALIDATION` — empty path, non-positive `maxSlots`, negative `previewBytes`
-   *  - `NOT_FOUND`  — file does not exist
+   *  - `VALIDATION` — empty path, non-positive/non-integer/oversized
+   *                   `maxSlots` or `previewBytes`
+   *  - `NOT_FOUND`  — file does not exist (or the claimed region cannot be read)
    *  - `PERMISSION` — file exceeds `DART_SNAPSHOT_MAX_FILE_BYTES`
    *  - `TIMEOUT`    — decode wall-clock exceeded `DART_PP_MAX_DUMP_DURATION_MS`
    *
@@ -207,17 +235,7 @@ export class ObjectPoolDumper {
     if (!filePath || filePath.length === 0) {
       throw new ToolError('VALIDATION', 'filePath must be a non-empty string');
     }
-    const maxSlots = opts.maxSlots ?? DART_PP_MAX_SLOTS;
-    if (!Number.isFinite(maxSlots) || maxSlots <= 0) {
-      throw new ToolError('VALIDATION', `maxSlots must be a positive integer (got ${maxSlots})`);
-    }
-    const previewBytes = opts.previewBytes ?? DART_PP_PREVIEW_BYTES;
-    if (!Number.isFinite(previewBytes) || previewBytes < 0) {
-      throw new ToolError(
-        'VALIDATION',
-        `previewBytes must be a non-negative integer (got ${previewBytes})`,
-      );
-    }
+    const { maxSlots, previewBytes } = resolveDumpLimits(opts);
 
     let fileSize: number;
     try {
@@ -289,9 +307,11 @@ export class ObjectPoolDumper {
     try {
       // 4a. Snapshot header probe.
       const headerProbeLen = Math.min(0x28 + 4096, Math.max(0, fileSize - headerOffset));
-      const headerProbe = Buffer.alloc(headerProbeLen);
+      const headerProbeBuf = Buffer.alloc(headerProbeLen);
+      let headerProbe = headerProbeBuf;
       if (headerProbeLen > 0) {
-        await fh.read(headerProbe, 0, headerProbeLen, headerOffset);
+        const { bytesRead } = await fh.read(headerProbeBuf, 0, headerProbeLen, headerOffset);
+        if (bytesRead < headerProbeLen) headerProbe = headerProbeBuf.subarray(0, bytesRead);
       }
       checkBudget();
 
@@ -309,10 +329,26 @@ export class ObjectPoolDumper {
         };
       }
 
-      // 4b. Slot table region only — typically a few KiB.
+      // 4b. Slot table region only — typically a few KiB. `read()` may return
+      //     fewer bytes than requested; decode only what was actually read so
+      //     the zero-filled tail is never mistaken for real pool words.
       const slotTableLen = slotRegionEnd - slotRegionStart;
       const slotTableBuf = Buffer.alloc(slotTableLen);
-      await fh.read(slotTableBuf, 0, slotTableLen, slotRegionStart);
+      const { bytesRead: slotTableBytes } = await fh.read(
+        slotTableBuf,
+        0,
+        slotTableLen,
+        slotRegionStart,
+      );
+      if (slotTableBytes < MIN_SLOT_BYTES) {
+        throw new ToolError(
+          'NOT_FOUND',
+          `Short read at ${slotRegionStart} in ${filePath} (${slotTableBytes}/${slotTableLen} bytes)`,
+          { details: { filePath, slotRegionStart, bytesRead: slotTableBytes } },
+        );
+      }
+      const slotTable =
+        slotTableBytes < slotTableLen ? slotTableBuf.subarray(0, slotTableBytes) : slotTableBuf;
       checkBudget();
 
       // 4c. Reusable probe at each pointer target. We need
@@ -333,7 +369,7 @@ export class ObjectPoolDumper {
         const wordOffsetAbs = absOffset + grammar.perSlotPrefixSize;
 
         const slot = await this.decodeSlot(
-          slotTableBuf,
+          slotTable,
           wordOffsetInTable,
           wordOffsetAbs,
           fileSize,
