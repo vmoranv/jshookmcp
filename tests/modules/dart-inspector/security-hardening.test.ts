@@ -68,6 +68,7 @@ describe('classifiers — reserved categories and prototype safety', () => {
     const rule: CategoryRule = {
       category: 'gated',
       pattern: /^never$/,
+      // codeql[js/redos]
       enableWhen: { fileNameMatches: /^(a|aa)+$/ },
     };
     const hostileName = `${'a'.repeat(24)}b`;

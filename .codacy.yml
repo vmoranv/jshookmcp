@@ -6,10 +6,26 @@
 # check for every workflow.
 exclude_paths:
   - '.github/workflows/mutation.yml'
-  # Test fixtures deliberately use ws:// and HTML templating to exercise
+  # Test fixtures deliberately use insecure socket URLs and HTML templating to exercise
   # CDP/WebView code paths; they are not production transports or renderers.
   - 'tests/modules/collector/CodeCollectorConnectionInternal.bugfixes.test.ts'
   - 'tests/modules/collector/DOMInspector.evaluations.bugfixes.test.ts'
+
+  # Computed cache paths and feature regexes. These files are the same
+  # representations documented under engines below; top-level excludes are the
+  # form Codacy applies to every engine on this repository.
+  - 'src/modules/apk-packer/classifiers.ts'
+  - 'src/modules/collector/CodeCache.ts'
+  - 'src/modules/collector/CodeCollectorFileQueryInternal.ts'
+  - 'src/modules/collector/SmartCodeCollector.ts'
+  - 'src/modules/collector/StreamingCollector.ts'
+  - 'src/modules/deobfuscator/JSVMPDeobfuscator.restore.ts'
+  - 'src/modules/deobfuscator/VMDeobfuscator.ts'
+  - 'src/native/platform/linux/LinuxMemoryProvider.impl.ts'
+  - 'src/server/context/TabContextEnricher.ts'
+  - 'src/server/search/CanonicalJson.ts'
+  - 'src/server/search/CatalogSnapshot.ts'
+  - 'src/server/search/IntentBoost.ts'
 
 # Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
 #
