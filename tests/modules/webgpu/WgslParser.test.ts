@@ -125,6 +125,29 @@ describe('WgslParser — extractShaderMetadata', () => {
       const meta = extractShaderMetadata(shader);
       expect(meta.uniforms).toContainEqual({ name: 'tex', binding: 3, group: 1 });
     });
+
+    it('accepts @binding before @group', () => {
+      const shader = `@binding(2) @group(1) var<uniform> p: Params;`;
+      const meta = extractShaderMetadata(shader);
+      expect(meta.uniforms).toContainEqual({ name: 'p', binding: 2, group: 1 });
+    });
+
+    it('does not pair attributes with a var in a later declaration', () => {
+      const shader = `
+        @group(0) @binding(0)
+        fn helper() { return; }
+        var<private> dangling: f32;
+      `;
+      const meta = extractShaderMetadata(shader);
+      expect(meta.uniforms).toEqual([]);
+    });
+
+    it('does not leak a trailing comment into the binding type', () => {
+      const shader = `@group(0) @binding(0) var<uniform> p: Params; // uniform block`;
+      const meta = extractShaderMetadata(shader);
+      expect(meta.uniforms).toContainEqual({ name: 'p', binding: 0, group: 0 });
+      expect(meta.bindingsByType).toEqual({ Params: 1 });
+    });
   });
 
   describe('attributes', () => {

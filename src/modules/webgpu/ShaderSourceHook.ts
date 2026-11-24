@@ -93,8 +93,20 @@ export async function installShaderSourceHook(
           // compilationInfo is async; attach best-effort without blocking the app.
           if (module && typeof module.getCompilationInfo === 'function') {
             module.getCompilationInfo().then(
-              (info: unknown) => {
-                entry.compilationInfo = info;
+              (info: any) => {
+                // GPUCompilationInfo/messages are platform objects whose
+                // fields are prototype accessors; CDP would serialize them as
+                // `{}`. Convert to plain objects while still in the page.
+                entry.compilationInfo = {
+                  messages: Array.from(info?.messages ?? []).map((m: any) => ({
+                    type: m?.type,
+                    message: m?.message,
+                    lineNum: m?.lineNum,
+                    linePos: m?.linePos,
+                    offset: m?.offset,
+                    length: m?.length,
+                  })),
+                };
               },
               () => {
                 /* ignore — instrumentation must never break the app */

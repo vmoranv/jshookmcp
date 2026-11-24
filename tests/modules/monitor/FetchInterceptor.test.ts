@@ -907,4 +907,79 @@ describe('FetchInterceptor', () => {
       );
     });
   });
+
+  // ── request/response stage association ───────────────────────────────
+  describe('stage association', () => {
+    it('does not fulfill a request-stage pause with a Response-stage rule', async () => {
+      const { session, send, emit } = createMockSession();
+      const interceptor = new FetchInterceptor(session);
+
+      const rules = await interceptor.enable([
+        { urlPattern: '*api/users*', stage: 'Response', interceptAction: 'fulfill' },
+        { urlPattern: '*api/users*', stage: 'Request', interceptAction: 'continue' },
+      ]);
+      send.mockClear();
+
+      await emit('Fetch.requestPaused', {
+        requestId: 'req-mixed',
+        request: {
+          url: withPath(TEST_URLS.root, 'api/users?page=1'),
+          method: 'GET',
+          headers: {},
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(send).toHaveBeenCalledWith('Fetch.continueRequest', { requestId: 'req-mixed' });
+      expect(send).not.toHaveBeenCalledWith('Fetch.fulfillRequest', expect.anything());
+      expect(rules[0]!.hitCount).toBe(0);
+      expect(rules[1]!.hitCount).toBe(1);
+    });
+
+    it('does not apply a Request-stage rule to a Response-stage pause', async () => {
+      const { session, send, emit } = createMockSession();
+      const interceptor = new FetchInterceptor(session);
+
+      await interceptor.enable([
+        { urlPattern: '*api/users*', stage: 'Request', interceptAction: 'fulfill' },
+        { urlPattern: '*api/users*', stage: 'Response', interceptAction: 'continue' },
+      ]);
+      send.mockClear();
+
+      await emit('Fetch.requestPaused', {
+        requestId: 'req-response',
+        request: {
+          url: withPath(TEST_URLS.root, 'api/users?page=1'),
+          method: 'GET',
+          headers: {},
+        },
+        responseStatusCode: 200,
+        responseHeaders: [],
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(send).toHaveBeenCalledWith('Fetch.continueResponse', { requestId: 'req-response' });
+      expect(send).not.toHaveBeenCalledWith('Fetch.fulfillRequest', expect.anything());
+    });
+
+    it('treats responseErrorReason as a Response-stage pause', async () => {
+      const { session, send, emit } = createMockSession();
+      const interceptor = new FetchInterceptor(session);
+
+      await interceptor.enable([{ urlPattern: '*never-matches*' }]);
+      send.mockClear();
+
+      await emit('Fetch.requestPaused', {
+        requestId: 'req-failed-response',
+        request: { url: withPath(TEST_URLS.root, 'api/fail'), method: 'GET', headers: {} },
+        responseErrorReason: 'Failed',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(send).toHaveBeenCalledWith('Fetch.continueResponse', {
+        requestId: 'req-failed-response',
+      });
+      expect(send).not.toHaveBeenCalledWith('Fetch.continueRequest', expect.anything());
+    });
+  });
 });

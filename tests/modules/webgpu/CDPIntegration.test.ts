@@ -562,6 +562,10 @@ describe('CDPIntegration', () => {
       // requestAdapter + requestDevice invocation
       expect(source).toContain('requestAdapter');
       expect(source).toContain('requestDevice');
+      // Shared device opts into timestamp-query when the adapter supports it,
+      // so the command hook can attach real GPU timings.
+      expect(source).toContain('requiredFeatures');
+      expect(source).toContain('timestamp-query');
     });
   });
 
@@ -582,6 +586,31 @@ describe('CDPIntegration', () => {
       mockPage.evaluate.mockResolvedValue(undefined);
 
       await expect(releaseDevice(mockPage as Page)).resolves.toBeUndefined();
+    });
+
+    it('destroys the device and nulls the cache before clearing it', async () => {
+      const destroy = vi.fn();
+      const cache = {
+        adapter: {},
+        device: { destroy },
+        adapterInfo: { vendor: '', architecture: '', device: '', description: '' },
+        lost: false,
+      };
+      const previousWindow = (globalThis as any).window;
+      const fakeWindow: any = { __webgpuDeviceCache: cache };
+      (globalThis as any).window = fakeWindow;
+      mockPage.evaluate.mockImplementation(async (fn: any) => fn());
+      try {
+        await releaseDevice(mockPage as Page);
+      } finally {
+        (globalThis as any).window = previousWindow;
+      }
+
+      expect(destroy).toHaveBeenCalledTimes(1);
+      expect(cache.device).toBeNull();
+      expect(cache.adapter).toBeNull();
+      expect(cache.lost).toBe(true);
+      expect(fakeWindow.__webgpuDeviceCache).toBeUndefined();
     });
   });
 });

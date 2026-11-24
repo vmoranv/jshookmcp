@@ -108,3 +108,27 @@ describe('CommandHook Bug #2 — querySet & dst destroy leaks', () => {
     expect(destroyCount).toBeGreaterThanOrEqual(3);
   });
 });
+
+describe('CommandHook hardening regressions', () => {
+  it('guards non-WebGPU pages and gates timestamps on the shared cached device', async () => {
+    const page = mockPage();
+    await installGPUCommandHook(page as never, 10);
+    const script = installScript(page);
+
+    expect(script).toMatch(/typeof GPUDevice === ['"]undefined['"]/);
+    expect(script).toContain('__webgpuDeviceCache');
+    // A freshly requested device does not match the application's device.
+    expect(script).not.toContain('requestAdapter');
+    expect(script).toContain('deviceForTiming.queue === this');
+  });
+
+  it('associates timestamps by the pass own slot mark and records indirect compute', async () => {
+    const page = mockPage();
+    await installGPUCommandHook(page as never, 10);
+    const script = installScript(page);
+
+    expect(script).toContain('p.begin === slotMark.begin');
+    expect(script).toContain('dispatchCalled');
+    expect(script).toContain('p.begin >= resolveCount');
+  });
+});

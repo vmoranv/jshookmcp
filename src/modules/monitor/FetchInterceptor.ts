@@ -79,13 +79,28 @@ export class FetchInterceptor {
       newRules.push(rule);
     }
 
-    await this.applyRules();
-
+    // Register the listener before enabling the domain: requests paused
+    // between `Fetch.enable` and listener attachment would otherwise hang.
+    const addedHandler = this.eventHandler === null;
     if (!this.eventHandler) {
       this.eventHandler = (params: FetchRequestPausedEvent) => {
         void this.handleRequestPaused(params);
       };
       this.cdpSession.on('Fetch.requestPaused', this.eventHandler);
+    }
+
+    try {
+      await this.applyRules();
+    } catch (error) {
+      if (addedHandler && this.eventHandler) {
+        try {
+          this.cdpSession.off('Fetch.requestPaused', this.eventHandler);
+        } catch {
+          /* best-effort rollback */
+        }
+        this.eventHandler = null;
+      }
+      throw error;
     }
 
     this.enabled = true;
@@ -236,11 +251,34 @@ export class FetchInterceptor {
     }
   }
 
+  /**
+   * CDP signals a Response-stage pause with responseStatusCode (success) or
+   * responseErrorReason (failed/blocked). Everything else is a Request-stage
+   * pause. When the event carries no response info we also consult the rules:
+   * a bare event can only be a request-stage pause if a Request-stage rule
+   * caused the domain to pause there.
+   */
+  private resolvePauseStage(params: FetchRequestPausedEvent): 'Request' | 'Response' {
+    if (params.responseStatusCode !== undefined || params.responseErrorReason !== undefined) {
+      return 'Response';
+    }
+    for (const rule of this.rules.values()) {
+      if (rule.stage === 'Request') {
+        return 'Request';
+      }
+    }
+    return 'Response';
+  }
+
   private async handleRequestPaused(params: FetchRequestPausedEvent): Promise<void> {
     const requestUrl = params.request.url;
+    const pauseStage = this.resolvePauseStage(params);
 
-    // Find matching rule
+    // Find matching rule for the stage that actually paused the request.
     for (const [ruleId, rule] of this.rules) {
+      if (rule.stage !== pauseStage) {
+        continue;
+      }
       const pattern = this.compiledPatterns.get(ruleId);
       if (!pattern) continue;
 
@@ -309,7 +347,7 @@ export class FetchInterceptor {
   }
 
   private async continuePausedRequest(params: FetchRequestPausedEvent): Promise<void> {
-    if (params.responseStatusCode !== undefined) {
+    if (params.responseStatusCode !== undefined || params.responseErrorReason !== undefined) {
       await this.cdpSession.send('Fetch.continueResponse', {
         requestId: params.requestId,
       });

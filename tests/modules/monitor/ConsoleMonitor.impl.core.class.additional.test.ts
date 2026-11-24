@@ -488,6 +488,11 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       expect(session.send).toHaveBeenCalledWith('Runtime.disable');
       expect(session.detach).toHaveBeenCalled();
       expect(classState.networkInstances[0]?.disable).toHaveBeenCalled();
+      // Re-enabling a managed target session must not stack listeners.
+      expect(session.off).toHaveBeenCalledWith('Runtime.consoleAPICalled', expect.any(Function));
+      expect(session.off).toHaveBeenCalledWith('Console.messageAdded', expect.any(Function));
+      expect(session.off).toHaveBeenCalledWith('Runtime.exceptionThrown', expect.any(Function));
+      expect(session.off).toHaveBeenCalledWith('disconnected', expect.any(Function));
     });
 
     it('handles errors gracefully during disable', async () => {
@@ -573,6 +578,51 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       expect(monitor.isSessionActive()).toBe(true);
 
       monitor.clearPlaywrightPage();
+      expect(monitor.isSessionActive()).toBe(false);
+    });
+
+    it('detaches console handlers from the old page when the page changes', async () => {
+      const makePage = () => {
+        const handlers: Record<string, (payload: any) => void> = {};
+        return {
+          handlers,
+          on: vi.fn((event: string, handler: (payload: any) => void) => {
+            handlers[event] = handler;
+          }),
+          off: vi.fn((event: string, handler: (payload: any) => void) => {
+            if (handlers[event] === handler) delete handlers[event];
+          }),
+        };
+      };
+      const firstPage = makePage();
+      const secondPage = makePage();
+      const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as never);
+
+      monitor.setPlaywrightPage(firstPage);
+      await monitor.enable();
+      const firstConsoleHandler = firstPage.handlers.console;
+      expect(firstConsoleHandler).toBeTypeOf('function');
+
+      monitor.setPlaywrightPage(secondPage);
+
+      expect(firstPage.off).toHaveBeenCalledWith('console', firstConsoleHandler);
+      expect(firstPage.off).toHaveBeenCalledWith('pageerror', expect.any(Function));
+      expect(firstPage.handlers.console).toBeUndefined();
+
+      // The next enable() must bind the new page instead of early-returning.
+      await monitor.enable();
+      expect(secondPage.on).toHaveBeenCalledWith('console', expect.any(Function));
+      expect(secondPage.on).toHaveBeenCalledWith('pageerror', expect.any(Function));
+    });
+
+    it('disables the Playwright network monitor on clearPlaywrightPage', async () => {
+      const page = { on: vi.fn(), off: vi.fn() };
+      const monitor = new ConsoleMonitor({ getActivePage: vi.fn() } as never);
+      monitor.setPlaywrightPage(page);
+      await monitor.enable({ enableNetwork: true });
+
+      monitor.clearPlaywrightPage();
+      await vi.waitFor(() => expect(classState.playwrightInstances[0]?.disable).toHaveBeenCalled());
       expect(monitor.isSessionActive()).toBe(false);
     });
 

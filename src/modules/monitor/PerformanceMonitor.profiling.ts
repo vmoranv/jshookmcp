@@ -83,12 +83,19 @@ export async function stopHeapSampling(
       throw new PrerequisiteError('Heap sampling not in progress. Call startHeapSampling() first.');
     }
 
-    const samplingPayload = (await cdp.send('HeapProfiler.stopSampling')) as unknown;
+    let samplingPayload: unknown;
+    try {
+      samplingPayload = await cdp.send('HeapProfiler.stopSampling');
+    } finally {
+      // Release the profiler even if stopSampling or the payload shape is bad;
+      // otherwise the next start fails with "already in progress" and sampling
+      // keeps consuming memory.
+      await cdp.send('HeapProfiler.disable').catch(() => {});
+    }
     if (!isCDPHeapSamplingPayload(samplingPayload)) {
       throw new Error('Unexpected HeapProfiler.stopSampling payload shape');
     }
     const { profile } = samplingPayload;
-    await cdp.send('HeapProfiler.disable');
 
     const topN = options?.topN ?? 20;
     await yieldToEventLoop();

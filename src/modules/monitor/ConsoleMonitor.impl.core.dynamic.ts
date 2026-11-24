@@ -55,6 +55,13 @@ export async function enableDynamicScriptMonitoringCore(
     throw new PrerequisiteError('CDP session not available after reconnect attempt');
   }
 
+  // MAX_INJECTED_DYNAMIC_SCRIPTS is interpolated into page-evaluated JS. The
+  // context is cast from `unknown`, so normalize it to a finite non-negative
+  // integer before interpolation rather than trusting the runtime value.
+  const maxRecords = Number.isFinite(coreCtx.MAX_INJECTED_DYNAMIC_SCRIPTS)
+    ? Math.max(0, Math.floor(coreCtx.MAX_INJECTED_DYNAMIC_SCRIPTS))
+    : 500;
+
   const monitorCode = `
       (function() {
         if (window.__dynamicScriptMonitorInstalled) {
@@ -62,7 +69,7 @@ export async function enableDynamicScriptMonitoringCore(
           return;
         }
 
-        const maxRecords = ${coreCtx.MAX_INJECTED_DYNAMIC_SCRIPTS};
+        const maxRecords = ${maxRecords};
         if (!window.__dynamicScripts) {
           window.__dynamicScripts = [];
         }
@@ -97,7 +104,11 @@ export async function enableDynamicScriptMonitoringCore(
           });
         });
 
-        observer.observe(document.documentElement, {
+        // At document creation (addScriptToEvaluateOnNewDocument) the root
+        // element may not exist yet. Observing document covers the same
+        // subtree and avoids a TypeError that would abort installation.
+        const observeTarget = document.documentElement || document;
+        observer.observe(observeTarget, {
           childList: true,
           subtree: true,
         });

@@ -110,16 +110,47 @@ export class ConsoleMonitor {
     void this.extractValue;
   }
   setPlaywrightPage(page: unknown): void {
+    if (this.playwrightPage && this.playwrightPage !== page) {
+      // The console/pageerror listeners are bound to the old page; leaving them
+      // attached makes enablePlaywrightCore() early-return (handler != null) and
+      // keeps events flowing from the stale page. Detach and reset so the next
+      // enable() re-registers on the new page.
+      this.detachPlaywrightConsoleHandlers(this.playwrightPage);
+    }
     this.playwrightPage = page;
     this.playwrightNetworkMonitor?.setPage(page as PlaywrightNetworkMonitorPage | null);
   }
   clearPlaywrightPage(): void {
+    if (this.playwrightPage) {
+      this.detachPlaywrightConsoleHandlers(this.playwrightPage);
+    }
+    // Fire-and-forget: clearPlaywrightPage is synchronous, but the network
+    // monitor still needs its page listeners removed.
+    void this.playwrightNetworkMonitor?.disable().catch(() => undefined);
     this.playwrightPage = null;
     this.contextSwitchPending = false;
-    this.playwrightConsoleHandler = null;
-    this.playwrightErrorHandler = null;
-    this.playwrightNetworkMonitor?.setPage(null);
     this.playwrightNetworkMonitor = null;
+  }
+  private detachPlaywrightConsoleHandlers(page: unknown): void {
+    const detachable = page as {
+      off?: (event: string, handler: (...args: never[]) => void) => void;
+    };
+    if (this.playwrightConsoleHandler) {
+      try {
+        detachable.off?.('console', this.playwrightConsoleHandler as never);
+      } catch {
+        /* best-effort detach during a page switch */
+      }
+      this.playwrightConsoleHandler = null;
+    }
+    if (this.playwrightErrorHandler) {
+      try {
+        detachable.off?.('pageerror', this.playwrightErrorHandler as never);
+      } catch {
+        /* best-effort detach during a page switch */
+      }
+      this.playwrightErrorHandler = null;
+    }
   }
   private getManagedTargetSession(): CDPSessionLike | null {
     const collectorWithTargets = this.collector as CodeCollector & {
@@ -179,6 +210,12 @@ export class ConsoleMonitor {
     this.initPromise = this.doEnable(options);
     try {
       await this.initPromise;
+    } catch (error) {
+      // doEnable can leave partially installed state behind (a CDP session with
+      // no domain listeners, or Playwright handlers already attached). Roll it
+      // back before rethrowing so the next enable() starts clean.
+      await this.disable().catch(() => undefined);
+      throw error;
     } finally {
       this.initPromise = undefined;
     }
@@ -288,9 +325,15 @@ export class ConsoleMonitor {
   }
   async execute(expression: string): Promise<unknown> {
     await this.ensureSession();
+    const session = this.cdpSession;
+    if (!session) {
+      // Playwright mode (or a failed zombie re-init) has no CDP session; fail
+      // with a clear cause instead of a null-dereference.
+      throw new Error('No CDP session available for console execute');
+    }
     try {
       // Wrap with 30s timeout to avoid hanging on stale CDP sessions
-      const result = (await cdpSendWithTimeout(this.cdpSession!, 'Runtime.evaluate', {
+      const result = (await cdpSendWithTimeout(session, 'Runtime.evaluate', {
         expression,
         returnByValue: true,
       })) as RuntimeEvaluateResult;

@@ -1,5 +1,6 @@
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { evaluateWithTimeout } from '@modules/collector/PageController';
+import { createCDPSessionWithTimeout } from '@modules/monitor/cdp-utils';
 import { logger } from '@utils/logger';
 import type {
   PerformanceMetrics,
@@ -17,7 +18,9 @@ export async function getPerformanceMetrics(collector: CodeCollector): Promise<P
   // when CDP is unavailable we fall back to in-page entries only.
   const cdpMetrics: Record<string, number> = {};
   try {
-    const cdp = await page.createCDPSession();
+    // createCDPSession() can hang; the shared helper fails fast and detaches
+    // any late-resolving orphan session.
+    const cdp = await createCDPSessionWithTimeout(page);
     try {
       await cdp.send('Performance.enable');
       const raw = (await cdp.send('Performance.getMetrics')) as {

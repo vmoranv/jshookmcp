@@ -44,6 +44,7 @@ vi.mock('@src/utils/artifacts', () => ({
 }));
 
 import { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
+import { collectTopHeapAllocations } from '@modules/monitor/PerformanceMonitor.types';
 
 function createSession(
   sendImpl?: (method: string, params: any, emit: (e: string, p?: any) => void) => any,
@@ -1120,5 +1121,43 @@ describe('PerformanceMonitor', () => {
 
     // Synchronous guard must reject before ensureCDPSession creates a new session
     expect(page.createCDPSession).not.toHaveBeenCalled();
+  });
+
+  it('close stops page-scoped coverage even when no CDP session was created', async () => {
+    const { session } = createSession();
+    const { collector, page } = createCollector(session);
+    page.coverage.stopJSCoverage.mockResolvedValue([]);
+    page.coverage.stopCSSCoverage.mockResolvedValue([]);
+    const monitor = new PerformanceMonitor(collector as any);
+
+    await monitor.startCoverage();
+    await monitor.close();
+
+    expect(page.coverage.stopJSCoverage).toHaveBeenCalledTimes(1);
+    expect(page.coverage.stopCSSCoverage).toHaveBeenCalledTimes(1);
+    // No heap/profiler session was started, so close() must not create one.
+    expect(page.createCDPSession).not.toHaveBeenCalled();
+  });
+
+  it('stopHeapSampling always disables the profiler when stopSampling fails', async () => {
+    const { session, send } = createSession((method) => {
+      if (method === 'HeapProfiler.stopSampling') {
+        throw new Error('stop failed');
+      }
+      return {};
+    });
+    const { collector } = createCollector(session);
+    const monitor = new PerformanceMonitor(collector as any);
+
+    await monitor.startHeapSampling();
+    await expect(monitor.stopHeapSampling()).rejects.toThrow('stop failed');
+    expect(send).toHaveBeenCalledWith('HeapProfiler.disable');
+  });
+
+  it('collectTopHeapAllocations rejects non-integer topN instead of growing unbounded', () => {
+    expect(() => collectTopHeapAllocations({}, Number.NaN)).toThrow(RangeError);
+    expect(() => collectTopHeapAllocations({}, 2.5)).toThrow(RangeError);
+    expect(() => collectTopHeapAllocations({}, -1)).toThrow(RangeError);
+    expect(collectTopHeapAllocations({}, 0)).toEqual({ sampleCount: 0, topAllocations: [] });
   });
 });

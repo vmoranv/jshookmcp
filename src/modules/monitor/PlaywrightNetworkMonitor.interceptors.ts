@@ -39,7 +39,7 @@ export async function injectXHRInterceptor(
       const OrigXHR = window.__pwOriginalXMLHttpRequest || window.XMLHttpRequest;
       window.__pwOriginalXMLHttpRequest = OrigXHR;
       if (!window.__xhrRequests) window.__xhrRequests = [];
-      window.XMLHttpRequest = function() {
+      const XHRWrapper = function() {
         const xhr = new OrigXHR();
         const origOpen = xhr.open.bind(xhr);
         const origSend = xhr.send.bind(xhr);
@@ -48,19 +48,46 @@ export async function injectXHRInterceptor(
           return origOpen(method, url, ...rest);
         };
         xhr.send = function(body) {
-          xhr.addEventListener('load', function() {
+          let recorded = false;
+          const record = function(outcome) {
+            if (recorded) return;
+            recorded = true;
+            let response = null;
+            try {
+              const type = xhr.responseType;
+              const raw =
+                !type || type === 'text' ? xhr.responseText : xhr.response;
+              response =
+                typeof raw === 'string'
+                  ? raw.slice(0, 2048)
+                  : raw === null || raw === undefined
+                    ? null
+                    : '[non-text response]';
+            } catch (e) {
+              // responseText throws for blob/arraybuffer/document responses.
+              response = null;
+            }
             window.__xhrRequests.push({
               ...xhr.__hookMeta, body: body ? String(body).slice(0, 2048) : null,
-              status: xhr.status, response: xhr.responseText.slice(0, 2048),
+              status: xhr.status, outcome, response,
             });
             if (window.__xhrRequests.length > maxRecords) {
               window.__xhrRequests.splice(0, window.__xhrRequests.length - maxRecords);
             }
-          });
+          };
+          xhr.addEventListener('load', function() { record('load'); });
+          xhr.addEventListener('error', function() { record('error'); });
+          xhr.addEventListener('timeout', function() { record('timeout'); });
+          xhr.addEventListener('abort', function() { record('abort'); });
           return origSend(body);
         };
         return xhr;
       };
+      XHRWrapper.prototype = OrigXHR.prototype;
+      try {
+        Object.setPrototypeOf(XHRWrapper, OrigXHR);
+      } catch (e) {}
+      window.XMLHttpRequest = XHRWrapper;
       console.log('[PlaywrightXHR] XHR interceptor injected');
     })();
   `;
@@ -124,33 +151,74 @@ export async function injectFetchInterceptor(
           response: null,
           status: 0,
         };
-        return origFetch.apply(this, args).then(res => {
-          entry.status = res.status;
-          return res.clone().text().then(
-            (text) => {
-              entry.response = text.slice(0, 2048);
-              return res;
-            },
-            () => {
-              entry.response = '[Unable to read response]';
-              return res;
-            },
-          ).then((response) => {
-            window.__fetchRequests.push(entry);
-            if (window.__fetchRequests.length > maxRecords) {
-              window.__fetchRequests.splice(0, window.__fetchRequests.length - maxRecords);
+        const recordEntry = function() {
+          window.__fetchRequests.push(entry);
+          if (window.__fetchRequests.length > maxRecords) {
+            window.__fetchRequests.splice(0, window.__fetchRequests.length - maxRecords);
+          }
+          // Auto-persist compact summary so data survives context compression
+          try {
+            const s = { url: entry.url, method: entry.method, status: entry.status, ts: entry.timestamp };
+            const prev = JSON.parse(localStorage.getItem('__capturedAPIs') || '[]');
+            prev.push(s);
+            if (prev.length > 500) prev.splice(0, prev.length - 500);
+            localStorage.setItem('__capturedAPIs', JSON.stringify(prev));
+          } catch(e) {}
+        };
+        const capturePreview = function(res, info) {
+          let contentType = '';
+          try {
+            const headers = res.headers;
+            if (headers && typeof headers.get === 'function') {
+              contentType = headers.get('content-type') || '';
             }
-            // Auto-persist compact summary so data survives context compression
-            try {
-              const s = { url: entry.url, method: entry.method, status: entry.status, ts: entry.timestamp };
-              const prev = JSON.parse(localStorage.getItem('__capturedAPIs') || '[]');
-              prev.push(s);
-              if (prev.length > 500) prev.splice(0, prev.length - 500);
-              localStorage.setItem('__capturedAPIs', JSON.stringify(prev));
-            } catch(e) {}
-            return response;
-          });
-        });
+          } catch (e) {}
+          const lower = String(contentType).toLowerCase();
+          const isText =
+            lower === '' ||
+            lower.indexOf('text/') === 0 ||
+            lower.indexOf('json') !== -1 ||
+            lower.indexOf('javascript') !== -1 ||
+            lower.indexOf('xml') !== -1 ||
+            lower.indexOf('x-www-form-urlencoded') !== -1;
+          if (!isText) {
+            info.response = '[non-text response]';
+            return;
+          }
+          try {
+            const cloned = res.clone();
+            if (!cloned || typeof cloned.text !== 'function') {
+              info.response = '[Unable to read response]';
+              return;
+            }
+            // Out-of-band: never delay the caller on body download.
+            void cloned.text().then(
+              (text) => {
+                info.response = text.slice(0, 2048);
+              },
+              () => {
+                info.response = '[Unable to read response]';
+              },
+            );
+          } catch (e) {
+            info.response = '[Unable to read response]';
+          }
+        };
+        return origFetch.apply(this, args).then(
+          (res) => {
+            entry.status = res.status;
+            entry.outcome = 'fulfilled';
+            capturePreview(res, entry);
+            recordEntry();
+            return res;
+          },
+          (error) => {
+            entry.outcome = 'rejected';
+            entry.error = String(error && error.message ? error.message : error);
+            recordEntry();
+            throw error;
+          },
+        );
       };
       console.log('[PlaywrightFetch] Fetch interceptor injected');
     })();

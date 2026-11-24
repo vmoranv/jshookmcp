@@ -12,7 +12,10 @@
  * **TTL**: 30 minutes (configurable). Longer TTL is safe because WGSL spec
  * is stable and results are reproducible.
  *
- * **Eviction**: Time-based only (no LRU). Cache size is bounded by TTL.
+ * **Eviction**: TTL plus a hard entry cap (oldest insertion evicted first).
+ * TTL alone only makes entries stale; without `prune()` being called it never
+ * removes them, so a long-lived process compiling many distinct shaders would
+ * grow without bound.
  *
  * **Thread Safety**: Not required (JavaScript single-threaded, subagents
  * run in separate processes with separate memory).
@@ -29,12 +32,15 @@ interface CacheEntry<T> {
 export class ShaderCache<T = any> {
   private cache = new Map<string, CacheEntry<T>>();
   private ttl: number;
+  private maxSize: number;
 
   /**
    * @param ttl - Time-to-live in milliseconds (default: 30 minutes)
+   * @param maxSize - Hard entry cap, oldest insertion evicted first (default: 500)
    */
-  constructor(ttl = 30 * 60 * 1000) {
+  constructor(ttl = 30 * 60 * 1000, maxSize = 500) {
     this.ttl = ttl;
+    this.maxSize = maxSize;
   }
 
   /**
@@ -69,6 +75,17 @@ export class ShaderCache<T = any> {
    */
   set(code: string, result: T): void {
     const hash = this.hashCode(code);
+    // Only pay the O(n) prune when the cap is actually reached; otherwise TTL
+    // expiration is still lazy (get/has) and `prune()` remains caller-driven.
+    if (!this.cache.has(hash) && this.cache.size >= this.maxSize) {
+      this.prune();
+      if (this.cache.size >= this.maxSize) {
+        const oldestKey = this.cache.keys().next().value as string | undefined;
+        if (oldestKey !== undefined) {
+          this.cache.delete(oldestKey);
+        }
+      }
+    }
     this.cache.set(hash, {
       result,
       timestamp: Date.now(),

@@ -180,30 +180,31 @@ export class PerformanceMonitor {
   }
 
   async close(): Promise<void> {
-    if (this.cdpSession) {
-      // LIFO cleanup — stop in reverse acquisition order (detach last, as the
-      // features depend on the session). Each step is capped by a timeout so a
-      // hung CDP call cannot block the remaining steps; failures are logged,
-      // not swallowed.
-      const steps: Array<[boolean, string, () => Promise<unknown>]> = [
-        [this.heapSamplingEnabled, 'Stop heap sampling', () => this.stopHeapSampling()],
-        [this.tracingEnabled, 'Stop tracing', () => this.stopTracing()],
-        [this.profilerEnabled, 'Stop CPU profiling', () => this.stopCPUProfiling()],
-        [this.coverageEnabled, 'Stop coverage', () => this.stopCoverage()],
-      ];
-      for (const [enabled, label, stop] of steps) {
-        if (!enabled) continue;
-        try {
-          await Promise.race([
-            stop(),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error(`${label} timed out`)), CLEANUP_STEP_TIMEOUT_MS),
-            ),
-          ]);
-        } catch (err) {
-          logger.warn(`${label} failed:`, err);
-        }
+    // LIFO cleanup — stop in reverse acquisition order (detach last, as the
+    // features depend on the session). Each step is capped by a timeout so a
+    // hung CDP call cannot block the remaining steps; failures are logged, not
+    // swallowed. Coverage/tracing are page-scoped and may be active with no CDP
+    // session, so the steps must run even when `cdpSession` is null.
+    const steps: Array<[boolean, string, () => Promise<unknown>]> = [
+      [this.heapSamplingEnabled, 'Stop heap sampling', () => this.stopHeapSampling()],
+      [this.tracingEnabled, 'Stop tracing', () => this.stopTracing()],
+      [this.profilerEnabled, 'Stop CPU profiling', () => this.stopCPUProfiling()],
+      [this.coverageEnabled, 'Stop coverage', () => this.stopCoverage()],
+    ];
+    for (const [enabled, label, stop] of steps) {
+      if (!enabled) continue;
+      try {
+        await Promise.race([
+          stop(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`${label} timed out`)), CLEANUP_STEP_TIMEOUT_MS),
+          ),
+        ]);
+      } catch (err) {
+        logger.warn(`${label} failed:`, err);
       }
+    }
+    if (this.cdpSession) {
       await this.cdpSession.detach().catch((err) => logger.warn('Detach CDP session failed:', err));
       this.cdpSession = null;
     }
