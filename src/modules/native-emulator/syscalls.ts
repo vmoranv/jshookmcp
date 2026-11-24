@@ -58,6 +58,7 @@ const NR_EXIT_GROUP = 94;
 const NR_SET_TID_ADDRESS = 96;
 const NR_FUTEX = 98;
 const NR_CLOCK_GETTIME = 113;
+const NR_PRCTL = 167;
 const NR_RT_SIGPROCMASK = 135;
 const NR_GETTIMEOFDAY = 169;
 const NR_GETPID = 172;
@@ -101,6 +102,7 @@ export const SYSCALL_NAMES: Readonly<Record<number, SyscallMeta>> = {
   [NR_SET_TID_ADDRESS]: { name: 'set_tid_address', params: ['tidptr'] },
   [NR_FUTEX]: { name: 'futex', params: ['uaddr', 'op', 'val'] },
   [NR_CLOCK_GETTIME]: { name: 'clock_gettime', params: ['clk_id', 'tp'] },
+  [NR_PRCTL]: { name: 'prctl', params: ['option', 'arg2', 'arg3', 'arg4', 'arg5'] },
   [NR_RT_SIGPROCMASK]: { name: 'rt_sigprocmask', params: ['how', 'set', 'oset', 'sigsetsize'] },
   [NR_GETTIMEOFDAY]: { name: 'gettimeofday', params: ['tv', 'tz'] },
   [NR_GETPID]: { name: 'getpid', params: [] },
@@ -185,6 +187,10 @@ export function installAndroidSyscalls(engine: CpuEngine, opts: AndroidSyscallOp
 
   // futex / rt_sigprocmask / set_tid_address: threading & signal plumbing the
   // single-threaded emulator doesn't model. Return 0 (success / "no waiters").
+  // prctl(option, ...): process attributes. Linkers issue PR_SET_NAME,
+  // PR_SET_VMA_ANON_NAME, and similar benign calls; model them as accepted
+  // no-ops so a real linker64 can get past its constructors.
+  engine.registerSyscall(NR_PRCTL, () => 0n);
   engine.registerSyscall(NR_FUTEX, () => 0n);
   engine.registerSyscall(NR_RT_SIGPROCMASK, () => 0n);
   engine.registerSyscall(NR_SET_TID_ADDRESS, () => BigInt(opts.tid ?? pid));

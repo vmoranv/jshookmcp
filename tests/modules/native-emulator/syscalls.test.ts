@@ -9,7 +9,7 @@
  *
  * Syscall numbers (asm-generic / arm64, verified against Go runtime + musl):
  *   openat 56, close 57, read 63, write 64, clock_gettime 113,
- *   gettimeofday 169, getpid 172, mmap 222.
+ *   prctl 167, gettimeofday 169, getpid 172, mmap 222.
  *
  * Encodings (verified):
  *   svc #0        = 0xD4000001
@@ -71,6 +71,20 @@ describe('CpuEngine SVC + syscall routing — L3', () => {
     engine.writeCode(0x1000, Uint8Array.from(code));
     engine.start(0x1000, 0x1008);
     expect(engine.readRegister('x0')).toBe(1337);
+  });
+
+  it('accepts prctl as a benign no-op (real linker64 calls it)', () => {
+    const engine = new CpuEngine();
+    installAndroidSyscalls(engine, {});
+    const code = [
+      ...le(0xd28014e8), // movz x8, #167 (prctl)
+      ...le(0xd28001e0), // movz x0, #15  (PR_SET_NAME)
+      ...le(0xd4000001), // svc #0
+    ];
+    engine.mapMemory(0x1000, code.length + 4);
+    engine.writeCode(0x1000, Uint8Array.from(code));
+    engine.start(0x1000, 0x100c);
+    expect(engine.readRegister('x0')).toBe(0);
   });
 
   it('clock_gettime writes a timespec into the guest buffer and returns 0', () => {
