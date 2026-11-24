@@ -6,6 +6,10 @@
 # check for every workflow.
 exclude_paths:
   - '.github/workflows/mutation.yml'
+  # Test fixtures deliberately use ws:// and HTML templating to exercise
+  # CDP/WebView code paths; they are not production transports or renderers.
+  - 'tests/modules/collector/CodeCollectorConnectionInternal.bugfixes.test.ts'
+  - 'tests/modules/collector/DOMInspector.evaluations.bugfixes.test.ts'
 
 # Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
 #
@@ -64,6 +68,31 @@ engines:
       # request data. The non-literal fs-argument findings are inherent to a
       # computed cache key; the consumer (handlers/jadx.ts) is NOT excluded.
       - 'src/modules/jadx-search/decompile-cache.ts'
+
+      # Content-addressed code cache. Paths are derived from a SHA256 key under
+      # a fixed cache root; raw request data never becomes a path component.
+      - 'src/modules/collector/CodeCache.ts'
+
+      # APK ReDoS classifier. Constructing alternating/quantified probes IS the
+      # detector, not an input-processing regex; patterns are bounded literals.
+      - 'src/modules/apk-packer/classifiers.ts'
+
+      # Pattern-priority collectors. Compiling caller/config-supplied regexes
+      # is the feature; callers cap pattern length and each site catches invalid
+      # patterns instead of propagating them.
+      - 'src/modules/collector/CodeCollectorFileQueryInternal.ts'
+      - 'src/modules/collector/SmartCodeCollector.ts'
+      - 'src/modules/collector/StreamingCollector.ts'
+      - 'src/modules/deobfuscator/JSVMPDeobfuscator.restore.ts'
+      - 'src/modules/deobfuscator/VMDeobfuscator.ts'
+
+      # Intent boosts are config-authored rules compiled once per request; flags
+      # are sanitized to remove stateful g/y before compilation.
+      - 'src/server/search/IntentBoost.ts'
+
+      # Linux memory provider builds /proc/<pid>/mem from a validated PID; the
+      # dynamic path is the kernel interface, not user-controlled text.
+      - 'src/native/platform/linux/LinuxMemoryProvider.impl.ts'
 
       # APK manifest parser. The dynamic RegExp arguments are compile-time
       # literals from readXmlAttr/listTags (`activity`, `versionCode`, ...),

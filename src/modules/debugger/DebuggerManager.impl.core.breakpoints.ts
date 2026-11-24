@@ -14,6 +14,23 @@ interface BreakpointsCoreContext {
   removeBreakpoint(breakpointId: string): Promise<void>;
 }
 
+function isIdentifierStart(code: number): boolean {
+  return (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 95 || code === 36;
+}
+function isIdentifierPart(code: number): boolean {
+  return isIdentifierStart(code) || (code >= 48 && code <= 57);
+}
+function isPlainIdentifierPath(value: string): boolean {
+  if (value.length === 0 || value.length > 512) return false;
+  for (const segment of value.split('.')) {
+    if (segment.length === 0 || !isIdentifierStart(segment.charCodeAt(0))) return false;
+    for (let i = 1; i < segment.length; i++) {
+      if (!isIdentifierPart(segment.charCodeAt(i))) return false;
+    }
+  }
+  return true;
+}
+
 interface SetBreakpointResult {
   breakpointId: string;
 }
@@ -202,7 +219,7 @@ export async function setBreakpointOnFunctionCallCore(
 
   // `functionName` is evaluated in the page. Restrict it to a plain identifier
   // path so a caller cannot inject arbitrary script via this parameter.
-  if (!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(functionName)) {
+  if (!isPlainIdentifierPath(functionName)) {
     throw new Error(
       `functionName must be a plain identifier path (e.g. "myFn" or "app.myFn"), got '${functionName}'`,
     );

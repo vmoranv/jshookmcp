@@ -3,6 +3,7 @@ import { mkdir, open, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { ToolError } from '@errors/ToolError';
+import { isValidAndroidPackageName } from '@modules/adb/validation';
 import { probeCommand } from '@modules/external/ToolProbe';
 import { getSafeOutputRoots } from '@utils/outputPaths';
 import { resolveSafeOutputPath, writeOutputFile } from '@utils/safeOutput';
@@ -166,17 +167,6 @@ function parsePackagePaths(pathOut: string): string[] {
 
 function sanitizeLocalName(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '') || 'file';
-}
-
-/**
- * Android package names are dot-separated identifiers. Validating them before
- * shell interpolation stops a caller-supplied name from injecting adb shell
- * commands or `..` segments into local pull destinations.
- */
-const ANDROID_PACKAGE_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)*$/;
-
-function isValidAndroidPackageName(value: string): boolean {
-  return ANDROID_PACKAGE_NAME_PATTERN.test(value);
 }
 
 /**
@@ -1012,7 +1002,7 @@ export class ADBBridgeHandlers {
       if (size !== undefined && !SCREEN_SIZE_PATTERN.test(size)) {
         throw new ToolError(
           'VALIDATION',
-          `Invalid screen size: ${size}. Expected <width>x<height>.`,
+          `Invalid screen size: ${size}. Expected WIDTHxHEIGHT (for example 1080x1920).`,
           {
             toolName: 'adb-bridge',
           },
