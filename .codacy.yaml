@@ -102,6 +102,11 @@ engines:
       - 'src/modules/deobfuscator/JSVMPDeobfuscator.restore.ts'
       - 'src/modules/deobfuscator/VMDeobfuscator.ts'
 
+      # Safe regex compiler. new RegExp IS the feature — it compiles caller-supplied
+      # patterns into a guarded, length-capped, ReDoS-checked regex. The file itself
+      # is the feature, not a hazard; consumers are already excluded.
+      - 'src/utils/safeRegExp.ts'
+
       # Intent boosts are config-authored rules compiled once per request; flags
       # are sanitized to remove stateful g/y before compilation.
       - 'src/server/search/IntentBoost.ts'
@@ -134,3 +139,5 @@ engines:
 
   eslint-9:
     exclude_paths: *codacy_domain_excludes
+
+
