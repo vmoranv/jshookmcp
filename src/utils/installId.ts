@@ -12,12 +12,14 @@
  * write failure degrades to an ephemeral in-memory id for this process.
  */
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { readEnvNullableString } from '@src/config/environment';
 
 const CACHE = new Map<string, string>();
+/** In-flight creations per normalized dir: concurrent callers must share one UUID. */
+const PENDING = new Map<string, Promise<string>>();
 
 function defaultStateDir(): string {
   const overridden = readEnvNullableString('JSHOOK_STATE_DIR', { trim: true });
@@ -40,6 +42,18 @@ export async function getOrCreateInstallId(stateDir: string = defaultStateDir())
   const cached = CACHE.get(stateDir);
   if (cached !== undefined) return cached;
 
+  const inflight = PENDING.get(stateDir);
+  if (inflight !== undefined) return inflight;
+
+  // Memoize the whole read/create sequence, not just the resolved value: two
+  // callers arriving before the first read completes would otherwise each mint
+  // their own UUID (and race on the same temp file).
+  const pending = createAndPersist(stateDir).finally(() => PENDING.delete(stateDir));
+  PENDING.set(stateDir, pending);
+  return pending;
+}
+
+async function createAndPersist(stateDir: string): Promise<string> {
   const filePath = resolve(stateDir, 'install-id');
   try {
     const existing = (await readFile(filePath, 'utf-8')).trim();
@@ -52,13 +66,18 @@ export async function getOrCreateInstallId(stateDir: string = defaultStateDir())
   }
 
   const generated = randomUUID();
+  // Unique per attempt: pid alone collides for concurrent same-process calls.
+  const tmpPath = `${filePath}.tmp-${process.pid}-${randomUUID()}`;
   try {
     await mkdir(stateDir, { recursive: true });
-    const tmpPath = `${filePath}.tmp-${process.pid}`;
     await writeFile(tmpPath, `${generated}\n`, 'utf-8');
     await rename(tmpPath, filePath);
   } catch {
     /* unwritable state dir: use the ephemeral id for this process */
+  } finally {
+    // rename() already consumed the temp file on success; this only cleans up
+    // a failed write.
+    await unlink(tmpPath).catch(() => undefined);
   }
   CACHE.set(stateDir, generated);
   return generated;
@@ -67,4 +86,5 @@ export async function getOrCreateInstallId(stateDir: string = defaultStateDir())
 /** Test seam: drop the per-dir cache. */
 export function resetInstallIdCache(): void {
   CACHE.clear();
+  PENDING.clear();
 }

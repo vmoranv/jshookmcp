@@ -8,10 +8,16 @@ vi.mock('@utils/artifacts', () => ({
   getArtifactDir: (category: string) => `/mocked/artifacts/${category}`,
 }));
 
-vi.mock('@utils/outputPaths', () => ({
-  getProjectRoot: () => '/mocked/project',
-  resolveOutputDirectory: (_dir: string | undefined, fallback: string) => `/mocked/${fallback}`,
-}));
+vi.mock('@utils/outputPaths', async () => {
+  const { tmpdir: mockTmpdir } = await import('node:os');
+  return {
+    getProjectRoot: () => '/mocked/project',
+    resolveOutputDirectory: (_dir: string | undefined, fallback: string) => `/mocked/${fallback}`,
+    // Caller-supplied cleanup directories are now constrained to the safe
+    // output roots; the tests pass temp dirs, so expose the system temp root.
+    getSafeOutputRoots: () => [mockTmpdir()],
+  };
+});
 
 import {
   cleanupArtifacts,

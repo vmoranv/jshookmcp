@@ -190,14 +190,18 @@ export class SoftwareBreakpointEngine {
       const evt = WaitForDebugEvent(Math.min(remaining, 500));
       if (!evt) continue;
 
+      let hit: BreakpointHit | null = null;
       if (evt.exceptionCode === EXCEPTION_CODE.BREAKPOINT) {
-        const hit = this.processBreakpointHit(evt.threadId, evt.processId, evt.exceptionAddress);
-        if (hit) return hit;
+        hit = this.processBreakpointHit(evt.threadId, evt.processId, evt.exceptionAddress);
       } else if (evt.exceptionCode === EXCEPTION_CODE.SINGLE_STEP) {
         this.handleSingleStep(evt.threadId, evt.processId);
       }
 
+      // Always continue the event before returning: leaving it uncontinued
+      // freezes the debuggee and prevents the follow-up SINGLE_STEP from
+      // being delivered/re-armed.
       ContinueDebugEvent(evt.processId, evt.threadId, DBG.CONTINUE);
+      if (hit) return hit;
     }
 
     return null;

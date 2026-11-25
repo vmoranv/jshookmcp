@@ -63,9 +63,17 @@ export interface PlatformMemoryAPI {
 
   /**
    * Query the memory region containing the given address.
-   * Returns null if the address is beyond the valid address space.
+   * Returns null if the address is not inside a mapped region. Walkers must
+   * not treat null as end-of-address-space — use enumerateRegions when present.
    */
   queryRegion(handle: ProcessHandle, address: bigint): MemoryRegionInfo | null;
+
+  /**
+   * Optional bulk region listing. Platforms whose queryRegion only matches a
+   * containing region (Linux /proc/<pid>/maps) implement this so callers can
+   * enumerate across unmapped holes instead of stopping at the first gap.
+   */
+  enumerateRegions?(handle: ProcessHandle): MemoryRegionInfo[];
 
   /** Change memory protection for a region */
   changeProtection(

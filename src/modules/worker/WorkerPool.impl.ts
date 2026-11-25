@@ -409,10 +409,12 @@ class WorkerPoolImpl {
   }
 
   private finishTask(worker: Worker, taskId: string, error?: Error, data?: unknown): void {
+    const state = this.workerStates.get(worker);
     const controller = this.pendingTasks.get(taskId);
-    if (!controller) {
-      this.releaseWorker(worker);
-      this.scheduleDispatch();
+    // Ignore stale/stray messages: only the worker that currently owns this
+    // task may complete it. Otherwise a late reply frees a worker that is
+    // already running another task (duplicate idle entries / concurrent work).
+    if (!controller || !state || state.currentTaskId !== taskId) {
       return;
     }
 

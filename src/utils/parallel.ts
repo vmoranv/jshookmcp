@@ -109,6 +109,10 @@ export async function batchProcess<T, R>(
   executor: (batch: T[]) => Promise<R[]>,
   batchSize: number = 10,
 ): Promise<R[]> {
+  if (!Number.isInteger(batchSize) || batchSize < 1) {
+    throw new Error(`batchProcess: batchSize must be a positive integer (received ${batchSize})`);
+  }
+
   const results: R[] = [];
 
   for (let i = 0; i < items.length; i += batchSize) {
@@ -140,6 +144,13 @@ export class TaskQueue<T, R> {
   private executor: (item: T) => Promise<R>;
 
   constructor(executor: (item: T) => Promise<R>, maxConcurrency: number = 3) {
+    // A zero/negative/non-integer limit makes process() return early forever:
+    // every add() promise stays pending with no error surfaced.
+    if (!Number.isInteger(maxConcurrency) || maxConcurrency < 1) {
+      throw new Error(
+        `TaskQueue: maxConcurrency must be a positive integer (received ${maxConcurrency})`,
+      );
+    }
     this.executor = executor;
     this.maxConcurrency = maxConcurrency;
   }
@@ -195,6 +206,14 @@ export class RateLimiter {
   private lastRefill: number;
 
   constructor(maxTokens: number, refillRate: number) {
+    // A non-positive refill rate makes acquire() compute Infinity-sized waits
+    // and never refill; reject it where the mistake is made.
+    if (!Number.isFinite(maxTokens) || maxTokens <= 0) {
+      throw new Error(`RateLimiter: maxTokens must be positive (received ${maxTokens})`);
+    }
+    if (!Number.isFinite(refillRate) || refillRate <= 0) {
+      throw new Error(`RateLimiter: refillRate must be positive (received ${refillRate})`);
+    }
     this.maxTokens = maxTokens;
     this.tokens = maxTokens;
     this.refillRate = refillRate;
@@ -211,6 +230,14 @@ export class RateLimiter {
   }
 
   async acquire(tokens: number = 1): Promise<void> {
+    // A request larger than the bucket can never be satisfied: the loop would
+    // wake every second forever. Reject instead of spinning.
+    if (!Number.isFinite(tokens) || tokens <= 0 || tokens > this.maxTokens) {
+      throw new Error(
+        `RateLimiter: cannot satisfy ${tokens} token(s) (maxTokens=${this.maxTokens})`,
+      );
+    }
+
     while (true) {
       this.refill();
 

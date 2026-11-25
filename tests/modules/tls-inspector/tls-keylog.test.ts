@@ -19,6 +19,7 @@ import {
   classifySecretLabel,
   TLSKeyLogExtractor,
 } from '@modules/tls-inspector/TLSKeyLogExtractor';
+import { TLS_KEYLOG_PATH } from '@src/constants';
 
 describe('TLSKeyLogExtractor', () => {
   describe('enableKeyLog', () => {
@@ -31,8 +32,8 @@ describe('TLSKeyLogExtractor', () => {
 
     it('uses default path when not specified', () => {
       const path = enableKeyLog();
-      expect(path).toBe('/tmp/sslkeylog.log');
-      expect(process.env.SSLKEYLOGFILE).toBe('/tmp/sslkeylog.log');
+      expect(path).toBe(TLS_KEYLOG_PATH);
+      expect(process.env.SSLKEYLOGFILE).toBe(TLS_KEYLOG_PATH);
       disableKeyLog();
     });
   });

@@ -48,10 +48,10 @@ const OP_FUNCTION_END = 56;
 const EM_VERTEX = 0;
 const STORAGE_UNIFORM = 2;
 const STORAGE_OUTPUT = 3;
-const DECORATION_LOCATION = 28;
-const DECORATION_BINDING = 31;
-const DECORATION_DESCRIPTOR_SET = 32;
-const DECORATION_BLOCK = 1;
+const DECORATION_LOCATION = 30;
+const DECORATION_BINDING = 33;
+const DECORATION_DESCRIPTOR_SET = 34;
+const DECORATION_BLOCK = 2;
 
 /** Encode a UTF-8 string literal as null-terminated, word-padded 32-bit words. */
 function encodeString(s: string): number[] {

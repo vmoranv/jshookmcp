@@ -247,7 +247,12 @@ export class CodeCompressor {
       compressionRatio: number;
     }>
   > {
-    const concurrency = options.concurrency ?? this.DEFAULT_CONCURRENCY;
+    const requestedConcurrency = options.concurrency ?? this.DEFAULT_CONCURRENCY;
+    // `concurrency` is the loop step: 0/NaN/negative would never terminate.
+    const concurrency =
+      Number.isFinite(requestedConcurrency) && requestedConcurrency > 0
+        ? Math.floor(requestedConcurrency)
+        : this.DEFAULT_CONCURRENCY;
     const results: Array<{
       url: string;
       compressed: string;

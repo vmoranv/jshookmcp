@@ -409,7 +409,9 @@ export class SubprocessWorker {
       if (trimmed.length === 0) return;
       const frame = parseWorkerOutboundFrame(trimmed);
       if (!frame) return; // tolerate stray noise on the protocol channel
-      this.handleFrame(frame);
+      // Scope the frame to the emitting child: a late line from a replaced
+      // child must not settle requests written to its successor.
+      this.handleFrame(frame, child);
     });
 
     child.stderr?.setEncoding('utf8');
@@ -453,20 +455,20 @@ export class SubprocessWorker {
     return child;
   }
 
-  private handleFrame(frame: SubprocessWorkerOutboundMessage): void {
+  private handleFrame(frame: SubprocessWorkerOutboundMessage, child: ChildProcess): void {
     if (frame.type === 'result') {
       this.settle(frame.id, undefined, frame.result);
       return;
     }
     if (frame.type === 'error') {
       if (frame.id === undefined) {
-        // Worker-global failure (e.g. tolerance flood): settle everything and
-        // retire the channel — the worker exits right after this frame, and
-        // the next request must respawn instead of reusing the dying child.
-        this.settleAllPending(
+        // Worker-global failure (e.g. tolerance flood): settle everything this
+        // child owned and retire it — but only if it is still the live child.
+        this.settlePendingForChild(
+          child,
           new SubprocessWorkerError('CHILD_EXITED', `[${this.options.name}] ${frame.message}`),
         );
-        this.child = null;
+        if (this.child === child) this.child = null;
       } else {
         this.settle(
           frame.id,
@@ -481,9 +483,13 @@ export class SubprocessWorker {
   }
 
   private send(message: SubprocessWorkerInboundMessage, target?: ChildProcess): void {
+    // Serialize FIRST: a non-serializable payload is a caller bug and must
+    // surface (request()'s catch normalizes it) instead of being mistaken for
+    // a dead pipe, which would leave the request pending until its timeout.
+    const line = `${JSON.stringify(message)}\n`;
     try {
       const child = target ?? this.ensureChild();
-      child.stdin?.write(`${JSON.stringify(message)}\n`);
+      child.stdin?.write(line);
     } catch {
       // The child died mid-write; its 'close' handler normalizes pending requests.
     }
@@ -667,8 +673,33 @@ export function runSubprocessWorker<TOptions, TResult>(
   const input = runOptions.input ?? process.stdin;
 
   const send = (message: SubprocessWorkerOutboundMessage): void => {
+    // Serialize before the pipe-write try. A non-serializable result (BigInt,
+    // circular graph, throwing toJSON) must be reported as an error frame for
+    // its request id — swallowing it would leave the parent pending forever.
+    let line: string;
     try {
-      output.write(`${JSON.stringify(message)}\n`);
+      line = `${JSON.stringify(message)}\n`;
+    } catch (error) {
+      const fallback: SubprocessWorkerOutboundMessage =
+        message.type === 'result' || (message.type === 'error' && message.id !== undefined)
+          ? {
+              type: 'error',
+              id: (message as { id: number }).id,
+              message: `worker payload is not JSON-serializable: ${stringifyError(error)}`,
+            }
+          : {
+              type: 'log',
+              level: 'error',
+              message: `unserializable frame: ${stringifyError(error)}`,
+            };
+      try {
+        line = `${JSON.stringify(fallback)}\n`;
+      } catch {
+        return;
+      }
+    }
+    try {
+      output.write(line);
     } catch {
       // Parent died mid-write — stdin close tears the loop down.
     }

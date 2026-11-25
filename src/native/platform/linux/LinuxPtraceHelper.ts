@@ -35,7 +35,6 @@ const OFF_RAX = 80;
 const OFF_RDX = 96;
 const OFF_RSI = 104;
 const OFF_RDI = 112;
-const OFF_ORIG_RAX = 120;
 const OFF_RIP = 128;
 const REGS_SIZE = 216;
 
@@ -125,7 +124,8 @@ export interface PtraceResult {
  *
  * 1. PTRACE_ATTACH → wait for SIGSTOP
  * 2. PTRACE_GETREGS (save original)
- * 3. Set orig_rax = syscallNr, args in rdi/rsi/rdx/r10/r8/r9,
+ * 3. Set rax = syscallNr (the `syscall` instruction copies RAX into orig_rax
+ *    at syscall entry), args in rdi/rsi/rdx/r10/r8/r9,
  *    rip = vDSO syscall gadget
  * 4. PTRACE_SETREGS → PTRACE_SYSCALL → wait
  * 5. PTRACE_GETREGS (read rax = result)
@@ -143,15 +143,23 @@ export function remoteSyscall(
 ): PtraceResult {
   // Read original regs
   const saved = Buffer.alloc(REGS_SIZE);
+  let attached = false;
   let regsSaved = false;
 
   try {
-    // Attach
-    ptrace(PTRACE_ATTACH, pid, null, null);
+    // Attach — ptrace returns 0 on success and -1 on failure.
+    const attachRet = ptrace(PTRACE_ATTACH, pid, null, null);
+    if (attachRet !== 0n) {
+      throw new Error(`LinuxPtrace: PTRACE_ATTACH failed for pid ${pid}`);
+    }
+    attached = true;
     waitStop(pid);
 
-    // Read original regs
-    ptrace(PTRACE_GETREGS, pid, null, requireKoffi().address(saved));
+    // Read original regs; only a successful GETREGS yields restorable state.
+    const getRegsRet = ptrace(PTRACE_GETREGS, pid, null, requireKoffi().address(saved));
+    if (getRegsRet !== 0n) {
+      throw new Error(`LinuxPtrace: PTRACE_GETREGS failed for pid ${pid}`);
+    }
     regsSaved = true;
 
     // Clone for modification
@@ -164,13 +172,18 @@ export function remoteSyscall(
     regs.writeBigUInt64LE(a3, OFF_R10);
     regs.writeBigUInt64LE(a4, OFF_R8);
     regs.writeBigUInt64LE(a5, OFF_R9);
-    regs.writeBigUInt64LE(BigInt(syscallNr), OFF_ORIG_RAX);
+    // The tracee resumes at a vDSO `syscall` instruction, so the kernel takes
+    // the number from RAX at entry (and overwrites orig_rax itself).
+    regs.writeBigUInt64LE(BigInt(syscallNr), OFF_RAX);
 
     // Point RIP at vDSO syscall gadget
     const gadget = resolveVdsoSyscall(pid);
     regs.writeBigUInt64LE(gadget, OFF_RIP);
 
-    ptrace(PTRACE_SETREGS, pid, null, requireKoffi().address(regs));
+    const setRegsRet = ptrace(PTRACE_SETREGS, pid, null, requireKoffi().address(regs));
+    if (setRegsRet !== 0n) {
+      throw new Error(`LinuxPtrace: PTRACE_SETREGS failed for pid ${pid}`);
+    }
     // PTRACE_SYSCALL stops the tracee TWICE: once at syscall-enter-stop
     // (before the kernel executes the syscall — orig_rax holds the number, rax
     // is still the pre-syscall value) and once at syscall-exit-stop (after
@@ -189,12 +202,12 @@ export function remoteSyscall(
     const isErr = rax >= 0xfffffffffffff000n; // -4095 .. -1 in unsigned
     return { rax, error: isErr };
   } finally {
-    // Always restore the original registers and detach — a throw on any error
-    // path (attach, waitpid, vDSO gadget resolution) must not leave the tracee
-    // attached with corrupted registers. SETREGS only when the originals were
-    // actually read (a failed attach/stop leaves them as zeros).
-    if (regsSaved) ptrace(PTRACE_SETREGS, pid, null, requireKoffi().address(saved));
-    ptrace(PTRACE_DETACH, pid, null, null);
+    // Only touch the tracee when the attach actually succeeded; a failed
+    // attach followed by SETREGS/DETACH would target an unrelated process.
+    if (attached) {
+      if (regsSaved) ptrace(PTRACE_SETREGS, pid, null, requireKoffi().address(saved));
+      ptrace(PTRACE_DETACH, pid, null, null);
+    }
   }
 }
 

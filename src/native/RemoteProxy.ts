@@ -195,7 +195,12 @@ export class RemoteProxy extends EventEmitter {
         clearTimeout(timer);
         this.lastError = err.message;
         this.errors++;
-        this.emit('error', err);
+        // EventEmitter treats an unhandled 'error' event as a synchronous
+        // throw. Consumers are not required to subscribe, so only forward when
+        // someone is listening; status.lastError still records it.
+        if (this.listenerCount('error') > 0) {
+          this.emit('error', err);
+        }
 
         if (!this.connected) {
           reject(err);

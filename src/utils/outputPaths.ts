@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises';
+import { lstat, mkdir, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import {
   basename,
@@ -47,6 +47,42 @@ function isInside(baseDir: string, targetPath: string): boolean {
     return false;
   }
   return true;
+}
+
+async function realpathOrLexical(targetPath: string): Promise<string> {
+  try {
+    return await realpath(targetPath);
+  } catch {
+    // Not created yet (tests mock mkdir) — fall back to the lexical path.
+    return normalize(targetPath);
+  }
+}
+
+/**
+ * Symlink-aware containment: a directory inside the project root may itself be
+ * a symlink pointing elsewhere, so the deepest existing ancestor must be
+ * resolved before trusting the lexical check.
+ */
+async function isDirInsideRealRoot(root: string, dir: string): Promise<boolean> {
+  const [realRoot, realDir] = await Promise.all([realpathOrLexical(root), realpathOrLexical(dir)]);
+  return isInside(realRoot, realDir);
+}
+
+/** True when the final path component already exists as a symlink (write would follow it). */
+async function isExistingSymlink(targetPath: string): Promise<boolean> {
+  try {
+    return (await lstat(targetPath)).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+async function isSafeScreenshotTarget(projectRoot: string, candidate: string): Promise<boolean> {
+  return (
+    isInside(projectRoot, candidate) &&
+    !(await isExistingSymlink(candidate)) &&
+    (await isDirInsideRealRoot(projectRoot, dirname(candidate)))
+  );
 }
 
 function resolveWithinProject(inputPath: string, baseRoot = getProjectRoot()): string {
@@ -194,6 +230,25 @@ export async function resolveScreenshotOutputPath(options: {
   }
 
   await mkdir(dirname(absolutePath), { recursive: true });
+
+  // SECURITY: lexical isInside() cannot see symlinks. A crafted repo can make
+  // `screenshots/` (or any ancestor, or the target file itself) a link to an
+  // outside location, so re-validate the real path of the deepest existing
+  // ancestor and rewrite if it escapes the project root.
+  if (!(await isSafeScreenshotTarget(projectRoot, absolutePath))) {
+    const safeName = basename(absolutePath);
+    const inProjectCandidate = resolve(screenshotRoot, safeName);
+    await mkdir(dirname(inProjectCandidate), { recursive: true });
+    if (await isSafeScreenshotTarget(projectRoot, inProjectCandidate)) {
+      absolutePath = inProjectCandidate;
+    } else {
+      // Even the configured screenshot root is symlinked outside the repo: land
+      // in the OS temp dir (an allowed output root) instead of following it.
+      absolutePath = resolve(tmpdir(), 'jshook-screenshots', safeName);
+      await mkdir(dirname(absolutePath), { recursive: true });
+    }
+    pathRewritten = true;
+  }
 
   const displayPath = isInside(projectRoot, absolutePath)
     ? relative(projectRoot, absolutePath).replace(/\\/g, '/')

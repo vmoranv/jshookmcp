@@ -55,6 +55,12 @@ function tryDisassemble(insn: number, pc: bigint): DisasmResult | null {
     return { mnemonic: 'br', operands: `x${rn}` };
   }
 
+  // ── Data processing - register: logical (shifted register) ────────
+  // Must be dispatched before loads/stores: the load/store-pair mask
+  // (0x38000000 == 0x28000000) also matches ORR/ORN/ANDS-style words such as
+  // 0x2a020020, while real load/store-pairs never have bits 28:24 == 01010.
+  if (m(insn, 0x1f000000, 0x0a000000)) return decodeLogicalShiftedReg(insn);
+
   // ── Loads and stores ─────────────────────────────────────────────
   if (m(insn, 0x3b000000, 0x18000000)) return decodeLoadLiteral(insn, pc);
   if (m(insn, 0x3b000000, 0x39000000)) return decodeLoadStoreUnsigned(insn);
@@ -63,7 +69,6 @@ function tryDisassemble(insn: number, pc: bigint): DisasmResult | null {
   if (m(insn, 0x3f000000, 0x08000000)) return decodeLoadStoreExclusive(insn);
 
   // ── Data processing - register ───────────────────────────────────
-  if (m(insn, 0x1f200000, 0x0a000000)) return decodeLogicalShiftedReg(insn);
   if (m(insn, 0x1f200000, 0x0b000000)) return decodeAddSubShiftedReg(insn);
   if (m(insn, 0x1fe00000, 0x1a800000)) return decodeCondSelect(insn);
 
@@ -460,7 +465,12 @@ function decodeLogicalShiftedReg(insn: number): DisasmResult {
   const rd = insn & 0x1f;
 
   const reg = sf ? 'x' : 'w';
-  const mnemonics = ['and', 'bic', 'orr', 'orn', 'eor', 'eon', 'ands', 'bics'];
+  // opc (bits 30:29) selects and/orr/eor/ands; N (bit 21) inverts the logical
+  // operation (bic/orn/eon/bics).
+  const n = (insn >> 21) & 1;
+  const mnemonics = n
+    ? (['bic', 'orn', 'eon', 'bics'] as const)
+    : (['and', 'orr', 'eor', 'ands'] as const);
   const shifts = ['lsl', 'lsr', 'asr', 'ror'];
 
   return {

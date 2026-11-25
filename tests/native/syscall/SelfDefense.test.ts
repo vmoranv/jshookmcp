@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   applySelfDefense,
+  buildWatchdogScript,
   stopSelfDefense,
   getSuspiciousHandleCount,
 } from '@src/native/syscall/SelfDefense';
@@ -258,5 +259,15 @@ describe('SelfDefense', () => {
       expect(report).toHaveProperty('aclProtectionApplied');
       expect(report).toHaveProperty('watchdogActive');
     });
+  });
+});
+
+describe('buildWatchdogScript', () => {
+  it('keeps the monitor interval referenced so the child stays alive', () => {
+    const script = buildWatchdogScript(4242, ['--flag']);
+    expect(script).toContain('setInterval');
+    // An unref'ed interval is the only handle in the child (stdio: ignore),
+    // so unref'ing it makes the watchdog exit immediately.
+    expect(script).not.toContain('interval.unref()');
   });
 });

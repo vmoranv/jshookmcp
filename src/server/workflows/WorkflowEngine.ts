@@ -64,6 +64,20 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+class WorkflowTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WorkflowTimeoutError';
+  }
+}
+
+/**
+ * Rejects when `promise` exceeds the timeout.
+ *
+ * The underlying operation is NOT cancelled — the tool layer exposes no
+ * cancellation channel — so callers must not retry after a timeout: the
+ * timed-out attempt may still be running and applying side effects.
+ */
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     return promise;
@@ -71,7 +85,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 
   return new Promise<T>((resolve, reject) => {
     const timeoutId = setTimeout(
-      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      () => reject(new WorkflowTimeoutError(`${label} timed out after ${timeoutMs}ms`)),
       timeoutMs,
     );
     promise.then(
@@ -189,6 +203,11 @@ async function runToolNode(
     try {
       return await runAttempt();
     } catch (error) {
+      // A timed-out attempt is still in flight (no cancellation channel), so a
+      // retry would run a second invocation and can duplicate side effects.
+      if (error instanceof WorkflowTimeoutError) {
+        throw error;
+      }
       attempt += 1;
       if (attempt >= retry.maxAttempts) {
         throw error;
@@ -243,9 +262,17 @@ async function runParallelNode(
     }
   };
 
-  await Promise.all(
+  // allSettled (not Promise.all): with failFast, Promise.all rejects at the
+  // first failure while sibling workers are still inside executeNode. Awaiting
+  // them keeps them from invoking tools/writing results after the run has been
+  // recorded as failed, and then we rethrow the first failure.
+  const settled = await Promise.allSettled(
     Array.from({ length: Math.min(concurrency, node.steps.length) }, () => worker()),
   );
+  const rejected = settled.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+  if (rejected) throw rejected.reason;
   return keyedResults;
 }
 
@@ -430,6 +457,11 @@ export async function executeExtensionWorkflow(
         if (error instanceof PreflightError) {
           throw error;
         }
+        // Fail closed in strict mode: an unexpected evaluation failure must not
+        // silently degrade the strict gate into "skipped".
+        if (preflightMode === 'strict') {
+          throw error instanceof Error ? error : new Error(String(error));
+        }
         // Preflight is best-effort — registry may not be initialised in tests
         executionContext.emitSpan(WorkflowSpanNames.preflight, {
           mode: preflightMode,
@@ -515,7 +547,15 @@ export async function executeExtensionWorkflow(
       workflowError,
       derivePartialStepOutcomes(spans),
     );
-    await workflow.onError?.(executionContext, workflowError);
+    try {
+      await workflow.onError?.(executionContext, workflowError);
+    } catch (hookError) {
+      // A failing user hook must not replace the real workflow failure.
+      executionContext.emitSpan(WorkflowSpanNames.preflight, {
+        hook: 'onError',
+        error: hookError instanceof Error ? hookError.message : String(hookError),
+      });
+    }
     throw workflowError;
   }
 }

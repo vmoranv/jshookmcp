@@ -51,34 +51,13 @@ const XPATH_RESULT_LIMIT = 100;
  * never interpolated into code strings.
  */
 
-/** In-page visibility check (display/visibility/opacity). */
-function isVisibleInPage(element: Element): boolean {
-  const style = window.getComputedStyle(element);
-  return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-}
-
-/** In-page shadow-DOM walk shared by the query-all / find-clickable scans. */
-function walkShadowRootsInPage(): { roots: Array<Document | ShadowRoot>; shadowRootCount: number } {
-  const roots: Array<Document | ShadowRoot> = [document];
-  const queue: Array<Document | ShadowRoot> = [document];
-  let shadowRootCount = 0;
-  while (queue.length > 0) {
-    const root = queue.shift();
-    if (!root) continue;
-    for (const element of Array.from(root.querySelectorAll('*'))) {
-      const shadowRoot = element.shadowRoot;
-      if (shadowRoot) {
-        roots.push(shadowRoot);
-        queue.push(shadowRoot);
-        shadowRootCount += 1;
-      }
-    }
-  }
-  return { roots, shadowRootCount };
-}
-
 /** In-page querySelector: element info for the arg-passed selector. */
 export function querySelectorInPage(selector: string): DOMInspectorElementInfo {
+  // eslint-disable-next-line no-shadow, unicorn/consistent-function-scoping
+  const isVisible = (el: Element): boolean => {
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  };
   const element = document.querySelector(selector);
   if (!element) return { found: false };
   const attributes: Record<string, string> = {};
@@ -90,7 +69,7 @@ export function querySelectorInPage(selector: string): DOMInspectorElementInfo {
     attributes,
     textContent: element.textContent?.trim() || '',
     boundingBox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-    visible: isVisibleInPage(element),
+    visible: isVisible(element),
   };
 }
 
@@ -105,10 +84,29 @@ export function querySelectorAllInPage(
   // Cap on reported textContent (chars) — inlined because module constants do
   // not survive evaluate serialization.
   const TEXT_CONTENT_MAX_CHARS = 500;
+  // eslint-disable-next-line no-shadow, unicorn/consistent-function-scoping
+  const isVisible = (el: Element): boolean => {
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  };
+  const roots: Array<Document | ShadowRoot> = [document];
+  const queue: Array<Document | ShadowRoot> = [document];
+  let shadowRootCount = 0;
+  while (queue.length > 0) {
+    const root = queue.shift();
+    if (!root) continue;
+    for (const el of Array.from(root.querySelectorAll('*'))) {
+      const shadowRoot = el.shadowRoot;
+      if (shadowRoot) {
+        roots.push(shadowRoot);
+        queue.push(shadowRoot);
+        shadowRootCount += 1;
+      }
+    }
+  }
   const seen = new Set<Element>();
   const results: DOMInspectorElementInfo[] = [];
   let totalMatches = 0;
-  const { roots, shadowRootCount } = walkShadowRootsInPage();
   for (const root of roots) {
     const nodeList = Array.from(root.querySelectorAll(selector));
     totalMatches += nodeList.length;
@@ -128,7 +126,7 @@ export function querySelectorAllInPage(
             ? textContent.substring(0, TEXT_CONTENT_MAX_CHARS) + '...[truncated]'
             : textContent,
         boundingBox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-        visible: isVisibleInPage(element),
+        visible: isVisible(element),
       });
       if (results.length >= limit) break;
     }
@@ -155,7 +153,26 @@ export function findClickableInPage(filterText: string | undefined): {
   const normalizedFilter = filterText?.toLowerCase();
   const results: DOMInspectorClickableElement[] = [];
   const seen = new Set<Element>();
-  const { roots, shadowRootCount } = walkShadowRootsInPage();
+  // eslint-disable-next-line no-shadow, unicorn/consistent-function-scoping
+  const isVisible = (el: Element): boolean => {
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  };
+  const roots: Array<Document | ShadowRoot> = [document];
+  const queue: Array<Document | ShadowRoot> = [document];
+  let shadowRootCount = 0;
+  while (queue.length > 0) {
+    const root = queue.shift();
+    if (!root) continue;
+    for (const el of Array.from(root.querySelectorAll('*'))) {
+      const shadowRoot = el.shadowRoot;
+      if (shadowRoot) {
+        roots.push(shadowRoot);
+        queue.push(shadowRoot);
+        shadowRootCount += 1;
+      }
+    }
+  }
   const appendClickable = (
     element: Element,
     type: 'button' | 'link',
@@ -174,7 +191,7 @@ export function findClickableInPage(filterText: string | undefined): {
       selector,
       text,
       type,
-      visible: isVisibleInPage(element) && rect.width > 0 && rect.height > 0,
+      visible: isVisible(element) && rect.width > 0 && rect.height > 0,
       boundingBox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
     });
   };
@@ -187,22 +204,28 @@ export function findClickableInPage(filterText: string | undefined): {
   return { elements: results, diagnostics: { readyState: document.readyState, shadowRootCount } };
 }
 
-/** In-page XPath string literal builder (quote-safe embedding of user text). */
-function xpathStringLiteralInPage(value: string): string {
-  if (!value.includes("'")) return `'${value}'`;
-  if (!value.includes('"')) return `"${value}"`;
-  return `concat('${value.replace(/'/g, `', "'", '`)}')`;
-}
-
 /** In-page findByText: XPath text search (XPath 1.0 result cap 100). */
 export function findByTextInPage(
   searchText: string,
   tagName?: string,
 ): Array<DOMInspectorElementInfo & { selector: string }> {
+  // Everything below must stay self-contained: this function is serialized by
+  // page.evaluate, where module-scope helpers are not defined.
+  // eslint-disable-next-line no-shadow, unicorn/consistent-function-scoping
+  const xpathStringLiteral = (value: string): string => {
+    if (!value.includes("'")) return `'${value}'`;
+    if (!value.includes('"')) return `"${value}"`;
+    return `concat('${value.replace(/'/g, `', "'", '`)}')`;
+  };
+  // eslint-disable-next-line no-shadow, unicorn/consistent-function-scoping
+  const isVisible = (el: Element): boolean => {
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  };
   // tagName flows into the XPath expression: restrict it to a valid HTML tag
   // name so it cannot inject predicates.
   const safeTag = tagName && /^[a-zA-Z][a-zA-Z0-9-]*$/.test(tagName) ? tagName : '*';
-  const xpath = `//${safeTag}[contains(text(), ${xpathStringLiteralInPage(searchText)})]`;
+  const xpath = `//${safeTag}[contains(text(), ${xpathStringLiteral(searchText)})]`;
   const result = document.evaluate(
     xpath,
     document,
@@ -227,7 +250,7 @@ export function findByTextInPage(
       textContent: element.textContent?.trim(),
       selector,
       boundingBox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-      visible: isVisibleInPage(element),
+      visible: isVisible(element),
     });
   }
   return matchedElements;

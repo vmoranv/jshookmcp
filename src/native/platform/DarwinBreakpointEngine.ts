@@ -2,7 +2,8 @@
  * Darwin (macOS) hardware breakpoint engine — ARM64 debug registers via
  * Mach thread_set_state + task_threads enumeration.
  *
- * Uses ARM_DEBUG_STATE64 (flavor 18) to program hardware breakpoint
+ * Uses ARM_DEBUG_STATE64 (thread_state flavor 15 in XNU's
+ * osfmk/mach/arm/thread_status.h; 14 is ARM_DEBUG_STATE32) to program hardware breakpoint
  * registers (DBGBVR/DBGBCR for instruction breakpoints) and watchpoint
  * registers (DBGWVR/DBGWCR for data access watchpoints) matching the
  * Win32 HardwareBreakpointEngine capability on macOS.
@@ -155,7 +156,7 @@ function darwinThreadSetState(thread: number, flavor: number, state: Buffer): nu
 
 // ── Flavor constants (from osfmk/mach/arm/thread_status.h) ──────────────
 
-const ARM_DEBUG_STATE64_FLAVOR = 18;
+export const ARM_DEBUG_STATE64_FLAVOR = 15;
 const ARM_THREAD_STATE64_FLAVOR = 6;
 
 // ── ARM64 debug state layout ────────────────────────────────────────────

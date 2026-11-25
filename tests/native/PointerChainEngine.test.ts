@@ -45,6 +45,7 @@ const { mockProviderInstance } = vi.hoisted(() => {
       }
       return null;
     }),
+    enumerateRegions: vi.fn(() => undefined as unknown),
   };
 
   return { mockProviderInstance: mockProvider, memMockData };
@@ -214,6 +215,31 @@ describe('PointerChainEngine', () => {
       expect(res.chains.length).toBeGreaterThan(0);
       expect(res.totalFound).toBe(res.chains.length);
       expect(res.targetAddress).toBe('0x4242');
+    });
+
+    it('should fall back to the default alignment when alignment is 0', async () => {
+      // A zero alignment would make the chunk loop non-advancing (infinite).
+      const res = await engine.scan(1234, '0x4242', { maxDepth: 1, alignment: 0 });
+      expect(res.chains.length).toBeGreaterThan(0);
+    });
+
+    it('should use the provider bulk region listing (skips gaps)', async () => {
+      mockProviderInstance.enumerateRegions.mockReturnValueOnce([
+        {
+          baseAddress: 0x1000n,
+          size: 16384,
+          protection: 0x04,
+          state: 'committed',
+          type: 'private',
+          isReadable: true,
+          isWritable: true,
+          isExecutable: false,
+        },
+      ]);
+
+      const res = await engine.scan(1234, '0x4242', { maxDepth: 1 });
+      expect(res.chains.length).toBeGreaterThan(0);
+      expect(mockProviderInstance.queryRegion).not.toHaveBeenCalled();
     });
 
     it('builds chains through ALL intermediate levels for depth ≥ 2', async () => {

@@ -36,12 +36,21 @@ export function attachToolRequestMeta(
 ): Record<string, unknown> {
   const merged = { ...args };
   const nextMeta: ToolRequestMeta = {};
+  // `_meta` is client-controlled. Copy own entries explicitly and skip keys that
+  // would mutate the prototype (`Object.assign` uses [[Set]], so an own
+  // `__proto__` key would replace nextMeta's prototype and spoof sessionId).
+  const mergeMeta = (source: Record<string, unknown>): void => {
+    for (const [key, value] of Object.entries(source)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+      nextMeta[key] = value;
+    }
+  };
   const existing = readToolRequestMeta(args);
   if (existing) {
-    Object.assign(nextMeta, existing);
+    mergeMeta(existing);
   }
   if (isRecord(extra?.mcpReq?._meta)) {
-    Object.assign(nextMeta, extra?.mcpReq?._meta as Record<string, unknown>);
+    mergeMeta(extra.mcpReq._meta as Record<string, unknown>);
   }
   const sessionId = resolveToolRequestSessionId(extra);
   if (sessionId) {

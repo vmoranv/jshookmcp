@@ -184,7 +184,9 @@ export class SearchQualityTracker implements SnapshotSource {
     // with usedTool set but no usedToolRank (e.g. from older callers) would
     // otherwise inflate toolUsedRate while contributing nothing to the rank
     // metrics, diluting avgUsedRank and MRR.
-    const usedRecords = arr.filter((r) => r.usedTool !== undefined && r.usedToolRank !== undefined);
+    const usedRecords = arr.filter(
+      (r) => r.usedTool !== undefined && r.usedToolRank !== undefined && r.usedToolRank > 0,
+    );
     const toolUsedRate = usedRecords.length / totalQueries;
 
     let avgUsedRank = 0;

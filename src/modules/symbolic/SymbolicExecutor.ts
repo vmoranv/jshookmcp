@@ -350,9 +350,13 @@ export class SymbolicExecutor {
     };
 
     const processChildren = (stmt: t.Statement): void => {
-      const exitIndex = indexOf.get(stmt)!;
+      const index = indexOf.get(stmt)!;
+      // Non-loop child blocks continue past the parent statement. Using the
+      // parent's own index here would re-enter the if/try/switch after its body
+      // and branch forever.
+      const continuation = entries[index]!.next;
       if (t.isBlockStatement(stmt)) {
-        processBlock(stmt.body, exitIndex);
+        processBlock(stmt.body, continuation);
       } else if (t.isIfStatement(stmt)) {
         const consequentBlock = stmt.consequent
           ? t.isBlockStatement(stmt.consequent)
@@ -367,8 +371,8 @@ export class SymbolicExecutor {
         if (consequentBlock[0]) {
           branchTargets.set(stmt, indexOf.get(consequentBlock[0])!);
         }
-        processBlock(consequentBlock, exitIndex);
-        processBlock(alternateBlock, exitIndex);
+        processBlock(consequentBlock, continuation);
+        processBlock(alternateBlock, continuation);
       } else if (
         t.isWhileStatement(stmt) ||
         t.isDoWhileStatement(stmt) ||
@@ -384,15 +388,16 @@ export class SymbolicExecutor {
         if (body[0]) {
           branchTargets.set(stmt, indexOf.get(body[0])!);
         }
-        processBlock(body, exitIndex);
+        // Loop bodies intentionally exit back to the loop head to re-test.
+        processBlock(body, index);
       } else if (t.isTryStatement(stmt)) {
-        processBlock(stmt.block.body, exitIndex);
-        if (stmt.handler?.body) processBlock(stmt.handler.body.body, exitIndex);
-        if (stmt.finalizer) processBlock(stmt.finalizer.body, exitIndex);
+        processBlock(stmt.block.body, continuation);
+        if (stmt.handler?.body) processBlock(stmt.handler.body.body, continuation);
+        if (stmt.finalizer) processBlock(stmt.finalizer.body, continuation);
       } else if (t.isSwitchStatement(stmt)) {
         // Conservative approximation: case bodies run in source order, then
         // execution continues past the switch.
-        stmt.cases.forEach((c) => processBlock(c.consequent, exitIndex));
+        stmt.cases.forEach((c) => processBlock(c.consequent, continuation));
       }
     };
 

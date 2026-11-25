@@ -421,7 +421,11 @@ function parseDTraceLine(
   startedAt: number,
   pendingEntries?: Map<string, { timestampNs: number; args: string[] }>,
 ): SyscallEvent | null {
-  const match = /^\s*(\d+)\s+\d+\s+(\d+)\s+(\w+):(entry|return)\s+(.*)$/u.exec(line.trim());
+  // Accept both `<cpu> <pid> ...` (dtrace's default prefix, one extra column)
+  // and the raw `printf("%d %d %s...")` output (`<pid> <pid> ...`): the middle
+  // numeric column is optional, and the last number before the probe name is
+  // the pid.
+  const match = /^\s*(\d+)\s+(?:\d+\s+)?(\d+)\s+(\w+):(entry|return)\s+(.*)$/u.exec(line.trim());
   if (!match) {
     return null;
   }

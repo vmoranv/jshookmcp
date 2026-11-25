@@ -110,4 +110,20 @@ describe('SymbolicExecutor bug fixes', () => {
     ]);
     expect(result.satisfiable).toBe(false);
   });
+
+  it('does not re-enter an if statement after its body', async () => {
+    const executor = new SymbolicExecutor();
+    const result = await executor.execute({
+      code: 'if (x) { y = 1; } z = 2;',
+      maxPaths: 10,
+      maxDepth: 20,
+    });
+
+    // `if` is statement 0; a correct continuation visits it once per path
+    // instead of looping back to it after the consequent.
+    for (const path of result.paths) {
+      const visits = path.states.filter((state) => state.pc === 0).length;
+      expect(visits).toBeLessThanOrEqual(1);
+    }
+  });
 });

@@ -923,7 +923,13 @@ export class DetailedDataManager {
   }
 
   clear(): void {
+    const removed = Array.from(this.cache.values());
     this.cache.clear();
+    this.contentHashIndex.clear();
+    // Drop the persisted files and their .metadata.jsonl lines too: otherwise a
+    // restart re-loads every "cleared" entry and the hash index keeps pointing
+    // at detailIds that no longer exist.
+    void this.discardPersistedEntries(removed);
     logger.info('Cleared all detailed data cache');
   }
 }

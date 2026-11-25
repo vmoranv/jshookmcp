@@ -30,6 +30,18 @@ describe('BrowserSessionCoordinator', () => {
     expect(b.getSharedContext('owner').value).toBe('b');
   });
 
+  it('dispose rejects queued work instead of leaving callers pending', async () => {
+    const coordinator = new BrowserSessionCoordinator(() => null);
+
+    const first = coordinator.runExclusive('session-a', async () => 'first');
+    const queued = coordinator.runExclusive('session-a', async () => 'second');
+
+    coordinator.dispose();
+
+    await expect(queued).rejects.toMatchObject({ code: 'BROWSER_SESSION_CLOSED' });
+    await expect(first).resolves.toBe('first');
+  });
+
   it('restores saved page context when switching sessions', async () => {
     const collector = {
       selectPage: vi.fn(async () => undefined),

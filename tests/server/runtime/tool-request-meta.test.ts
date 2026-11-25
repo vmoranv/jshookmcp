@@ -47,6 +47,20 @@ describe('tool-request-meta helpers', () => {
     });
   });
 
+  it('ignores prototype-mutating keys from client-supplied _meta', () => {
+    const args = JSON.parse(
+      '{"_meta":{"__proto__":{"sessionId":"victim"},"progressToken":"p1"}}',
+    ) as Record<string, unknown>;
+
+    const merged = attachToolRequestMeta(args, { sessionId: 'authenticated-session' });
+    const meta = merged._meta as Record<string, unknown>;
+
+    expect(meta.sessionId).toBe('authenticated-session');
+    expect(Object.getPrototypeOf(meta)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(meta, '__proto__')).toBe(false);
+    expect(({} as { sessionId?: unknown }).sessionId).toBeUndefined();
+  });
+
   it('omits _meta entirely when neither source contributes usable values', () => {
     expect(attachToolRequestMeta({ tool: 'example' }, { sessionId: '   ' })).toEqual({
       tool: 'example',

@@ -50,7 +50,7 @@ export class MemoryManager {
    */
   writeCode(address: number, bytes: Uint8Array): void {
     if (this.isWriteProtected(address, bytes.length)) return;
-    const region = this.findRegion(address, bytes.length);
+    const region = this.findRegion(address, bytes.length, true);
     region.data.set(bytes, address - region.base);
   }
 
@@ -73,11 +73,15 @@ export class MemoryManager {
 
   /**
    * Find a region containing [address, address+length).
+   *
+   * Read callers consult the shadow-memory `readHook`; write callers must pass
+   * `forWrite` so stores land in real mapped memory instead of mutating the
+   * synthesized shadow overlay.
    * @throws Error if no region contains the range
    */
-  findRegion(address: number, length: number): MappedRegion {
-    // Check read hook (shadow memory) first
-    if (this.readHook) {
+  findRegion(address: number, length: number, forWrite = false): MappedRegion {
+    // Check read hook (shadow memory) first — reads only.
+    if (!forWrite && this.readHook) {
       const shadow = this.readHook(address, length);
       if (shadow) return { base: address, size: shadow.length, data: shadow };
     }
@@ -133,7 +137,7 @@ export class MemoryManager {
    */
   storeValue(address: number, bytes: number, value: bigint): void {
     if (this.isWriteProtected(address, bytes)) return;
-    const region = this.findRegion(address, bytes);
+    const region = this.findRegion(address, bytes, true);
     const data = region.data;
     let offset = address - region.base;
     let v = value;
@@ -161,7 +165,7 @@ export class MemoryManager {
    * @param bytes - Data to write
    */
   writeMemory(address: number, bytes: Uint8Array): void {
-    const region = this.findRegion(address, bytes.length);
+    const region = this.findRegion(address, bytes.length, true);
     const offset = address - region.base;
     region.data.set(bytes, offset);
   }

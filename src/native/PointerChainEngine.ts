@@ -50,6 +50,16 @@ interface LevelMatch {
   offset: number;
 }
 
+/**
+ * Alignment must be a positive integer. A zero/negative/fractional value makes
+ * `i += alignment` non-advancing and would spin the scan forever.
+ */
+function normalizeScanAlignment(value: number | undefined): number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1
+    ? value
+    : POINTER_CHAIN_DEFAULT_ALIGNMENT;
+}
+
 export class PointerChainEngine {
   private providerCache: PlatformMemoryAPI | null = null;
 
@@ -82,7 +92,7 @@ export class PointerChainEngine {
     const maxDepth = Math.min(options?.maxDepth ?? 4, POINTER_CHAIN_MAX_DEPTH);
     const maxOffset = options?.maxOffset ?? POINTER_CHAIN_MAX_OFFSET;
     const maxResults = options?.maxResults ?? POINTER_CHAIN_MAX_RESULTS;
-    const alignment = options?.alignment ?? POINTER_CHAIN_DEFAULT_ALIGNMENT;
+    const alignment = normalizeScanAlignment(options?.alignment);
     const staticOnly = options?.staticOnly ?? false;
 
     const targetAddr = parseAddress(targetAddress);
@@ -191,7 +201,7 @@ export class PointerChainEngine {
     const maxDepth = Math.min(options?.maxDepth ?? 4, POINTER_CHAIN_MAX_DEPTH);
     const maxOffset = options?.maxOffset ?? POINTER_CHAIN_MAX_OFFSET;
     const maxResults = options?.maxResults ?? POINTER_CHAIN_MAX_RESULTS;
-    const alignment = options?.alignment ?? POINTER_CHAIN_DEFAULT_ALIGNMENT;
+    const alignment = normalizeScanAlignment(options?.alignment);
     const staticOnly = options?.staticOnly ?? false;
 
     const targetAddr = parseAddress(targetAddress);
@@ -405,13 +415,22 @@ export class PointerChainEngine {
    * Complexity: O(r) where r = number of memory regions in the process.
    */
   private enumerateAllRegions(handle: ProcessHandle): MemoryRegionInfo[] {
+    // Prefer the provider's bulk listing: queryRegion only matches a
+    // containing region on POSIX, and address 0 is never mapped there.
+    const bulk = this.provider.enumerateRegions?.(handle);
+    if (bulk !== undefined) {
+      return bulk.filter((region) => region.size > 0);
+    }
+
     const regions: MemoryRegionInfo[] = [];
     let address = 0n;
     while (address < USERSPACE_MAX_ADDRESS) {
       const region = this.provider.queryRegion(handle, address);
-      if (!region) break;
+      if (!region || region.size <= 0) break;
       regions.push(region);
-      address = region.baseAddress + BigInt(region.size);
+      const next = region.baseAddress + BigInt(region.size);
+      if (next <= address) break; // progress guard against a non-advancing region
+      address = next;
     }
     return regions;
   }

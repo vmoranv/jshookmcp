@@ -8,6 +8,7 @@
  * - Prioritizes earliest virtual deadline: d_i = v_i + q_i / w_i.
  *   Latency-sensitive queries requesting small slices (q_i) preempt heavy tasks naturally.
  */
+import { logger } from '@utils/logger';
 
 export interface EevdfTask<T = unknown> {
   id: string;
@@ -90,8 +91,10 @@ export class EevdfScheduler {
         lastActiveMs: Date.now(),
       };
       this.sessions.set(sessionId, state);
-    } else if (weight !== state.weight && weight > 0) {
-      state.weight = weight;
+    } else if (Number.isFinite(weight) && weight > 0 && weight !== state.weight) {
+      // Apply the same lower clamp used at creation; the update path used to
+      // accept e.g. 0.0001 and make vruntime/deadline jumps starve everyone.
+      state.weight = Math.max(0.1, weight);
     }
     return state;
   }
@@ -99,7 +102,10 @@ export class EevdfScheduler {
   async schedule<T>(task: EevdfTask<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const enqueuedAt = Date.now();
-      const weight = task.weight ?? 1.0;
+      const weight =
+        typeof task.weight === 'number' && Number.isFinite(task.weight) && task.weight > 0
+          ? task.weight
+          : 1.0;
       const session = this.getOrCreateSession(task.sessionId, weight);
 
       // Lag clamp: if session was idle, don't let it drift more than maxLagMs behind V
@@ -132,11 +138,16 @@ export class EevdfScheduler {
       }
       q.push(item);
 
-      void this.drain();
+      // A synchronous throw rejects this schedule() promise (better than a
+      // detached unhandled rejection).
+      this.drain();
     });
   }
 
-  private async drain(): Promise<void> {
+  // Fully synchronous: an `async` body with no `await` would turn a throw from
+  // selectNextEligible() into an unhandled rejection at every `void drain()`
+  // call site, and leave runningCount incremented for a task that never ran.
+  private drain(): void {
     while (this.runningCount < this.maxConcurrency) {
       const selected = this.selectNextEligible();
       if (!selected) break;
@@ -225,11 +236,29 @@ export class EevdfScheduler {
       session.taskCount++;
       session.lastActiveMs = Date.now();
 
-      // Update system virtual time when tasks complete
-      this.systemVirtualTimeMs = Math.max(this.systemVirtualTimeMs, session.vruntimeMs);
+      // Advance V(t) to the minimum vruntime among sessions that still have
+      // queued work (the same rule selectNextEligible() uses). Advancing to the
+      // completing session's vruntime — typically the maximum — made every
+      // remaining flow eligible and disabled the lag gate entirely. With no
+      // queued work left, keep the single-flow progress (min === max) so V
+      // stays monotonic.
+      let minActiveVruntime = Number.POSITIVE_INFINITY;
+      for (const [sessionId, queue] of this.queues) {
+        if (queue.length === 0) continue;
+        const active = this.sessions.get(sessionId);
+        if (active) minActiveVruntime = Math.min(minActiveVruntime, active.vruntimeMs);
+      }
+      this.systemVirtualTimeMs = Math.max(
+        this.systemVirtualTimeMs,
+        Number.isFinite(minActiveVruntime) ? minActiveVruntime : session.vruntimeMs,
+      );
 
       this.runningCount--;
-      void this.drain();
+      try {
+        this.drain();
+      } catch (error) {
+        logger.error('[EevdfScheduler] drain failed after task completion:', error);
+      }
     }
   }
 

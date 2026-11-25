@@ -260,6 +260,13 @@ describe('parseTurboFanJSON', () => {
     const graph = parseTurboFanJSON(json)!;
     expect(graph.phases[0]!.edges![0]!.type).toBe('unknown');
   });
+
+  it('returns null for non-object JSON roots', () => {
+    expect(parseTurboFanJSON('null')).toBeNull();
+    expect(parseTurboFanJSON('[]')).toBeNull();
+    expect(parseTurboFanJSON('42')).toBeNull();
+    expect(parseTurboFanJSON('"str"')).toBeNull();
+  });
 });
 
 describe('parseTurboFanJSONFiles', () => {

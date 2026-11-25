@@ -31,7 +31,9 @@ const AF_INET = 2;
 const SOCK_RAW = 3;
 const IPPROTO_ICMP = 1;
 const IPPROTO_IP = 0;
-const IP_TTL = 2;
+// IP_TTL is 2 on Linux but 4 on macOS/BSD (2 is IP_HDRINCL on Darwin, which
+// would make the kernel expect a caller-supplied IP header).
+const IP_TTL = process.platform === 'darwin' ? 4 : 2;
 const SOL_SOCKET = 1;
 const SO_RCVTIMEO = process.platform === 'darwin' ? 0x1006 : 20;
 const POSIX_LIB = process.platform === 'darwin' ? '/usr/lib/libSystem.B.dylib' : 'libc.so.6';
@@ -117,7 +119,15 @@ function buildIcmpEcho(id: number, seq: number, payloadSize: number): Buffer {
 
 function buildSockaddrIn(ip: string): Buffer {
   const buf = Buffer.alloc(16, 0);
-  buf.writeUInt16LE(AF_INET, 0);
+  if (process.platform === 'darwin') {
+    // Darwin/BSD sockaddr_in: sin_len(1) at 0, sin_family(1) at 1,
+    // sin_port(2) at 2 (network order), sin_addr(4) at 4.
+    buf[0] = 16; // sizeof(struct sockaddr_in)
+    buf[1] = AF_INET;
+  } else {
+    // Linux: sin_family(2) at 0, sin_port(2) at 2, sin_addr(4) at 4.
+    buf.writeUInt16LE(AF_INET, 0);
+  }
   const parts = ip.split('.').map(Number);
   buf[4] = parts[0] ?? 0;
   buf[5] = parts[1] ?? 0;

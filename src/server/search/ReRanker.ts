@@ -108,14 +108,14 @@ function computeDescriptionOverlap(
   description: string,
 ): number {
   if (queryTokenSet.size === 0) return 0;
-  const descTokens = tokenize(description);
+  const descTokens = new Set(tokenize(description));
   let overlapCount = 0;
   for (const dt of descTokens) {
     if (queryTokenSet.has(dt)) {
       overlapCount++;
     }
   }
-  return overlapCount / queryTokenSet.size;
+  return Math.min(1, overlapCount / queryTokenSet.size);
 }
 
 export class ReRanker {
@@ -158,17 +158,18 @@ export class ReRanker {
   }
 
   private computeItemSimilarity(a: ReRankInput, b: ReRankInput): number {
-    // Functional redundancy: token overlap between tool names and descriptions
+    // Functional redundancy: token overlap between tool names and descriptions.
+    // Both sides are deduplicated so Jaccard stays within [0, 1].
     const tokensA = new Set([...tokenize(a.toolName), ...tokenize(a.description)]);
-    const tokensB = [...tokenize(b.toolName), ...tokenize(b.description)];
-    if (tokensA.size === 0 || tokensB.length === 0) return 0;
+    const tokensB = new Set([...tokenize(b.toolName), ...tokenize(b.description)]);
+    if (tokensA.size === 0 || tokensB.size === 0) return 0;
 
     let intersection = 0;
     for (const t of tokensB) {
       if (tokensA.has(t)) intersection++;
     }
-    const unionSize = tokensA.size + tokensB.length - intersection;
-    return unionSize > 0 ? intersection / unionSize : 0;
+    const unionSize = tokensA.size + tokensB.size - intersection;
+    return unionSize > 0 ? Math.min(1, intersection / unionSize) : 0;
   }
 
   private diversifyWithMMR(
@@ -266,7 +267,15 @@ export class ReRanker {
     }
     const scoreRange = maxScore - minScore;
 
-    const scored: Array<{ result: ReRankInput; originalRank: number; reRankScore: number }> = [];
+    const components: Array<{
+      result: ReRankInput;
+      originalRank: number;
+      normalizedRetrieval: number;
+      lexicalScore: number;
+    }> = [];
+
+    let minLexical = Infinity;
+    let maxLexical = -Infinity;
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]!;
@@ -289,11 +298,27 @@ export class ReRanker {
         this.weights.domainRelevance * domainRel +
         this.weights.intentAlignment * intentAlign;
 
-      const normalizedRetrieval = scoreRange > 0 ? (r.score - minScore) / scoreRange : 1;
-      const finalScore = RETRIEVAL_WEIGHT * normalizedRetrieval + LEXICAL_WEIGHT * lexicalScore;
+      if (lexicalScore < minLexical) minLexical = lexicalScore;
+      if (lexicalScore > maxLexical) maxLexical = lexicalScore;
 
-      scored.push({ result: r, originalRank: i, reRankScore: finalScore });
+      const normalizedRetrieval = scoreRange > 0 ? (r.score - minScore) / scoreRange : 1;
+      components.push({ result: r, originalRank: i, normalizedRetrieval, lexicalScore });
     }
+
+    // Min-max normalise the lexical component too. Coverage is bounded to
+    // [0,1], but its absolute magnitude depends on how wordy the descriptions
+    // happen to be and how many query tokens exist; normalising it per query
+    // keeps the 0.6/0.4 blend scale-invariant without letting repeated
+    // description tokens push a single candidate's similarity past 1.
+    const lexicalRange = maxLexical - minLexical;
+    const scored = components.map((c) => {
+      const normalizedLexical = lexicalRange > 0 ? (c.lexicalScore - minLexical) / lexicalRange : 0;
+      return {
+        result: c.result,
+        originalRank: c.originalRank,
+        reRankScore: RETRIEVAL_WEIGHT * c.normalizedRetrieval + LEXICAL_WEIGHT * normalizedLexical,
+      };
+    });
 
     const ordered = enableMMR
       ? this.diversifyWithMMR(scored, k, targetDomains, lambda, maxPerDomain)

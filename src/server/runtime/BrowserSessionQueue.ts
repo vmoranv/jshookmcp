@@ -51,6 +51,10 @@ export interface RemovedTaskInfo {
   queueEmpty: boolean;
 }
 
+export interface ExpiredTaskInfo extends RemovedTaskInfo {
+  task: PendingExecution;
+}
+
 export class BrowserSessionQueue {
   private readonly pendingBySession = new Map<string, SessionPendingQueue>();
   private readonly deadlineHeap = new IndexedMinHeap<PendingExecution>({
@@ -191,17 +195,27 @@ export class BrowserSessionQueue {
   }
 
   /** Pop every task whose deadline has passed. Caller decides how to reject. */
-  popExpired(now: number = this.now()): PendingExecution[] {
-    const expired: PendingExecution[] = [];
+  popExpired(now: number = this.now()): ExpiredTaskInfo[] {
+    const expired: ExpiredTaskInfo[] = [];
     while (true) {
       const task = this.deadlineHeap.peek();
       if (!task || task.deadlineAt > now) break;
       this.deadlineHeap.pop();
-      if (!this.removeTask(task)) continue;
-      expired.push(task);
+      const info = this.removeTask(task);
+      if (!info) continue;
+      expired.push({ task, ...info });
     }
     this.refreshTimer();
     return expired;
+  }
+
+  /** Reject every queued task (coordinator shutdown). */
+  rejectAll(error: unknown): void {
+    // Deleting the current key during Map iteration is safe and advances the
+    // iterator, so no snapshot is needed.
+    for (const sessionId of this.pendingBySession.keys()) {
+      this.rejectSession(sessionId, error);
+    }
   }
 
   dispose(): void {
@@ -238,7 +252,18 @@ export class BrowserSessionQueue {
     if (nextDueAt === null) return;
 
     const delay = Math.min(2_147_483_647, Math.max(0, nextDueAt - this.now()));
-    this.timer = setTimeout(() => this.onExpire(), delay);
+    this.timer = setTimeout(() => {
+      // Clear the handle before the callback: a fired but still-truthy timer
+      // would make refreshTimer()'s dedupe guard skip re-arming for the next
+      // deadline and stall every future expiration.
+      this.timer = null;
+      this.timerDueAt = null;
+      try {
+        this.onExpire();
+      } finally {
+        this.refreshTimer();
+      }
+    }, delay);
     this.timer.unref();
   }
 }

@@ -42,7 +42,10 @@ export class IntentBoostImpl {
       }
       let regex: RegExp;
       try {
-        regex = new RegExp(rule.pattern, rule.flags ?? 'i');
+        // Never allow stateful flags (g/y): `test()` mutates lastIndex, so the
+        // same query would alternate match/no-match across calls.
+        const safeFlags = (rule.flags ?? 'i').replace(/[gy]/g, '');
+        regex = new RegExp(rule.pattern, safeFlags);
       } catch {
         continue;
       }

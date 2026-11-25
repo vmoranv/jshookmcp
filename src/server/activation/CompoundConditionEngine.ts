@@ -182,8 +182,10 @@ export class CompoundConditionEngine {
 
       case 'event_count': {
         const windowStart = now - predicate.windowMs;
+        // Exact match, consistent with `tool_called_recently`: prefix matching
+        // would count unrelated events that merely share a prefix.
         const count = state.eventHistory.filter(
-          (e) => e.event.startsWith(predicate.event) && e.timestamp >= windowStart,
+          (e) => e.event === predicate.event && e.timestamp >= windowStart,
         ).length;
         return count >= predicate.minCount;
       }

@@ -78,11 +78,11 @@ const OP_VARIABLE = 59;
 const OP_DECORATE = 71;
 const OP_ENTRY_POINT = 15;
 
-// Decorations.
-const DEC_BLOCK = 1;
-const DEC_LOCATION = 28;
-const DEC_BINDING = 31;
-const DEC_DESCRIPTOR_SET = 32;
+// Decorations (SPIR-V spec values).
+const DEC_BLOCK = 2;
+const DEC_LOCATION = 30;
+const DEC_BINDING = 33;
+const DEC_DESCRIPTOR_SET = 34;
 
 // Storage classes.
 const SC_UNIFORM = 2;

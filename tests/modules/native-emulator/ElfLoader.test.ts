@@ -129,4 +129,19 @@ describe('ElfLoader — L1 ELF64 AArch64 parsing', () => {
     expect(seg.data.length).toBe(segBytes.length + 8);
     expect(Array.from(seg.data.slice(segBytes.length))).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
   });
+
+  it('rejects a program-header table with an invalid entry size', () => {
+    const { bytes } = buildMinimalSo();
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    dv.setUint16(0x36, 0, true); // e_phentsize = 0 while e_phnum = 1
+    expect(() => new ElfLoader(bytes)).toThrow(/Corrupt ELF program header table/);
+  });
+
+  it('rejects a PT_LOAD segment whose memsz is smaller than filesz', () => {
+    const { bytes } = buildMinimalSo();
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    dv.setBigUint64(0x68, 0n, true); // p_memsz = 0, p_filesz > 0
+    const elf = new ElfLoader(bytes);
+    expect(() => elf.loadableSegments()).toThrow(/Corrupt PT_LOAD segment/);
+  });
 });

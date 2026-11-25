@@ -603,7 +603,10 @@ export function EnumProcessModules(
   const result = fn(hProcess, moduleBuf, maxModules * 8, neededBuf);
 
   const needed = neededBuf.readUInt32LE(0);
-  const count = Math.floor(needed / 8);
+  // `needed` is the total byte count the process reports, which may exceed the
+  // buffer we allocated for `maxModules`. Never read past that capacity.
+  const capacity = maxModules;
+  const count = Math.min(Math.floor(needed / 8), capacity);
 
   const modules: bigint[] = [];
   for (let i = 0; i < count; i++) {

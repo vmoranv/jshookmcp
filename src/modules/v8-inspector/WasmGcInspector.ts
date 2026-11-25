@@ -61,11 +61,11 @@ async function discoverWasmScripts(page: unknown): Promise<WasmScript[]> {
               for (const r of resources) {
                 if (
                   r.name.endsWith('.wasm') ||
-                  (r as any).initiatorType === 'wasm'
+                  r.initiatorType === 'wasm'
                 ) {
                   wasmScripts.push({
                     url: r.name,
-                    byteSize: (r as any).transferSize ?? (r as any).encodedBodySize ?? 0,
+                    byteSize: r.transferSize ?? r.encodedBodySize ?? 0,
                   });
                 }
               }
@@ -76,12 +76,12 @@ async function discoverWasmScripts(page: unknown): Promise<WasmScript[]> {
           // (indirect: we look for wasm-backed functions via stack traces)
           return JSON.stringify({
             wasmResources: wasmScripts,
-            hasWasmGC: typeof (WebAssembly as any).Struct !== 'undefined',
+            hasWasmGC: typeof WebAssembly.Struct !== 'undefined',
             wasmFeatures: {
-              gc: typeof (WebAssembly as any).Struct !== 'undefined',
-              threads: typeof (WebAssembly as any).Memory !== 'undefined' &&
-                        (() => { try { new (WebAssembly as any).Memory({ initial: 1, shared: true }); return true; } catch { return false; } })(),
-              simd: typeof (WebAssembly as any).Global !== 'undefined',
+              gc: typeof WebAssembly.Struct !== 'undefined',
+              threads: typeof WebAssembly.Memory !== 'undefined' &&
+                        (() => { try { new WebAssembly.Memory({ initial: 1, shared: true }); return true; } catch { return false; } })(),
+              simd: typeof WebAssembly.Global !== 'undefined',
             },
           });
         })()
@@ -197,7 +197,7 @@ export async function inspectWasmGc(
 
         // Feature detection
         try {
-          output.hasGC = typeof (WebAssembly as any).Struct !== 'undefined';
+          output.hasGC = typeof WebAssembly.Struct !== 'undefined';
           output.features.gc = output.hasGC;
         } catch (_) {}
         try {
@@ -205,7 +205,7 @@ export async function inspectWasmGc(
         } catch (_) {}
         try {
           // SIMD detection: check if v128 exists in any global scope
-          output.features.simd = typeof (WebAssembly as any).Module !== 'undefined';
+          output.features.simd = typeof WebAssembly.Module !== 'undefined';
         } catch (_) {}
 
         // Enumerate WASM modules via the Module cache (V8 internal)
@@ -219,7 +219,7 @@ export async function inspectWasmGc(
           const seen = new Set();
           for (const key of Object.getOwnPropertyNames(self)) {
             try {
-              const val = (self as any)[key];
+              const val = self[key];
               if (typeof val === 'function') {
                 const src = Function.prototype.toString.call(val);
                 if (src.includes('wasm-function[') || src.includes('WebAssembly')) {
@@ -235,7 +235,7 @@ export async function inspectWasmGc(
         // Count WASM instances via the memory buffer pattern
         let wasmInstanceCount = 0;
         try {
-          if (typeof (WebAssembly as any).Memory !== 'undefined') {
+          if (typeof WebAssembly.Memory !== 'undefined') {
             // Indirect check: count distinct Memory buffers in scope
             wasmInstanceCount = (typeof performance !== 'undefined' &&
               performance.getEntriesByType)

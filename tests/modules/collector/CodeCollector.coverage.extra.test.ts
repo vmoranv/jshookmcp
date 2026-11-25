@@ -26,6 +26,7 @@ vi.mock('fs/promises', () => ({
 
 vi.mock('os', () => ({
   homedir: vi.fn(() => 'C:\\Users\\tester'),
+  tmpdir: vi.fn(() => 'C:\\Users\\tester\\AppData\\Local\\Temp'),
 }));
 
 vi.mock('rebrowser-puppeteer-core', () => ({

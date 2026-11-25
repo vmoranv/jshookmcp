@@ -114,12 +114,41 @@ export class ElfLoader {
     this.type = this.view.getUint16(0x10, le);
     this.machine = this.view.getUint16(0x12, le);
     this.entry = Number(this.view.getBigUint64(0x18, le));
-    this.phoff = Number(this.view.getBigUint64(0x20, le));
-    this.phentsize = this.view.getUint16(0x36, le);
-    this.phnum = this.view.getUint16(0x38, le);
-    this.shoff = Number(this.view.getBigUint64(0x28, le));
-    this.shentsize = this.view.getUint16(0x3a, le);
-    this.shnum = this.view.getUint16(0x3c, le);
+    const phoff = Number(this.view.getBigUint64(0x20, le));
+    const phentsize = this.view.getUint16(0x36, le);
+    const phnum = this.view.getUint16(0x38, le);
+    const shoff = Number(this.view.getBigUint64(0x28, le));
+    const shentsize = this.view.getUint16(0x3a, le);
+    const shnum = this.view.getUint16(0x3c, le);
+
+    // Header-table geometry comes straight from the file. Validate it before
+    // any later DataView read so a truncated/corrupt object throws here instead
+    // of a RangeError from loadableSegments()/exportedSymbols().
+    if (phnum > 0) {
+      const phTableEnd = phoff + phnum * phentsize;
+      if (phentsize < 56 || phoff < 0 || phTableEnd > bytes.length) {
+        throw new Error('Corrupt ELF program header table');
+      }
+    }
+
+    let sectionOffset = shoff;
+    let sectionCount = shnum;
+    if (shnum > 0) {
+      const shTableEnd = shoff + shnum * shentsize;
+      if (shentsize < 64 || shoff < 0 || shTableEnd > bytes.length) {
+        // Section headers are optional (real Android .so are often stripped);
+        // fall back to PT_DYNAMIC parsing rather than failing the whole load.
+        sectionOffset = 0;
+        sectionCount = 0;
+      }
+    }
+
+    this.phoff = phoff;
+    this.phentsize = phentsize;
+    this.phnum = phnum;
+    this.shoff = sectionOffset;
+    this.shentsize = shentsize;
+    this.shnum = sectionCount;
   }
 
   /** Enumerate PT_LOAD segments in program-header order. */
@@ -136,6 +165,20 @@ export class ElfLoader {
       const vaddr = Number(this.view.getBigUint64(ph + 0x10, le));
       const fileSize = Number(this.view.getBigUint64(ph + 0x20, le));
       const memSize = Number(this.view.getBigUint64(ph + 0x28, le));
+
+      // Validate the segment against the file before allocating: fileSize must
+      // fit inside memSize (the copy destination) and inside the file, and
+      // memSize must not be absurdly large (a corrupt field otherwise OOMs).
+      const maxMemSize = Math.max(this.bytes.length * 8, 64 * 1024 * 1024);
+      if (
+        offset < 0 ||
+        fileSize < 0 ||
+        memSize < fileSize ||
+        offset + fileSize > this.bytes.length ||
+        memSize > maxMemSize
+      ) {
+        throw new Error(`Corrupt PT_LOAD segment at phdr ${i}`);
+      }
 
       // Materialize the in-memory image: filesz bytes copied from the file,
       // then a zero-filled tail so memSize bytes are available (.bss).

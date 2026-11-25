@@ -455,20 +455,15 @@ describe('getChromeEnvironment', () => {
     }
   });
 
-  it('does not include non-serializable properties (functions, classes)', () => {
+  it('preserves functions and built-in constructors', () => {
     const env = getChromeEnvironment();
-    // JSON.parse(JSON.stringify(...)) strips functions and class constructors
-    // console methods should be stripped
+    // Functions must survive the clone (a JSON round-trip dropped them).
     const console = env['console'] as Record<string, unknown> | undefined;
-    if (console) {
-      // After JSON serialization, function values become null or are omitted
-      for (const key of Object.keys(console)) {
-        expect(typeof console[key]).not.toBe('function');
-      }
-    }
-    // globalFunctions should have values stripped
-    expect(env['globalFunctions']).toBeDefined();
-    // constructors should have values stripped
-    expect(env['constructors']).toBeDefined();
+    expect(console).toBeDefined();
+    expect(typeof console?.['log']).toBe('function');
+
+    const other = env['other'] as Record<string, unknown> | undefined;
+    expect(other?.['Math']).toBe(Math);
+    expect(other?.['Date']).toBe(Date);
   });
 });

@@ -19,13 +19,14 @@
 import * as net from 'node:net';
 import type { Socket } from 'node:net';
 import { EventEmitter } from 'node:events';
-import type { GdbEmulatorSession } from './GdbRspServer.types.js';
+import type { GdbEmulatorSession, GdbEmulatorEngine } from './GdbRspServer.types.js';
 import {
   GDB_REG_NAMES,
   decodeRspPacket,
   encodeRspPacket,
   rleEncode,
   bytesToHex,
+  hexToBytes,
   generateTargetXml,
   generateThreadsXml,
 } from './GdbRspProtocol';
@@ -59,6 +60,32 @@ export interface GdbServerStatus {
   totalConnections: number;
   startedAt: Date | null;
   noAckMode: boolean;
+}
+
+/**
+ * Apply an RSP `M addr,len:hex` payload to an emulator engine.
+ *
+ * Returns false when the payload is malformed or the engine has no write
+ * surface — callers must then answer with an error packet, never `OK`.
+ */
+export function applyGdbMemoryWrite(
+  engine: GdbEmulatorEngine,
+  address: number,
+  len: number,
+  hexData: string,
+): boolean {
+  if (!/^[0-9a-fA-F]*$/.test(hexData) || hexData.length !== len * 2) {
+    return false;
+  }
+  if (typeof engine.writeMemory !== 'function') {
+    return false;
+  }
+  try {
+    engine.writeMemory(address, hexToBytes(hexData));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ── server implementation ───────────────────────────────────────────────────
@@ -454,16 +481,12 @@ export class GdbRspServer extends EventEmitter {
       return encodeRspPacket('E04');
     }
 
-    // Best-effort: verify the region is readable.
-    // Full write support requires the module-layer nemu_write_memory / write_regions tools.
+    // Validate the payload before touching memory: exactly `len` bytes of hex.
+    // Full write support requires the engine to expose writeMemory; otherwise
+    // reporting OK would falsely confirm patches that were never applied.
     const session = this.config.getSession(this.config.sessionId);
     const eng = session.emulator.engine;
-    try {
-      eng.readMemory(addr, Math.min(len, hexData.length / 2));
-      return encodeRspPacket('OK');
-    } catch {
-      return encodeRspPacket('E04');
-    }
+    return encodeRspPacket(applyGdbMemoryWrite(eng, addr, len, hexData) ? 'OK' : 'E04');
   }
 
   /**

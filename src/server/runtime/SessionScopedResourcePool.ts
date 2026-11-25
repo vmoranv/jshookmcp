@@ -29,6 +29,10 @@ interface ResourceEntry<T extends object> {
   lastTouchedAt: number;
   inFlight: number;
   disposeWhenIdle: boolean;
+  /** Cached disposal promise so close()/dropSession() never dispose twice. */
+  disposal: Promise<void> | null;
+  /** Resolvers waiting for the last in-flight invocation to settle. */
+  idleWaiters: Array<() => void>;
 }
 
 export class SessionScopedResourcePoolCapacityError extends Error {
@@ -58,6 +62,7 @@ export class SessionScopedResourcePool<T extends object> {
   private readonly maxResources: number;
   private readonly idleTtlMs: number;
   private readonly now: () => number;
+  private closed = false;
 
   constructor(
     createResource: (sessionId: string) => T,
@@ -82,6 +87,9 @@ export class SessionScopedResourcePool<T extends object> {
   }
 
   getForSession(sessionId: string | null | undefined): T {
+    if (this.closed) {
+      throw new Error('Session resource pool is closed');
+    }
     const normalized = this.normalizeSessionId(sessionId);
     let entry = this.resources.get(normalized);
     if (!entry) {
@@ -98,6 +106,8 @@ export class SessionScopedResourcePool<T extends object> {
         lastTouchedAt: this.now(),
         inFlight: 0,
         disposeWhenIdle: false,
+        disposal: null,
+        idleWaiters: [],
       };
       this.resources.set(normalized, entry);
     } else {
@@ -119,7 +129,15 @@ export class SessionScopedResourcePool<T extends object> {
         const entry = this.getCurrentEntry();
         const value = Reflect.get(entry.resource, property, entry.resource) as unknown;
         if (typeof value !== 'function') return value;
-        return (...args: unknown[]) => this.invoke(entry, value, args);
+        // Resolve the entry and method at CALL time, not property-read time:
+        // dropSession()/evictExpired() may dispose this entry in between, and a
+        // captured reference would use-after-dispose and double-dispose it.
+        return (...args: unknown[]) => {
+          const current = this.getCurrentEntry();
+          const currentValue = Reflect.get(current.resource, property, current.resource) as unknown;
+          if (typeof currentValue !== 'function') return currentValue;
+          return this.invoke(current, currentValue, args);
+        };
       },
       set: (_target, property, value) => {
         const entry = this.getCurrentEntry();
@@ -143,28 +161,28 @@ export class SessionScopedResourcePool<T extends object> {
     if (!entry) return false;
     this.resources.delete(normalized);
     if (entry.inFlight > 0) entry.disposeWhenIdle = true;
-    else await this.disposeEntry(entry);
+    else await this.scheduleDisposal(entry);
     return true;
   }
 
   async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    this.proxy = null;
     const resources = [...this.resources.entries()];
     this.resources.clear();
-    const results = await Promise.allSettled(
+    await Promise.allSettled(
       resources.map(async ([, entry]) => {
-        if (entry.inFlight > 0) entry.disposeWhenIdle = true;
-        else await this.disposeEntry(entry);
+        if (entry.inFlight > 0) {
+          entry.disposeWhenIdle = true;
+          // Wait for the last in-flight call before resolving close(), so the
+          // pool has actually released its resources (bounded by the caller's
+          // own shutdown timeout).
+          await this.waitForIdle(entry);
+        }
+        await this.scheduleDisposal(entry);
       }),
     );
-    for (let index = 0; index < results.length; index++) {
-      const result = results[index];
-      if (result?.status === 'rejected') {
-        logger.warn(
-          `[session-resource] Failed to dispose session ${resources[index]?.[0] ?? 'unknown'}:`,
-          result.reason,
-        );
-      }
-    }
   }
 
   getStats(): {
@@ -209,14 +227,32 @@ export class SessionScopedResourcePool<T extends object> {
   private finishInvocation(entry: ResourceEntry<T>): void {
     entry.inFlight = Math.max(0, entry.inFlight - 1);
     entry.lastTouchedAt = this.now();
-    if (entry.inFlight === 0 && entry.disposeWhenIdle) {
-      void this.disposeEntry(entry).catch((error: unknown) => {
-        logger.warn(
-          `[session-resource] Deferred disposal failed: ` +
-            `${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
+    if (entry.inFlight === 0) {
+      const waiters = entry.idleWaiters.splice(0);
+      for (const resolve of waiters) resolve();
+      if (entry.disposeWhenIdle) {
+        void this.scheduleDisposal(entry);
+      }
     }
+  }
+
+  private waitForIdle(entry: ResourceEntry<T>): Promise<void> {
+    if (entry.inFlight === 0) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      entry.idleWaiters.push(resolve);
+    });
+  }
+
+  /** Dispose at most once per entry; log failures instead of orphaning them. */
+  private scheduleDisposal(entry: ResourceEntry<T>): Promise<void> {
+    if (entry.disposal) return entry.disposal;
+    entry.disposal = this.disposeEntry(entry).catch((error: unknown) => {
+      logger.warn(
+        `[session-resource] Deferred disposal failed: ` +
+          `${error instanceof Error ? error.message : String(error)}`,
+      );
+    });
+    return entry.disposal;
   }
 
   private evictExpired(): void {
@@ -225,12 +261,7 @@ export class SessionScopedResourcePool<T extends object> {
     for (const [sessionId, entry] of this.resources) {
       if (entry.inFlight > 0 || entry.lastTouchedAt > cutoff) continue;
       this.resources.delete(sessionId);
-      void this.disposeEntry(entry).catch((error: unknown) => {
-        logger.warn(
-          `[session-resource] Expired resource disposal failed for ${sessionId}: ` +
-            `${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
+      void this.scheduleDisposal(entry);
       if (this.resources.size < this.maxResources) return;
     }
   }

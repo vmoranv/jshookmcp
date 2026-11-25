@@ -85,13 +85,15 @@ function scanTrampolines(elf: ElfLoader, bytes: Uint8Array): Map<number, number[
     const insn3 = view.getUint32(addr + 12, le);
 
     // adrp x16, ...
-    if (((insn0 >>> 0) & 0x9f00001f) !== 0x90000010) continue;
-    // ldr  x17, [x16, #imm]  (unsigned imm)
-    if (((insn1 >>> 0) & 0xffc0001f) !== 0xf9400211) continue;
-    // add  x17, x16, x17
-    if (((insn2 >>> 0) & 0xfffffc00) !== 0x8b020210) continue;
+    // NOTE: `&` yields a signed 32-bit int; apply `>>> 0` *after* the AND or
+    // every masked value with bit 31 set compares against a positive literal.
+    if ((insn0 & 0x9f00001f) >>> 0 !== 0x90000010) continue;
+    // ldr  x17, [x16, #imm]  (unsigned imm; imm12/Rn are masked out)
+    if ((insn1 & 0xffc0001f) >>> 0 !== 0xf9400011) continue;
+    // add  x17, x16, x17  (Rn/Rd are masked out)
+    if ((insn2 & 0xfffffc00) >>> 0 !== 0x8b110200) continue;
     // br   x17
-    if (((insn3 >>> 0) & 0xfffffc1f) !== 0xd61f0220) continue;
+    if ((insn3 & 0xffffffe0) >>> 0 !== 0xd61f0220) continue;
 
     const pageBase = (addr & ~0xfff) + decodeAdrpImm(insn0);
 

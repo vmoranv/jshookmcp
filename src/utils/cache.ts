@@ -41,15 +41,28 @@ export class CacheManager {
     try {
       const cachePath = this.getCachePath(key);
       const data = await fs.readFile(cachePath, 'utf-8');
-      const cached = JSON.parse(data);
+      const cached: unknown = JSON.parse(data);
+      // Corrupt, truncated, or legacy-format files must not be treated as a
+      // fresh entry: `Date.now() - undefined` is NaN, and `NaN > ttl` is false,
+      // which would return `undefined` as a hit and violate the T|null contract.
+      if (
+        typeof cached !== 'object' ||
+        cached === null ||
+        typeof (cached as { timestamp?: unknown }).timestamp !== 'number' ||
+        !Number.isFinite((cached as { timestamp: number }).timestamp)
+      ) {
+        await this.delete(key);
+        return null;
+      }
+      const entry = cached as { timestamp: number; value: T };
 
-      if (Date.now() - cached.timestamp > this.config.ttl * 1000) {
+      if (Date.now() - entry.timestamp > this.config.ttl * 1000) {
         await this.delete(key);
         return null;
       }
 
       logger.debug(`Cache hit: ${key}`);
-      return cached.value as T;
+      return entry.value;
     } catch {
       logger.debug(`Cache miss: ${key}`);
       return null;

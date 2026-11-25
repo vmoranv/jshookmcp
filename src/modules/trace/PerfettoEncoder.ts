@@ -168,16 +168,16 @@ function buildTrackEvent(params: {
   type: number;
   timestampUs: number;
   durationUs?: number;
-  /** For TYPE_INSTANT counter events — encoded as counter_value (field 30). */
+  /** For TYPE_INSTANT counter events — encoded as double_counter_value (field 44). */
   counterValue?: number;
 }): number[] {
   const buf: number[] = [];
-  fieldVarint(buf, 1, params.trackUuid); // track_uuid
+  fieldVarint(buf, 11, params.trackUuid); // track_uuid
   fieldVarint(buf, 9, params.type); // type
   if (params.name) fieldString(buf, 23, params.name); // name
   if (params.category) fieldString(buf, 22, params.category); // categories
   if (params.counterValue !== undefined) {
-    fieldFixed64(buf, 30, params.counterValue); // counter_value (double)
+    fieldFixed64(buf, 44, params.counterValue); // double_counter_value (double)
   }
   return buf;
 }

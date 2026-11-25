@@ -51,6 +51,8 @@ export interface SessionScheduleState {
   ready: boolean;
   previousReady: SessionScheduleState | null;
   nextReady: SessionScheduleState | null;
+  /** Task object actually pushed into the aging heap (null when not queued). */
+  heapTask: SchedulerTask | null;
 }
 
 export interface SelectedExecution {
@@ -86,6 +88,18 @@ export class BrowserSessionScheduler {
 
   constructor(host: BrowserSessionSchedulerHost) {
     this.host = host;
+    // Invalid config must fail fast: quantumMs <= 0 makes selectDrr() either
+    // starve every flow (0) or loop forever (negative).
+    const { quantumMs, agingMs, maxLagMs } = host.options;
+    if (!Number.isFinite(quantumMs) || quantumMs <= 0) {
+      throw new RangeError(`quantumMs must be a positive finite number, received ${quantumMs}`);
+    }
+    if (!Number.isFinite(agingMs) || agingMs < 0) {
+      throw new RangeError(`agingMs must be a non-negative finite number, received ${agingMs}`);
+    }
+    if (maxLagMs !== undefined && (!Number.isFinite(maxLagMs) || maxLagMs < 0)) {
+      throw new RangeError(`maxLagMs must be a non-negative finite number, received ${maxLagMs}`);
+    }
   }
 
   get readyCount(): number {
@@ -112,6 +126,7 @@ export class BrowserSessionScheduler {
         ready: false,
         previousReady: null,
         nextReady: null,
+        heapTask: null,
       };
       this.scheduleBySession.set(sessionId, state);
     }
@@ -142,6 +157,7 @@ export class BrowserSessionScheduler {
     this.readyTail = state;
     this.readySessionCount += 1;
     this.agingHeap.push(head);
+    state.heapTask = head;
   }
 
   removeReady(state: SessionScheduleState): void {
@@ -155,18 +171,31 @@ export class BrowserSessionScheduler {
     state.nextReady = null;
     this.readySessionCount -= 1;
 
-    const head = this.host.getQueueHead(state.sessionId);
-    if (head) this.agingHeap.remove(head);
+    // Remove the exact task that was pushed. Re-querying the current queue head
+    // leaks the enqueue-time entry when the head changed (and can evict an
+    // unrelated task), which later makes pushing that task throw "already
+    // present".
+    const heapTask = state.heapTask;
+    state.heapTask = null;
+    if (heapTask) this.agingHeap.remove(heapTask);
   }
 
   /** Remove a task from the aging heap (queue head was cancelled). */
   removeTask(task: SchedulerTask): void {
     this.agingHeap.remove(task);
+    const state = this.scheduleBySession.get(task.sessionId);
+    if (state?.heapTask === task) state.heapTask = null;
   }
 
   /** Replace the aged head after a queue mutation. */
   pushHead(task: SchedulerTask): void {
+    const state = this.scheduleBySession.get(task.sessionId);
+    if (state?.heapTask === task) return;
+    if (state?.heapTask) {
+      this.agingHeap.remove(state.heapTask);
+    }
     this.agingHeap.push(task);
+    if (state) state.heapTask = task;
   }
 
   recordService(state: SessionScheduleState, chargedMs: number): void {
@@ -201,9 +230,19 @@ export class BrowserSessionScheduler {
     const oldest = this.agingHeap.peek();
     if (oldest && now - oldest.enqueuedAt >= this.host.options.agingMs) {
       const state = this.scheduleBySession.get(oldest.sessionId);
-      if (state?.ready) {
+      const head = this.host.getQueueHead(oldest.sessionId);
+      if (state?.ready && head === oldest) {
         this.removeReady(state);
         return { sessionId: state.sessionId, task: oldest, scheduleState: state, aged: true };
+      }
+      // Stale heap entry (session removed, already selected, or its queue head
+      // changed): evict it instead of leaving it at the heap top forever, where
+      // it would permanently disable aging for every other session.
+      this.agingHeap.remove(oldest);
+      if (state?.heapTask === oldest) state.heapTask = null;
+      if (state?.ready) {
+        if (head) this.pushHead(head);
+        else this.removeReady(state);
       }
     }
 

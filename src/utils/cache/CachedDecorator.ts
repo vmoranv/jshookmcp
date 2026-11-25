@@ -22,6 +22,24 @@ function generateDefaultKey(...args: unknown[]): string {
 }
 
 /**
+ * Stable 32-bit FNV-1a hash of a function's source.
+ *
+ * `withCache` has no class/method identity to namespace by, and an inline
+ * arrow's `name` is usually empty. The source text is stable across restarts
+ * for the same build, so it disambiguates two anonymous wrappers without
+ * sacrificing persistent-cache reuse the way a random per-process id would.
+ */
+function hashFunctionSource(fn: (...args: never[]) => unknown): string {
+  const source = Function.prototype.toString.call(fn);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < source.length; i++) {
+    hash ^= source.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+/**
  * Method decorator for caching function results
  *
  * @example
@@ -55,19 +73,24 @@ export function cached(options: CachedOptions = {}) {
       });
 
     descriptor.value = async function (this: unknown, ...args: unknown[]) {
-      // Generate cache key
+      // Namespace by class + method. PersistentCache instances created here all
+      // share ~/.jshookmcp/cache.db, and `name` only affects log output — without
+      // this prefix, `ServiceA.fetchData('x')` and `ServiceB.fetchData('x')`
+      // would collide and return each other's results.
       const keyGenerator = options.keyFn ?? generateDefaultKey;
-      const key = keyGenerator(...args);
+      const className = (_target.constructor as { name?: string })?.name ?? 'unknown';
+      const key = `${className}.${String(propertyKey)}:${keyGenerator(...args)}`;
 
       // Ensure cache is initialized
       if (!cache.isReady()) {
         await cache.init();
       }
 
-      // Check if key exists first (handles null/undefined values correctly)
-      const hasKey = await cache.has(key);
-      if (hasKey) {
-        return await cache.get(key);
+      // Single hit-aware lookup: `has()` + `get()` is a TOCTOU pair and would
+      // return a cached null as the method result if the row expired between them.
+      const cachedEntry = await cache.getEntry(key);
+      if (cachedEntry.hit) {
+        return cachedEntry.value;
       }
 
       // Execute original method
@@ -104,18 +127,21 @@ export function withCache<T extends (...args: unknown[]) => Promise<unknown>>(
       name: `withCache-${fn.name}`,
     });
   const keyGenerator = options.keyFn ?? generateDefaultKey;
+  // Same shared-DB collision as the decorator; withCache has no class/method
+  // identity, so namespace by (name + stable source hash).
+  const namespace = `withCache.${fn.name || 'anonymous'}.${hashFunctionSource(fn)}`;
 
   return async function (this: unknown, ...args: Parameters<T>) {
-    const key = keyGenerator(...args);
+    const key = `${namespace}:${keyGenerator(...args)}`;
 
     if (!cache.isReady()) {
       await cache.init();
     }
 
-    // Check if key exists first (handles null/undefined values correctly)
-    const hasKey = await cache.has(key);
-    if (hasKey) {
-      return await cache.get(key);
+    // Single hit-aware lookup (see the decorator path above).
+    const cachedEntry = await cache.getEntry(key);
+    if (cachedEntry.hit) {
+      return cachedEntry.value;
     }
 
     const result = await fn.apply(this, args);

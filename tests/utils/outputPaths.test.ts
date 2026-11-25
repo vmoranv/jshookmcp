@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 import {
   getProjectRoot,
@@ -120,6 +122,33 @@ describe('outputPaths', () => {
     expect(out.pathRewritten).toBe(true);
     expect(out.absolutePath.endsWith('hack.png')).toBe(true);
     expect(out.absolutePath).toContain(join('screenshots', 'test-vitest', 'hack.png'));
+  });
+
+  it('rewrites writes that would follow a symlinked directory outside the project root', async (ctx) => {
+    const outsideDir = mkdtempSync(join(tmpdir(), 'outputpaths-symlink-'));
+    const linkName = `symlink-escape-${process.pid}-${Date.now()}`;
+    const linkPath = join(projectRoot, linkName);
+
+    try {
+      try {
+        symlinkSync(outsideDir, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+      } catch {
+        ctx.skip();
+        return;
+      }
+
+      const out = await resolveScreenshotOutputPath({
+        requestedPath: `${linkName}/escape.png`,
+        fallbackDir: 'screenshots/test-vitest',
+      });
+
+      expect(out.pathRewritten).toBe(true);
+      expect(out.absolutePath).not.toContain(linkName);
+      expect(out.absolutePath).toBe(join(projectRoot, 'screenshots', 'test-vitest', 'escape.png'));
+    } finally {
+      rmSync(linkPath, { recursive: true, force: true });
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
   });
 
   it('issue #77: relative MCP_SCREENSHOT_DIR + relative path lands in cwd under npx context', async () => {

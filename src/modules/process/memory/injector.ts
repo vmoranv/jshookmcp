@@ -23,6 +23,16 @@ function validatePath(p: string): void {
   }
 }
 
+/** POSIX single-quote escaping for values interpolated into a shell command. */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+/** Reject non-integer / non-positive PIDs before interpolating them into commands. */
+function isValidPid(pid: number): boolean {
+  return Number.isSafeInteger(pid) && pid > 0;
+}
+
 // Shared validator instance (lazy-initialized)
 let validator: InjectionValidator | null = null;
 function getValidator(modeOverride?: string): InjectionValidator {
@@ -312,6 +322,9 @@ export async function injectDll(
   dllPath: string,
   options?: { confirmed?: boolean; payloadHash?: string; validationMode?: string },
 ): Promise<InjectionOutcome> {
+  if (!isValidPid(pid)) {
+    return { success: false, error: `pid must be a positive integer (got ${String(pid)})` };
+  }
   // Validation phase
   const validationFailure = await runInjectionValidation(pid, dllPath, options);
   if (validationFailure) {
@@ -437,6 +450,9 @@ export async function injectShellcode(
   confirmationRequired?: boolean;
   validationFailed?: boolean;
 }> {
+  if (!isValidPid(pid)) {
+    return { success: false, error: `pid must be a positive integer (got ${String(pid)})` };
+  }
   // Validation phase
   const injectionValidator = getValidator(options?.validationMode);
 
@@ -545,9 +561,12 @@ inject()
       const scriptPath = join(tmpdir(), `gdb_inject_${pid}_${randomUUID()}.py`);
       await fs.writeFile(scriptPath, pyScript, { encoding: 'utf8', flag: 'wx' });
       try {
-        const { stdout, stderr } = await execAsync(`gdb -p ${pid} -batch -x ${scriptPath}`, {
-          timeout: MEMORY_INJECT_TIMEOUT_MS,
-        });
+        const { stdout, stderr } = await execAsync(
+          `gdb -p ${pid} -batch -x ${shellQuote(scriptPath)}`,
+          {
+            timeout: MEMORY_INJECT_TIMEOUT_MS,
+          },
+        );
         if (stdout.includes('ERROR_INJECT:') || stderr.includes('ERROR_INJECT:')) {
           throw new Error(`GDB injection failed: ${stdout || stderr}`);
         }
@@ -600,9 +619,12 @@ def __lldb_init_module(debugger, internal_dict):
       await fs.writeFile(pyFile, pyScript, 'utf8');
       await fs.writeFile(cmdFile, `command script import ${pyFile}\\nprocess detach\\n`, 'utf8');
       try {
-        const { stdout } = await execAsync(`lldb --batch -p ${pid} --source ${cmdFile}`, {
-          timeout: MEMORY_INJECT_TIMEOUT_MS,
-        });
+        const { stdout } = await execAsync(
+          `lldb --batch -p ${pid} --source ${shellQuote(cmdFile)}`,
+          {
+            timeout: MEMORY_INJECT_TIMEOUT_MS,
+          },
+        );
         if (stdout.includes('ERROR_INJECT:')) {
           throw new Error(`LLDB injection failed: ${stdout}`);
         }

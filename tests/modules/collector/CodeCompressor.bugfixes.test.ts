@@ -43,4 +43,12 @@ describe('CodeCompressor bug fixes', () => {
 
     expect(restored).toBe(source);
   });
+
+  it('does not hang when concurrency is zero or invalid', async () => {
+    const compressor = new CodeCompressor();
+    const results = await compressor.compressBatch([{ url: 'a.js', content: 'let a = 1;' }], {
+      concurrency: 0,
+    });
+    expect(results).toHaveLength(1);
+  });
 });

@@ -156,5 +156,30 @@ describe('search/QueryNormalizer', () => {
         expect(QueryNormalizer.stemTokenSetToken('value')).toBe('value');
       });
     });
+
+    it('does not truncate short -ed words into non-roots', () => {
+      withMode(undefined, () => {
+        expect(QueryNormalizer.stemTokenSetToken('need')).toBe('need');
+        expect(QueryNormalizer.stemTokenSetToken('feed')).toBe('feed');
+        expect(QueryNormalizer.stemTokenSetToken('embed')).toBe('embed');
+        expect(QueryNormalizer.stemTokenSetToken('shed')).toBe('shed');
+        // Real inflections still fold.
+        expect(QueryNormalizer.stemTokenSetToken('needed')).toBe('need');
+      });
+    });
+
+    it('folds base and plural nouns to one stem in plural mode', () => {
+      withMode('plural', () => {
+        expect(QueryNormalizer.stemTokenSetToken('device')).toBe(
+          QueryNormalizer.stemTokenSetToken('devices'),
+        );
+        expect(QueryNormalizer.stemTokenSetToken('box')).toBe(
+          QueryNormalizer.stemTokenSetToken('boxes'),
+        );
+        expect(QueryNormalizer.stemTokenSetToken('session')).toBe(
+          QueryNormalizer.stemTokenSetToken('sessions'),
+        );
+      });
+    });
   });
 });

@@ -206,7 +206,14 @@ export async function resolveArtifactPath(options: {
   const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
   const safeName = sanitizeFilename(toolName);
   const safeTarget = target ? `-${sanitizeFilename(target)}` : '';
-  const safeExt = ext.replace(/^\./, '');
+  // `ext` is a public API parameter and some callers derive it from request
+  // data. Keep a conservative charset so the interpolated filename can never
+  // introduce path separators or `..` (resolve() would otherwise collapse the
+  // resulting segment and escape the validated directory).
+  const safeExt = ext.replace(/^\./, '').replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!safeExt) {
+    throw new Error(`[artifacts] invalid artifact extension: "${ext}"`);
+  }
 
   const { absolutePath } = await reserveArtifactFile(
     dir,

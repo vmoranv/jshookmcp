@@ -263,21 +263,26 @@ function parsePhase(rawPhase: unknown): TurboFanGraphPhase | null {
  * Parse a single turbo-*.json file content into a structured TurboFanIRGraph.
  */
 export function parseTurboFanJSON(raw: string): TurboFanIRGraph | null {
-  let parsed: Record<string, unknown>;
+  let parsed: unknown;
   try {
-    parsed = JSON.parse(raw) as Record<string, unknown>;
+    parsed = JSON.parse(raw);
   } catch {
     return null;
   }
+  // JSON.parse can return null/array/primitive; index only a real object.
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+  const root = parsed as Record<string, unknown>;
 
-  const functionMeta = parseFunctionMeta(parsed['function'] as Record<string, unknown> | undefined);
+  const functionMeta = parseFunctionMeta(root['function'] as Record<string, unknown> | undefined);
   if (!functionMeta) return null;
 
-  const sources = parseSources(parsed['sources']);
-  const inlinings = parseInlinings(parsed['inlinings']);
+  const sources = parseSources(root['sources']);
+  const inlinings = parseInlinings(root['inlinings']);
 
   const phases: TurboFanGraphPhase[] = [];
-  const rawPhases = parsed['phases'];
+  const rawPhases = root['phases'];
   if (Array.isArray(rawPhases)) {
     for (const rawPhase of rawPhases) {
       const phase = parsePhase(rawPhase);

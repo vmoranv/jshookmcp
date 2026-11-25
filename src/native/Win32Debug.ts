@@ -444,15 +444,26 @@ export function writeBreakpointRegisters(
     return;
   }
   // AMD64: DR0-3 hold addresses; DR7 enables + configures them.
+  // Only four DR slots exist; an out-of-range index has no offset.
+  if (index < 0 || index > 3) return;
   const drOffsets = [0x48, 0x50, 0x58, 0x60]; // Dr0-Dr3
   buf.writeBigUInt64LE(address ?? 0n, drOffsets[index]!);
   if (enabled) {
     const dr7 = encodeDR7([
-      { drIndex: index, enabled: true, access, size: address !== null ? 8 : 1 },
+      {
+        drIndex: index,
+        enabled: true,
+        access,
+        // Execution breakpoints are 1 byte; data watchpoints are 8 bytes here.
+        size: access === 'execute' ? 1 : 8,
+      },
     ]);
-    // Merge into existing DR7 (preserve other breakpoints).
+    // Replace this slot's RW/LEN bits (16+4*i .. 19+4*i) so reconfiguring a
+    // slot cannot leave stale condition/size bits, while preserving other slots.
+    const slotMask = 0xfn << BigInt(16 + index * 4);
     const existing = buf.readBigUInt64LE(0x70);
-    buf.writeBigUInt64LE(existing | (dr7 & 0xffffffffn), 0x70);
+    const merged = (existing & ~slotMask) | (dr7 & 0xffffffffn);
+    buf.writeBigUInt64LE(merged, 0x70);
   } else {
     // Clear local/global enable bits for this index (bits 2*i, 2*i+1).
     const clearMask = ~(3n << BigInt(index * 2));
@@ -470,6 +481,7 @@ export function readBreakpointRegisterAddress(
     if (index < 0 || index > 1) return 0n;
     return buf.readBigUInt64LE(ARM64_WVR + index * 8);
   }
+  if (index < 0 || index > 3) return 0n;
   const drOffsets = [0x48, 0x50, 0x58, 0x60];
   return buf.readBigUInt64LE(drOffsets[index]!);
 }
@@ -596,11 +608,12 @@ export function DebugSetProcessKillOnExit(killOnExit: boolean): void {
  *   +0x08: dwThreadId (uint32)
  *   +0x0C: padding (4 bytes)
  *   +0x10: union u (160 bytes) — EXCEPTION_DEBUG_INFO at start:
- *     +0x10: ExceptionCode (uint32)
- *     +0x14: ExceptionFlags (uint32)
- *     +0x18: ExceptionRecord (pointer, 8 bytes)
- *     +0x20: ExceptionAddress (pointer, 8 bytes)
- *     +0x28: NumberParameters (uint32)
+ *     +0x10: ExceptionRecord.ExceptionCode (uint32)
+ *     +0x14: ExceptionRecord.ExceptionFlags (uint32)
+ *     +0x18: ExceptionRecord.ExceptionRecord (pointer, 8 bytes)
+ *     +0x20: ExceptionRecord.ExceptionAddress (pointer, 8 bytes)
+ *     +0x28: ExceptionRecord.NumberParameters (uint32)
+ *     +0xA8: dwFirstChance (uint32) — after the 0x98-byte EXCEPTION_RECORD
  */
 export const DEBUG_EVENT_SIZE = 176;
 
@@ -630,7 +643,7 @@ export function WaitForDebugEvent(timeoutMs: number): DebugEventInfo | null {
   if (info.debugEventCode === DEBUG_EVENT_CODE.EXCEPTION_DEBUG_EVENT) {
     info.exceptionCode = buf.readUInt32LE(0x10);
     info.exceptionAddress = buf.readBigUInt64LE(0x20);
-    info.firstChance = buf.readUInt32LE(0x14) === 0;
+    info.firstChance = buf.readUInt32LE(0xa8) !== 0;
   }
 
   return info;

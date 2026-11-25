@@ -11,6 +11,7 @@ describe('CacheAdapters', () => {
     const manager = {
       getStats: vi.fn(() => ({
         cacheSize: 3,
+        totalSizeKB: 150,
         defaultTTLSeconds: 60,
         maxCacheSize: 100,
       })),
@@ -21,7 +22,7 @@ describe('CacheAdapters', () => {
     expect(adapter.name).toBe('DetailedDataManager');
     expect(adapter.getStats()).toEqual({
       entries: 3,
-      size: 3 * 50 * 1024,
+      size: 150 * 1024,
       hits: 0,
       misses: 0,
       ttl: 60_000,
@@ -29,10 +30,11 @@ describe('CacheAdapters', () => {
     });
   });
 
-  it('reports zero estimated size for an empty DetailedDataManager', () => {
+  it('reports zero size for an empty DetailedDataManager', () => {
     const manager = {
       getStats: vi.fn(() => ({
         cacheSize: 0,
+        totalSizeKB: 0,
         defaultTTLSeconds: 60,
         maxCacheSize: 100,
       })),

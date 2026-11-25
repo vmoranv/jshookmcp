@@ -43,8 +43,9 @@ export async function launchWithDebugPosix(
     // carries the same guard; this shared POSIX path was missing it, which is
     // what crashed linux-full CI (spawn ENOENT → uncaught exception). Capture
     // it so the launch reports a clean failure instead.
-    const spawnFailure = new Promise<Error>((resolve) => {
-      child.once('error', resolve);
+    const spawnState: { error: Error | null } = { error: null };
+    child.once('error', (error: Error) => {
+      spawnState.error = error;
     });
 
     child.unref();
@@ -52,7 +53,7 @@ export async function launchWithDebugPosix(
 
     await new Promise((resolve) => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
-    const spawnError = await Promise.race([spawnFailure, Promise.resolve(null)]);
+    const spawnError = spawnState.error;
 
     if (spawnError !== null || !child.pid) {
       logger.error(

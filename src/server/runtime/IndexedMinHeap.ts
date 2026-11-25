@@ -37,8 +37,8 @@ export class IndexedMinHeap<T> {
   }
 
   pop(): T | null {
-    const first = this.values[0];
-    if (!first) return null;
+    if (this.values.length === 0) return null;
+    const first = this.values[0]!;
     this.remove(first);
     return first;
   }
@@ -47,9 +47,11 @@ export class IndexedMinHeap<T> {
     const index = this.adapter.getIndex(value);
     if (index < 0 || this.values[index] !== value) return false;
 
-    const last = this.values.pop();
+    const lastIndex = this.values.length - 1;
+    const last = this.values[lastIndex]!;
+    this.values.pop();
     this.adapter.setIndex(value, -1);
-    if (!last || last === value) return true;
+    if (index === lastIndex) return true;
 
     this.values[index] = last;
     this.adapter.setIndex(last, index);
