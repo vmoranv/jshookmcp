@@ -604,10 +604,16 @@ describe('toolExecution config schema', () => {
     ]);
   });
 
-  it('falls back to an empty rule list for malformed JSON', async () => {
+  it('fails closed (throws) for malformed rule JSON instead of silently disabling the gate', async () => {
     process.env.MCP_TOOL_RULES_JSON = 'not-json';
     const { getConfig } = await import('@utils/config');
-    expect(getConfig().toolExecution!.rules).toEqual([]);
+    expect(() => getConfig()).toThrow(/MCP_TOOL_RULES_JSON is not valid JSON/);
+  });
+
+  it('fails closed (throws) when rule JSON is not an array', async () => {
+    process.env.MCP_TOOL_RULES_JSON = JSON.stringify({ tool: 'page_navigate', action: 'deny' });
+    const { getConfig } = await import('@utils/config');
+    expect(() => getConfig()).toThrow(/must be a JSON array/);
   });
 
   it('flags malformed rules in validateConfig', async () => {

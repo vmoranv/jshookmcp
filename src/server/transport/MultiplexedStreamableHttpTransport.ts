@@ -86,6 +86,8 @@ export class MultiplexedStreamableHttpTransport implements Transport {
   sessionId?: string;
 
   private started = false;
+  /** Raised by close(); late admissions must not resurrect a closed transport. */
+  private closed = false;
   private readonly sessions = new Map<string, SessionRecord>();
   private readonly requestRoutes = new Map<string, RequestRouteRecord>();
   private readonly sessionOriginalToInternal = new Map<string, Map<string, string>>();
@@ -112,6 +114,7 @@ export class MultiplexedStreamableHttpTransport implements Transport {
   }
 
   async close(): Promise<void> {
+    this.closed = true;
     const sessions = [...this.sessions.values()];
     this.sessions.clear();
     this.requestRoutes.clear();
@@ -125,21 +128,34 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     const routeKey = this.resolveRouteKey(message, options);
     if (routeKey) {
       const route = this.requestRoutes.get(routeKey);
-      if (route) {
-        const translatedMessage =
-          isJSONRPCResultResponse(message) || isJSONRPCErrorResponse(message)
-            ? { ...message, id: route.originalId }
-            : message;
-        const translatedOptions =
-          options?.relatedRequestId !== undefined
-            ? { ...options, relatedRequestId: route.originalId }
-            : options;
+      if (!route) {
+        // A route key was resolvable but the route is gone (session dropped or
+        // request finished). Falling through would broadcast a request-scoped
+        // reply to an unrelated session — leak/corruption. Drop with a warning.
+        logger.warn(
+          `[http] Dropping outbound message for unknown route "${routeKey}" ` +
+            '(session dropped or request already completed)',
+        );
+        return;
+      }
+      const translatedMessage =
+        isJSONRPCResultResponse(message) || isJSONRPCErrorResponse(message)
+          ? { ...message, id: route.originalId }
+          : message;
+      const translatedOptions =
+        options?.relatedRequestId !== undefined
+          ? { ...options, relatedRequestId: route.originalId }
+          : options;
+      try {
         await route.transport.send(translatedMessage, translatedOptions);
+      } finally {
+        // Release even when the send rejects (disconnected client/closed
+        // stream) so the route table cannot grow for the session lifetime.
         if (isJSONRPCResultResponse(message) || isJSONRPCErrorResponse(message)) {
           this.releaseRequestRoute(routeKey, route);
         }
-        return;
       }
+      return;
     }
 
     const sessions = [...this.sessions.values()];
@@ -361,6 +377,13 @@ export class MultiplexedStreamableHttpTransport implements Transport {
               `${candidateSessionId} to ${transport.sessionId}`,
           );
         }
+        // close() may have run while we awaited onSessionOpened/handleRequest.
+        // Registering now would insert a transport into a cleared map that can
+        // never be closed again (onclose already fired).
+        if (this.closed) {
+          await transport.close().catch(() => undefined);
+          return;
+        }
         if (!this.sessions.has(candidateSessionId)) {
           this.sessions.set(candidateSessionId, {
             sessionId: candidateSessionId,
@@ -568,7 +591,11 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     if (!Number.isFinite(ttlMs)) return [...this.sessions.values()];
     const cutoff = this.getNow() - ttlMs;
     return [...this.sessions.values()].filter(
-      (session) => session.sseInFlight > 0 || session.lastTouchedAt > cutoff,
+      (session) =>
+        // A session with an in-flight POST may be long-running; lastTouchedAt
+        // is only refreshed at request boundaries, so without this check it
+        // would look idle and silently lose its notifications mid-request.
+        session.inFlight > 0 || session.sseInFlight > 0 || session.lastTouchedAt > cutoff,
     );
   }
 

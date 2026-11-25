@@ -35,6 +35,20 @@ export interface HttpRateLimitRuntimeConfig {
 }
 
 /**
+ * Resolve the expected bearer token. A caller-supplied runtime config is
+ * authoritative (an explicit `undefined` means "no token configured"), while
+ * an absent config falls back to the environment. `checkOrigin` and `checkAuth`
+ * MUST share this resolution or they can disagree about whether auth is on.
+ */
+function resolveExpectedAuthToken(
+  config?: Pick<HttpAuthRuntimeConfig, 'authToken'>,
+): string | null {
+  return config === undefined
+    ? readEnvNullableString('MCP_AUTH_TOKEN')
+    : (config.authToken ?? null);
+}
+
+/**
  * Reject cross-origin requests to localhost when no auth token is set.
  * Browsers always send Origin on POST/PUT/DELETE; its absence means
  * non-browser client (curl, SDK) which is fine.
@@ -67,7 +81,7 @@ export function checkOrigin(
     return false;
   }
 
-  const authToken = config?.authToken ?? readEnvNullableString('MCP_AUTH_TOKEN');
+  const authToken = resolveExpectedAuthToken(config);
   if (authToken) return true;
 
   res.writeHead(403, { 'Content-Type': 'text/plain' });
@@ -86,8 +100,7 @@ export function checkAuth(
   res: ServerResponse,
   config?: HttpAuthRuntimeConfig,
 ): boolean {
-  const expected =
-    config === undefined ? readEnvNullableString('MCP_AUTH_TOKEN') : (config.authToken ?? null);
+  const expected = resolveExpectedAuthToken(config);
   if (!expected) {
     // When binding to non-localhost without a token, reject unless explicitly allowed
     const host = config?.host ?? readEnvString('MCP_HOST', '127.0.0.1', { trim: true });
@@ -244,16 +257,23 @@ export function rateLimitTrackedBuckets(ip: string): number {
   return rateLimitStore.get(ip)?.counts.length ?? 0;
 }
 
-/** Evict oldest entries when the map exceeds the IP cap. */
-function rateLimitEvictIfNeeded(): void {
+/**
+ * Evict the least-recently-active entries when the map exceeds the IP cap.
+ *
+ * Map insertion order is NOT activity order: an attacker that sprays fresh
+ * source IPs would otherwise evict long-lived, genuinely active entries first
+ * (resetting their counters = rate-limit bypass) while their own spray stays.
+ * The currently limited IP is excluded so a request can never evict the very
+ * entry it is about to count against.
+ */
+function rateLimitEvictIfNeeded(protectedIp?: string): void {
   if (rateLimitStore.size <= RATE_LIMIT_MAX_IPS) return;
-  // Map iterates in insertion order — evict the oldest 10% of entries
   const evictCount = Math.ceil(RATE_LIMIT_MAX_IPS * 0.1);
-  let removed = 0;
-  for (const key of rateLimitStore.keys()) {
-    if (removed >= evictCount) break;
-    rateLimitStore.delete(key);
-    removed++;
+  const candidates = [...rateLimitStore.entries()]
+    .filter(([ip]) => ip !== protectedIp)
+    .toSorted((a, b) => a[1].lastSeen - b[1].lastSeen);
+  for (let i = 0; i < evictCount && i < candidates.length; i++) {
+    rateLimitStore.delete(candidates[i]![0]);
   }
 }
 
@@ -302,10 +322,10 @@ export function checkRateLimit(
   const bucketMs = Math.max(1, Math.ceil(windowMs / RATE_LIMIT_BUCKET_COUNT));
 
   const now = Date.now();
-  rateLimitCleanup(now, windowMs);
-  rateLimitEvictIfNeeded();
-
   const ip = getClientIP(req, config);
+  rateLimitCleanup(now, windowMs);
+  rateLimitEvictIfNeeded(ip);
+
   let entry = rateLimitStore.get(ip);
   if (!entry) {
     entry = createRateLimitEntry();

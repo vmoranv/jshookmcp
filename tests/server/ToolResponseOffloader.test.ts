@@ -128,19 +128,36 @@ describe('LargeDataOffloader — issue #62 structural detection', () => {
     expect(readFileSync(filePath, 'utf8')).toBe(raw);
   });
 
-  it('offloads resource-type entries the same way as text entries', async () => {
+  it('leaves MCP-shaped resource entries untouched (no top-level text payload)', async () => {
     const ddm = createDetailManager();
     const offloader = new LargeDataOffloader(ddm);
+    const resourceText = JSON.stringify({ big: 'y'.repeat(600 * 1024) });
     const response = {
       content: [
-        { type: 'resource' as const, text: JSON.stringify({ big: 'y'.repeat(600 * 1024) }) },
+        {
+          type: 'resource' as const,
+          resource: {
+            uri: 'jshook://capture',
+            text: resourceText,
+            mimeType: 'application/json',
+          },
+        },
       ],
     };
 
     await offloader.offload('some_tool', response);
 
-    const placeholder = JSON.parse((response.content[0] as { text: string }).text);
-    expect(placeholder._offload).toMatchObject({ type: 'detailId', detailId: 'detail_123' });
+    // Embedded resources carry their payload under `resource`, not `text`; the
+    // offloader deliberately leaves them intact (see the class contract).
+    expect(ddm.store).not.toHaveBeenCalled();
+    expect(response.content[0]).toEqual({
+      type: 'resource',
+      resource: {
+        uri: 'jshook://capture',
+        text: resourceText,
+        mimeType: 'application/json',
+      },
+    });
   });
 
   it('returns the response unchanged for error responses and excluded tools', async () => {

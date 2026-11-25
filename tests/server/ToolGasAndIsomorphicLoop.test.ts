@@ -75,6 +75,14 @@ describe('Execution Complexity Gas Meter & Isomorphic Loop Breaker', () => {
       expect(normalizeSemanticArgs(args1)).toBe(normalizeSemanticArgs(args2));
       expect(JSON.parse(normalizeSemanticArgs(args1))).toEqual({ target: '0x1234' });
     });
+
+    it('keeps structural id arguments in the signature', () => {
+      const first = normalizeSemanticArgs({ id: 'task-1', action: 'continue' });
+      const second = normalizeSemanticArgs({ id: 'task-2', action: 'continue' });
+
+      expect(JSON.parse(first)).toEqual({ action: 'continue', id: 'task-1' });
+      expect(first).not.toBe(second);
+    });
   });
 
   describe('recordExecutionCost (Gas Budget)', () => {

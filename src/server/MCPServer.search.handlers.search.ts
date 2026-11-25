@@ -23,8 +23,17 @@ export async function handleSearchTools(
   ctx: MCPServerContext,
   args: Record<string, unknown>,
 ): Promise<ToolResponse> {
-  const query = args.query as string;
-  const topK = (args.top_k as number | undefined) ?? 10;
+  const query = typeof args.query === 'string' ? args.query.trim() : '';
+  if (!query) {
+    return asTextResponse(
+      JSON.stringify({ success: false, error: 'query is required and must be a non-empty string' }),
+    );
+  }
+  // Clamp top_k: a negative value reaches `candidates.slice(0, topK)` in the
+  // projector, where `slice(0, -N)` returns all-but-the-last-N — i.e. nearly
+  // the whole registry. Non-finite/non-number values fall back to the default.
+  const rawTopK = typeof args.top_k === 'number' ? args.top_k : 10;
+  const topK = Number.isFinite(rawTopK) ? Math.min(Math.max(Math.trunc(rawTopK), 0), 30) : 10;
   // Allow opt-out via top_k=0 or explicit flag
   const autoActivate = (args.auto_activate as boolean | undefined) ?? true;
 

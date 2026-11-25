@@ -504,4 +504,43 @@ describe('MCPServer.search.handlers.search', () => {
     // Both domains trigger sendToolListChanged
     expect(ctx.server.sendToolListChanged).toHaveBeenCalled();
   });
+
+  it('rejects a missing/non-string query without touching the engine', async () => {
+    const ctx = createCtx();
+    const response = parseResponse(await handleSearchTools(ctx, { query: 42 }));
+
+    expect(response.success).toBe(false);
+    expect(response.error).toMatch(/query is required/);
+    expect(state.engine.search).not.toHaveBeenCalled();
+  });
+
+  it('clamps a negative top_k instead of slicing all-but-the-last-N candidates', async () => {
+    const ctx = createCtx();
+    state.engine.search.mockReturnValue([]);
+
+    await handleSearchTools(ctx, { query: 'page', top_k: -5, auto_activate: false });
+
+    expect(state.engine.search).toHaveBeenCalledWith(
+      'page',
+      0,
+      expect.any(Set),
+      expect.any(Set),
+      'search',
+    );
+  });
+
+  it('caps top_k above the documented maximum', async () => {
+    const ctx = createCtx();
+    state.engine.search.mockReturnValue([]);
+
+    await handleSearchTools(ctx, { query: 'page', top_k: 999, auto_activate: false });
+
+    expect(state.engine.search).toHaveBeenCalledWith(
+      'page',
+      30,
+      expect.any(Set),
+      expect.any(Set),
+      'search',
+    );
+  });
 });

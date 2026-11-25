@@ -34,6 +34,7 @@ function tool(
 const mocks = vi.hoisted(() => {
   const logger = {
     info: vi.fn(),
+    warn: vi.fn(),
   };
   const ensureWorkflowsLoaded = vi.fn(async () => undefined);
 
@@ -695,6 +696,110 @@ describe('ToolRouter', () => {
       },
     ]);
     expect(response.workflowHint).toContain('Workflow Signing Capture Workflow');
+  });
+
+  it('degrades gracefully when reranking slices the workflow runner out of the recommendations', async () => {
+    const ctx = createCtx({
+      extensionWorkflowsById: new Map([
+        [
+          'workflow.signing.capture.v1',
+          {
+            id: 'workflow.signing.capture.v1',
+            displayName: 'Signing Capture Workflow',
+            description: 'Run the signing capture workflow end-to-end',
+            source: 'plugins/mission-pack/workflow.ts',
+            route: {
+              kind: 'workflow',
+              triggerPatterns: [/run.*signing.*workflow/i, /签名.*工作流.*执行/i],
+              requiredDomains: ['workflow'],
+              priority: 92,
+              steps: [],
+            },
+          },
+        ],
+      ]),
+      extensionWorkflowRuntimeById: new Map([
+        [
+          'workflow.signing.capture.v1',
+          {
+            source: 'plugins/mission-pack/workflow.ts',
+            route: {
+              kind: 'workflow',
+              triggerPatterns: [/run.*signing.*workflow/i, /签名.*工作流.*执行/i],
+              requiredDomains: ['workflow'],
+              priority: 92,
+              steps: [],
+            },
+            workflow: {
+              kind: 'workflow-contract',
+              version: 1,
+              id: 'workflow.signing.capture.v1',
+              displayName: 'Signing Capture Workflow',
+              description: 'Run the signing capture workflow end-to-end',
+              route: {
+                kind: 'workflow',
+                triggerPatterns: [/run.*signing.*workflow/i, /签名.*工作流.*执行/i],
+                requiredDomains: ['workflow'],
+                priority: 92,
+                steps: [],
+              },
+              build: () => ({ kind: 'sequence', id: 'root', steps: [] }),
+            },
+          },
+        ],
+      ]),
+    });
+    const searchEngine = {
+      search: vi.fn(() => [
+        {
+          name: 'list_extension_workflows',
+          shortDescription: 'List loaded extension workflows',
+          score: 999,
+          domain: 'workflow',
+          isActive: false,
+        },
+      ]),
+    } as any;
+
+    const response = await routeToolRequest(
+      {
+        task: 'run signing workflow for me',
+        context: { autoActivate: false, maxRecommendations: 1 },
+      },
+      ctx,
+      searchEngine,
+    );
+
+    // The high-scored search hit wins the single recommendation slot; the
+    // workflow runner is no longer present.
+    expect(response.recommendations.map((recommendation) => recommendation.name)).toEqual([
+      'list_extension_workflows',
+    ]);
+
+    // Previously this threw on the `find(...)!` non-null assertion.
+    expect(response.nextActions).toEqual([
+      {
+        step: 1,
+        action: 'activate',
+        toolName: 'run_extension_workflow',
+        command: 'activate_tools with names: ["run_extension_workflow"]',
+        description: 'Activate workflow runner for Signing Capture Workflow',
+      },
+      {
+        step: 2,
+        action: 'call',
+        toolName: 'run_extension_workflow',
+        command: 'run_extension_workflow',
+        exampleArgs: {
+          workflowId: 'workflow.signing.capture.v1',
+        },
+        description: 'Execute routed workflow Signing Capture Workflow',
+      },
+    ]);
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
+      '[ToolRouter] Workflow runner missing from recommendations',
+      { workflowId: 'workflow.signing.capture.v1' },
+    );
   });
 
   it('emits a direct call next action when the top recommendation is already active', async () => {

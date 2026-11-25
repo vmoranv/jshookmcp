@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { tmpdir } from 'node:os';
 import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 // Block `.env` loading so fallback assertions always observe the source
@@ -248,5 +249,82 @@ describe('constants env parsing', () => {
       (await loadConstants({ MEMORY_SCAN_REGION_GUARD_BYTES: 'abc' }))
         .MEMORY_SCAN_REGION_GUARD_BYTES,
     ).toBe(1024 * 1024 * 1024);
+  });
+
+  it('rejects out-of-range MCP_PORT and HAR concurrency overrides', async () => {
+    expect((await loadConstants({ MCP_PORT: '0' })).MCP_HTTP_PORT).toBe(3000);
+    expect((await loadConstants({ MCP_PORT: '-1' })).MCP_HTTP_PORT).toBe(3000);
+    expect((await loadConstants({ MCP_PORT: '70000' })).MCP_HTTP_PORT).toBe(3000);
+    expect((await loadConstants({ MCP_PORT: '8080' })).MCP_HTTP_PORT).toBe(8080);
+
+    // A zero stride would make the HAR body-batch loop never advance.
+    expect(
+      (await loadConstants({ NETWORK_HAR_BODY_CONCURRENCY: '0' })).NETWORK_HAR_BODY_CONCURRENCY,
+    ).toBe(4);
+    expect(
+      (await loadConstants({ NETWORK_HAR_BODY_CONCURRENCY: '3' })).NETWORK_HAR_BODY_CONCURRENCY,
+    ).toBe(3);
+  });
+
+  it('keeps analysis DoS guards and the priority divisor positive', async () => {
+    expect((await loadConstants({ MAX_ANALYSIS_CODE_BYTES: '0' })).MAX_ANALYSIS_CODE_BYTES).toBe(
+      5 * 1024 * 1024,
+    );
+    expect((await loadConstants({ SYMBOLIC_CLAMP_MAX_PATHS: '0' })).SYMBOLIC_CLAMP_MAX_PATHS).toBe(
+      200,
+    );
+    expect((await loadConstants({ SYMBOLIC_CLAMP_MAX_DEPTH: '-1' })).SYMBOLIC_CLAMP_MAX_DEPTH).toBe(
+      32,
+    );
+    expect(
+      (await loadConstants({ SYMBOLIC_CLAMP_TIMEOUT_MS: '0' })).SYMBOLIC_CLAMP_TIMEOUT_MS,
+    ).toBe(60_000);
+    expect((await loadConstants({ SYMBOLIC_CLAMP_MAX_STEPS: '0' })).SYMBOLIC_CLAMP_MAX_STEPS).toBe(
+      5_000,
+    );
+    expect(
+      (await loadConstants({ PATTERN_PRIORITY_URL_LENGTH_DIVISOR: '0' }))
+        .PATTERN_PRIORITY_URL_LENGTH_DIVISOR,
+    ).toBe(100);
+  });
+
+  it('bounds BYOVD limits and whitelists the physical chunk size', async () => {
+    expect((await loadConstants({ BYOVD_MAX_IOCTL_PER_SEC: '0' })).BYOVD_MAX_IOCTL_PER_SEC).toBe(
+      100,
+    );
+    expect((await loadConstants({ BYOVD_MAX_READ_BYTES: '-5' })).BYOVD_MAX_READ_BYTES).toBe(
+      1024 * 1024,
+    );
+    expect((await loadConstants({ BYOVD_MAX_WRITE_BYTES: '0' })).BYOVD_MAX_WRITE_BYTES).toBe(
+      64 * 1024,
+    );
+    expect(
+      (await loadConstants({ BYOVD_SERVICE_START_TIMEOUT_MS: '0' })).BYOVD_SERVICE_START_TIMEOUT_MS,
+    ).toBe(30_000);
+    expect(
+      (await loadConstants({ BYOVD_SERVICE_STOP_TIMEOUT_MS: '-1' })).BYOVD_SERVICE_STOP_TIMEOUT_MS,
+    ).toBe(30_000);
+
+    // Driver supports only 1/2/4/8-byte physical ops; anything else falls back.
+    expect(
+      (await loadConstants({ BYOVD_PHYSICAL_CHUNK_SIZE: '4' })).BYOVD_PHYSICAL_CHUNK_SIZE,
+    ).toBe(4);
+    expect(
+      (await loadConstants({ BYOVD_PHYSICAL_CHUNK_SIZE: '3' })).BYOVD_PHYSICAL_CHUNK_SIZE,
+    ).toBe(8);
+    expect(
+      (await loadConstants({ BYOVD_PHYSICAL_CHUNK_SIZE: '0' })).BYOVD_PHYSICAL_CHUNK_SIZE,
+    ).toBe(8);
+  });
+
+  it('defaults the TLS keylog path to a per-process temp file', async () => {
+    const path = (await loadConstants({ JSHOOK_TLS_KEYLOG_PATH: undefined })).TLS_KEYLOG_PATH;
+    expect(path).not.toBe('/tmp/sslkeylog.log');
+    expect(path.startsWith(tmpdir())).toBe(true);
+    expect(path).toContain(String(process.pid));
+
+    expect(
+      (await loadConstants({ JSHOOK_TLS_KEYLOG_PATH: '/custom/key.log' })).TLS_KEYLOG_PATH,
+    ).toBe('/custom/key.log');
   });
 });

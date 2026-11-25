@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, rename, mkdir, rm } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { logger } from '@utils/logger';
 import { getStateDir } from '@utils/stateDir';
@@ -43,6 +43,9 @@ export class RuntimeSnapshotScheduler {
   private readonly periodicMs: number;
   private disposed = false;
   private started = false;
+  /** Per-entry in-flight write so overlapping flushes coalesce instead of racing. */
+  private readonly inFlightWrites = new Map<SnapshotSourceEntry, Promise<void>>();
+  private nextTempId = 0;
 
   constructor(options?: { debounceMs?: number; periodicMs?: number }) {
     this.debounceMs = options?.debounceMs ?? DEFAULT_DEBOUNCE_MS;
@@ -179,14 +182,42 @@ export class RuntimeSnapshotScheduler {
     }
   }
 
-  private async writeSnapshot(entry: SnapshotSourceEntry): Promise<void> {
+  private writeSnapshot(entry: SnapshotSourceEntry): Promise<void> {
+    // The debounce timer, the periodic interval and flushAll() can overlap.
+    // Coalescing on the entry prevents two writers from truncating/renaming
+    // the same file (and a stale writer from overwriting a newer snapshot).
+    const inFlight = this.inFlightWrites.get(entry);
+    if (inFlight) return inFlight;
+
+    const write = this.performWriteSnapshot(entry).finally(() => {
+      if (this.inFlightWrites.get(entry) === write) {
+        this.inFlightWrites.delete(entry);
+      }
+    });
+    this.inFlightWrites.set(entry, write);
+    return write;
+  }
+
+  private async performWriteSnapshot(entry: SnapshotSourceEntry): Promise<void> {
     const dir = dirname(entry.filePath);
     await mkdir(dir, { recursive: true });
     const data = JSON.stringify(entry.source.exportSnapshot());
-    const tmpPath = entry.filePath + '.tmp';
-    await writeFile(tmpPath, data, 'utf-8');
-    await rename(tmpPath, entry.filePath);
+    // Unique temp name: even a writer from another process cannot collide.
+    const tmpPath = `${entry.filePath}.${process.pid}.${this.nextTempId++}.tmp`;
+    try {
+      await writeFile(tmpPath, data, 'utf-8');
+      await rename(tmpPath, entry.filePath);
+    } catch (error) {
+      await rm(tmpPath, { force: true }).catch(() => undefined);
+      throw error;
+    }
     entry.source.markPersisted();
+    // A mutation can land while the write above was in flight. markPersisted()
+    // cleared the flag, but the on-disk snapshot predates that mutation, so
+    // re-schedule a flush rather than waiting for the next unrelated change.
+    if (entry.source.isPersistDirty()) {
+      this.notifyDirty();
+    }
   }
 }
 

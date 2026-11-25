@@ -168,6 +168,17 @@ function sanitizeLocalName(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '') || 'file';
 }
 
+/**
+ * Android package names are dot-separated identifiers. Validating them before
+ * shell interpolation stops a caller-supplied name from injecting adb shell
+ * commands or `..` segments into local pull destinations.
+ */
+const ANDROID_PACKAGE_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)*$/;
+
+function isValidAndroidPackageName(value: string): boolean {
+  return ANDROID_PACKAGE_NAME_PATTERN.test(value);
+}
+
 function parseLaunchTiming(stdout: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const key of ['Status', 'LaunchState', 'Activity', 'ThisTime', 'TotalTime', 'WaitTime']) {
@@ -1185,20 +1196,29 @@ export class ADBBridgeHandlers {
     return this.run('adb_apk_pull', async () => {
       const serial = argStringRequired(args, 'serial');
       const packageName = argString(args, 'packageName');
+      if (!packageName) return { success: false, error: 'packageName is required' };
+      if (!isValidAndroidPackageName(packageName)) {
+        return {
+          success: false,
+          serial,
+          error: `packageName is not a valid Android package name: ${packageName}`,
+        };
+      }
+      const allowedRoots = getSafeOutputRoots();
+      const allowedRootsDescription = 'project root or system temp directory';
       const outputPath = await resolveSafeOutputPath(argString(args, 'outputPath') ?? '.', {
-        allowedRoots: getSafeOutputRoots(),
-        allowedRootsDescription: 'project root or system temp directory',
+        allowedRoots,
+        allowedRootsDescription,
       });
       const requestedOutputFile = argString(args, 'outputFile');
       const outputFile = requestedOutputFile
         ? await resolveSafeOutputPath(requestedOutputFile, {
-            allowedRoots: getSafeOutputRoots(),
-            allowedRootsDescription: 'project root or system temp directory',
+            allowedRoots,
+            allowedRootsDescription,
           })
         : undefined;
       const includeSplits = argBool(args, 'includeSplits') ?? false;
       const validateZip = argBool(args, 'validateZip') ?? true;
-      if (!packageName) return { success: false, error: 'packageName is required' };
       if (includeSplits && outputFile) {
         return {
           success: false,
@@ -1239,6 +1259,12 @@ export class ADBBridgeHandlers {
               ? `${packageName}-${sanitizeLocalName(remoteName)}`
               : `${packageName}.apk`,
           );
+        // Re-validate the final path even though packageName is validated:
+        // pull destinations are the write sink this advisory was about.
+        destPath = await resolveSafeOutputPath(destPath, {
+          allowedRoots,
+          allowedRootsDescription,
+        });
         destPath = destPath.replace(/\\/g, '/');
         await mkdir(dirname(destPath), { recursive: true });
 
@@ -1695,6 +1721,13 @@ export class ADBBridgeHandlers {
     return this.run('adb_pull_native_libs', async () => {
       const serial = argStringRequired(args, 'serial');
       const packageName = argStringRequired(args, 'packageName');
+      if (!isValidAndroidPackageName(packageName)) {
+        return {
+          success: false,
+          serial,
+          error: `packageName is not a valid Android package name: ${packageName}`,
+        };
+      }
       const outputPath = await resolveSafeOutputPath(argString(args, 'outputPath') ?? '.', {
         allowedRoots: getSafeOutputRoots(),
         allowedRootsDescription: 'project root or system temp directory',

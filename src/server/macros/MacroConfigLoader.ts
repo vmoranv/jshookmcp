@@ -80,6 +80,8 @@ async function loadFromDirectory(dir: string): Promise<MacroDefinition[]> {
   return macros;
 }
 
+const MAX_STEP_DEPTH = 64;
+
 /**
  * Type guard — validates that raw JSON matches the expected macro schema.
  */
@@ -90,6 +92,14 @@ function validate(raw: unknown): raw is MacroJsonSchema {
   if (typeof obj.id !== 'string' || !obj.id) return false;
   if (typeof obj.displayName !== 'string' || !obj.displayName) return false;
   if (!Array.isArray(obj.steps) || obj.steps.length === 0) return false;
+  if (obj.description !== undefined && typeof obj.description !== 'string') return false;
+  if (
+    obj.tags !== undefined &&
+    (!Array.isArray(obj.tags) || !obj.tags.every((tag) => typeof tag === 'string'))
+  ) {
+    return false;
+  }
+  if (obj.timeoutMs !== undefined && !isNonNegativeFiniteNumber(obj.timeoutMs)) return false;
 
   for (const step of obj.steps) {
     if (!validateStep(step)) return false;
@@ -98,20 +108,23 @@ function validate(raw: unknown): raw is MacroJsonSchema {
   return true;
 }
 
-function validateStep(raw: unknown): raw is MacroJsonStep {
+function hasSingleStepKind(step: Record<string, unknown>): boolean {
+  let kinds = 0;
+  if (typeof step.toolName === 'string' && step.toolName.length > 0) kinds++;
+  if (Array.isArray(step.sequenceSteps)) kinds++;
+  if (Array.isArray(step.parallelSteps)) kinds++;
+  if (isRecord(step.branchStep)) kinds++;
+  if (isRecord(step.fallbackStep)) kinds++;
+  return kinds === 1;
+}
+
+function validateStep(raw: unknown, depth = 0): raw is MacroJsonStep {
+  if (depth >= MAX_STEP_DEPTH) return false;
   if (!raw || typeof raw !== 'object') return false;
   const step = raw as Record<string, unknown>;
   if (typeof step.id !== 'string' || !step.id) return false;
 
-  const kindCount = [
-    typeof step.toolName === 'string' && step.toolName.length > 0,
-    Array.isArray(step.sequenceSteps),
-    Array.isArray(step.parallelSteps),
-    isRecord(step.branchStep),
-    isRecord(step.fallbackStep),
-  ].filter(Boolean).length;
-
-  if (kindCount !== 1) return false;
+  if (!hasSingleStepKind(step)) return false;
   if (step.retry !== undefined && !validateRetryPolicy(step.retry)) return false;
   if (step.input !== undefined && !isRecord(step.input)) return false;
   if (step.inputFrom !== undefined && !isStringRecord(step.inputFrom)) return false;
@@ -122,24 +135,29 @@ function validateStep(raw: unknown): raw is MacroJsonStep {
 
   if (step.sequenceSteps !== undefined) {
     if (!Array.isArray(step.sequenceSteps) || step.sequenceSteps.length === 0) return false;
-    return step.sequenceSteps.every((child) => validateStep(child));
+    return step.sequenceSteps.every((child) => validateStep(child, depth + 1));
   }
 
   if (step.parallelSteps !== undefined) {
     if (!Array.isArray(step.parallelSteps) || step.parallelSteps.length === 0) return false;
-    return step.parallelSteps.every((child) => validateStep(child));
+    return step.parallelSteps.every((child) => validateStep(child, depth + 1));
   }
 
   if (isRecord(step.branchStep)) {
     if (typeof step.branchStep.predicateId !== 'string' || !step.branchStep.predicateId) {
       return false;
     }
-    if (!validateStep(step.branchStep.whenTrue)) return false;
-    return step.branchStep.whenFalse === undefined || validateStep(step.branchStep.whenFalse);
+    if (!validateStep(step.branchStep.whenTrue, depth + 1)) return false;
+    return (
+      step.branchStep.whenFalse === undefined || validateStep(step.branchStep.whenFalse, depth + 1)
+    );
   }
 
   if (isRecord(step.fallbackStep)) {
-    return validateStep(step.fallbackStep.primary) && validateStep(step.fallbackStep.fallback);
+    return (
+      validateStep(step.fallbackStep.primary, depth + 1) &&
+      validateStep(step.fallbackStep.fallback, depth + 1)
+    );
   }
 
   return true;

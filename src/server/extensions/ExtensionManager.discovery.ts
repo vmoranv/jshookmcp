@@ -9,6 +9,7 @@ import {
   INSTALLED_EXTENSION_METADATA_FILENAME,
   type InstalledExtensionMetadata,
 } from '@server/extensions/types';
+import { isPathWithinRoot } from '@utils/safeOutput';
 
 type Candidate = {
   file: string;
@@ -152,6 +153,12 @@ async function collectInstalledEntryCandidates(
       }
 
       const file = resolve(dirname(metadataFile), entryPath);
+      // `.jshook-install.json` ships with the extension checkout, so `source.entry`
+      // is untrusted: an absolute entry or one containing `..` segments would
+      // resolve outside the extension directory and be imported/executed.
+      if (!isPathWithinRoot(dirname(metadataFile), file)) {
+        continue;
+      }
       if (!existsSync(file)) {
         continue;
       }

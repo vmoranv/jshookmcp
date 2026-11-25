@@ -204,7 +204,18 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
   const modernHandler: ModernHandlerState = {};
 
   ctx.httpServer = createServer((req, res) => {
-    const url = new URL(req.url ?? '/', `http://localhost:${port}`);
+    // `new URL` throws on malformed request targets (absolute-form junk, bare
+    // `[` authority, etc.). This listener sits on the raw HTTP surface, so an
+    // unguarded throw is an uncaught exception: one bad request kills the
+    // server. Answer 400 instead.
+    let url: URL;
+    try {
+      url = new URL(req.url ?? '/', `http://localhost:${port}`);
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Bad Request');
+      return;
+    }
 
     if (url.pathname === '/health' && req.method === 'GET') {
       handleHealthRoute(req, res, { ctx, authConfig });
@@ -522,9 +533,17 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
 
     ctx.toolTraceStop?.();
     ctx.toolTraceStop = null;
-    // Trace flushing must never block shutdown; a failed flush is logged and
-    // the shutdown continues — the trace is evidence, not a gate.
-    void flushToolTracesOnShutdown(ctx);
+    // Release the process-global logger listener installed by
+    // initObservabilityForwarding(). Without this every embedded/test server
+    // instance leaves a listener behind, duplicating log forwarding.
+    ctx.logForwardStop?.();
+    ctx.logForwardStop = null;
+    // Start the trace flush now so it overlaps the cleanup below, but await it
+    // (bounded) before closeServer resolves: the stdio shutdown path calls
+    // process.exit(0) immediately afterwards, which would otherwise kill the
+    // pending mkdir/appendFile writes. A failed or slow flush is logged and
+    // never blocks shutdown — the trace is evidence, not a gate.
+    const traceFlush = flushToolTracesOnShutdown(ctx);
 
     // Flush snapshots before any other cleanup
     const getInst =
@@ -540,7 +559,11 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
         'instrumentation',
       );
     if (instrumentation?.shutdown) {
-      await instrumentation.shutdown();
+      try {
+        await instrumentation.shutdown();
+      } catch (error) {
+        logger.warn('OTLP instrumentation shutdown failed:', error);
+      }
     }
 
     const modernHttpHandler = getInst?.<{ close: () => Promise<void> }>('modernHttpHandler');
@@ -572,7 +595,11 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
     }
     ctx.domainTtlEntries.clear();
 
-    ctx.detailedData.shutdown();
+    try {
+      ctx.detailedData.shutdown();
+    } catch (error) {
+      logger.warn('detailedData shutdown failed:', error);
+    }
 
     const activationController = getInst
       ? getInst<{ dispose?: () => void }>('activationController')
@@ -606,7 +633,11 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
     // tolerate partial contexts (tests, degraded mode). Deliberately placed
     // AFTER the httpServer force-close timer registration so the synchronous
     // lead-in of closeServer is unchanged (fake-timer tests rely on it).
-    await ctx.taskManager?.shutdown();
+    try {
+      await ctx.taskManager?.shutdown();
+    } catch (error) {
+      logger.warn('taskManager shutdown failed:', error);
+    }
 
     await closeDomainInstances(getInst, ctx);
 
@@ -641,12 +672,24 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
       ),
     ]);
 
+    // Await the trace flush started above, bounded so an unresponsive
+    // filesystem cannot stall shutdown. The stdio path exits right after this
+    // resolves, and fire-and-forget writes would be lost to process.exit().
+    let traceFlushTimer: NodeJS.Timeout | undefined;
+    await Promise.race([
+      traceFlush,
+      new Promise<void>((resolve) => {
+        traceFlushTimer = setTimeout(resolve, TRACE_FLUSH_TIMEOUT_MS);
+        traceFlushTimer.unref();
+      }),
+    ]);
+    if (traceFlushTimer !== undefined) clearTimeout(traceFlushTimer);
+
     try {
       await ctx.server.close();
     } catch (error) {
       logger.warn('MCP server close failed:', error);
     }
-
     try {
       await ProcessRegistry.terminateAll();
     } catch (error) {
@@ -661,6 +704,9 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
 
 /** Default trace directory, relative to the process cwd. */
 const DEFAULT_TRACE_DIR = '.ccg/traces';
+
+/** Upper bound on how long shutdown waits for the trace flush to land. */
+const TRACE_FLUSH_TIMEOUT_MS = 2_000;
 
 /**
  * Resolve where tool-call traces are flushed. Exported as a pure, injectable
@@ -696,7 +742,11 @@ export function resolveTraceFlushDir(
  * trace is machine-local evidence, never repository state. Flushing must
  * never block shutdown: a failed flush is logged and shutdown continues. */
 async function flushToolTracesOnShutdown(ctx: MCPServerContext): Promise<void> {
-  if (!ctx.toolTraceRecorder) return;
+  // Snapshot the recorder synchronously: this helper awaits, and shutdown may
+  // clear the field meanwhile. Re-reading it after an await can yield `null`
+  // and throw a TypeError mid-flush.
+  const recorder = ctx.toolTraceRecorder;
+  if (!recorder) return;
   const tracesDir = resolveTraceFlushDir();
   if (tracesDir === null) {
     // Explicitly disabled (unit tests): skip persistence, still release state.
@@ -707,19 +757,17 @@ async function flushToolTracesOnShutdown(ctx: MCPServerContext): Promise<void> {
   const { resolve } = await import('node:path');
   try {
     await mkdir(tracesDir, { recursive: true });
-    for (const trace of ctx.toolTraceRecorder.snapshotAll()) {
+    for (const trace of recorder.snapshotAll()) {
       if (trace.entries.length === 0) continue;
       const fileName = `${trace.sessionId.replace(/[^a-zA-Z0-9_-]/g, '_')}.jsonl`;
-      await appendFile(
-        resolve(tracesDir, fileName),
-        ctx.toolTraceRecorder.toJSONL(trace.sessionId),
-        'utf-8',
-      );
+      await appendFile(resolve(tracesDir, fileName), recorder.toJSONL(trace.sessionId), 'utf-8');
     }
   } catch (error) {
     logger.warn('[ToolTraceRecorder] failed to flush traces:', error);
   }
-  ctx.toolTraceRecorder = null;
+  if (ctx.toolTraceRecorder === recorder) {
+    ctx.toolTraceRecorder = null;
+  }
 }
 
 /** Unified disposable cleanup: iterate all closable domain instances.

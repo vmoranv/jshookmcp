@@ -41,8 +41,16 @@ export class MCPBridge {
    * Restrict callable tools to a specific set.
    * Pass `null` to allow all registered tools (default).
    */
-  setAllowlist(toolNames: readonly string[] | null): void {
+  setAllowlist(toolNames: readonly string[] | ReadonlySet<string> | null): void {
     this.allowlist = toolNames ? new Set(toolNames) : null;
+  }
+
+  /**
+   * Snapshot of the current allowlist (`null` means all registered tools).
+   * Callers that temporarily override the allowlist use this to restore it.
+   */
+  getAllowlist(): ReadonlySet<string> | null {
+    return this.allowlist;
   }
 
   /**

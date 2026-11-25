@@ -24,7 +24,7 @@ export async function loadSearchCatalog(): Promise<SearchCatalog> {
   if (catalog) return catalog;
   if (loadPromise) return loadPromise;
 
-  loadPromise = import('@server/registry/generated-tool-catalog').then(
+  const pending = import('@server/registry/generated-tool-catalog').then(
     ({ GENERATED_TOOL_CATALOG }) => {
       const entries = GENERATED_TOOL_CATALOG as readonly SearchCatalogEntry[];
       const entryByName = new Map<string, SearchCatalogEntry>();
@@ -50,6 +50,14 @@ export async function loadSearchCatalog(): Promise<SearchCatalog> {
       return catalog;
     },
   );
+  loadPromise = pending.catch((error: unknown) => {
+    // Do not poison the cache with a permanently rejected promise: a transient
+    // import failure must be retryable. Re-throw with context so callers know
+    // the catalog (not some unrelated module) failed to load.
+    loadPromise = null;
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to load search tool catalog: ${message}`, { cause: error });
+  });
   return loadPromise;
 }
 

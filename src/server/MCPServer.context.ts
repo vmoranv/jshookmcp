@@ -130,6 +130,12 @@ export interface TransportState {
     | null;
   /** Unsubscribe handle for the trace-recorder eventBus subscription. */
   toolTraceStop?: (() => void) | null;
+  /**
+   * Unsubscribe handle for the process-global `logger.onLog` listener that
+   * forwards structured logs to the MCP client. Released in closeServer() so
+   * embedded/test servers do not leave listeners behind.
+   */
+  logForwardStop?: (() => void) | null;
 }
 
 /** Runtime-loaded plugins/workflows/tools from external directories. */

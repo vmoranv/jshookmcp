@@ -60,6 +60,11 @@ export async function ensureBrowserCore(ctx: MCPServerContext): Promise<void> {
   }
   if (!ctx.consoleMonitor) {
     const CM = await getConsoleMonitorClass();
+    // The dynamic import yields: a concurrent ensureBrowserCore() may have
+    // installed the pool while we waited. Re-check before overwriting — the
+    // synchronous segment below has no further awaits, so the second caller
+    // observes the first caller's write and returns.
+    if (ctx.consoleMonitor) return;
     if (typeof ctx.setDomainInstance === 'function') {
       const pool = new SessionScopedResourcePool(
         () => new CM(ctx.collector!),

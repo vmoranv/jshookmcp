@@ -61,15 +61,19 @@ export async function handleActivateDomain(
   const evicted: string[] = [];
   const budget = await createActivationBudgetTracker(ctx);
 
-  ctx.enabledDomains.add(domain);
-
   // Budget precheck (kimi-cu report P2-4): dry-run the whole domain batch
   // without touching state, so agents can see what would be evicted first.
+  // `enabledDomains` is mutated only on real activation (below): a precheck
+  // must not make the domain look enabled to search/route/resources.
   if (args.precheck === true) {
     const names = domainTools.map((t) => t.name);
     const pre = await precheckActivation(ctx, names);
     return asTextResponse(JSON.stringify({ success: true, domain, ...pre }));
   }
+
+  // Real activation: the domain is now (or already was) enabled. Deliberately
+  // after the precheck branch — a dry run must not mutate server state.
+  ctx.enabledDomains.add(domain);
 
   // Tools owned by this domain must survive LRU eviction while it activates.
   const protectedNames = new Set(domainTools.map((t) => t.name));

@@ -35,7 +35,7 @@ export const DEBUG_PORT_CANDIDATES = list('DEBUG_PORT_CANDIDATES', [9222, 9229, 
 export const DEFAULT_DEBUG_PORT = int('DEFAULT_DEBUG_PORT', 9222);
 
 /** HTTP transport listen port for the MCP server (`MCP_PORT`). */
-export const MCP_HTTP_PORT = int('MCP_PORT', 3000);
+export const MCP_HTTP_PORT = int('MCP_PORT', 3000, { min: 1, max: 65_535 });
 
 /** HTTP transport listen host for the MCP server (`MCP_HOST`). */
 export const MCP_HTTP_HOST = str('MCP_HOST', '127.0.0.1');

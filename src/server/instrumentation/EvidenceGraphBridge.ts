@@ -227,11 +227,14 @@ export class EvidenceGraphBridge {
       this.operationNodeMap.delete(artifact.operationId);
     }
 
+    // Payload first, provenance last: artifact data comes from handler payloads
+    // and must never be able to overwrite the authoritative session/operation/type
+    // fields that the evidence chain and exports rely on.
     const dataNode = this.graph.addNode('captured-data', `data:${artifact.operationId}`, {
+      ...artifact.data,
       sessionId: artifact.sessionId,
       operationId: artifact.operationId,
       artifactType: artifact.type,
-      ...artifact.data,
     });
 
     // Link operation node → captured-data (captures)

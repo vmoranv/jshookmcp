@@ -44,12 +44,10 @@ export async function clearLoadedExtensionTools(ctx: MCPServerContext): Promise<
     } catch (error) {
       logger.warn(`Plugin onDeactivate failed for "${pluginId}":`, error);
     }
-    try {
-      if (runtime.plugin.onDeactivateHandler) {
-        runtime.state = 'unloaded';
-      }
-    } catch (error) {
-      logger.warn(`Plugin onUnload failed for "${pluginId}":`, error);
+    // Only mark the runtime as unloaded when teardown actually succeeded: a
+    // plugin whose onDeactivate threw above is still 'activated'.
+    if (runtime.state === 'deactivated') {
+      runtime.state = 'unloaded';
     }
   }
 

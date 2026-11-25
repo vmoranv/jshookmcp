@@ -26,6 +26,41 @@ export function resetIdCounter(): void {
 
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { logger } from '@utils/logger';
+import { isRecord } from '@utils/type-guards';
+
+/** Coerce one persisted node, returning `undefined` for unusable entries. */
+function toRestorableNode(value: unknown): EvidenceNode | undefined {
+  if (!isRecord(value)) return undefined;
+  const { id, type, label, createdAt } = value;
+  if (typeof id !== 'string' || id.length === 0) return undefined;
+  if (typeof type !== 'string' || type.length === 0) return undefined;
+  if (typeof label !== 'string') return undefined;
+  if (typeof createdAt !== 'number' || !Number.isFinite(createdAt)) return undefined;
+  return {
+    id,
+    type: type as EvidenceNodeType,
+    label,
+    metadata: isRecord(value.metadata) ? value.metadata : {},
+    createdAt,
+  };
+}
+
+/** Coerce one persisted edge, returning `undefined` for unusable entries. */
+function toRestorableEdge(value: unknown): EvidenceEdge | undefined {
+  if (!isRecord(value)) return undefined;
+  const { id, source, target, type, metadata } = value;
+  if (typeof id !== 'string' || id.length === 0) return undefined;
+  if (typeof source !== 'string' || source.length === 0) return undefined;
+  if (typeof target !== 'string' || target.length === 0) return undefined;
+  if (typeof type !== 'string' || type.length === 0) return undefined;
+  return {
+    id,
+    source,
+    target,
+    type: type as EvidenceEdgeType,
+    ...(isRecord(metadata) ? { metadata } : {}),
+  };
+}
 
 /** Default cap on stored nodes before oldest entries are evicted. */
 const DEFAULT_MAX_NODES = 100_000;
@@ -533,7 +568,23 @@ export class ReverseEvidenceGraph {
     if (snapshot.schemaVersion !== 1 || !snapshot.graph) {
       return { droppedNodes: 0, droppedEdges: 0 };
     }
-    const { nodes, edges } = snapshot.graph;
+    // Persisted snapshots are untrusted input: validate the whole graph before
+    // mutating any live state, so a corrupt entry cannot leave the graph empty
+    // or half-restored after the maps were cleared.
+    const rawGraph = snapshot.graph as { nodes?: unknown; edges?: unknown };
+    if (!Array.isArray(rawGraph.nodes) || !Array.isArray(rawGraph.edges)) {
+      return { droppedNodes: 0, droppedEdges: 0 };
+    }
+    const nodes = rawGraph.nodes
+      .map(toRestorableNode)
+      .filter((node): node is EvidenceNode => node !== undefined);
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    const edges = rawGraph.edges
+      .map(toRestorableEdge)
+      .filter(
+        (edge): edge is EvidenceEdge =>
+          edge !== undefined && nodeIds.has(edge.source) && nodeIds.has(edge.target),
+      );
     this.nodes.clear();
     this.edges.clear();
     this.outgoingEdgeIds.clear();
@@ -556,15 +607,14 @@ export class ReverseEvidenceGraph {
     this.evictOldestNodes();
     this.evictOldestEdges();
     // Re-seed the module-level ID counter from the restored ids. Without this a
-    // restore into a fresh process (counter reset) would generate colliding ids
-    // for new nodes/edges and silently overwrite restored Map entries.
-    nextId = 1;
-    const advanceCounter = (id: string): void => {
+    // restore into a fresh process (counter reset) would generate colliding ids.
+    // Never reset the counter: it is shared by every graph instance in the
+    // process, so lowering it would make another live graph hand out ids that
+    // this snapshot already restored.
+    for (const id of [...nodes.map((node) => node.id), ...edges.map((edge) => edge.id)]) {
       const match = /\d+$/.exec(id);
       if (match) nextId = Math.max(nextId, Number(match[0]) + 1);
-    };
-    for (const node of nodes) advanceCounter(node.id);
-    for (const edge of edges) advanceCounter(edge.id);
+    }
     this.mutationSeq = nodes.length + edges.length;
     this.lastPersistedSeq = this.mutationSeq;
     this.isDirty = false;

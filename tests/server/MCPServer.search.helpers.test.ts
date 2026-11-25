@@ -99,6 +99,17 @@ vi.mock('@server/ToolSearch', () => ({
     getSearchQualityTracker() {
       return this.qualityTrackerStub;
     }
+
+    /** Rebuild-path diff input; overridable per test via `snapshot`. */
+    snapshot: any[] = [];
+
+    getCatalogSnapshot() {
+      return this.snapshot;
+    }
+
+    getStateRoot() {
+      return `root-${this.snapshot.length}`;
+    }
   },
 }));
 
@@ -313,6 +324,95 @@ describe('MCPServer.search.helpers', () => {
     // Domain names/counts live in activate_domain's domain param; the query tip lives in search_tools.query.
     expect(description).not.toContain('Domains:');
     expect(description).not.toContain('Query tip');
+  });
+
+  it('indexes extension tools in deterministic name order regardless of load order', async () => {
+    const makeCtx = (order: string[]) =>
+      createCtx({
+        extensionToolsByName: new Map(
+          order.map((name) => [name, { name, domain: 'workflow', tool: tool(name) }]),
+        ),
+      });
+
+    const forward = (await getCombinedTools(makeCtx(['z_tool', 'a_tool']))).map(
+      (candidate) => candidate.name,
+    );
+    const reverse = (await getCombinedTools(makeCtx(['a_tool', 'z_tool']))).map(
+      (candidate) => candidate.name,
+    );
+
+    expect(forward).toEqual(reverse);
+    expect(forward.slice(-2)).toEqual(['a_tool', 'z_tool']);
+  });
+
+  it('does not change the extension signature when only schema key order changes', () => {
+    const makeCtxWithSchema = (inputSchema: unknown) =>
+      createCtx({
+        extensionToolsByName: new Map([
+          [
+            'a_tool',
+            { domain: 'browser', tool: { name: 'a_tool', description: 'd', inputSchema } },
+          ],
+        ]),
+      });
+
+    const canonicalFirst = makeCtxWithSchema({
+      type: 'object',
+      properties: { x: { type: 'string' } },
+    });
+    const reorderedKeys = makeCtxWithSchema({
+      properties: { x: { type: 'string' } },
+      type: 'object',
+    });
+
+    expect(buildSearchSignature(canonicalFirst)).toBe(buildSearchSignature(reorderedKeys));
+  });
+
+  it('emits search:catalog_changed when a rebuild removes tools', async () => {
+    const emit = vi.fn();
+    const ctx = createCtx({ eventBus: { emit } });
+
+    await getSearchEngine(ctx);
+    const previous = mocks.engineInstances[0];
+    previous.snapshot = [
+      {
+        name: 'removed_tool',
+        domain: 'workflow',
+        description: 'old',
+        inputSchema: { type: 'object' },
+      },
+    ];
+    // Any extension identity change forces a rebuild with a fresh snapshot.
+    ctx.extensionToolsByName.set('custom_tool', {
+      name: 'custom_tool',
+      domain: 'workflow',
+      tool: tool('custom_tool', 'Custom workflow tool'),
+    });
+
+    const rebuilt = await getSearchEngine(ctx);
+
+    expect(rebuilt).not.toBe(previous);
+    expect(emit).toHaveBeenCalledWith(
+      'search:catalog_changed',
+      expect.objectContaining({
+        removed: ['removed_tool'],
+        digestBefore: 'root-1',
+        digestAfter: 'root-0',
+        truncated: false,
+        timestamp: expect.any(String),
+      }),
+    );
+  });
+
+  it('does not emit search:catalog_changed when only runtime state changes', async () => {
+    const emit = vi.fn();
+    const ctx = createCtx({ eventBus: { emit } });
+
+    await getSearchEngine(ctx);
+    ctx.extensionWorkflowRuntimeById.set('wf-1', {});
+    await getSearchEngine(ctx);
+
+    expect(emit).not.toHaveBeenCalled();
   });
 });
 

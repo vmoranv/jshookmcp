@@ -3,16 +3,27 @@
  * Re-exports the registry-based builder for backward compatibility.
  */
 import type { ToolHandler } from '@server/types';
-import { buildHandlerMapFromRegistry, type BuildHandlerMapOptions } from '@server/registry/views';
-import { getAllToolNames } from '@server/registry/index';
+import {
+  buildHandlerMapFromRegistry,
+  getLoadedRegistrations,
+  type BuildHandlerMapOptions,
+} from '@server/registry/views';
 import type { ToolHandlerDeps } from '@server/registry/contracts';
 
 // Backward-compatible alias
 export type ToolHandlerMapDependencies = ToolHandlerDeps;
 
-/** Set of all tool names that have handler bindings (derived from registry). */
+/**
+ * Set of all tool names that have handler bindings (derived from registry).
+ *
+ * Derived from the `registry/views` leaf rather than the `registry/index`
+ * barrel: the barrel reaches every domain manifest via discovery →
+ * generated-domains, which re-creates the registry↔catalog cycle family this
+ * split exists to avoid. `getLoadedRegistrations` throws before `initRegistry`
+ * just like the barrel accessor did.
+ */
 export function getHandledToolNames(): ReadonlySet<string> {
-  return getAllToolNames();
+  return new Set(getLoadedRegistrations().map((registration) => registration.tool.name));
 }
 
 /**

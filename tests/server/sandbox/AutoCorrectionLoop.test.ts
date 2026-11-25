@@ -97,4 +97,23 @@ describe('AutoCorrectionLoop', () => {
     expect(result.ok).toBe(true);
     expect(result.retryCount).toBe(2);
   });
+
+  it('neutralizes */ in the error message so it cannot escape the comment', async () => {
+    const injection: SandboxResult = {
+      ok: false,
+      error: 'boom */ globalThis.pwned = 1; /*',
+      timedOut: false,
+      durationMs: 1,
+      logs: [],
+    };
+    const sandbox = createMockSandbox([injection, SUCCESS]);
+    const result = await executeWithRetry(sandbox, 'original()', {});
+
+    expect(result.ok).toBe(true);
+    const retryCode = (sandbox.execute as ReturnType<typeof vi.fn>).mock.calls[1]![0] as string;
+    // The raw terminator (message followed by `*/`) must not survive.
+    expect(retryCode).not.toContain('boom */');
+    expect(retryCode).toContain('boom *\\/');
+    expect(retryCode.endsWith('original()')).toBe(true);
+  });
 });
