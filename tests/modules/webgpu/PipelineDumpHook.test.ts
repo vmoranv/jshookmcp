@@ -68,4 +68,19 @@ describe('PipelineDumpHook page-eval wrappers', () => {
     await uninstallPipelineDumpHook(page as never);
     expect(page.evaluate).toHaveBeenCalled();
   });
+
+  it('sanitizer cuts depth before arrays and detects circular references', async () => {
+    const page = mockPage();
+    await installPipelineDumpHook(page as never, 5);
+    const call = (page.evaluate as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => typeof c[0] === 'function' && String(c[0]).includes('createRenderPipeline'),
+    );
+    const source = String(call?.[0] ?? '');
+
+    expect(source).toContain('typeof value !== "object"');
+    expect(source).toContain('seen.has(value)');
+    expect(source).toContain('"<circular>"');
+    // Depth guard must be tested before Array.isArray.
+    expect(source.indexOf('"<deep>"')).toBeLessThan(source.indexOf('Array.isArray(value)'));
+  });
 });

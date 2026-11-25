@@ -54,6 +54,9 @@ export class PlaywrightNetworkMonitor {
   private boundOnRequest: ((req: unknown) => void) | null = null;
   private boundOnResponse: ((res: unknown) => void) | null = null;
 
+  /** Invalidates async body-capture writes after clear/disable/page swap. */
+  private generation = 0;
+
   constructor(page: PlaywrightLikePage | null) {
     this.page = page;
     this.responseBodyCache = new ResponseBodyCache(
@@ -89,6 +92,9 @@ export class PlaywrightNetworkMonitor {
     }
 
     this.page = page;
+    // A body captured from the previous page/session must not be written under
+    // a requestId belonging to the new one.
+    this.generation++;
 
     if (!wasEnabled || !this.page) {
       if (!this.page) {
@@ -186,9 +192,15 @@ export class PlaywrightNetworkMonitor {
       // Auto-capture response body (fire-and-forget)
       if (typeof res.body === 'function') {
         const captureId = requestId;
+        const generation = this.generation;
         res
           .body()
           .then((buf: Buffer) => {
+            if (this.generation !== generation) {
+              // Records were cleared or the page changed while the body was in
+              // flight; writing now would leak stale/cross-session data.
+              return;
+            }
             const isText = isTextMimeType(response.mimeType);
             if (isText) {
               this.responseBodyCache.set(
@@ -246,6 +258,7 @@ export class PlaywrightNetworkMonitor {
       this.boundOnResponse = null;
     }
     this.networkEnabled = false;
+    this.generation++;
     logger.info('PlaywrightNetworkMonitor disabled');
   }
 
@@ -288,6 +301,7 @@ export class PlaywrightNetworkMonitor {
   }
 
   clearRecords(): void {
+    this.generation++;
     this.requests.clear();
     this.responses.clear();
     this.responseBodyCache.clear();

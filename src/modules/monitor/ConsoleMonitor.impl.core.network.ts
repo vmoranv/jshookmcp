@@ -31,6 +31,22 @@ function hasStaleContext(ctx: NetworkCoreContext): boolean {
   return ctx.contextSwitchPending === true;
 }
 
+/**
+ * Pick the monitor that actually backs the current session. Presence alone is
+ * not enough: a disabled Playwright monitor can remain attached while the CDP
+ * monitor is the enabled one (or vice versa), and `isNetworkEnabledCore`
+ * already reports "enabled if either is enabled".
+ */
+function selectNetworkMonitor(ctx: NetworkCoreContext): NetworkMonitorLike | null {
+  if (ctx.playwrightNetworkMonitor?.isEnabled()) {
+    return ctx.playwrightNetworkMonitor;
+  }
+  if (ctx.networkMonitor?.isEnabled()) {
+    return ctx.networkMonitor;
+  }
+  return ctx.playwrightNetworkMonitor ?? ctx.networkMonitor ?? null;
+}
+
 export function isNetworkEnabledCore(ctx: unknown): boolean {
   const coreCtx = asNetworkCoreContext(ctx);
   if (hasStaleContext(coreCtx)) {
@@ -53,10 +69,8 @@ export function getNetworkStatusCore(ctx: unknown): NetworkStatus {
       cdpSessionActive: false,
     };
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getStatus();
-  }
-  if (!coreCtx.networkMonitor) {
+  const monitor = selectNetworkMonitor(coreCtx);
+  if (!monitor) {
     return {
       enabled: false,
       requestCount: 0,
@@ -65,7 +79,7 @@ export function getNetworkStatusCore(ctx: unknown): NetworkStatus {
       cdpSessionActive: coreCtx.cdpSession !== null,
     };
   }
-  return coreCtx.networkMonitor.getStatus();
+  return monitor.getStatus();
 }
 
 export function getNetworkRequestsCore(
@@ -76,10 +90,7 @@ export function getNetworkRequestsCore(
   if (hasStaleContext(coreCtx)) {
     return [];
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getRequests(filter);
-  }
-  return coreCtx.networkMonitor?.getRequests(filter) ?? [];
+  return selectNetworkMonitor(coreCtx)?.getRequests(filter) ?? [];
 }
 
 export function getNetworkResponsesCore(
@@ -90,10 +101,7 @@ export function getNetworkResponsesCore(
   if (hasStaleContext(coreCtx)) {
     return [];
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getResponses(filter);
-  }
-  return coreCtx.networkMonitor?.getResponses(filter) ?? [];
+  return selectNetworkMonitor(coreCtx)?.getResponses(filter) ?? [];
 }
 
 export function getNetworkActivityCore(ctx: unknown, requestId: string): NetworkActivity {
@@ -101,10 +109,7 @@ export function getNetworkActivityCore(ctx: unknown, requestId: string): Network
   if (hasStaleContext(coreCtx)) {
     return {};
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getActivity(requestId);
-  }
-  return coreCtx.networkMonitor?.getActivity(requestId) ?? {};
+  return selectNetworkMonitor(coreCtx)?.getActivity(requestId) ?? {};
 }
 
 export async function getResponseBodyCore(
@@ -115,16 +120,14 @@ export async function getResponseBodyCore(
   if (hasStaleContext(coreCtx)) {
     return null;
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getResponseBody(requestId);
-  }
-  if (!coreCtx.networkMonitor) {
+  const monitor = selectNetworkMonitor(coreCtx);
+  if (!monitor) {
     logger.error(
       'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
     );
     return null;
   }
-  return coreCtx.networkMonitor.getResponseBody(requestId);
+  return monitor.getResponseBody(requestId);
 }
 
 export async function getAllJavaScriptResponsesCore(ctx: unknown): Promise<NetworkRecord[]> {
@@ -132,13 +135,7 @@ export async function getAllJavaScriptResponsesCore(ctx: unknown): Promise<Netwo
   if (hasStaleContext(coreCtx)) {
     return [];
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getAllJavaScriptResponses();
-  }
-  if (!coreCtx.networkMonitor) {
-    return [];
-  }
-  return coreCtx.networkMonitor.getAllJavaScriptResponses();
+  return selectNetworkMonitor(coreCtx)?.getAllJavaScriptResponses() ?? [];
 }
 
 export function clearNetworkRecordsCore(ctx: unknown): void {
@@ -153,16 +150,9 @@ export async function clearInjectedBuffersCore(ctx: unknown): Promise<{
   dynamicScriptsCleared: number;
 }> {
   const coreCtx = asNetworkCoreContext(ctx);
-  if (coreCtx.playwrightNetworkMonitor) {
-    const result = await coreCtx.playwrightNetworkMonitor.clearInjectedBuffers();
-    return {
-      ...result,
-      dynamicScriptsCleared: 0,
-    };
-  }
-
-  const networkResult = coreCtx.networkMonitor
-    ? await coreCtx.networkMonitor.clearInjectedBuffers()
+  const monitor = selectNetworkMonitor(coreCtx);
+  const networkResult = monitor
+    ? await monitor.clearInjectedBuffers()
     : { xhrCleared: 0, fetchCleared: 0 };
   const dynamicResult = await coreCtx.clearDynamicScriptBuffer();
 
@@ -178,16 +168,9 @@ export async function resetInjectedInterceptorsCore(ctx: unknown): Promise<{
   scriptMonitorReset: boolean;
 }> {
   const coreCtx = asNetworkCoreContext(ctx);
-  if (coreCtx.playwrightNetworkMonitor) {
-    const result = await coreCtx.playwrightNetworkMonitor.resetInjectedInterceptors();
-    return {
-      ...result,
-      scriptMonitorReset: false,
-    };
-  }
-
-  const networkResult = coreCtx.networkMonitor
-    ? await coreCtx.networkMonitor.resetInjectedInterceptors()
+  const monitor = selectNetworkMonitor(coreCtx);
+  const networkResult = monitor
+    ? await monitor.resetInjectedInterceptors()
     : { xhrReset: false, fetchReset: false };
   const scriptResult = await coreCtx.resetDynamicScriptMonitoring();
 
@@ -208,11 +191,8 @@ export function getNetworkStatsCore(ctx: unknown): NetworkStats {
       byType: {},
     };
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getStats();
-  }
   return (
-    coreCtx.networkMonitor?.getStats() ?? {
+    selectNetworkMonitor(coreCtx)?.getStats() ?? {
       totalRequests: 0,
       totalResponses: 0,
       byMethod: {},
@@ -232,15 +212,13 @@ export async function injectXHRInterceptorCore(
       'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
     );
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.injectXHRInterceptor(options);
-  }
-  if (!coreCtx.networkMonitor) {
+  const monitor = selectNetworkMonitor(coreCtx);
+  if (!monitor) {
     throw new PrerequisiteError(
       'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
     );
   }
-  return coreCtx.networkMonitor.injectXHRInterceptor(options);
+  return monitor.injectXHRInterceptor(options);
 }
 
 export async function injectFetchInterceptorCore(
@@ -253,15 +231,13 @@ export async function injectFetchInterceptorCore(
       'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
     );
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.injectFetchInterceptor(options);
-  }
-  if (!coreCtx.networkMonitor) {
+  const monitor = selectNetworkMonitor(coreCtx);
+  if (!monitor) {
     throw new PrerequisiteError(
       'Network monitoring is not enabled. Call enable() with enableNetwork: true first.',
     );
   }
-  return coreCtx.networkMonitor.injectFetchInterceptor(options);
+  return monitor.injectFetchInterceptor(options);
 }
 
 export async function getXHRRequestsCore(ctx: unknown): Promise<NetworkRecord[]> {
@@ -269,13 +245,7 @@ export async function getXHRRequestsCore(ctx: unknown): Promise<NetworkRecord[]>
   if (hasStaleContext(coreCtx)) {
     return [];
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getXHRRequests();
-  }
-  if (!coreCtx.networkMonitor) {
-    return [];
-  }
-  return coreCtx.networkMonitor.getXHRRequests();
+  return selectNetworkMonitor(coreCtx)?.getXHRRequests() ?? [];
 }
 
 export async function getFetchRequestsCore(ctx: unknown): Promise<NetworkRecord[]> {
@@ -283,11 +253,5 @@ export async function getFetchRequestsCore(ctx: unknown): Promise<NetworkRecord[
   if (hasStaleContext(coreCtx)) {
     return [];
   }
-  if (coreCtx.playwrightNetworkMonitor) {
-    return coreCtx.playwrightNetworkMonitor.getFetchRequests();
-  }
-  if (!coreCtx.networkMonitor) {
-    return [];
-  }
-  return coreCtx.networkMonitor.getFetchRequests();
+  return selectNetworkMonitor(coreCtx)?.getFetchRequests() ?? [];
 }

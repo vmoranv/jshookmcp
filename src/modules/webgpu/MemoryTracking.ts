@@ -122,37 +122,48 @@ export async function getGPUMemoryStats(page: Page): Promise<GPUMemoryStats> {
 }
 
 /**
- * Install the page-script allocation tracker if not already present.
- *
- * Wraps `GPUDevice.createBuffer` and `GPUDevice.createTexture` to keep a
- * `WeakRef` pool of live GPU resources. The pool is pruned on every read.
- *
- * @param page - Puppeteer page
+ * Page-script payload that wraps createBuffer/createTexture with a WeakRef
+ * allocation pool. Shared by evaluateOnNewDocument (future documents) and
+ * evaluate (the already-loaded document); the latter is required because
+ * evaluateOnNewDocument alone never runs until the next navigation.
  */
-async function ensureAllocationTracker(page: Page): Promise<void> {
-  await page.evaluateOnNewDocument(() => {
-    if (typeof (window as any).webgpuHookState !== 'undefined') {
-      return;
-    }
-
-    const state: PageHookState = {
-      originalSubmit: GPUQueue.prototype.submit,
-      originalCreateCommandEncoder: GPUDevice.prototype.createCommandEncoder,
+function installAllocationTrackerScript(): void {
+  const w = window as any;
+  const g = globalThis as any;
+  // Reuse the state bag created by CommandHook/ErrorCaptureHook if present;
+  // the presence of the bag alone must not disable allocation tracking.
+  let state: PageHookState & { allocationsTrackerInstalled?: boolean } =
+    w.webgpuHookState as PageHookState & { allocationsTrackerInstalled?: boolean };
+  if (!state) {
+    const queueProto = g.GPUQueue && g.GPUQueue.prototype;
+    const deviceProto = g.GPUDevice && g.GPUDevice.prototype;
+    state = {
+      originalSubmit: queueProto ? queueProto.submit : (null as any),
+      originalCreateCommandEncoder: deviceProto ? deviceProto.createCommandEncoder : (null as any),
       hooksInstalled: false,
       commandTrace: null,
       allocations: [],
     };
+    w.webgpuHookState = state;
+  }
 
-    (window as any).webgpuHookState = state;
+  const hookState = state;
+  if (hookState.allocationsTrackerInstalled) {
+    return;
+  }
 
-    if (typeof GPUDevice === 'undefined') {
-      return;
-    }
+  const deviceProto = g.GPUDevice && g.GPUDevice.prototype;
+  if (!deviceProto) {
+    // No WebGPU in this page; leave the flag clear so a later navigation
+    // (once WebGPU is available) can install the wrappers.
+    return;
+  }
 
-    const originalCreateBuffer = GPUDevice.prototype.createBuffer;
-    GPUDevice.prototype.createBuffer = function (descriptor: any) {
+  const originalCreateBuffer = deviceProto.createBuffer;
+  if (typeof originalCreateBuffer === 'function') {
+    deviceProto.createBuffer = function (descriptor: any) {
       const buffer = originalCreateBuffer.call(this, descriptor);
-      state.allocations.push({
+      hookState.allocations.push({
         size: descriptor.size ?? 0,
         usage: descriptor.usage ?? 0,
         label: descriptor.label,
@@ -161,16 +172,18 @@ async function ensureAllocationTracker(page: Page): Promise<void> {
       });
       return buffer;
     };
+  }
 
-    const originalCreateTexture = GPUDevice.prototype.createTexture;
-    GPUDevice.prototype.createTexture = function (descriptor: any) {
+  const originalCreateTexture = deviceProto.createTexture;
+  if (typeof originalCreateTexture === 'function') {
+    deviceProto.createTexture = function (descriptor: any) {
       const texture = originalCreateTexture.call(this, descriptor);
       const size = Array.isArray(descriptor.size)
         ? descriptor.size.reduce((a: number, b: number) => a * b, 1)
         : typeof descriptor.size === 'number'
           ? descriptor.size
           : 0;
-      state.allocations.push({
+      hookState.allocations.push({
         size,
         usage: descriptor.usage ?? 0,
         label: descriptor.label,
@@ -179,5 +192,20 @@ async function ensureAllocationTracker(page: Page): Promise<void> {
       });
       return texture;
     };
-  });
+  }
+
+  hookState.allocationsTrackerInstalled = true;
+}
+
+/**
+ * Install the page-script allocation tracker if not already present.
+ *
+ * Wraps `GPUDevice.createBuffer` and `GPUDevice.createTexture` to keep a
+ * `WeakRef` pool of live GPU resources. The pool is pruned on every read.
+ *
+ * @param page - Puppeteer page
+ */
+async function ensureAllocationTracker(page: Page): Promise<void> {
+  await page.evaluateOnNewDocument(installAllocationTrackerScript);
+  await page.evaluate(installAllocationTrackerScript);
 }

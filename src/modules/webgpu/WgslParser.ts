@@ -38,6 +38,28 @@ const MAX_STRUCT_DEPTH = 15;
  * @param code - WGSL source code
  * @returns Shader metadata with optional `parseWarnings`
  */
+function collectEntryPoints(searchable: string): ShaderMetadata['entryPoints'] {
+  const entryPoints: ShaderMetadata['entryPoints'] = [];
+  const patterns: ReadonlyArray<{
+    readonly re: RegExp;
+    readonly stage: 'vertex' | 'fragment' | 'compute';
+  }> = [
+    { re: /@vertex\s+fn\s+(\w+)/g, stage: 'vertex' },
+    { re: /@fragment\s+fn\s+(\w+)/g, stage: 'fragment' },
+    {
+      re: /@compute\s+(?:@workgroup_size\s*\([^)]*\)\s*)?fn\s+(\w+)/g,
+      stage: 'compute',
+    },
+  ];
+  for (const { re, stage } of patterns) {
+    for (const match of searchable.matchAll(re)) {
+      const name = match[1];
+      if (name) entryPoints.push({ name, stage });
+    }
+  }
+  return entryPoints;
+}
+
 export function extractShaderMetadata(code: string): ShaderMetadata {
   const entryPoints: ShaderMetadata['entryPoints'] = [];
   const uniforms: NonNullable<ShaderMetadata['uniforms']> = [];
@@ -52,26 +74,7 @@ export function extractShaderMetadata(code: string): ShaderMetadata {
   // declarations are not reported, while keeping character offsets aligned
   // with the original source for brace/body extraction.
   const searchable = maskComments(code);
-
-  // Entry points: @vertex/@fragment/@compute followed by `fn name`.
-  // Use global regex to capture multiple entry points of the same stage.
-  const vertexMatches = searchable.matchAll(/@vertex\s+fn\s+(\w+)/g);
-  for (const m of vertexMatches) {
-    const name = m[1];
-    if (name) entryPoints.push({ name, stage: 'vertex' });
-  }
-  const fragmentMatches = searchable.matchAll(/@fragment\s+fn\s+(\w+)/g);
-  for (const m of fragmentMatches) {
-    const name = m[1];
-    if (name) entryPoints.push({ name, stage: 'fragment' });
-  }
-  const computeMatches = searchable.matchAll(
-    /@compute\s+(?:@workgroup_size\s*\([^)]*\)\s*)?fn\s+(\w+)/g,
-  );
-  for (const m of computeMatches) {
-    const name = m[1];
-    if (name) entryPoints.push({ name, stage: 'compute' });
-  }
+  entryPoints.push(...collectEntryPoints(searchable));
 
   // Structs: brace-matching scanner. Handles nested `{ }` (e.g. a struct
   // field whose type annotation contains `{...}` is rare in WGSL, but the
@@ -94,15 +97,17 @@ export function extractShaderMetadata(code: string): ShaderMetadata {
   }
 
   // Uniforms / bindings: `@group(g) @binding(b) [var<...>] name : type`
-  // Allow attributes and `var<address_space>` to appear in any order/optionality.
-  // Type capture is broadened to include `[]`, `<>`, `()`, and whitespace.
+  // Both attribute orders are legal. The bridge between the attributes and
+  // `var` must not cross another declaration (`;`, `{`, `}`), otherwise an
+  // attribute can be paired with a distant `var` in a later declaration.
   const bindingRegex =
-    /@group\s*\(\s*(\d+)\s*\)\s*@binding\s*\(\s*(\d+)\s*\)[\s\S]*?\bvar(?:<[^>]*>)?\s+(\w+)\s*:\s*([^\n;]+)/g;
+    /@(?:group\s*\(\s*(\d+)\s*\)\s*@binding\s*\(\s*(\d+)\s*\)|binding\s*\(\s*(\d+)\s*\)\s*@group\s*\(\s*(\d+)\s*\))[^;{}]*?\bvar(?:<[^>]*>)?\s+(\w+)\s*:\s*([^;{}]+)/g;
   for (const match of searchable.matchAll(bindingRegex)) {
-    const groupStr = match[1];
-    const bindingStr = match[2];
-    const name = match[3];
-    const type = match[4];
+    // Reverse order (`@binding(...) @group(...)`) fills groups 3/4 instead.
+    const groupStr = match[1] ?? match[4];
+    const bindingStr = match[2] ?? match[3];
+    const name = match[5];
+    const type = match[6];
     if (
       groupStr === undefined ||
       bindingStr === undefined ||

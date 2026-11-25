@@ -24,15 +24,18 @@ export function buildXHRInterceptorCode(maxRecords: number): string {
         }
         const xhrRequests = window.__xhrRequests;
 
-        window.XMLHttpRequest = function() {
+        const XHRWrapper = function() {
           const xhr = new originalXHR();
           const requestInfo = {
             method: '',
             url: '',
             requestHeaders: {},
-            responseHeaders: {},
+            responseHeaders: '',
             status: 0,
             response: null,
+            responseLength: null,
+            responseTruncated: false,
+            responseType: '',
             timestamp: Date.now(),
           };
 
@@ -50,6 +53,57 @@ export function buildXHRInterceptorCode(maxRecords: number): string {
             return originalSetRequestHeader.call(xhr, header, value);
           };
 
+          const record = function(outcome) {
+            if (requestInfo.outcome) return;
+            requestInfo.status = xhr.status;
+            requestInfo.responseHeaders = xhr.getAllResponseHeaders();
+            requestInfo.responseType = xhr.responseType || '';
+            try {
+              // responseText throws for blob/arraybuffer/document responses.
+              const rawResponse =
+                !requestInfo.responseType || requestInfo.responseType === 'text'
+                  ? xhr.responseText
+                  : xhr.response;
+              if (typeof rawResponse === 'string') {
+                requestInfo.responseLength = rawResponse.length;
+                requestInfo.responseTruncated =
+                  rawResponse.length > ${RESPONSE_PREVIEW_LIMIT};
+                requestInfo.response = requestInfo.responseTruncated
+                  ? rawResponse.slice(0, ${RESPONSE_PREVIEW_LIMIT})
+                  : rawResponse;
+              } else if (rawResponse === null || rawResponse === undefined) {
+                requestInfo.response = null;
+              } else {
+                // Non-text bodies cannot be serialized by
+                // Runtime.evaluate({ returnByValue: true }); keep a tag and
+                // the byte size instead of shipping the binary payload.
+                requestInfo.response = '[non-text response]';
+                requestInfo.responseLength =
+                  typeof rawResponse.byteLength === 'number'
+                    ? rawResponse.byteLength
+                    : typeof rawResponse.size === 'number'
+                      ? rawResponse.size
+                      : null;
+              }
+            } catch (e) {
+              requestInfo.response = null;
+            }
+            requestInfo.outcome = outcome;
+
+            xhrRequests.push(requestInfo);
+            if (xhrRequests.length > ${maxRecords}) {
+              xhrRequests.splice(0, xhrRequests.length - ${maxRecords});
+            }
+            console.log(
+              '[XHRInterceptor] XHR completed:',
+              requestInfo.url,
+              'Status:',
+              xhr.status,
+              'Outcome:',
+              outcome,
+            );
+          };
+
           const originalSend = xhr.send;
           xhr.send = function(body) {
             let bodySize = 0;
@@ -60,23 +114,23 @@ export function buildXHRInterceptorCode(maxRecords: number): string {
             } catch {}
             console.log('[XHRInterceptor] XHR sent:', requestInfo.url, 'BodySize:', bodySize);
 
-            xhr.addEventListener('load', function() {
-              requestInfo.status = xhr.status;
-              requestInfo.response = xhr.response;
-              requestInfo.responseHeaders = xhr.getAllResponseHeaders();
-
-              xhrRequests.push(requestInfo);
-              if (xhrRequests.length > ${maxRecords}) {
-                xhrRequests.splice(0, xhrRequests.length - ${maxRecords});
-              }
-              console.log('[XHRInterceptor] XHR completed:', requestInfo.url, 'Status:', xhr.status);
-            });
+            xhr.addEventListener('load', function() { record('load'); });
+            xhr.addEventListener('error', function() { record('error'); });
+            xhr.addEventListener('timeout', function() { record('timeout'); });
+            xhr.addEventListener('abort', function() { record('abort'); });
 
             return originalSend.call(xhr, body);
           };
 
           return xhr;
         };
+        // Preserve instanceof and the static readyState constants
+        // (XMLHttpRequest.DONE/OPENED/...) while still returning orig instances.
+        XHRWrapper.prototype = originalXHR.prototype;
+        try {
+          Object.setPrototypeOf(XHRWrapper, originalXHR);
+        } catch (e) {}
+        window.XMLHttpRequest = XHRWrapper;
 
         window.__getXHRRequests = function() {
           return window.__xhrRequests || [];
@@ -141,22 +195,7 @@ export function buildFetchInterceptorCode(maxRecords: number): string {
 
           console.log('[FetchInterceptor] Fetch called:', requestInfo.method, requestInfo.url);
 
-          return originalFetch.call(window, url, options).then(async (response) => {
-            requestInfo.status = response.status;
-
-            const clonedResponse = response.clone();
-            try {
-              const fullText = await clonedResponse.text();
-              const fullLength = fullText.length;
-              requestInfo.responseLength = fullLength;
-              requestInfo.responseTruncated = fullLength > ${RESPONSE_PREVIEW_LIMIT};
-              requestInfo.responsePreview = requestInfo.responseTruncated
-                ? fullText.slice(0, ${RESPONSE_PREVIEW_LIMIT})
-                : fullText;
-            } catch (e) {
-              requestInfo.responsePreview = '[Unable to read response]';
-            }
-
+          const recordRequest = function() {
             fetchRequests.push(requestInfo);
             if (fetchRequests.length > ${maxRecords}) {
               fetchRequests.splice(0, fetchRequests.length - ${maxRecords});
@@ -170,10 +209,64 @@ export function buildFetchInterceptorCode(maxRecords: number): string {
             } catch (e) {
               // best-effort persistence only; ignore quota or serialization failures
             }
-            console.log('[FetchInterceptor] Fetch completed:', requestInfo.url, 'Status:', response.status);
+          };
 
+          // Read the preview out-of-band: callers must never wait for the body.
+          // Binary/document payloads are not decoded as UTF-8 text.
+          const capturePreview = function(response, info) {
+            let contentType = '';
+            try {
+              if (response.headers && typeof response.headers.get === 'function') {
+                contentType = response.headers.get('content-type') || '';
+              }
+            } catch (e) {}
+            const lower = String(contentType).toLowerCase();
+            const isText =
+              lower === '' ||
+              lower.indexOf('text/') === 0 ||
+              lower.indexOf('json') !== -1 ||
+              lower.indexOf('javascript') !== -1 ||
+              lower.indexOf('xml') !== -1 ||
+              lower.indexOf('x-www-form-urlencoded') !== -1;
+            if (!isText) {
+              info.responsePreview = '[non-text response]';
+              return;
+            }
+            try {
+              const cloned = response.clone();
+              if (typeof cloned.text !== 'function') {
+                info.responsePreview = '[Unable to read response]';
+                return;
+              }
+              void cloned.text().then(
+                function(fullText) {
+                  const fullLength = fullText.length;
+                  info.responseLength = fullLength;
+                  info.responseTruncated = fullLength > ${RESPONSE_PREVIEW_LIMIT};
+                  info.responsePreview = info.responseTruncated
+                    ? fullText.slice(0, ${RESPONSE_PREVIEW_LIMIT})
+                    : fullText;
+                },
+                function() {
+                  info.responsePreview = '[Unable to read response]';
+                },
+              );
+            } catch (e) {
+              info.responsePreview = '[Unable to read response]';
+            }
+          };
+
+          return originalFetch.call(window, url, options).then((response) => {
+            requestInfo.status = response.status;
+            requestInfo.outcome = 'fulfilled';
+            capturePreview(response, requestInfo);
+            recordRequest();
+            console.log('[FetchInterceptor] Fetch completed:', requestInfo.url, 'Status:', response.status);
             return response;
           }).catch((error) => {
+            requestInfo.outcome = 'rejected';
+            requestInfo.error = String(error && error.message ? error.message : error);
+            recordRequest();
             console.error('[FetchInterceptor] Fetch failed:', requestInfo.url, error);
             throw error;
           });

@@ -86,12 +86,20 @@ export async function inspectObjectCore(
       if (!prop.value) continue;
       const valueObj = prop.value;
 
-      properties[prop.name] = {
-        value: context.extractValue(valueObj),
-        type: valueObj.type,
-        objectId: valueObj.objectId,
-        description: valueObj.description,
-      };
+      // `prop.name` is page-controlled. Assigning `properties['__proto__']`
+      // directly would mutate the record's prototype instead of creating an
+      // own key; defineProperty keeps arbitrary CDP names inert.
+      Object.defineProperty(properties, prop.name, {
+        value: {
+          value: context.extractValue(valueObj),
+          type: valueObj.type,
+          objectId: valueObj.objectId,
+          description: valueObj.description,
+        },
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
     }
 
     if (!context.objectCache.has(objectId)) {

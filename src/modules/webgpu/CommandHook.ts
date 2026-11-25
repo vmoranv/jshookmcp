@@ -43,9 +43,15 @@ function hookScript(): void {
     return;
   }
 
-  const state: PageHookState = {
-    originalSubmit: GPUQueue.prototype.submit,
-    originalCreateCommandEncoder: GPUDevice.prototype.createCommandEncoder,
+  // Pages without WebGPU must not throw here: the hook state still installs so
+  // command/error/memory tools degrade to empty results instead of failing.
+  const g = globalThis as any;
+  const queueProto = g.GPUQueue && g.GPUQueue.prototype;
+  const deviceProto = g.GPUDevice && g.GPUDevice.prototype;
+
+  const state = {
+    originalSubmit: queueProto ? queueProto.submit : null,
+    originalCreateCommandEncoder: deviceProto ? deviceProto.createCommandEncoder : null,
     hooksInstalled: false,
     commandTrace: null,
     allocations: [],
@@ -124,6 +130,10 @@ export async function installGPUCommandHook(
       }
       state.timestampQuery = {
         ...ts,
+        // Never inherit capability state from the previous window: `...ts`
+        // could carry supported=true while querySet is reset to null.
+        supported: false,
+        timestampPeriod: 1,
         querySet: null,
         count: 0,
         next: 0,
@@ -136,34 +146,29 @@ export async function installGPUCommandHook(
       };
     }
 
-    // Resolve the page device (prefer the shared cache; fall back to a fresh
-    // adapter/device request — only when navigator.gpu is present, so the hook
-    // still installs on non-WebGPU pages with timestampQuery.supported=false).
+    // Timestamp queries can only be attached to passes submitted on the *same*
+    // device that owns the query set. The only device guaranteed to match the
+    // application's is the shared cache populated by ensureDevice(); a freshly
+    // requested device is a different object and injecting its query set would
+    // make the application's beginPass descriptors invalid.
+    const timestampQuery = state.timestampQuery!;
     let timingDevice: any = null;
     const cached = (window as any).__webgpuDeviceCache;
     if (cached && cached.device && !cached.lost) {
       timingDevice = cached.device;
-    } else if ((navigator as any).gpu) {
-      try {
-        const adapter = await (navigator as any).gpu.requestAdapter();
-        if (adapter) {
-          timingDevice = await adapter.requestDevice();
-        }
-      } catch {
-        // Environment without a usable adapter — stay unsupported.
-        timingDevice = null;
-      }
     }
-
-    const timestampQuery = state.timestampQuery!;
-    if (timingDevice) {
+    if (!timingDevice) {
+      timestampQuery.supported = false;
+      timestampQuery.querySet = null;
+      timestampQuery.device = null;
+      timestampQuery.timestampPeriod = 1;
+    } else {
       const features = timingDevice.features;
       const supported = features ? features.has('timestamp-query') : false;
       const period =
         timingDevice.limits && typeof timingDevice.limits.timestampPeriod === 'number'
           ? timingDevice.limits.timestampPeriod
           : 1;
-      timestampQuery.device = timingDevice;
       timestampQuery.timestampPeriod = period;
       if (supported) {
         // 2 slots per pass (begin + end). 512 passes is ample for a capture
@@ -177,12 +182,21 @@ export async function installGPUCommandHook(
         timestampQuery.count = SLOT_COUNT;
         timestampQuery.next = 0;
         timestampQuery.supported = true;
+        timestampQuery.device = timingDevice;
       } else {
         timestampQuery.supported = false;
+        timestampQuery.querySet = null;
+        timestampQuery.device = null;
       }
     }
 
     if (state.hooksInstalled) {
+      return;
+    }
+
+    // No WebGPU in this page: state exists (tools read empty results) but there
+    // are no prototypes to patch.
+    if (typeof GPUDevice === 'undefined' || typeof GPUQueue === 'undefined') {
       return;
     }
 
@@ -295,14 +309,24 @@ export async function installGPUCommandHook(
             indirectBufferSize: lastIndirectBufferSize,
             totalVertexCount,
           });
-          // Associate this pass with its allocated timestamp slots so the
-          // post-submit resolution can attach gpuStartNs/gpuEndNs.
+          // Associate this pass with its *own* allocated timestamp slots so
+          // post-submit resolution can attach gpuStartNs/gpuEndNs. Matching by
+          // "first unbound pending" misattributes passes that were skipped
+          // (e.g. drawCalls === 0) to later commands.
           const slotMark = (encoder as any).__jshookTimestamp;
           const tsq = state.timestampQuery;
           if (slotMark && tsq && tsq.supported) {
-            const pend = tsq.pending.find((p) => p.commandIndex === null);
+            const pend = tsq.pending.find(
+              (p) => p.commandIndex === null && p.begin === slotMark.begin,
+            );
             if (pend) {
               pend.commandIndex = trace.commands.length - 1;
+            } else {
+              // This pass was not recorded; drop its unbound slot so it cannot
+              // block/offset resolution for subsequent passes.
+              tsq.pending = tsq.pending.filter(
+                (p) => p.commandIndex !== null || p.begin !== slotMark.begin,
+              );
             }
           }
         }
@@ -316,12 +340,14 @@ export async function installGPUCommandHook(
       let dispatchX = 0;
       let dispatchY = 0;
       let dispatchZ = 0;
+      let dispatchCalled = false;
       let pipelineLabel: string | undefined;
       let pipelineSet = false;
       const bindGroups: number[] = [];
 
       const originalDispatch = encoder.dispatchWorkgroups;
       encoder.dispatchWorkgroups = function (x: number, y?: number, z?: number) {
+        dispatchCalled = true;
         dispatchX = x;
         dispatchY = y ?? 1;
         dispatchZ = z ?? 1;
@@ -331,6 +357,7 @@ export async function installGPUCommandHook(
       const originalDispatchIndirect = encoder.dispatchWorkgroupsIndirect;
       if (typeof originalDispatchIndirect === 'function') {
         encoder.dispatchWorkgroupsIndirect = function (...args: any[]) {
+          dispatchCalled = true;
           dispatchX = -1; // indirect: dimension unknown
           dispatchY = -1;
           dispatchZ = -1;
@@ -358,7 +385,9 @@ export async function installGPUCommandHook(
       const originalEnd = encoder.end;
       encoder.end = function () {
         const trace = state.commandTrace;
-        if (trace && trace.commands.length < maxCommands && dispatchX > 0) {
+        // Indirect dispatches set the dimension fields to -1, so the previous
+        // `dispatchX > 0` check silently dropped them (while consuming slots).
+        if (trace && trace.commands.length < maxCommands && dispatchCalled) {
           trace.commands.push({
             type: 'compute',
             dispatches: { x: dispatchX, y: dispatchY, z: dispatchZ },
@@ -371,9 +400,15 @@ export async function installGPUCommandHook(
           const slotMark = (encoder as any).__jshookTimestamp;
           const tsq = state.timestampQuery;
           if (slotMark && tsq && tsq.supported) {
-            const pend = tsq.pending.find((p) => p.commandIndex === null);
+            const pend = tsq.pending.find(
+              (p) => p.commandIndex === null && p.begin === slotMark.begin,
+            );
             if (pend) {
               pend.commandIndex = trace.commands.length - 1;
+            } else {
+              tsq.pending = tsq.pending.filter(
+                (p) => p.commandIndex !== null || p.begin !== slotMark.begin,
+              );
             }
           }
         }
@@ -503,7 +538,9 @@ export async function installGPUCommandHook(
         tsq.resolveStartedAt = performance.now();
         const resolveCount = tsq.next;
         const deviceForTiming = tsq.device;
-        if (deviceForTiming && deviceForTiming.queue) {
+        // Only resolve when this is the queue that owns the query set; a
+        // different device's queue cannot read these timestamps.
+        if (deviceForTiming && deviceForTiming.queue === this) {
           deviceForTiming.queue
             .onSubmittedWorkDone()
             .then(() => {
@@ -524,6 +561,11 @@ export async function installGPUCommandHook(
                     if (p.commandIndex === null) {
                       continue;
                     }
+                    // Passes created/ended while this resolution was in flight
+                    // are not covered by resolveCount — do not read them here.
+                    if (p.begin >= resolveCount || p.end >= resolveCount) {
+                      continue;
+                    }
                     const startTicks = Number(arr[p.begin] ?? 0n);
                     const endTicks = Number(arr[p.end] ?? 0n);
                     const startNs = startTicks * period;
@@ -534,7 +576,11 @@ export async function installGPUCommandHook(
                       elapsedNs: Math.max(0, endNs - startNs),
                     };
                   }
-                  tsq.pending = [];
+                  // Keep entries this resolution did not cover (newer passes).
+                  tsq.pending = tsq.pending.filter(
+                    (p) =>
+                      p.commandIndex === null || p.begin >= resolveCount || p.end >= resolveCount,
+                  );
                   dst.destroy();
                   tsq.resolving = false;
                 })

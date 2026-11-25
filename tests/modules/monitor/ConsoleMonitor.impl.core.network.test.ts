@@ -120,15 +120,32 @@ describe('ConsoleMonitor network core helpers', () => {
     await expect(clearInjectedBuffersCore(ctx)).resolves.toEqual({
       xhrCleared: 1,
       fetchCleared: 2,
-      dynamicScriptsCleared: 0,
+      dynamicScriptsCleared: 99,
     });
     await expect(resetInjectedInterceptorsCore(ctx)).resolves.toEqual({
       xhrReset: true,
       fetchReset: true,
-      scriptMonitorReset: false,
+      scriptMonitorReset: true,
     });
     clearNetworkRecordsCore(ctx);
     expect(playwrightNetworkMonitor.clearRecords).toHaveBeenCalled();
+  });
+
+  it('prefers an enabled CDP monitor over a disabled Playwright monitor', () => {
+    const playwrightNetworkMonitor = createMonitor(false);
+    const networkMonitor = createMonitor(true);
+    const ctx = {
+      playwrightNetworkMonitor,
+      networkMonitor,
+      cdpSession: {},
+      clearDynamicScriptBuffer: vi.fn(async () => ({ dynamicScriptsCleared: 0 })),
+      resetDynamicScriptMonitoring: vi.fn(async () => ({ scriptMonitorReset: false })),
+    };
+
+    expect(isNetworkEnabledCore(ctx)).toBe(true);
+    expect(getNetworkRequestsCore(ctx)).toEqual([{ requestId: 'req-1' }]);
+    expect(networkMonitor.getRequests).toHaveBeenCalledTimes(1);
+    expect(playwrightNetworkMonitor.getRequests).not.toHaveBeenCalled();
   });
 
   it('combines CDP monitor and dynamic-script results and validates interceptor prerequisites', async () => {

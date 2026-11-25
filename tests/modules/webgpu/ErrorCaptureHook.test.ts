@@ -65,4 +65,17 @@ describe('ErrorCaptureHook page-eval wrappers', () => {
     await uninstallErrorCaptureHook(page as never);
     expect(page.evaluate).toHaveBeenCalled();
   });
+
+  it('install script re-binds lost observation and balances error scopes', async () => {
+    const page = mockPage();
+    await installErrorCaptureHook(page as never, { captureCount: 3, wrapAllocations: true });
+    const call = (page.evaluate as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => typeof c[0] === 'function' && String(c[0]).includes('uncapturederror'),
+    );
+    const source = String(call?.[0] ?? '');
+
+    expect(source).toContain('lostDevice');
+    expect(source).toContain('scopePushed');
+    expect(source).toContain('state.wrapped = []');
+  });
 });

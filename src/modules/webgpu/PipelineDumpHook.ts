@@ -84,13 +84,20 @@ export async function installPipelineDumpHook(
     // through; anything with a non-trivial constructor (GPUShaderModule, etc.)
     // becomes { __gpu, label }.
     const MAX_DEPTH = 8;
+    const seen = new WeakSet<object>();
     const sanitize = (value: any, depth = 0): any => {
       if (value === null || typeof value !== 'object') {
         return value;
       }
+      // Depth must be checked before the array branch, otherwise nested arrays
+      // bypass the cutoff and can overflow the stack.
       if (depth > MAX_DEPTH) {
         return '<deep>';
       }
+      if (seen.has(value)) {
+        return '<circular>';
+      }
+      seen.add(value);
       if (Array.isArray(value)) {
         return value.map((v) => sanitize(v, depth + 1));
       }

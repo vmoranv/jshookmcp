@@ -32,10 +32,43 @@ interface SessionCoreContext {
   lastEnableOptions: { enableNetwork?: boolean; enableExceptions?: boolean };
   formatRemoteObject(obj: CdpRemoteObject): string;
   extractValue(obj: CdpRemoteObject): unknown;
+  // Stored so disableCore() can detach them. Re-enabling the same managed
+  // target session otherwise accumulates duplicate listeners.
+  cdpDisconnectedHandler?: (() => void) | null;
+  cdpConsoleApiCalledHandler?: ((params: RuntimeConsoleApiCalledEvent) => void) | null;
+  cdpConsoleMessageHandler?: ((params: ConsoleMessageAddedEvent) => void) | null;
+  cdpExceptionHandler?: ((params: RuntimeExceptionThrownEvent) => void) | null;
 }
 
 function asSessionCtx(ctx: unknown): SessionCoreContext {
   return ctx as SessionCoreContext;
+}
+
+function detachCdpHandlers(state: SessionCoreContext, session: CDPSessionLike | null): void {
+  if (!session) {
+    return;
+  }
+  const detach = (
+    event: string,
+    handler: ((...args: never[]) => void) | null | undefined,
+  ): void => {
+    if (!handler) {
+      return;
+    }
+    try {
+      session.off(event, handler as (payload: unknown) => void);
+    } catch {
+      /* best-effort detach during shutdown */
+    }
+  };
+  detach('disconnected', state.cdpDisconnectedHandler);
+  detach('Runtime.consoleAPICalled', state.cdpConsoleApiCalledHandler);
+  detach('Console.messageAdded', state.cdpConsoleMessageHandler);
+  detach('Runtime.exceptionThrown', state.cdpExceptionHandler);
+  state.cdpDisconnectedHandler = null;
+  state.cdpConsoleApiCalledHandler = null;
+  state.cdpConsoleMessageHandler = null;
+  state.cdpExceptionHandler = null;
 }
 
 export async function doEnableCdpCore(
@@ -45,11 +78,15 @@ export async function doEnableCdpCore(
   options?: { enableNetwork?: boolean; enableExceptions?: boolean },
 ): Promise<void> {
   const state = asSessionCtx(ctx);
+  // Drop listeners from a previous session before replacing it.
+  if (state.cdpSession && state.cdpSession !== session) {
+    detachCdpHandlers(state, state.cdpSession);
+  }
   state.cdpSession = session;
   state.usingManagedTargetSession = managed;
   state.lastEnableOptions = { ...options };
 
-  state.cdpSession.on('disconnected', () => {
+  const disconnectedHandler = (): void => {
     logger.warn('ConsoleMonitor CDP session disconnected');
     // Guard against a stale zombie session's late 'disconnected' event
     // clobbering a newer session installed after reinitialization.
@@ -58,12 +95,22 @@ export async function doEnableCdpCore(
       state.networkMonitor = null;
       state.usingManagedTargetSession = false;
     }
-  });
+  };
+  state.cdpDisconnectedHandler = disconnectedHandler;
+  session.on('disconnected', disconnectedHandler);
 
-  await cdpSendWithTimeout(state.cdpSession, 'Runtime.enable', {}, 5000);
-  await cdpSendWithTimeout(state.cdpSession, 'Console.enable', {}, 5000);
+  await cdpSendWithTimeout(session, 'Runtime.enable', {}, 5000);
+  await cdpSendWithTimeout(session, 'Console.enable', {}, 5000);
 
-  state.cdpSession.on('Runtime.consoleAPICalled', (params: RuntimeConsoleApiCalledEvent) => {
+  if (state.cdpSession !== session) {
+    // The session disconnected (or was replaced) while the domains were being
+    // enabled. Registering listeners now would mutate a dead/stale session.
+    logger.warn('ConsoleMonitor CDP session changed during enable; aborting listener setup');
+    detachCdpHandlers(state, session);
+    return;
+  }
+
+  const consoleApiCalledHandler = (params: RuntimeConsoleApiCalledEvent): void => {
     const stackTrace: StackFrame[] =
       params.stackTrace?.callFrames?.map((frame) => ({
         functionName: frame.functionName || '(anonymous)',
@@ -86,9 +133,11 @@ export async function doEnableCdpCore(
       state.messages = state.messages.slice(-Math.floor(state.MAX_MESSAGES / 2));
     }
     logger.debug(`Console ${params.type}: ${message.text}`);
-  });
+  };
+  state.cdpConsoleApiCalledHandler = consoleApiCalledHandler;
+  session.on('Runtime.consoleAPICalled', consoleApiCalledHandler);
 
-  state.cdpSession.on('Console.messageAdded', (params: ConsoleMessageAddedEvent) => {
+  const consoleMessageHandler = (params: ConsoleMessageAddedEvent): void => {
     const msg = params.message;
     const message: ConsoleMessage = {
       type: msg.level || 'log',
@@ -102,10 +151,12 @@ export async function doEnableCdpCore(
     if (state.messages.length > state.MAX_MESSAGES) {
       state.messages = state.messages.slice(-Math.floor(state.MAX_MESSAGES / 2));
     }
-  });
+  };
+  state.cdpConsoleMessageHandler = consoleMessageHandler;
+  session.on('Console.messageAdded', consoleMessageHandler);
 
   if (options?.enableExceptions !== false) {
-    state.cdpSession.on('Runtime.exceptionThrown', (params: RuntimeExceptionThrownEvent) => {
+    const exceptionHandler = (params: RuntimeExceptionThrownEvent): void => {
       const exception = params.exceptionDetails;
       const stackTrace: StackFrame[] =
         exception.stackTrace?.callFrames?.map((frame) => ({
@@ -132,7 +183,9 @@ export async function doEnableCdpCore(
         url: exceptionInfo.url,
         line: exceptionInfo.lineNumber,
       });
-    });
+    };
+    state.cdpExceptionHandler = exceptionHandler;
+    session.on('Runtime.exceptionThrown', exceptionHandler);
   }
 
   if (options?.enableNetwork) {
@@ -140,8 +193,7 @@ export async function doEnableCdpCore(
       getManagedTargetNetworkMonitor?: () => NetworkMonitorLike | null;
     };
     state.networkMonitor =
-      collectorWithTargets.getManagedTargetNetworkMonitor?.() ??
-      new NetworkMonitor(state.cdpSession);
+      collectorWithTargets.getManagedTargetNetworkMonitor?.() ?? new NetworkMonitor(session);
     await state.networkMonitor.enable();
   }
 
@@ -233,28 +285,44 @@ export async function disableCore(ctx: unknown): Promise<void> {
   }
 
   if (state.playwrightNetworkMonitor) {
-    await state.playwrightNetworkMonitor.disable();
+    try {
+      await state.playwrightNetworkMonitor.disable();
+    } catch (error) {
+      logger.warn('Failed to disable Playwright network monitor:', error);
+    }
     state.playwrightNetworkMonitor = null;
   }
 
   if (state.cdpSession) {
+    const session = state.cdpSession;
     if (state.networkMonitor) {
-      await state.networkMonitor.disable();
+      try {
+        await state.networkMonitor.disable();
+      } catch (error) {
+        logger.warn('Failed to disable network monitor:', error);
+      }
       state.networkMonitor = null;
     }
     try {
-      await state.cdpSession.send('Console.disable');
+      // A zombie session never answers; bound each cleanup step so disable()
+      // (including the enable() rollback path) always terminates.
+      await cdpSendWithTimeout(session, 'Console.disable', undefined, 5000);
     } catch (error) {
       logger.warn('Failed to disable Console domain:', error);
     }
     try {
-      await state.cdpSession.send('Runtime.disable');
+      // A zombie session never answers; bound each cleanup step so disable()
+      // (including the enable() rollback path) always terminates.
+      await cdpSendWithTimeout(session, 'Runtime.disable', undefined, 5000);
     } catch (error) {
       logger.warn('Failed to disable Runtime domain:', error);
     }
+    // Detach listeners regardless of whether the domain disables succeeded,
+    // otherwise a reused managed target session accumulates duplicates.
+    detachCdpHandlers(state, session);
     if (!state.usingManagedTargetSession) {
       try {
-        await state.cdpSession.detach();
+        await session.detach();
       } catch (error) {
         logger.warn('Failed to detach ConsoleMonitor CDP session:', error);
       }
@@ -270,11 +338,11 @@ export async function disableCore(ctx: unknown): Promise<void> {
 export async function cdpSendWithTimeout<T>(
   session: { send(method: string, params?: Record<string, unknown>): Promise<T> },
   method: string,
-  params: Record<string, unknown>,
+  params?: Record<string, unknown>,
   timeoutMs = 30000,
 ): Promise<T> {
   return Promise.race([
-    session.send(method, params),
+    params === undefined ? session.send(method) : session.send(method, params),
     new Promise<T>((_, reject) =>
       setTimeout(
         () => reject(new Error(`CDP ${method} timed out after ${timeoutMs}ms`)),

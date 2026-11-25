@@ -219,6 +219,20 @@ describe('ShaderCache', () => {
     });
   });
 
+  describe('Bounded Size', () => {
+    it('evicts the oldest entry when maxSize is reached', () => {
+      const bounded = new ShaderCache(60_000, 2);
+      bounded.set('a', { v: 'a' });
+      bounded.set('b', { v: 'b' });
+      bounded.set('c', { v: 'c' });
+
+      expect(bounded.getStats().size).toBe(2);
+      expect(bounded.has('a')).toBe(false);
+      expect(bounded.get('b')).toEqual({ v: 'b' });
+      expect(bounded.get('c')).toEqual({ v: 'c' });
+    });
+  });
+
   describe('Global Instances', () => {
     beforeEach(() => {
       resetShaderCaches();

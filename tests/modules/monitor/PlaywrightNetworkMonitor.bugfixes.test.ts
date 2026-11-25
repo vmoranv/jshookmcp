@@ -50,4 +50,47 @@ describe('PlaywrightNetworkMonitor bug fixes', () => {
     expect(page.off).toHaveBeenCalledWith('request', expect.any(Function));
     expect(page.off).toHaveBeenCalledWith('response', expect.any(Function));
   });
+
+  it('drops a body captured from before clearRecords()', async () => {
+    const handlers: Record<string, (payload: any) => void> = {};
+    const page = {
+      on: vi.fn((event: string, handler: (payload: any) => void) => {
+        handlers[event] = handler;
+      }),
+      off: vi.fn(),
+      evaluate: vi.fn(async () => {}),
+    } as any;
+
+    let resolveBody!: (buf: Buffer) => void;
+    const bodyPromise = new Promise<Buffer>((resolve) => {
+      resolveBody = resolve;
+    });
+    const req = {
+      url: () => 'https://example.com/stale',
+      method: () => 'GET',
+      headers: () => ({}),
+      postData: () => null,
+      resourceType: () => 'xhr',
+    };
+    const res = {
+      request: () => req,
+      url: () => 'https://example.com/stale',
+      status: () => 200,
+      statusText: () => 'OK',
+      headers: () => ({ 'content-type': 'application/json' }),
+      body: () => bodyPromise,
+    };
+
+    const monitor = new PlaywrightNetworkMonitor(page);
+    await monitor.enable();
+    handlers.request!(req);
+    handlers.response!(res);
+    const requestId = monitor.getRequests()[0]!.requestId;
+
+    monitor.clearRecords();
+    resolveBody(Buffer.from('{"late":true}'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(await monitor.getResponseBody(requestId)).toBeNull();
+  });
 });

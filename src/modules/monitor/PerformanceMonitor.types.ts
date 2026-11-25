@@ -205,6 +205,11 @@ export function collectTopHeapAllocations(
   root: CDPHeapSamplingNode,
   topN: number,
 ): { sampleCount: number; topAllocations: HeapAllocationSummary[] } {
+  // `topN` is user-controlled. Reject NaN/fractions/negatives: `topN <= 0` is
+  // false for NaN, and `length = 2.5` throws RangeError.
+  if (!Number.isInteger(topN) || topN < 0) {
+    throw new RangeError(`topN must be a non-negative integer, received: ${topN}`);
+  }
   const stack: CDPHeapSamplingNode[] = [root];
   const topAllocations: HeapAllocationSummary[] = [];
   let sampleCount = 0;

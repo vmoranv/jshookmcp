@@ -60,6 +60,7 @@ function errorHookScript(): void {
     device: null,
     wrapped: [],
     lostRegistered: false,
+    lostDevice: null,
   };
 }
 
@@ -91,12 +92,8 @@ export async function installErrorCaptureHook(
     state.totalErrors = 0;
     state.deviceLost = null;
 
-    if (state.installed) {
-      return;
-    }
-
-    let device = w.__webgpuDeviceCache?.device ?? null;
-    if (!device) {
+    let device = w.__webgpuDeviceCache?.device ?? state.device ?? null;
+    if (!device && !state.installed) {
       if (typeof navigator === 'undefined' || !navigator.gpu) {
         throw new Error('WebGPU (navigator.gpu) is not available in this page');
       }
@@ -108,50 +105,86 @@ export async function installErrorCaptureHook(
       w.__webgpuDeviceCache = w.__webgpuDeviceCache || {};
       w.__webgpuDeviceCache.device = device;
     }
-    state.device = device;
 
-    const handler = (event: any) => {
-      try {
-        state.totalErrors += 1;
-        if (state.errors.length < opts.captureCount) {
-          const err = event?.error ?? {};
-          state.errors.push({
-            type: typeof err.type === 'string' ? err.type : 'unknown',
-            message: typeof err.message === 'string' ? err.message : '',
-            timestamp: performance.now(),
-          });
-        }
-      } catch {
-        /* instrumentation must never break the app */
-      }
-    };
-    state.errorHandler = handler;
-    device.addEventListener('uncapturederror', handler);
-
-    // device.lost resolves if/when the device is lost.
-    if (!state.lostRegistered) {
-      device.lost.then(
-        (info: any) => {
-          state.deviceLost = {
-            reason: typeof info?.reason === 'string' ? info.reason : 'unknown',
-            message: typeof info?.message === 'string' ? info.message : '',
-          };
-        },
-        () => {
+    // Re-bind the error/lost observers when the app replaced its cached device
+    // (e.g. device-loss recovery or a context switch); a one-shot
+    // `lostRegistered` flag would keep observing the stale device forever.
+    if (device) {
+      if (state.device && state.errorHandler) {
+        try {
+          state.device.removeEventListener('uncapturederror', state.errorHandler);
+        } catch {
           /* ignore */
-        },
-      );
-      state.lostRegistered = true;
+        }
+      }
+      const handler = (event: any) => {
+        try {
+          state.totalErrors += 1;
+          if (state.errors.length < opts.captureCount) {
+            const err = event?.error ?? {};
+            state.errors.push({
+              type: typeof err.type === 'string' ? err.type : 'unknown',
+              message: typeof err.message === 'string' ? err.message : '',
+              timestamp: performance.now(),
+            });
+          }
+        } catch {
+          /* instrumentation must never break the app */
+        }
+      };
+      state.errorHandler = handler;
+      state.device = device;
+      device.addEventListener('uncapturederror', handler);
+
+      // device.lost resolves if/when the device is lost.
+      if (state.lostDevice !== device) {
+        state.lostDevice = device;
+        state.lostRegistered = true;
+        device.lost.then(
+          (info: any) => {
+            state.deviceLost = {
+              reason: typeof info?.reason === 'string' ? info.reason : 'unknown',
+              message: typeof info?.message === 'string' ? info.message : '',
+            };
+          },
+          () => {
+            /* ignore */
+          },
+        );
+      }
+    }
+
+    if (state.installed) {
+      return;
     }
 
     if (opts.wrapAllocations) {
+      if (typeof GPUDevice === 'undefined') {
+        return;
+      }
       const proto: any = GPUDevice.prototype;
+      // A previous install that aborted before `installed = true` can leave
+      // wrappers registered; restore them before wrapping again.
+      if (Array.isArray(state.wrapped) && state.wrapped.length > 0) {
+        for (const entry of state.wrapped) {
+          try {
+            proto[entry.name] = entry.orig;
+          } catch {
+            /* ignore */
+          }
+        }
+        state.wrapped = [];
+      }
       const wrap = (name: string) => {
         const orig = proto[name];
         proto[name] = function (this: any, descriptor: any) {
+          let scopePushed = false;
           try {
             this.pushErrorScope('validation');
+            scopePushed = true;
             const result = orig.call(this, descriptor);
+            // Ownership of the scope passes to the pop promise.
+            scopePushed = false;
             this.popErrorScope().then(
               (err: any) => {
                 if (err && state.errors.length < opts.captureCount) {
@@ -169,8 +202,20 @@ export async function installErrorCaptureHook(
               },
             );
             return result;
-          } catch {
-            return orig.call(this, descriptor);
+          } catch (err) {
+            // Never re-run the allocation; balance a scope that was pushed
+            // before the synchronous throw so the app's scope stack stays sane.
+            if (scopePushed) {
+              try {
+                const pop = this.popErrorScope();
+                if (pop && typeof pop.catch === 'function') {
+                  pop.catch(() => {});
+                }
+              } catch {
+                /* ignore */
+              }
+            }
+            throw err;
           }
         };
         state.wrapped.push({ name, orig });
@@ -202,7 +247,7 @@ export async function uninstallErrorCaptureHook(page: Page): Promise<void> {
         /* ignore */
       }
     }
-    if (Array.isArray(state.wrapped)) {
+    if (Array.isArray(state.wrapped) && typeof GPUDevice !== 'undefined') {
       const proto: any = GPUDevice.prototype;
       for (const entry of state.wrapped) {
         try {
@@ -212,6 +257,13 @@ export async function uninstallErrorCaptureHook(page: Page): Promise<void> {
         }
       }
     }
+    // Clear the registry so a reinstall cannot restore wrappers twice or wrap
+    // the previous wrapper.
+    state.wrapped = [];
+    state.device = null;
+    state.errorHandler = null;
+    state.lostDevice = null;
+    state.lostRegistered = false;
     state.installed = false;
   });
 }

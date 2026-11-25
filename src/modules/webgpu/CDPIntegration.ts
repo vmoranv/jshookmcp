@@ -102,7 +102,18 @@ export async function ensureDevice(
       throw new Error('No suitable GPUAdapter available.');
     }
 
-    const device = await adapter.requestDevice();
+    // Request timestamp-query when available so the command-capture hook can
+    // attach per-pass GPU timings to this shared device. The feature is
+    // optional; adapters that lack it still return a device.
+    const requiredFeatures: string[] = [];
+    if (adapter.features && typeof adapter.features.has === 'function') {
+      if (adapter.features.has('timestamp-query')) {
+        requiredFeatures.push('timestamp-query');
+      }
+    }
+    const device = await adapter.requestDevice(
+      requiredFeatures.length > 0 ? { requiredFeatures } : undefined,
+    );
 
     const info =
       (adapter.info as GPUAdapterInfo | undefined) ??
@@ -144,8 +155,23 @@ export async function ensureDevice(
 export async function releaseDevice(page: Page): Promise<void> {
   await page.evaluate(() => {
     const w = window as any;
-    if (w.__webgpuDeviceCache) {
-      w.__webgpuDeviceCache = undefined;
+    const cache = w.__webgpuDeviceCache;
+    if (!cache) {
+      return;
     }
+    // Explicitly destroy so GPU resources are released now rather than at GC
+    // time; dropping the JS reference alone leaves buffers/command buffers
+    // allocated and keeps the device.lost callback closure alive.
+    try {
+      if (cache.device && typeof cache.device.destroy === 'function') {
+        cache.device.destroy();
+      }
+    } catch {
+      // Device may already be lost.
+    }
+    cache.adapter = null;
+    cache.device = null;
+    cache.lost = true;
+    w.__webgpuDeviceCache = undefined;
   });
 }
