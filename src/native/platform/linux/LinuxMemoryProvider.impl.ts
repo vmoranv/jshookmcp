@@ -227,6 +227,11 @@ class LinuxMemoryProviderImpl implements PlatformMemoryAPI {
    * not stop at the first unmapped gap (address 0 is never mapped).
    */
   enumerateRegions(handle: ProcessHandle): MemoryRegionInfo[] {
+    // pid must be a positive integer: /proc/<pid>/maps is constructed from it,
+    // and a non-integer or negative value would be a path-injection vector.
+    if (!Number.isInteger(handle.pid) || handle.pid <= 0) {
+      throw new Error(`Invalid process pid: ${handle.pid}`);
+    }
     const mapsPath = `/proc/${handle.pid}/maps`;
     const parsed = parseProcMaps(fs.readFileSync(mapsPath, 'utf8'));
     return parsed.map((region) =>
@@ -309,3 +314,6 @@ class LinuxMemoryProviderImpl implements PlatformMemoryAPI {
 }
 
 export class LinuxMemoryProvider extends LinuxMemoryProviderImpl {}
+
+
+

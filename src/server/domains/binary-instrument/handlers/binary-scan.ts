@@ -17,6 +17,7 @@ import { getReverseEngineeringConfig } from '@utils/reverseEngineeringConfig';
 import { findArm64Xrefs } from '@modules/binary-instrument/arm64-xrefs';
 import { getSafeOutputRoots } from '@utils/outputPaths';
 import { resolveSafeOutputPath, writeOutputFile } from '@utils/safeOutput';
+import { compileSafeRegex } from '@utils/safeRegExp';
 import {
   readRequiredString,
   readOptionalString,
@@ -43,7 +44,15 @@ export class BinaryScanHandlers {
       ),
     );
     const pattern = readOptionalString(args, 'pattern');
-    const regex = pattern ? new RegExp(pattern, 'i') : undefined;
+    let regex: RegExp | undefined;
+    if (pattern) {
+      try {
+        regex = compileSafeRegex(pattern, 'i');
+      } catch {
+        // Invalid pattern: fall back to no filtering (match everything)
+        regex = undefined;
+      }
+    }
     const data = await readFile(filePath);
     const strings: Array<{ offset: number; encoding: 'ascii' | 'utf16le'; value: string }> = [];
     const addString = (offset: number, encoding: 'ascii' | 'utf16le', value: string) => {
@@ -294,3 +303,7 @@ function shannonEntropy(buf: Buffer): number {
   }
   return entropy;
 }
+
+
+
+

@@ -30,7 +30,7 @@
 - adb_webview_attach: Attach to a WebView via ADB; returns WebSocket debugger URL for CDP.
 - adb_webview_list: List debuggable WebView targets connected via ADB.
 
-## binary-instrument (46)
+## binary-instrument (50)
 - android_runtime_dump_session: Create or inspect a managed Android runtime dump session from Frida/ADB dump artifacts, DEX files, and /proc/PID/maps snapshots.
 - apk_dex_intake: Build a cohesive APK/DEX intake evidence packet: ZIP entries, manifest summary, DEX headers, native libraries, generic surface hints, caller-supplied hint matches, and next actions.
 - apk_manifest_dump: Extract AndroidManifest.xml from an APK for quick inspection.
@@ -77,6 +77,14 @@
 - unidbg_emulate: Emulate a native function with Unidbg when available.
 - unidbg_launch: Emulate a native shared library in Unidbg.
 - unidbg_trace: Get execution trace from Unidbg session with configurable detail.
+- binary_find_xrefs: Find ARM64 code references (ADRP+ADD / ADR) to a target virtual address in an ELF or raw binary. Useful for locating string/table users in stripped natives without exports.
+
+- frida_backtrace: Break on an address/symbol/moduleName+offset and return an ACCURATE mapped backtrace (module+offset per frame) for each hit. Use it when you only need the call stack, not a full Stalker trace.
+
+- frida_breakpoint_address: Install a Frida Interceptor breakpoint at an absolute address, an exported symbol (optionally module-scoped), or moduleName+offset. Captures argument pointers, register context (pc/sp/lr/x0-x7), and an ACCURATE backtrace per hit for the keepAliveMs window.
+
+- frida_stalker_trace: Break on an address/symbol/moduleName+offset and Stalker-follow the hitting thread, emitting annotated call/ret/exec/block events until maxEvents or handler return. Addresses are annotated with module/symbol by Frida (annotate+stringify).
+
 
 ## browser (85)
 - browser_attach: Connect to a running browser.
@@ -836,4 +844,5 @@ Actions:
 - workflow_run_inspect: Inspect the global workflow run store: list recent run_extension_workflow / run_macro runs, get a run entry by runId, or fetch the last successful run summary (runId, status, durationMs, stepResultKeys) for a workflow or macro id.
 - workflow_suggest: Suggest the next extension workflow to run from the chainsWith / prerequisites chain metadata declared by loaded workflows. Pass the workflow ids already executed in this session; the server stays stateless. Candidates chained from an executed workflow rank first (the reason names the chain), workflows with all prerequisites satisfied rank before those with missing ones, already-executed workflows are never suggested, and executed ids that match no loaded workflow are returned in unmatched. Workflows without chain metadata are never suggested, so an empty catalog of metadata yields empty suggestions.
 
-TOTAL: 739 tools in 36 domains
+TOTAL: 743 tools in 36 domains
+

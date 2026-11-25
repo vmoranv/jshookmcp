@@ -1,4 +1,5 @@
 import { logger } from '@utils/logger';
+import { compileSafeRegex } from '@utils/safeRegExp';
 import type { CodeFile } from '@internal-types/index';
 
 /** Score weight per priority-pattern rank. */
@@ -143,7 +144,7 @@ export class StreamingCollector {
     const priorityRegexes: RegExp[] = [];
     for (const pattern of priorities) {
       try {
-        priorityRegexes.push(new RegExp(pattern, 'i'));
+        priorityRegexes.push(compileSafeRegex(pattern, 'i'));
       } catch (error) {
         logger.warn(
           `[StreamingCollector] Ignoring invalid priority pattern "${pattern}": ` +
@@ -238,3 +239,5 @@ export class StreamingCollector {
     };
   }
 }
+
+

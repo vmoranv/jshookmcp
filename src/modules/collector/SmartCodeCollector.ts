@@ -1,5 +1,6 @@
 import type { Page } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
+import { compileSafeRegex } from '@utils/safeRegExp';
 import type { CodeFile } from '@internal-types/index';
 import { truncateUtf16Safe } from '@modules/collector/collector-utils';
 import { SMART_COLLECTOR_MAX_EXTRACTED_FUNCTIONS } from '@src/constants/browser';
@@ -102,7 +103,7 @@ export class SmartCodeCollector {
     const compiled: RegExp[] = [];
     for (const pattern of patterns) {
       try {
-        compiled.push(new RegExp(pattern));
+        compiled.push(compileSafeRegex(pattern));
       } catch (error) {
         logger.warn(
           `[SmartCodeCollector] Ignoring invalid ${context} pattern "${pattern}": ` +
@@ -316,3 +317,5 @@ export class SmartCodeCollector {
     return imports;
   }
 }
+
+
