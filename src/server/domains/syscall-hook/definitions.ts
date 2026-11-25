@@ -1,7 +1,7 @@
 import type { Tool } from '@modelcontextprotocol/server';
 import { tool } from '@server/registry/tool-builder';
 
-const BACKEND_OPTIONS = ['etw', 'strace', 'dtrace'];
+const BACKEND_OPTIONS = ['etw', 'strace', 'dtrace', 'adb'];
 
 const SYSCALL_EVENT_SCHEMA = {
   type: 'object',
@@ -26,9 +26,28 @@ const SYSCALL_EVENT_SCHEMA = {
 export const syscallHookToolDefinitions: Tool[] = [
   tool('syscall_start_monitor', (t) =>
     t
-      .desc('Start syscall monitoring.')
+      .desc(
+        "Start syscall monitoring. backend='adb' captures Android syscalls over adb " +
+          '(bpftrace on-device) and feeds them into the same capture buffer; other backends ' +
+          'use host ETW/strace/dtrace.',
+      )
       .enum('backend', BACKEND_OPTIONS, 'Syscall capture backend')
       .number('pid', 'Optional PID to scope monitoring to a single process')
+      .string('serial', "Android device serial when backend='adb'.")
+      .number(
+        'durationSec',
+        "backend='adb' capture window in seconds (the call blocks for this long).",
+        { default: 5, minimum: 1, maximum: 60 },
+      )
+      .string(
+        'bpftracePath',
+        "backend='adb': bpftrace path on the device when it is not on PATH (e.g. a wrapper script).",
+      )
+      .array(
+        'syscalls',
+        { type: 'string' },
+        "backend='adb': syscall names to trace. Defaults to connect/openat/read/write.",
+      )
       .boolean('simulate', 'Use synthetic events instead of a real system tracer', {
         default: false,
       })
@@ -177,11 +196,24 @@ export const syscallHookToolDefinitions: Tool[] = [
   tool('syscall_ebpf_attach', (t) =>
     t
       .desc(
-        'Live eBPF syscall attach — spawns a bpftrace process, captures syscall events ' +
-          'as structured JSON in real time, and returns them directly. Unlike ' +
-          'syscall_ebpf_trace (script-generator), this tool actually runs bpftrace ' +
-          'and captures output. Falls back to script mode on non-Linux or when bpftrace ' +
-          'is unavailable. Requires bpftrace + CAP_BPF or root on Linux.',
+        'Live eBPF syscall attach — runs a generated bpftrace program, captures syscall ' +
+          'events as structured JSON in real time, and returns them directly. Unlike ' +
+          'syscall_ebpf_trace (script-generator), this tool actually executes bpftrace. ' +
+          "device='host' traces this machine's kernel (needs bpftrace + CAP_BPF/root); " +
+          "device='adb' pushes the SAME generated program to an Android device and runs " +
+          'it under su, so one code path serves both. Falls back to script mode (with an ' +
+          'honest scope/note/fix) when the executor is unavailable.',
+      )
+      .enum(
+        'device',
+        ['host', 'adb'],
+        "Where to run bpftrace: 'host' (this machine) or 'adb' (Android device over adb).",
+        { default: 'host' },
+      )
+      .string('serial', "Android serial when device='adb' (see adb_device_list).")
+      .string(
+        'bpftracePath',
+        "Absolute bpftrace path on the device when device='adb' and it is not on PATH.",
       )
       .number('pid', 'Process ID to trace. 0 = trace all.', { default: 0 })
       .array('syscalls', { type: 'string' }, 'Specific syscall names to trace (empty = all)')

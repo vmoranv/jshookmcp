@@ -73,7 +73,7 @@ describe('SyscallHookHandlers — coverage expansion', () => {
       const result = await handlers.handleSyscallStartMonitor({});
       expect(result).toEqual({
         ok: false,
-        error: 'backend must be one of: etw, strace, dtrace',
+        error: 'backend must be one of: etw, strace, dtrace, adb',
       });
     });
 
@@ -81,7 +81,7 @@ describe('SyscallHookHandlers — coverage expansion', () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: null });
       expect(result).toEqual({
         ok: false,
-        error: 'backend must be one of: etw, strace, dtrace',
+        error: 'backend must be one of: etw, strace, dtrace, adb',
       });
     });
 
@@ -89,7 +89,7 @@ describe('SyscallHookHandlers — coverage expansion', () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: 123 });
       expect(result).toEqual({
         ok: false,
-        error: 'backend must be one of: etw, strace, dtrace',
+        error: 'backend must be one of: etw, strace, dtrace, adb',
       });
     });
 
@@ -97,7 +97,7 @@ describe('SyscallHookHandlers — coverage expansion', () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: 'perf' });
       expect(result).toEqual({
         ok: false,
-        error: 'backend must be one of: etw, strace, dtrace',
+        error: 'backend must be one of: etw, strace, dtrace, adb',
       });
     });
 

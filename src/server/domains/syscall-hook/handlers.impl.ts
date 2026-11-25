@@ -127,7 +127,7 @@ function normalizeSyscallList(value: unknown): string[] | undefined {
 }
 
 function readBackend(value: unknown): SyscallBackend | undefined {
-  if (value === 'etw' || value === 'strace' || value === 'dtrace') {
+  if (value === 'etw' || value === 'strace' || value === 'dtrace' || value === 'adb') {
     return value;
   }
   return undefined;
@@ -404,12 +404,77 @@ export class SyscallHookHandlers {
     return handleSafe(async () => await this.handleSyscallPatternDetect(args));
   }
 
+  private async startAdbMonitor(
+    args: Record<string, unknown>,
+    pid: number | undefined,
+    simulate: boolean,
+  ): Promise<unknown> {
+    const serial = readString(args['serial']);
+    if (!serial) {
+      return { ok: false, error: "backend 'adb' requires serial (Android device serial)" };
+    }
+    const durationSec = readNumber(args['durationSec']) ?? 5;
+    const bpftracePath = readString(args['bpftracePath']);
+    const requestedSyscalls = readStringArray(args['syscalls']);
+    const attach = (await handleSyscallEbpfAttach({
+      device: 'adb',
+      serial,
+      pid: pid ?? 0,
+      durationSec,
+      syscalls:
+        requestedSyscalls && requestedSyscalls.length > 0
+          ? requestedSyscalls
+          : ['connect', 'openat', 'read', 'write'],
+      ...(bpftracePath ? { bpftracePath } : {}),
+      ...(simulate ? { simulate: true } : {}),
+    })) as {
+      success?: boolean;
+      mode?: string;
+      probeStyle?: string;
+      events?: SyscallEvent[];
+      note?: string;
+      error?: string;
+    };
+
+    if (attach.success === false) {
+      return {
+        ok: false,
+        error: attach.error ?? 'Android eBPF capture failed',
+        backend: 'adb',
+        device: serial,
+      };
+    }
+
+    const events = Array.isArray(attach.events) ? attach.events : [];
+    const monitor = this.ensureMonitor();
+    monitor.ingestExternal('adb', events, pid);
+    void this.eventBus?.emit('syscall:trace_started', {
+      backend: 'adb',
+      pid: pid ?? 0,
+      simulate,
+      timestamp: new Date().toISOString(),
+    });
+    return {
+      ok: true,
+      started: true,
+      backend: 'adb',
+      device: serial,
+      pid: pid ?? 0,
+      durationSec,
+      mode: attach.mode ?? 'live',
+      ...(attach.probeStyle ? { probeStyle: attach.probeStyle } : {}),
+      eventCount: events.length,
+      ...(attach.note ? { note: attach.note } : {}),
+      stats: monitor.getStats(),
+    };
+  }
+
   async handleSyscallStartMonitor(args: Record<string, unknown>): Promise<unknown> {
     const backend = readBackend(args['backend']);
     if (!backend) {
       return {
         ok: false,
-        error: 'backend must be one of: etw, strace, dtrace',
+        error: 'backend must be one of: etw, strace, dtrace, adb',
       };
     }
 
@@ -424,6 +489,14 @@ export class SyscallHookHandlers {
       }
     }
     const pid = rawMonitorPid;
+
+    // Android capture runs on the device via adb (bpftrace), so it neither needs
+    // host syscall permissions nor a host subprocess. It reuses the same
+    // generated-program + JSONL parser as syscall_ebpf_attach, then feeds the
+    // events into the monitor buffer so capture/filter/stats work unchanged.
+    if (backend === 'adb') {
+      return this.startAdbMonitor(args, pid, simulate);
+    }
 
     // Runtime permission check (skipped in test environment where monitor is mocked)
     if (process.env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
