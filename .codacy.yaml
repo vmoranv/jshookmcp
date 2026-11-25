@@ -26,6 +26,7 @@ exclude_paths:
   - 'src/server/search/CanonicalJson.ts'
   - 'src/server/search/CatalogSnapshot.ts'
   - 'src/server/search/IntentBoost.ts'
+  - 'src/utils/safeRegExp.ts'
 
 # Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
 #
@@ -124,6 +125,11 @@ engines:
       # feature; the filter caps the pattern at 500 chars and times the first
       # match, rejecting expensive patterns before scanning the request list.
       - 'src/server/domains/network/handlers/core-handlers.requests.ts'
+
+      # Safe-regex compiler. new RegExp(pattern, flags) IS the module purpose:
+      # it owns the length cap and ReDoS-shape guards applied before compiling,
+      # so the non-literal-RegExp rule flags the feature itself, not a hazard.
+      - 'src/utils/safeRegExp.ts'
 
   # Security-pattern engine (Codacy's Semgrep fork) flags caller-supplied
   # RegExp / computed cache paths as "non-literal" hazards. Those are the
