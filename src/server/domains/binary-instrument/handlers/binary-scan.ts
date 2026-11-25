@@ -14,6 +14,7 @@ import {
   BINARY_STRINGS_PRINTABLE_ASCII_MIN,
 } from '@src/constants';
 import { getReverseEngineeringConfig } from '@utils/reverseEngineeringConfig';
+import { findArm64Xrefs } from '@modules/binary-instrument/arm64-xrefs';
 import { getSafeOutputRoots } from '@utils/outputPaths';
 import { resolveSafeOutputPath, writeOutputFile } from '@utils/safeOutput';
 import {
@@ -190,6 +191,26 @@ export class BinaryScanHandlers {
    * regions (>=7.0 bits/byte) are likely encrypted or compressed; low-entropy
    * regions (<4.0) are typically code or text. Pure-compute, no external tools.
    */
+  async handleBinaryFindXrefs(args: Record<string, unknown>): Promise<unknown> {
+    const filePath = readRequiredString(args, 'filePath');
+    const rawTarget = readRequiredString(args, 'target');
+    const normalized = rawTarget.trim().replace(/^0x/i, '');
+    const target = Number.parseInt(normalized, 16);
+    if (!Number.isInteger(target) || target < 0) {
+      throw new Error('target must be a hexadecimal virtual address (e.g. 0x29e08)');
+    }
+    const maxResults = Math.max(1, Math.min(readOptionalNumber(args, 'maxResults') ?? 50, 500));
+    const data = await readFile(filePath);
+    const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    const xrefs = findArm64Xrefs(bytes, target, maxResults);
+    return jsonResponse({
+      filePath,
+      target: `0x${target.toString(16)}`,
+      count: xrefs.length,
+      xrefs: xrefs.map((x) => ({ at: `0x${x.at.toString(16)}`, kind: x.kind })),
+    });
+  }
+
   async handleBinaryEntropyProfile(args: Record<string, unknown>): Promise<unknown> {
     const filePath = readRequiredString(args, 'filePath');
     const chunkSize = Math.max(64, readOptionalNumber(args, 'chunkSize') ?? 256);

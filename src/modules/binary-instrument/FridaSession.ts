@@ -1,5 +1,8 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { writeFile, unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { probeCommand, type ProbeResult } from '@modules/external/ToolProbe';
 import { logger } from '@utils/logger';
 import { FRIDA_TIMEOUT_MS } from '@src/constants';
@@ -9,6 +12,8 @@ import { ToolError } from '@errors/ToolError';
 const FRIDA_MAX_BUFFER_BYTES = 5 * 1024 * 1024;
 /** Grace period between the SIGTERM and SIGKILL escalation on cancellation. */
 const FRIDA_KILL_ESCALATION_MS = 1_500;
+/** Inline -e argv limit; longer scripts are written to a temp file and passed with -l. */
+const FRIDA_INLINE_SCRIPT_MAX_BYTES = 2_048;
 
 /**
  * Idempotent compatibility shim prepended to every script handed to the
@@ -25,14 +30,88 @@ const FRIDA_COMPAT_SHIM = [
   'var __jshookShim = globalThis.__jshookShim;',
   'if (!__jshookShim) {',
   '  globalThis.__jshookShim = true;',
-  '  if (typeof Module !== "undefined" && !Module.findExportByName && typeof Process.getModuleByName === "function") {',
-  '    Module.findExportByName = function (m, n) { return Process.getModuleByName(m).findExportByName(n); };',
+  '  if (typeof Module !== "undefined" && !Module.findExportByName) {',
+  '    Module.findExportByName = function (m, n) {',
+  '      try {',
+  '        if (m === null || m === undefined) {',
+  '          if (typeof Module.getGlobalExportByName === "function") return Module.getGlobalExportByName(n);',
+  '          var mods = Process.enumerateModules();',
+  '          for (var i = 0; i < mods.length; i++) {',
+  '            var hit = mods[i].findExportByName(n);',
+  '            if (hit !== null) return hit;',
+  '          }',
+  '          return null;',
+  '        }',
+  '        var target = (typeof m === "string") ? Process.getModuleByName(m) : m;',
+  '        if (target === null || target === undefined) return null;',
+  '        if (typeof target.getExportByName === "function") return target.getExportByName(n);',
+  '        return target.findExportByName(n);',
+  '      } catch (e) {',
+  '        return null;',
+  '      }',
+  '    };',
   '  }',
   '  if (!Process.getCurrentPid && typeof Process.id !== "undefined") {',
   '    Process.getCurrentPid = function () { return Process.id; };',
   '  }',
   '}',
 ].join('\n');
+
+export type FridaConnectionCause = 'version-mismatch' | 'server-not-running' | 'permission-denied';
+
+export interface FridaConnectionDiagnosis {
+  cause: FridaConnectionCause;
+  hint: string;
+  remediation?: string;
+}
+
+/**
+ * Map a frida CLI failure string onto an actionable diagnosis. Remote-attach
+ * failures are dominated by three operator errors that used to be echoed back
+ * verbatim (e.g. "unable to communicate with remote frida-server; please
+ * ensure that major versions match"): client/server version skew, a
+ * missing/stopped frida-server, and a target that denies injection. Returning
+ * structured guidance lets the caller fix the environment without decoding
+ * frida's prose.
+ */
+export function diagnoseFridaError(message: string): FridaConnectionDiagnosis | null {
+  const text = message.toLowerCase();
+  if (
+    text.includes('major versions match') ||
+    text.includes('unable to communicate with remote frida-server') ||
+    text.includes('protocol mismatch') ||
+    text.includes('version mismatch')
+  ) {
+    return {
+      cause: 'version-mismatch',
+      hint: "The host frida client and the device's frida-server speak different protocol versions.",
+      remediation:
+        'Compare `frida --version` (host) with `frida-server --version` (device), then install the matching client - e.g. `pip install "frida==<device-version>" frida-tools` - or push a frida-server build that matches the host client.',
+    };
+  }
+  if (
+    text.includes('failed to connect') ||
+    text.includes('connection refused') ||
+    text.includes('unable to connect') ||
+    text.includes('no such device')
+  ) {
+    return {
+      cause: 'server-not-running',
+      hint: 'The frida-server on the target is not reachable.',
+      remediation:
+        'Start frida-server on the device as root (e.g. `adb shell su -c /data/local/tmp/frida-server &`) and confirm `adb devices` lists the device as `device`.',
+    };
+  }
+  if (text.includes('permission denied') || text.includes('not permitted')) {
+    return {
+      cause: 'permission-denied',
+      hint: 'Frida could not inject into the target process.',
+      remediation:
+        'Run the server elevated and target a debuggable process; hardened apps (banking/anti-cheat) may refuse Frida injection.',
+    };
+  }
+  return null;
+}
 
 function abortError(message: string): Error {
   const error = new Error(message);
@@ -54,6 +133,11 @@ export interface FridaScriptResult {
    * (e.g. TypeError from an injected script) survive to the tool response.
    */
   stderr?: string;
+  /**
+   * True when the CLI was killed at the execFile timeout. For a parked
+   * (keepAlive) window this is the expected end, not a failure.
+   */
+  timedOut?: boolean;
 }
 
 export interface FridaModuleInfo {
@@ -271,6 +355,14 @@ export class FridaSession {
       options.signal,
       options.keepAlive === true,
     );
+
+    // A parked (keepAlive) window ends by SIGTERM at the timeout. When that
+    // kill captured console output, the run succeeded — the output is the
+    // payload — so do not surface the timeout as a script error. An empty
+    // timeout remains a failure.
+    if (options.keepAlive === true && result.timedOut === true && result.output.length > 0) {
+      return { output: result.output, timedOut: true };
+    }
 
     if (result.error) {
       session.status = 'error';
@@ -608,6 +700,7 @@ export class FridaSession {
     return processes;
   }
 
+  // fallow-ignore-next-line unused-class-member
   async isAvailable(): Promise<boolean> {
     const availability = await this.getAvailability();
     return availability.available;
@@ -737,13 +830,27 @@ export class FridaSession {
 
     const command = availability.path ?? 'frida';
     // Device flags (-U/-H/-D) must precede target flags (-n/-p/-f) on the frida CLI.
+    // Long scripts (regex, quotes, many statements) broke the `-e` argv path on
+    // Windows with `Command failed: frida ... -e ...`. Keep `-e` for short
+    // scripts (cheap, existing behavior) and switch to a temp file + `-l` above
+    // the inline limit.
+    const scriptWithShim = `${FRIDA_COMPAT_SHIM}\n${script}`;
+    // Debug/Stalker scripts break the `-e` argv path even when they are under
+    // the size limit (silent CLI failure); always run them from a temp file.
+    const forceScriptFile = /Interceptor\.attach|Stalker\.(?:follow|parse)|Thread\.backtrace/.test(
+      script,
+    );
+    const scriptPath =
+      forceScriptFile || scriptWithShim.length > FRIDA_INLINE_SCRIPT_MAX_BYTES
+        ? join(tmpdir(), `jshook-frida-${randomUUID()}.js`)
+        : undefined;
+    if (scriptPath) await writeFile(scriptPath, scriptWithShim, 'utf8');
     const args = [
       ...this.buildDeviceArgs(device),
       ...targetArgs,
       '--runtime=v8',
       '-q',
-      '-e',
-      `${FRIDA_COMPAT_SHIM}\n${script}`,
+      ...(scriptPath ? ['-l', scriptPath] : ['-e', scriptWithShim]),
     ];
 
     try {
@@ -754,10 +861,12 @@ export class FridaSession {
         signal,
         holdStdin,
       );
+      if (scriptPath) await unlink(scriptPath).catch(() => {});
       const output = result.stdout.trim();
       const error = result.stderr.trim();
       return error ? { output, error, stderr: result.stderr } : { output };
     } catch (error) {
+      if (scriptPath) await unlink(scriptPath).catch(() => {});
       const message = error instanceof Error ? error.message : String(error);
       logger.warn('[binary-instrument] Frida command failed', { target, message });
       // Non-zero exits reject here and Node's execFile error carries the
@@ -775,11 +884,19 @@ export class FridaSession {
           : typeof rawCode === 'string' && /^[0-9]+$/.test(rawCode)
             ? Number(rawCode)
             : undefined;
+      const killed = (error as { killed?: unknown }).killed === true;
+      const killSignal = (error as { signal?: unknown }).signal;
+      const timedOut =
+        killed ||
+        (exitCode === undefined &&
+          (killSignal === 'SIGTERM' || killSignal === 'SIGKILL') &&
+          stdout.trim().length > 0);
       return {
         output: stdout.trim(),
         error: stderr.trim() || message,
         stderr: stderr || undefined,
         exitCode,
+        ...(timedOut ? { timedOut: true } : {}),
       };
     }
   }

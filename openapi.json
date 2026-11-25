@@ -958,6 +958,27 @@
         "required": ["filePath"],
         "type": "object"
       },
+      "binary_instrument_binary_find_xrefs": {
+        "properties": {
+          "filePath": {
+            "description": "Path to the ELF or raw binary file",
+            "type": "string"
+          },
+          "maxResults": {
+            "default": 50,
+            "description": "Maximum xrefs to return",
+            "maximum": 500,
+            "minimum": 1,
+            "type": "number"
+          },
+          "target": {
+            "description": "Target virtual address in hex, e.g. 0x29e08",
+            "type": "string"
+          }
+        },
+        "required": ["filePath", "target"],
+        "type": "object"
+      },
       "binary_instrument_binary_instrument_capabilities": {
         "properties": {},
         "type": "object"
@@ -1148,6 +1169,12 @@
             "description": "Run the generated script in the supplied Frida session.",
             "type": "boolean"
           },
+          "keepAliveMs": {
+            "description": "install=true only: park the hook with recv().wait() for this window so intercepted calls are captured (1000-25000ms; the frida CLI bounds script load at ~30s).",
+            "maximum": 25000,
+            "minimum": 1000,
+            "type": "number"
+          },
           "moduleName": {
             "description": "Optional module name for Module.findExportByName",
             "type": "string"
@@ -1170,6 +1197,88 @@
           }
         },
         "required": ["symbol"],
+        "type": "object"
+      },
+      "binary_instrument_frida_backtrace": {
+        "properties": {
+          "address": {
+            "description": "Absolute address expression",
+            "type": "string"
+          },
+          "keepAliveMs": {
+            "default": 12000,
+            "description": "Hook window in ms (1000-25000)",
+            "type": "number"
+          },
+          "maxFrames": {
+            "default": 32,
+            "description": "Maximum frames per backtrace (1-128)",
+            "type": "number"
+          },
+          "moduleName": {
+            "description": "Module name for symbol lookup or moduleName+offset",
+            "type": "string"
+          },
+          "offset": {
+            "description": "Module-relative offset (decimal) used with moduleName",
+            "type": "number"
+          },
+          "sessionId": {
+            "description": "Session id returned by frida_attach",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Exported symbol/function name",
+            "type": "string"
+          }
+        },
+        "required": ["sessionId"],
+        "type": "object"
+      },
+      "binary_instrument_frida_breakpoint_address": {
+        "properties": {
+          "address": {
+            "description": "Absolute address expression, e.g. 0x7a0b74a000+0x5cb1c0",
+            "type": "string"
+          },
+          "argCount": {
+            "default": 8,
+            "description": "Number of argument pointers to capture (0-16)",
+            "type": "number"
+          },
+          "captureBacktrace": {
+            "default": true,
+            "description": "Capture an ACCURATE Thread.backtrace per hit",
+            "type": "boolean"
+          },
+          "captureRegisters": {
+            "default": true,
+            "description": "Capture pc/sp/lr/x0-x7",
+            "type": "boolean"
+          },
+          "keepAliveMs": {
+            "default": 12000,
+            "description": "Hook window in ms (1000-25000; CLI load timeout bounds it)",
+            "type": "number"
+          },
+          "moduleName": {
+            "description": "Module name for symbol lookup or for moduleName+offset",
+            "type": "string"
+          },
+          "offset": {
+            "description": "Module-relative offset (decimal) used with moduleName",
+            "type": "number"
+          },
+          "sessionId": {
+            "description": "Session id returned by frida_attach",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Exported symbol/function name to break on",
+            "type": "string"
+          }
+        },
+        "required": ["sessionId"],
         "type": "object"
       },
       "binary_instrument_frida_detach": {
@@ -1443,6 +1552,42 @@
         "required": ["target"],
         "type": "object"
       },
+      "binary_instrument_frida_stalker_trace": {
+        "properties": {
+          "address": {
+            "description": "Absolute address expression",
+            "type": "string"
+          },
+          "keepAliveMs": {
+            "default": 12000,
+            "description": "Hook window in ms (1000-25000)",
+            "type": "number"
+          },
+          "maxEvents": {
+            "default": 2000,
+            "description": "Stop Stalker after this many events (1-20000)",
+            "type": "number"
+          },
+          "moduleName": {
+            "description": "Module name for symbol lookup or moduleName+offset",
+            "type": "string"
+          },
+          "offset": {
+            "description": "Module-relative offset (decimal) used with moduleName",
+            "type": "number"
+          },
+          "sessionId": {
+            "description": "Session id returned by frida_attach",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Exported symbol/function name",
+            "type": "string"
+          }
+        },
+        "required": ["sessionId"],
+        "type": "object"
+      },
       "binary_instrument_generate_hooks": {
         "properties": {
           "options": {
@@ -1544,6 +1689,11 @@
             "description": "Path to the APK, DEX, or CDEX file",
             "type": "string"
           },
+          "deobfuscate": {
+            "default": false,
+            "description": "Pass --deobf so JADX heuristically renames obfuscated members. Cannot restore original R8/ProGuard names without a mapping file.",
+            "type": "boolean"
+          },
           "force": {
             "default": false,
             "description": "Clear outputDir before decompilation if it exists.",
@@ -1557,6 +1707,17 @@
           "outputDir": {
             "description": "Optional output directory. Defaults to a temp directory.",
             "type": "string"
+          },
+          "threadsCount": {
+            "description": "JADX worker thread count (default from config).",
+            "maximum": 128,
+            "minimum": 1,
+            "type": "number"
+          },
+          "timeoutMs": {
+            "description": "JADX process timeout in milliseconds (default from config).",
+            "minimum": 1000,
+            "type": "number"
           }
         },
         "required": ["apkPath"],
@@ -15621,6 +15782,10 @@
             },
             "type": "object"
           },
+          "leaseId": {
+            "description": "Lease id returned by proxy_start (needed when calling from a new MCP connection).",
+            "type": "string"
+          },
           "method": {
             "default": "GET",
             "description": "HTTP method to match. Use ANY, ALL, or * to match every method.",
@@ -15648,11 +15813,21 @@
         "type": "object"
       },
       "proxy_proxy_clear_logs": {
-        "properties": {},
+        "properties": {
+          "leaseId": {
+            "description": "Lease id returned by proxy_start.",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "proxy_proxy_clear_rules": {
-        "properties": {},
+        "properties": {
+          "leaseId": {
+            "description": "Lease id returned by proxy_start.",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "proxy_proxy_export_ca": {
@@ -15661,6 +15836,10 @@
       },
       "proxy_proxy_get_requests": {
         "properties": {
+          "leaseId": {
+            "description": "Lease id returned by proxy_start.",
+            "type": "string"
+          },
           "urlFilter": {
             "description": "Optional URL filter.",
             "type": "string"
@@ -15669,13 +15848,22 @@
         "type": "object"
       },
       "proxy_proxy_list_rules": {
-        "properties": {},
+        "properties": {
+          "leaseId": {
+            "description": "Lease id returned by proxy_start.",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "proxy_proxy_remove_rule": {
         "properties": {
           "endpointId": {
             "description": "The endpointId returned when the rule was added.",
+            "type": "string"
+          },
+          "leaseId": {
+            "description": "Lease id returned by proxy_start (needed when calling from a new MCP connection).",
             "type": "string"
           }
         },
@@ -15716,7 +15904,12 @@
         "type": "object"
       },
       "proxy_proxy_stop": {
-        "properties": {},
+        "properties": {
+          "leaseId": {
+            "description": "Lease id returned by proxy_start (needed when calling from a new MCP connection).",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "session_session_progress_clear": {
@@ -16436,6 +16629,16 @@
       },
       "syscall_hook_syscall_ebpf_attach": {
         "properties": {
+          "bpftracePath": {
+            "description": "Absolute bpftrace path on the device when device='adb' and it is not on PATH.",
+            "type": "string"
+          },
+          "device": {
+            "default": "host",
+            "description": "Where to run bpftrace: 'host' (this machine) or 'adb' (Android device over adb).",
+            "enum": ["host", "adb"],
+            "type": "string"
+          },
           "durationSec": {
             "default": 10,
             "description": "Trace duration in seconds",
@@ -16452,6 +16655,10 @@
             "default": 0,
             "description": "Process ID to trace. 0 = trace all.",
             "type": "number"
+          },
+          "serial": {
+            "description": "Android serial when device='adb' (see adb_device_list).",
+            "type": "string"
           },
           "simulate": {
             "default": false,
@@ -16589,8 +16796,19 @@
         "properties": {
           "backend": {
             "description": "Syscall capture backend",
-            "enum": ["etw", "strace", "dtrace"],
+            "enum": ["etw", "strace", "dtrace", "adb"],
             "type": "string"
+          },
+          "bpftracePath": {
+            "description": "backend='adb': bpftrace path on the device when it is not on PATH (e.g. a wrapper script).",
+            "type": "string"
+          },
+          "durationSec": {
+            "default": 5,
+            "description": "backend='adb' capture window in seconds (the call blocks for this long).",
+            "maximum": 60,
+            "minimum": 1,
+            "type": "number"
           },
           "etwProviders": {
             "description": "ETW (Windows) named providers to enable beyond the legacy NT Kernel Logger: nt-kernel | kernel-process | kernel-network | kernel-file | kernel-image. Ignored on non-Windows backends.",
@@ -16603,10 +16821,21 @@
             "description": "Optional PID to scope monitoring to a single process",
             "type": "number"
           },
+          "serial": {
+            "description": "Android device serial when backend='adb'.",
+            "type": "string"
+          },
           "simulate": {
             "default": false,
             "description": "Use synthetic events instead of a real system tracer",
             "type": "boolean"
+          },
+          "syscalls": {
+            "description": "backend='adb': syscall names to trace. Defaults to connect/openat/read/write.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": ["backend"],
@@ -20566,6 +20795,37 @@
         "x-domain": "binary-instrument"
       }
     },
+    "/binary-instrument/binary_find_xrefs": {
+      "post": {
+        "description": "Find ARM64 code references (ADRP+ADD / ADR) to a target virtual address in an ELF or raw binary. Useful for locating string/table users in stripped natives without exports.",
+        "operationId": "binary_find_xrefs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/binary_instrument_binary_find_xrefs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool execution result returned as MCP tool result text content."
+          }
+        },
+        "summary": "Find ARM64 code references (ADRP+ADD / ADR) to a target virtual address in an ELF or raw binary.",
+        "tags": ["binary-instrument"],
+        "x-domain": "binary-instrument"
+      }
+    },
     "/binary-instrument/binary_instrument_capabilities": {
       "post": {
         "description": "Report binary instrumentation backend availability.",
@@ -20754,7 +21014,7 @@
     },
     "/binary-instrument/frida_attach_interceptor": {
       "post": {
-        "description": "Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session.",
+        "description": "Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session. Pass keepAliveMs to keep the hook armed so intercepted calls are actually captured — without it the frida CLI exits right after load and the hook prints nothing.",
         "operationId": "frida_attach_interceptor",
         "requestBody": {
           "content": {
@@ -20779,6 +21039,68 @@
           }
         },
         "summary": "Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session.",
+        "tags": ["binary-instrument"],
+        "x-domain": "binary-instrument"
+      }
+    },
+    "/binary-instrument/frida_backtrace": {
+      "post": {
+        "description": "Break on an address/symbol/moduleName+offset and return an ACCURATE mapped backtrace (module+offset per frame) for each hit. Use it when you only need the call stack, not a full Stalker trace.",
+        "operationId": "frida_backtrace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/binary_instrument_frida_backtrace"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool execution result returned as MCP tool result text content."
+          }
+        },
+        "summary": "Break on an address/symbol/moduleName+offset and return an ACCURATE mapped backtrace (module+offset per frame) for ea...",
+        "tags": ["binary-instrument"],
+        "x-domain": "binary-instrument"
+      }
+    },
+    "/binary-instrument/frida_breakpoint_address": {
+      "post": {
+        "description": "Install a Frida Interceptor breakpoint at an absolute address, an exported symbol (optionally module-scoped), or moduleName+offset. Captures argument pointers, register context (pc/sp/lr/x0-x7), and an ACCURATE backtrace per hit for the keepAliveMs window.",
+        "operationId": "frida_breakpoint_address",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/binary_instrument_frida_breakpoint_address"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool execution result returned as MCP tool result text content."
+          }
+        },
+        "summary": "Install a Frida Interceptor breakpoint at an absolute address, an exported symbol (optionally module-scoped), or modu...",
         "tags": ["binary-instrument"],
         "x-domain": "binary-instrument"
       }
@@ -21217,6 +21539,37 @@
         "x-domain": "binary-instrument"
       }
     },
+    "/binary-instrument/frida_stalker_trace": {
+      "post": {
+        "description": "Break on an address/symbol/moduleName+offset and Stalker-follow the hitting thread, emitting annotated call/ret/exec/block events until maxEvents or handler return. Addresses are annotated with module/symbol by Frida (annotate+stringify).",
+        "operationId": "frida_stalker_trace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/binary_instrument_frida_stalker_trace"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Tool execution result returned as MCP tool result text content."
+          }
+        },
+        "summary": "Break on an address/symbol/moduleName+offset and Stalker-follow the hitting thread, emitting annotated call/ret/exec/...",
+        "tags": ["binary-instrument"],
+        "x-domain": "binary-instrument"
+      }
+    },
     "/binary-instrument/generate_hooks": {
       "post": {
         "description": "Generate a Frida interceptor script for a list of symbols.",
@@ -21405,7 +21758,7 @@
     },
     "/binary-instrument/jadx_decompile_apk": {
       "post": {
-        "description": "High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code.",
+        "description": "High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code. Large APKs routinely exceed 60s; set timeoutMs and allow a long client request timeout (or poll outputDir) so the client does not cancel while JADX is still writing sources.",
         "operationId": "jadx_decompile_apk",
         "requestBody": {
           "content": {
@@ -31846,7 +32199,7 @@
     },
     "/meta/search_tools": {
       "post": {
-        "description": "Search 739 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. The ranking combines token matching, fuzzy names, and profile context.",
+        "description": "Search 743 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. The ranking combines token matching, fuzzy names, and profile context.",
         "operationId": "search_tools",
         "requestBody": {
           "content": {
@@ -31870,7 +32223,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Search 739 tools across 36 capability domains.",
+        "summary": "Search 743 tools across 36 capability domains.",
         "tags": ["meta"]
       }
     },
@@ -37580,7 +37933,7 @@
     },
     "/proxy/proxy_start": {
       "post": {
-        "description": "Start the local HTTP/HTTPS interception proxy with optional TLS.",
+        "description": "Start the local HTTP/HTTPS interception proxy with optional TLS. Returns a leaseId that later calls can pass as leaseId to keep operating the proxy from a different MCP connection.",
         "operationId": "proxy_start",
         "requestBody": {
           "content": {
@@ -38603,7 +38956,7 @@
     },
     "/syscall-hook/syscall_ebpf_attach": {
       "post": {
-        "description": "Live eBPF syscall attach — spawns a bpftrace process, captures syscall events as structured JSON in real time, and returns them directly. Unlike syscall_ebpf_trace (script-generator), this tool actually runs bpftrace and captures output. Falls back to script mode on non-Linux or when bpftrace is unavailable. Requires bpftrace + CAP_BPF or root on Linux.",
+        "description": "Live eBPF syscall attach — runs a generated bpftrace program, captures syscall events as structured JSON in real time, and returns them directly. Unlike syscall_ebpf_trace (script-generator), this tool actually executes bpftrace. device='host' traces this machine's kernel (needs bpftrace + CAP_BPF/root); device='adb' pushes the SAME generated program to an Android device and runs it under su, so one code path serves both. Falls back to script mode (with an honest scope/note/fix) when the executor is unavailable.",
         "operationId": "syscall_ebpf_attach",
         "requestBody": {
           "content": {
@@ -38627,7 +38980,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Live eBPF syscall attach — spawns a bpftrace process, captures syscall events as structured JSON in real time, and re...",
+        "summary": "Live eBPF syscall attach — runs a generated bpftrace program, captures syscall events as structured JSON in real time...",
         "tags": ["syscall-hook"],
         "x-domain": "syscall-hook"
       }
@@ -38851,7 +39204,7 @@
     },
     "/syscall-hook/syscall_start_monitor": {
       "post": {
-        "description": "Start syscall monitoring.",
+        "description": "Start syscall monitoring. backend='adb' captures Android syscalls over adb (bpftrace on-device) and feeds them into the same capture buffer; other backends use host ETW/strace/dtrace.",
         "operationId": "syscall_start_monitor",
         "requestBody": {
           "content": {

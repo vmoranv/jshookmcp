@@ -21,7 +21,7 @@ import { UnidbgHandlers } from './handlers/unidbg';
 import { GhidraHandlers } from './handlers/ghidra';
 import { BinaryScanHandlers } from './handlers/binary-scan';
 import { HooksGenerationHandlers } from './handlers/hooks-generation';
-import { FridaHandlers as FridaDexDumpHandlers } from './handlers/frida';
+import { FridaDexDumpHandlers } from './handlers/frida';
 import { ApktoolHandlers } from './handlers/apktool';
 import { NativeLibsHandlers } from './handlers/native-libs';
 import { RuntimeDumpHandlers } from './handlers/runtime-dump';
@@ -95,6 +95,21 @@ export class BinaryInstrumentHandlers {
   }
   handleFridaRunScript(args: Record<string, unknown>) {
     return this.fridaSession.handleFridaRunScript(args);
+  }
+
+  // fallow-ignore-next-line unused-class-member
+  handleFridaBreakpointAddress(args: Record<string, unknown>) {
+    return this.fridaSession.handleFridaBreakpointAddress(args);
+  }
+
+  // fallow-ignore-next-line unused-class-member
+  handleFridaBacktrace(args: Record<string, unknown>) {
+    return this.fridaSession.handleFridaBacktrace(args);
+  }
+
+  // fallow-ignore-next-line unused-class-member
+  handleFridaStalkerTrace(args: Record<string, unknown>) {
+    return this.fridaSession.handleFridaStalkerTrace(args);
   }
   handleFridaResume(args: Record<string, unknown>) {
     return this.fridaSession.handleFridaResume(args);
@@ -173,8 +188,14 @@ export class BinaryInstrumentHandlers {
   handleBinaryStringsExtract(args: Record<string, unknown>) {
     return this.binaryScan.handleBinaryStringsExtract(args);
   }
+  // fallow-ignore-next-line unused-class-member
   handleBinaryEntropyProfile(args: Record<string, unknown>) {
     return this.binaryScan.handleBinaryEntropyProfile(args);
+  }
+
+  // fallow-ignore-next-line unused-class-member
+  handleBinaryFindXrefs(args: Record<string, unknown>) {
+    return this.binaryScan.handleBinaryFindXrefs(args);
   }
   handleGenerateHooks(args: Record<string, unknown>) {
     return this.hooksGeneration.handleGenerateHooks(args);

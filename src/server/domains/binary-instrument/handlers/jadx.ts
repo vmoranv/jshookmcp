@@ -168,6 +168,7 @@ export class JadxHandlers {
     const outputDir = readOptionalString(args, 'outputDir');
     const noResources = readOptionalBoolean(args, 'noResources') ?? false;
     const force = readOptionalBoolean(args, 'force') ?? false;
+    const deobfuscate = readOptionalBoolean(args, 'deobfuscate') ?? false;
 
     const jadxProbe = await probeCommand('jadx', ['--version']);
     if (!jadxProbe.available) {
@@ -202,6 +203,7 @@ export class JadxHandlers {
     const threads = readOptionalNumber(args, 'threadsCount') ?? jadxConfig.threadsCount;
     const jadxArgs = ['--no-debug-info', '-j', String(threads)];
     if (noResources) jadxArgs.push('--no-res');
+    if (deobfuscate) jadxArgs.push('--deobf');
     jadxArgs.push('-d', decompileDir, apkPath);
 
     try {

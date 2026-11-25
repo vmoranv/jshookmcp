@@ -20,7 +20,7 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 - binary-instrument + memory
 - binary-instrument + process
 
-## Full tool list (46)
+## Full tool list (50)
 
 | Tool | Description |
 | --- | --- |
@@ -32,6 +32,9 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 | `generate_hooks` | Generate a Frida interceptor script for a list of symbols. |
 | `unidbg_emulate` | Emulate a native function with Unidbg when available. |
 | `frida_run_script` | Execute a Frida JavaScript snippet inside an attached Frida session. By default each call spawns a fresh frida CLI that tears down when the script returns, so hooks and timer callbacks do NOT survive — pass keepAliveMs (sync, clamped to 25s) or async:true + keepAlive:true (background task) to park the script with recv().wait() so hooks stay armed for the window. A frida 17 API compatibility shim (Module.findExportByName, Process.getCurrentPid) is injected automatically; scripts that need file writes on Windows must use send() instead of new File(). |
+| `frida_breakpoint_address` | Install a Frida Interceptor breakpoint at an absolute address, an exported symbol (optionally module-scoped), or moduleName+offset. Captures argument pointers, register context (pc/sp/lr/x0-x7), and an ACCURATE backtrace per hit for the keepAliveMs window. |
+| `frida_backtrace` | Break on an address/symbol/moduleName+offset and return an ACCURATE mapped backtrace (module+offset per frame) for each hit. Use it when you only need the call stack, not a full Stalker trace. |
+| `frida_stalker_trace` | Break on an address/symbol/moduleName+offset and Stalker-follow the hitting thread, emitting annotated call/ret/exec/block events until maxEvents or handler return. Addresses are annotated with module/symbol by Frida (annotate+stringify). |
 | `frida_resume` | Resume a target previously spawned for early Frida instrumentation. |
 | `frida_detach` | Detach from a Frida session and clean up resources. |
 | `frida_list_sessions` | List all active Frida attach sessions with target info. |
@@ -40,12 +43,12 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 | `frida_dex_dump` | Run frida-dexdump as a high-level Android DEX dump helper by package/process name or PID. |
 | `android_runtime_dump_session` | Create or inspect a managed Android runtime dump session from Frida/ADB dump artifacts, DEX files, and /proc/PID/maps snapshots. |
 | `frida_generate_script` | Generate a Frida interceptor or hook script from built-in templates. |
-| `frida_attach_interceptor` | Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session. |
+| `frida_attach_interceptor` | Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session. Pass keepAliveMs to keep the hook armed so intercepted calls are actually captured — without it the frida CLI exits right after load and the hook prints nothing. |
 | `get_available_plugins` | List installed binary analysis plugins. |
 | `ghidra_decompile` | Decompile a single named function via a stateless Ghidra headless run (no bridge server or plugin needed; ~5-10s per call). Run ghidra_analyze first to list function names — the name must match exactly. |
 | `ida_decompile` | Decompile a function using IDA Pro. |
 | `jadx_decompile` | Decompile an APK class or method with JADX CLI. |
-| `jadx_decompile_apk` | High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code. |
+| `jadx_decompile_apk` | High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code. Large APKs routinely exceed 60s; set timeoutMs and allow a long client request timeout (or poll outputDir) so the client does not cancel while JADX is still writing sources. |
 | `jadx_search_code` | Ripgrep-backed search over jadx output. Pass decompileDir for read-only search, or apkPath to auto-decompile into a content-addressed cache (reused across calls). The two are mutually exclusive. |
 | `apktool_decode` | Decode an APK using apktool to inspect resources, manifest, and smali output. |
 | `apktool_build` | Rebuild an APK from a decoded apktool source directory (closes the patch-and-repack loop with apk_sign). |
@@ -57,6 +60,7 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 | `dex_scan_file` | Scan a binary/memory-dump file for DEX or CompactDex magic and optionally extract hits. |
 | `binary_strings_extract` | Extract printable ASCII/UTF-16LE strings from a binary file with regex filtering. |
 | `binary_entropy_profile` | Compute Shannon entropy across fixed-size chunks of a binary file to locate encrypted / packed / compressed sections. High-entropy regions (&gt;=7.0 bits/byte) are likely encrypted or compressed; low-entropy (&lt;4.0) are typically code or text. Pure-compute, no external tools. |
+| `binary_find_xrefs` | Find ARM64 code references (ADRP+ADD / ADR) to a target virtual address in an ELF or raw binary. Useful for locating string/table users in stripped natives without exports. |
 | `apk_native_libs_list` | List packaged native shared libraries (.so) inside an APK. |
 | `unidbg_launch` | Emulate a native shared library in Unidbg. |
 | `unidbg_call` | Call a JNI function in a running Unidbg emulator session. |

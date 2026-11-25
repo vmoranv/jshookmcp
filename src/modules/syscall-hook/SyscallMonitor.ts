@@ -5,7 +5,7 @@ import { SYSCALL_TRACE_SPAWN_TIMEOUT_MS } from '@src/constants';
 import { RingBuffer } from '@utils/RingBuffer';
 import { readEnvBoolean } from '@src/config/environment';
 
-export type SyscallBackend = 'etw' | 'strace' | 'dtrace';
+export type SyscallBackend = 'etw' | 'strace' | 'dtrace' | 'adb';
 
 export interface SyscallEvent {
   timestamp: number;
@@ -45,7 +45,7 @@ interface SyntheticEventSeed {
   duration?: number;
 }
 
-const SUPPORTED_BACKENDS: ReadonlyArray<SyscallBackend> = ['etw', 'strace', 'dtrace'];
+const SUPPORTED_BACKENDS: ReadonlyArray<SyscallBackend> = ['etw', 'strace', 'dtrace', 'adb'];
 
 /**
  * Hard cap on retained syscall events. When the buffer is full the oldest
@@ -129,6 +129,28 @@ export const ETW_PROVIDER_CATALOG: ReadonlyArray<EtwProviderCatalogEntry> = [
 ];
 
 const SYNTHETIC_EVENT_SEEDS: Readonly<Record<SyscallBackend, ReadonlyArray<SyntheticEventSeed>>> = {
+  // Android captures normally come from the adb/eBPF collector; these seeds only
+  // back the explicit simulate=true path.
+  adb: [
+    {
+      syscall: 'openat',
+      args: ['/data/data/com.example/files/db', 'O_RDONLY'],
+      returnValue: 3,
+      duration: 0.4,
+    },
+    {
+      syscall: 'read',
+      args: ['fd=3', 'count=4096'],
+      returnValue: 256,
+      duration: 0.1,
+    },
+    {
+      syscall: 'connect',
+      args: ['fd=55', 'AF_INET', 'port=443'],
+      returnValue: 0,
+      duration: 0.8,
+    },
+  ],
   etw: [
     {
       syscall: 'NtCreateFile',
@@ -210,6 +232,9 @@ const SYNTHETIC_EVENT_SEEDS: Readonly<Record<SyscallBackend, ReadonlyArray<Synth
 };
 
 function isBackendSupportedOnCurrentPlatform(backend: SyscallBackend): boolean {
+  // Android capture is driven over adb (bpftrace on-device), so it is
+  // host-platform independent; availability is checked at attach time.
+  if (backend === 'adb') return true;
   if (backend === 'etw') {
     return process.platform === 'win32';
   }
@@ -494,6 +519,8 @@ export class SyscallMonitor {
   private readonly capturedEvents = new RingBuffer<SyscallEvent>(MAX_CAPTURED_EVENTS);
   private droppedEvents = 0;
   private lastBackend: SyscallBackend = chooseDefaultBackend();
+  /** True when events were ingested from an external collector (adb/eBPF). */
+  private externalIngest = false;
   private subprocessError?: string;
   /**
    * In-buffer pairing of dtrace entry/return probes keyed by `${pid}:${syscall}`.
@@ -510,6 +537,7 @@ export class SyscallMonitor {
   async start(options?: StartOptions): Promise<void> {
     const requestedBackend = options?.backend ?? chooseDefaultBackend();
     const startedAt = Date.now();
+    this.externalIngest = false;
 
     if (!isBackendSupportedOnCurrentPlatform(requestedBackend)) {
       throw new Error(
@@ -581,6 +609,7 @@ export class SyscallMonitor {
   }
 
   async stop(): Promise<void> {
+    this.externalIngest = false;
     if (this.activeState?.subprocess) {
       this.activeState.subprocess.kill('SIGTERM');
       this.activeState.subprocess = undefined;
@@ -588,8 +617,28 @@ export class SyscallMonitor {
     this.activeState = undefined;
   }
 
+  /**
+   * Ingest events captured by an external collector (e.g. `syscall_ebpf_attach`
+   * over adb). Marks the session active so `syscall_capture_events`, filters and
+   * stats operate on the same buffer as native backends, without a host
+   * subprocess (and without the synthetic-event regeneration path).
+   */
+  ingestExternal(backend: SyscallBackend, events: readonly SyscallEvent[], pid?: number): void {
+    this.externalIngest = true;
+    this.lastBackend = backend;
+    this.activeState = {
+      backend,
+      pid,
+      startedAt: Date.now(),
+      generatedEvents: events.length,
+    };
+    this.subprocessError = undefined;
+    this.resetCapture();
+    for (const event of events) this.pushCapturedEvent(event);
+  }
+
   async captureEvents(filter?: CaptureFilter): Promise<SyscallEvent[]> {
-    if (this.activeState && !this.activeState.subprocess) {
+    if (this.activeState && !this.activeState.subprocess && !this.externalIngest) {
       this.generateSyntheticEvents();
     }
 
@@ -628,7 +677,7 @@ export class SyscallMonitor {
       ...(state
         ? {
             pid: state.pid,
-            simulate: !state.subprocess,
+            simulate: this.externalIngest ? false : !state.subprocess,
             ...(state.etwProviders ? { etwProviders: state.etwProviders } : {}),
           }
         : {}),

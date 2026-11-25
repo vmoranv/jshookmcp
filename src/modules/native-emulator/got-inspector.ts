@@ -172,3 +172,36 @@ export function dumpGot(bytes: Uint8Array): GotDump[] {
 
   return results;
 }
+
+export interface GotRelocation {
+  /** Virtual address of the GOT slot this relocation writes. */
+  gotAddr: number;
+  /** Imported symbol name (empty for unnamed/relative relocations). */
+  symbol: string;
+  /** `JUMP_SLOT` (lazy PLT) or `GLOB_DAT` (absolute GOT entry). */
+  relocType: string;
+}
+
+/**
+ * Dump every dynamic GOT relocation (`R_AARCH64_JUMP_SLOT` / `R_AARCH64_GLOB_DAT`).
+ *
+ * Libraries built with `-fno-plt`/`-Wl,-z,now` (or otherwise without the
+ * adrp/ldr/add/br trampoline table) have GOT slots but no PLT trampolines, so
+ * {@link dumpGot} legitimately finds no clusters. The GOT entries still exist
+ * as dynamic relocations; this fallback enumerates them directly so the tool
+ * answers "which imports resolve through the GOT?" for those binaries too.
+ */
+export function dumpDynamicRelocations(bytes: Uint8Array): GotRelocation[] {
+  const elf = new ElfLoader(bytes);
+  const out: GotRelocation[] = [];
+  for (const rel of elf.relocations()) {
+    if (rel.type !== R_AARCH64_JUMP_SLOT && rel.type !== R_AARCH64_GLOB_DAT) continue;
+    out.push({
+      gotAddr: rel.offset,
+      symbol: rel.symbolName ?? '',
+      relocType: rel.type === R_AARCH64_JUMP_SLOT ? 'JUMP_SLOT' : 'GLOB_DAT',
+    });
+  }
+  out.sort((a, b) => a.gotAddr - b.gotAddr);
+  return out;
+}

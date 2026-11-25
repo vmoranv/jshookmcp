@@ -168,8 +168,27 @@ describe('handleSyscallEbpfAttach — script fallback', () => {
       }
     },
   );
-});
 
+  it.skipIf(process.platform === 'linux')(
+    'script fallback declares host-kernel scope and points Android users elsewhere',
+    async () => {
+      const { handleSyscallEbpfAttach } = await autoImport();
+      const res = (await handleSyscallEbpfAttach({
+        pid: 1,
+        durationSec: 2,
+        syscalls: ['read'],
+      })) as unknown as Res;
+
+      expect(res.mode).toBe('script');
+      expect(res.scope).toBe('host-kernel');
+      expect(res.platform).toBe(process.platform);
+      // The device path must be spelled out: this tool cannot attach over adb.
+      expect(String(res.note)).toContain('host kernel');
+      expect(String(res.fix)).toContain('Android');
+      expect(String(res.fix)).toContain('simpleperf');
+    },
+  );
+});
 // ── Event format validation ──────────────────────────────────────────────────
 
 describe('handleSyscallEbpfAttach — event format', () => {

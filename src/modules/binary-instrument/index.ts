@@ -1,4 +1,9 @@
-export { FridaSession, fridaDeviceArgs, type FridaDevice } from './FridaSession';
+export {
+  FridaSession,
+  fridaDeviceArgs,
+  diagnoseFridaError,
+  type FridaDevice,
+} from './FridaSession';
 export { GhidraAnalyzer } from './GhidraAnalyzer';
 export { HookCodeGenerator } from './HookCodeGenerator';
 export { invokePlugin, getAvailablePlugins } from './ExtensionBridge';

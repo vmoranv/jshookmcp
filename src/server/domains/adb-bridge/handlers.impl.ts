@@ -790,15 +790,33 @@ export class ADBBridgeHandlers {
       }
 
       const adb = await this.resolveAdb();
-      const { stdout, stderr, exitCode } = await execAdb(
-        adb,
-        [...serialArgs(serial), 'shell', `cat /proc/${pid}/maps`],
-        {
-          allowNonZero: true,
-          timeoutMs: ADB_SHELL_TIMEOUT_MS,
-          maxBufferBytes: ADB_LARGE_OUTPUT_MAX_BUFFER_BYTES,
-        },
-      );
+      const shellArgs = [...serialArgs(serial), 'shell', `cat /proc/${pid}/maps`];
+      let { stdout, stderr, exitCode } = await execAdb(adb, shellArgs, {
+        allowNonZero: true,
+        timeoutMs: ADB_SHELL_TIMEOUT_MS,
+        maxBufferBytes: ADB_LARGE_OUTPUT_MAX_BUFFER_BYTES,
+      });
+      let usedRoot = false;
+      // Shell (uid 2000) cannot read another app's /proc/<pid>/maps on Android
+      // (EACCES). When the first read fails or yields nothing, retry through su
+      // on rooted devices before reporting an empty map.
+      if (exitCode !== 0 || parseProcMaps(stdout).length === 0) {
+        const rooted = await execAdb(
+          adb,
+          [...serialArgs(serial), 'shell', `su -c "cat /proc/${pid}/maps"`],
+          {
+            allowNonZero: true,
+            timeoutMs: ADB_SHELL_TIMEOUT_MS,
+            maxBufferBytes: ADB_LARGE_OUTPUT_MAX_BUFFER_BYTES,
+          },
+        );
+        if (rooted.exitCode === 0 && rooted.stdout.trim().length > 0) {
+          stdout = rooted.stdout;
+          stderr = rooted.stderr;
+          exitCode = 0;
+          usedRoot = true;
+        }
+      }
       if (localPath) {
         await writeOutputFile(localPath, stdout, {
           allowedRoots: getSafeOutputRoots(),
@@ -807,10 +825,11 @@ export class ADBBridgeHandlers {
       }
       const modules = parseProcMaps(stdout);
       return {
-        success: exitCode === 0,
+        success: exitCode === 0 && modules.length > 0,
         serial,
         packageName,
         pid,
+        usedRoot,
         count: modules.length,
         modules,
         localPath,

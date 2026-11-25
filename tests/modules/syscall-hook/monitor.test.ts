@@ -669,3 +669,42 @@ describe('SyscallMonitor', () => {
     vi.useRealTimers();
   });
 });
+
+describe('SyscallMonitor.ingestExternal (adb backend)', () => {
+  it('feeds external events into capture/stats without synthetic regeneration', async () => {
+    const monitor = new SyscallMonitor();
+    monitor.ingestExternal(
+      'adb',
+      [
+        { timestamp: 1, pid: 42, syscall: 'connect', args: [], returnValue: 0 },
+        { timestamp: 2, pid: 42, syscall: 'sendto', args: [], returnValue: 118 },
+      ],
+      42,
+    );
+
+    const stats = monitor.getStats();
+    expect(stats.backend).toBe('adb');
+    expect(stats.simulate).toBe(false);
+    expect(stats.eventsCaptured).toBe(2);
+
+    const events = await monitor.captureEvents();
+    expect(events.map((event) => event.syscall)).toEqual(['connect', 'sendto']);
+    // A second read must not append synthetic seeds for an external session.
+    expect(await monitor.captureEvents()).toHaveLength(2);
+  });
+
+  it('filters externally ingested events by pid and syscall name', async () => {
+    const monitor = new SyscallMonitor();
+    monitor.ingestExternal(
+      'adb',
+      [
+        { timestamp: 1, pid: 1, syscall: 'openat', args: [] },
+        { timestamp: 2, pid: 2, syscall: 'connect', args: [] },
+      ],
+      0,
+    );
+
+    expect(await monitor.captureEvents({ pid: 2 })).toHaveLength(1);
+    expect(await monitor.captureEvents({ name: ['openat'] })).toHaveLength(1);
+  });
+});

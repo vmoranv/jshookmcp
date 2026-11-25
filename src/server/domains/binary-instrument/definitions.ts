@@ -118,6 +118,54 @@ export const binaryInstrumentTools: Tool[] = [
       )
       .required('sessionId', 'script'),
   ),
+  tool('frida_breakpoint_address', (t) =>
+    t
+      .desc(
+        'Install a Frida Interceptor breakpoint at an absolute address, an exported symbol (optionally module-scoped), or moduleName+offset. Captures argument pointers, register context (pc/sp/lr/x0-x7), and an ACCURATE backtrace per hit for the keepAliveMs window.',
+      )
+      .string('sessionId', 'Session id returned by frida_attach')
+      .string('address', 'Absolute address expression, e.g. 0x7a0b74a000+0x5cb1c0')
+      .string('symbol', 'Exported symbol/function name to break on')
+      .string('moduleName', 'Module name for symbol lookup or for moduleName+offset')
+      .number('offset', 'Module-relative offset (decimal) used with moduleName')
+      .number('argCount', 'Number of argument pointers to capture (0-16)', { default: 8 })
+      .boolean('captureRegisters', 'Capture pc/sp/lr/x0-x7', { default: true })
+      .boolean('captureBacktrace', 'Capture an ACCURATE Thread.backtrace per hit', {
+        default: true,
+      })
+      .number('keepAliveMs', 'Hook window in ms (1000-25000; CLI load timeout bounds it)', {
+        default: 12000,
+      })
+      .required('sessionId'),
+  ),
+  tool('frida_backtrace', (t) =>
+    t
+      .desc(
+        'Break on an address/symbol/moduleName+offset and return an ACCURATE mapped backtrace (module+offset per frame) for each hit. Use it when you only need the call stack, not a full Stalker trace.',
+      )
+      .string('sessionId', 'Session id returned by frida_attach')
+      .string('address', 'Absolute address expression')
+      .string('symbol', 'Exported symbol/function name')
+      .string('moduleName', 'Module name for symbol lookup or moduleName+offset')
+      .number('offset', 'Module-relative offset (decimal) used with moduleName')
+      .number('maxFrames', 'Maximum frames per backtrace (1-128)', { default: 32 })
+      .number('keepAliveMs', 'Hook window in ms (1000-25000)', { default: 12000 })
+      .required('sessionId'),
+  ),
+  tool('frida_stalker_trace', (t) =>
+    t
+      .desc(
+        'Break on an address/symbol/moduleName+offset and Stalker-follow the hitting thread, emitting annotated call/ret/exec/block events until maxEvents or handler return. Addresses are annotated with module/symbol by Frida (annotate+stringify).',
+      )
+      .string('sessionId', 'Session id returned by frida_attach')
+      .string('address', 'Absolute address expression')
+      .string('symbol', 'Exported symbol/function name')
+      .string('moduleName', 'Module name for symbol lookup or moduleName+offset')
+      .number('offset', 'Module-relative offset (decimal) used with moduleName')
+      .number('maxEvents', 'Stop Stalker after this many events (1-20000)', { default: 2000 })
+      .number('keepAliveMs', 'Hook window in ms (1000-25000)', { default: 12000 })
+      .required('sessionId'),
+  ),
   tool('frida_resume', (t) =>
     t
       .desc('Resume a target previously spawned for early Frida instrumentation.')
@@ -222,7 +270,7 @@ export const binaryInstrumentTools: Tool[] = [
   tool('frida_attach_interceptor', (t) =>
     t
       .desc(
-        'Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session.',
+        'Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session. Pass keepAliveMs to keep the hook armed so intercepted calls are actually captured — without it the frida CLI exits right after load and the hook prints nothing.',
       )
       .string('symbol', 'Exported symbol or function name to intercept')
       .string('moduleName', 'Optional module name for Module.findExportByName')
@@ -240,6 +288,11 @@ export const binaryInstrumentTools: Tool[] = [
       .boolean('install', 'Run the generated script in the supplied Frida session.', {
         default: false,
       })
+      .number(
+        'keepAliveMs',
+        'install=true only: park the hook with recv().wait() for this window so intercepted calls are captured (1000-25000ms; the frida CLI bounds script load at ~30s).',
+        { minimum: 1000, maximum: 25000 },
+      )
       .string('sessionId', 'Required when install=true; session from frida_attach or frida_spawn')
       .required('symbol'),
   ),
@@ -279,12 +332,24 @@ export const binaryInstrumentTools: Tool[] = [
   tool('jadx_decompile_apk', (t) =>
     t
       .desc(
-        'High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code.',
+        'High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code. Large APKs routinely exceed 60s; set timeoutMs and allow a long client request timeout (or poll outputDir) so the client does not cancel while JADX is still writing sources.',
       )
       .string('apkPath', 'Path to the APK, DEX, or CDEX file')
       .string('outputDir', 'Optional output directory. Defaults to a temp directory.')
       .boolean('noResources', 'Skip resources with --no-res.', { default: false })
       .boolean('force', 'Clear outputDir before decompilation if it exists.', { default: false })
+      .boolean(
+        'deobfuscate',
+        'Pass --deobf so JADX heuristically renames obfuscated members. Cannot restore original R8/ProGuard names without a mapping file.',
+        { default: false },
+      )
+      .number('timeoutMs', 'JADX process timeout in milliseconds (default from config).', {
+        minimum: 1000,
+      })
+      .number('threadsCount', 'JADX worker thread count (default from config).', {
+        minimum: 1,
+        maximum: 128,
+      })
       .required('apkPath'),
   ),
   tool('apktool_decode', (t) =>
@@ -563,6 +628,17 @@ export const binaryInstrumentTools: Tool[] = [
         'File globs applied during enumeration. Defaults to `**/*.java`, `**/*.kt`.',
       )
       .required('query')
+      .query(),
+  ),
+  tool('binary_find_xrefs', (t) =>
+    t
+      .desc(
+        'Find ARM64 code references (ADRP+ADD / ADR) to a target virtual address in an ELF or raw binary. Useful for locating string/table users in stripped natives without exports.',
+      )
+      .string('filePath', 'Path to the ELF or raw binary file')
+      .string('target', 'Target virtual address in hex, e.g. 0x29e08')
+      .number('maxResults', 'Maximum xrefs to return', { default: 50, minimum: 1, maximum: 500 })
+      .required('filePath', 'target')
       .query(),
   ),
   ...apkPackerTools,

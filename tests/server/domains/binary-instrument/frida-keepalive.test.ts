@@ -162,6 +162,72 @@ describe('FridaHandlers — keepAlive + module summary', () => {
     expect(execution.output).toBe('partial');
   });
 
+  it('frida_attach_interceptor keepAliveMs keeps the hook armed and captures output', async () => {
+    const executeScript = vi.fn(async () => ({
+      output: '[enter] getpid @ 0x1\n[leave] getpid => 42',
+    }));
+    const session = makeFakeSession({ executeScript });
+    const handlers = new FridaHandlers(makeState(undefined, session));
+
+    const res = parse(
+      await handlers.handleFridaAttachInterceptor({
+        symbol: 'getpid',
+        moduleName: 'libc.so',
+        install: true,
+        sessionId: 's1',
+        keepAliveMs: 5_000,
+      } as Record<string, unknown>),
+    );
+
+    expect(res.success).toBe(true);
+    expect(res.installed).toBe(true);
+    expect(res.keepAliveMs).toBe(5_000);
+    expect(executeScript).toHaveBeenCalledWith(expect.any(String), {
+      keepAlive: true,
+      timeoutMs: 5_000,
+    });
+    expect((res.execution as Record<string, unknown>).output).toContain('[leave] getpid');
+  });
+
+  it('frida_attach_interceptor without keepAliveMs warns that intercepted calls are lost', async () => {
+    const executeScript = vi.fn(async () => ({ output: '{}' }));
+    const session = makeFakeSession({ executeScript });
+    const handlers = new FridaHandlers(makeState(undefined, session));
+
+    const res = parse(
+      await handlers.handleFridaAttachInterceptor({
+        symbol: 'getpid',
+        moduleName: 'libc.so',
+        install: true,
+        sessionId: 's1',
+      } as Record<string, unknown>),
+    );
+
+    expect(res.success).toBe(true);
+    expect(executeScript).toHaveBeenCalledWith(expect.any(String), {});
+    const notes = res.notes as string[];
+    expect(notes.at(0)).toContain('No keepAliveMs');
+  });
+
+  it('frida_attach_interceptor clamps keepAliveMs above the 25s ceiling', async () => {
+    const executeScript = vi.fn(async () => ({ output: 'ok' }));
+    const session = makeFakeSession({ executeScript });
+    const handlers = new FridaHandlers(makeState(undefined, session));
+
+    const res = parse(
+      await handlers.handleFridaAttachInterceptor({
+        symbol: 'getpid',
+        moduleName: 'libc.so',
+        install: true,
+        sessionId: 's1',
+        keepAliveMs: 120_000,
+      } as Record<string, unknown>),
+    );
+
+    expect(res.keepAliveMs).toBe(25_000);
+    expect((res.notes as string[]).at(0)).toContain('clamped from 120000 to 25000');
+  });
+
   it('frida_enumerate_modules tags modules and returns a summary (default all)', async () => {
     const session = makeFakeSession();
     const handlers = new FridaHandlers(makeState(undefined, session));

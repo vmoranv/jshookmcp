@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FridaSession } from '@modules/binary-instrument/FridaSession';
+import { readFileSync } from 'node:fs';
+import { FridaSession, diagnoseFridaError } from '@modules/binary-instrument/FridaSession';
 import { probeCommand } from '@modules/external/ToolProbe';
 
 vi.mock('@modules/external/ToolProbe', () => ({
@@ -19,6 +20,7 @@ vi.mock('node:child_process', () => ({
 describe('FridaSession — compat shim / keepAlive / error passthrough', () => {
   let session: FridaSession;
   let execFile: ReturnType<typeof vi.fn>;
+  let capturedScript = '';
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -30,6 +32,17 @@ describe('FridaSession — compat shim / keepAlive / error passthrough', () => {
         _opts: unknown,
         cb: (e: unknown, o: string, s: string) => void,
       ) => {
+        // Scripts are now injected via a temp file (`-l <file>`); capture its
+        // content while it still exists so assertions see the real payload.
+        const args = _args as string[];
+        const li = args.indexOf('-l');
+        if (li >= 0) {
+          try {
+            capturedScript = readFileSync(args[li + 1] as string, 'utf8');
+          } catch {
+            capturedScript = '';
+          }
+        }
         cb(null, '[]', '');
       },
     );
@@ -42,12 +55,13 @@ describe('FridaSession — compat shim / keepAlive / error passthrough', () => {
     await session.attach('1234');
   });
 
-  /** The script argv passed after the -e flag. */
+  /** Script payload: inline `-e` for short scripts, temp-file contents for `-l`. */
   function injectedScript(): string {
     const args = execFile.mock.calls.at(-1)?.[1] as string[];
-    const flag = args.indexOf('-e');
-    expect(flag).toBeGreaterThanOrEqual(0);
-    return args[flag + 1] as string;
+    const inline = args.indexOf('-e');
+    if (inline >= 0) return args[inline + 1] as string;
+    expect(capturedScript.length).toBeGreaterThan(0);
+    return capturedScript;
   }
 
   it('prepends the idempotent frida 17 compat shim to every injected script', async () => {
@@ -55,12 +69,34 @@ describe('FridaSession — compat shim / keepAlive / error passthrough', () => {
 
     const script = injectedScript();
     expect(script).toContain('__jshookShim');
-    expect(script).toContain(
-      'Module.findExportByName = function (m, n) { return Process.getModuleByName(m).findExportByName(n); }',
-    );
+    // frida 17: global lookups must not route a null module through
+    // Process.getModuleByName(null) (that throws and breaks attach).
+    expect(script).toContain('Module.getGlobalExportByName');
+    expect(script).toContain('m === null || m === undefined');
+    expect(script).not.toContain('return Process.getModuleByName(m).findExportByName(n);');
     expect(script).toContain('Process.getCurrentPid');
     // User script survives after the shim.
     expect(script.endsWith('console.log("hi");')).toBe(true);
+  });
+
+  it('uses a temp script file (-l) when the script exceeds the inline limit', async () => {
+    const long = 'console.log("' + 'x'.repeat(3000) + '");';
+    await session.executeScript(long);
+
+    const args = execFile.mock.calls.at(-1)?.[1] as string[];
+    expect(args).toContain('-l');
+    expect(args).not.toContain('-e');
+    expect(capturedScript).toContain('x'.repeat(100));
+  });
+
+  it('resolves a null module through the global export lookup, never getModuleByName(null)', async () => {
+    await session.executeScript('Module.findExportByName(null, "getpid");');
+    const script = injectedScript();
+    // The global branch returns before the string-module branch runs.
+    const globalBranch = script.indexOf('if (m === null || m === undefined)');
+    const stringBranch = script.indexOf('(typeof m === "string") ? Process.getModuleByName(m)');
+    expect(globalBranch).toBeGreaterThan(-1);
+    expect(stringBranch).toBeGreaterThan(globalBranch);
   });
 
   it('injects the shim for internal commands too (enumerateModules)', async () => {
@@ -135,6 +171,53 @@ describe('FridaSession — compat shim / keepAlive / error passthrough', () => {
     expect(result.exitCode).toBeUndefined();
   });
 
+  it('treats a keepAlive timeout that captured output as success, not an error', async () => {
+    execFile.mockImplementation(
+      (
+        _file: unknown,
+        _args: unknown,
+        _opts: unknown,
+        cb: (e: unknown, o: string, s: string) => void,
+      ) => {
+        const error = Object.assign(new Error('Command failed: frida'), {
+          killed: true,
+          signal: 'SIGTERM',
+          code: null,
+        });
+        cb(error, '[enter] getpid @ 0x1\n[leave] getpid => 42\n', '');
+      },
+    );
+
+    const result = await session.executeScript('hook', { keepAlive: true, timeoutMs: 2_000 });
+
+    expect(result.error).toBeUndefined();
+    expect(result.timedOut).toBe(true);
+    expect(result.output).toContain('[leave] getpid => 42');
+  });
+
+  it('keeps a keepAlive timeout with no output as an error', async () => {
+    execFile.mockImplementation(
+      (
+        _file: unknown,
+        _args: unknown,
+        _opts: unknown,
+        cb: (e: unknown, o: string, s: string) => void,
+      ) => {
+        const error = Object.assign(new Error('Command failed: frida'), {
+          killed: true,
+          signal: 'SIGTERM',
+          code: null,
+        });
+        cb(error, '', '');
+      },
+    );
+
+    const result = await session.executeScript('hook', { keepAlive: true, timeoutMs: 2_000 });
+
+    expect(result.error).toBeDefined();
+    expect(result.timedOut).toBe(true);
+  });
+
   it('falls back to the error message when the failure carries no streams (spawn errors)', async () => {
     execFile.mockImplementation(
       (
@@ -173,6 +256,24 @@ describe('FridaSession — compat shim / keepAlive / error passthrough', () => {
     expect(result.output).toBe('ok output');
     expect(result.error).toBe('WARN: deprecated API');
     expect(result.stderr).toBe('WARN: deprecated API\n');
+  });
+
+  it('maps a client/server version skew to actionable remediation', () => {
+    const diagnosis = diagnoseFridaError(
+      'Failed to enumerate processes: unable to communicate with remote frida-server; please ensure that major versions match and that the remote Frida has the feature you are trying to use',
+    );
+    expect(diagnosis?.cause).toBe('version-mismatch');
+    expect(diagnosis?.remediation).toContain('frida==');
+  });
+
+  it('maps a refused connection to a start-the-server hint', () => {
+    const diagnosis = diagnoseFridaError('Failed to connect: connection refused');
+    expect(diagnosis?.cause).toBe('server-not-running');
+    expect(diagnosis?.remediation).toContain('frida-server');
+  });
+
+  it('returns null for unrelated script errors so real bugs are not misclassified', () => {
+    expect(diagnoseFridaError('TypeError: cannot read properties of undefined')).toBeNull();
   });
 
   it('parses numeric string exit codes from the CLI error', async () => {

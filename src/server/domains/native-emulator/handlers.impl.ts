@@ -21,7 +21,7 @@ import {
 import type { BionicOptions } from '@modules/native-emulator/bionic';
 import { extractArm64LibsDetailed } from '@modules/native-emulator/apk';
 import { inspectElfImports } from '@modules/native-emulator/import-inspector';
-import { dumpGot } from '@modules/native-emulator/got-inspector';
+import { dumpDynamicRelocations, dumpGot } from '@modules/native-emulator/got-inspector';
 import { UnsupportedOpcodeError, type CpuEngine } from '@modules/native-emulator/CpuEngine';
 import type { PacKeys } from '@modules/native-emulator/decoder/PointerAuth';
 import type { HostContext } from '@modules/native-emulator/host-context';
@@ -494,10 +494,19 @@ export class NativeEmulatorHandlers {
     return handleSafe(async () => {
       const soPath = argStringRequired(args, 'soPath');
       const bytes = await readFile(soPath);
-      const clusters = dumpGot(toUint8(bytes));
+      const image = toUint8(bytes);
+      const clusters = dumpGot(image);
+      const relocations = dumpDynamicRelocations(image);
       return {
         soPath,
         clusters,
+        relocationCount: relocations.length,
+        relocations: relocations.slice(0, 2000),
+        ...(relocations.length > 2000 ? { relocationsTruncated: true } : {}),
+        note:
+          clusters.length === 0 && relocations.length > 0
+            ? 'No PLT trampolines found (likely -fno-plt / BIND_NOW); GOT entries are reported as dynamic relocations.'
+            : undefined,
         summary: clusters.map((c) => ({
           pageBase: `0x${c.pageBase.toString(16)}`,
           tableStart: `0x${c.tableStart.toString(16)}`,
