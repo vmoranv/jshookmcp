@@ -58,7 +58,8 @@ export class SearchResultProjector {
   ): ToolSearchResult[] {
     if (results.length <= 1) return results;
     const reRankInputs: ReRankInput[] = results.map((result) => {
-      const doc = this.docs[this.docNameIndex.get(result.name) ?? 0];
+      const docIndex = this.docNameIndex.get(result.name);
+      const doc = docIndex === undefined ? undefined : this.docs[docIndex];
       // The re-ranker's lexical features (keyword overlap, intent alignment)
       // read a single description string. Fold the doc-expansion scene phrases
       // into it so expansion text is visible to this layer too — otherwise a
@@ -84,8 +85,12 @@ export class SearchResultProjector {
       maxPerDomain: isSessionFocused ? 4 : 2,
     });
     const rankMap = new Map(reRanked.map((item, index) => [item.toolName, index]));
+    // A result absent from reRanked (duplicate name / smaller topK) must not be
+    // promoted to rank 0; sort it after every ranked entry instead.
     return results
       .slice()
-      .toSorted((a, b) => (rankMap.get(a.name) ?? 0) - (rankMap.get(b.name) ?? 0));
+      .toSorted(
+        (a, b) => (rankMap.get(a.name) ?? results.length) - (rankMap.get(b.name) ?? results.length),
+      );
   }
 }

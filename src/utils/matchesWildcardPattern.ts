@@ -32,8 +32,13 @@ export function matchesWildcardPattern(value: string, pattern: string): boolean 
   let offset = 0;
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i]!;
-    const nextIndex = value.indexOf(segment, offset);
-    if (nextIndex === -1) {
+    const isLast = i === segments.length - 1;
+    // A trailing anchored segment must be matched against its LAST occurrence:
+    // a leftmost `indexOf` finds an earlier occurrence and then fails the
+    // end-anchor check (e.g. '*foo' against 'foobarfoo').
+    const nextIndex =
+      isLast && anchoredEnd ? value.lastIndexOf(segment) : value.indexOf(segment, offset);
+    if (nextIndex === -1 || nextIndex < offset) {
       return false;
     }
     // The first segment must sit at the very start of the value unless the

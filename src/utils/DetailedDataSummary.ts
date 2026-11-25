@@ -47,21 +47,21 @@ export function generateSummaryFromJson(data: unknown, jsonStr: string, size: nu
     preview: jsonStr.substring(0, 200) + (size > 200 ? '...' : ''),
   };
 
-  if (isRecord(data)) {
+  if (Array.isArray(data)) {
+    // Never enumerate array indices: summaries are only built for oversized
+    // payloads, and Object.keys() would allocate one string per element while
+    // reporting meaningless numeric "keys".
+    summary.structure = { length: data.length };
+  } else if (isRecord(data)) {
     const keys = Object.keys(data);
+    const methods = keys.filter((k) => typeof data[k] === 'function');
+    const properties = keys.filter((k) => typeof data[k] !== 'function');
+
     summary.structure = {
       keys: keys.slice(0, 50),
+      methods: methods.slice(0, 30),
+      properties: properties.slice(0, 50),
     };
-
-    if (!Array.isArray(data)) {
-      const methods = keys.filter((k) => typeof data[k] === 'function');
-      const properties = keys.filter((k) => typeof data[k] !== 'function');
-
-      summary.structure.methods = methods.slice(0, 30);
-      summary.structure.properties = properties.slice(0, 50);
-    } else {
-      summary.structure.length = data.length;
-    }
   }
 
   return summary;

@@ -46,13 +46,13 @@ export class LruMap<K, V> extends Map<K, V> {
     super.set(key, value);
     if (super.size > this.capacity) {
       // Map keys iterate in insertion order, so the head is the LRU entry.
-      const oldestKey = super.keys().next().value;
-      if (oldestKey !== undefined) {
-        const oldestValue = super.get(oldestKey);
+      // Use the iterator's `done` flag: a legitimate `undefined` key or stored
+      // value must still be evicted (and reported to onEvict).
+      const { done, value: oldestKey } = super.keys().next();
+      if (!done) {
+        const oldestValue = super.get(oldestKey) as V;
         super.delete(oldestKey);
-        if (this.onEvict && oldestValue !== undefined) {
-          this.onEvict(oldestKey, oldestValue);
-        }
+        this.onEvict?.(oldestKey, oldestValue);
       }
     }
     return this;

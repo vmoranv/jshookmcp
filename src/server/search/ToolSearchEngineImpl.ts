@@ -60,6 +60,7 @@ import {
 } from './ToolSearchEngine.helpers';
 import { buildSearchCacheKey, capturePositiveScores, materializeScores } from './SearchStatement';
 import { ToolMerkleTree, type ToolStateWitness } from './ToolMerkleWitness';
+import { buildCatalogDescriptors, type CatalogToolDescriptor } from './CatalogSnapshot';
 
 // ── public types ──
 
@@ -181,6 +182,8 @@ export class ToolSearchEngine {
   private readonly idfLookupTable: Float64Array;
   private readonly docNormTable: Float64Array;
   private readonly merkleTree: ToolMerkleTree;
+  /** Canonical descriptors the state root commits to (schema included). */
+  private readonly catalogDescriptors: readonly CatalogToolDescriptor[];
 
   /** Dynamic search strategy flags for ablation and DreamRSI counterfactual evaluation. */
   private strategyFlags: Required<SearchStrategyFlags> = {
@@ -304,6 +307,7 @@ export class ToolSearchEngine {
     toolScoreMultipliers?: ReadonlyMap<string, number>,
     searchConfig?: SearchConfig,
     sceneKeywords?: ReadonlyMap<string, readonly string[]>,
+    catalogDescriptors?: readonly CatalogToolDescriptor[],
   ) {
     const source = tools ?? allTools;
     // Pin the stem mode for the engine's lifetime. Both index-time doc.tokenSet
@@ -315,6 +319,12 @@ export class ToolSearchEngine {
     this.domainScoreMultipliers = domainScoreMultipliers;
     this.toolScoreMultipliers = toolScoreMultipliers;
     this.docCount = source.length;
+    // The commitment covers the schema as well as the description. Callers that
+    // already built descriptors (the production rebuild path) pass them in so
+    // the snapshot they diff is byte-for-byte the one the root commits to.
+    this.catalogDescriptors = catalogDescriptors
+      ? [...catalogDescriptors]
+      : buildCatalogDescriptors(source, this.buildDomainMap(source));
 
     // Initialize extracted modules
     this.bm25Scorer = new BM25ScorerImpl(searchConfig);
@@ -341,7 +351,7 @@ export class ToolSearchEngine {
     }
 
     // ── Cryptographic State Commitment (Mina-inspired Merkle Tree) ──
-    this.merkleTree = new ToolMerkleTree(this.docs);
+    this.merkleTree = new ToolMerkleTree(this.catalogDescriptors);
 
     // ── Re-ranker: build domain keywords from tool metadata ──
     this.reRanker = new ReRanker();
@@ -371,6 +381,14 @@ export class ToolSearchEngine {
 
     // ── Query result cache (§4.3 CSAPC) ──
     this.queryCache = new SearchResultCache(SEARCH_QUERY_CACHE_CAPACITY);
+  }
+
+  private buildDomainMap(tools: readonly Tool[]): Map<string, string | null> {
+    const map = new Map<string, string | null>();
+    for (const tool of tools) {
+      map.set(tool.name, this.domainOverrides?.get(tool.name) ?? getToolDomain(tool.name));
+    }
+    return map;
   }
 
   /**
@@ -685,131 +703,144 @@ export class ToolSearchEngine {
       'search.id': searchId,
     });
 
-    // Tokenise without synonyms first, filter stop words, then keep only the most informative.
-    const rawTokens = this.bm25Scorer.tokenise(query);
-    const contentTokens = QueryNormalizer.filterQueryStopwords(rawTokens);
-    if (contentTokens.length === 0) {
-      telemetrySpan.end({ 'search.result_count': 0 });
-      instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
-        outcome: 'empty_query',
-      });
-      return [];
-    }
+    try {
+      // Tokenise without synonyms first, filter stop words, then keep only the most informative.
+      const rawTokens = this.bm25Scorer.tokenise(query);
+      const contentTokens = QueryNormalizer.filterQueryStopwords(rawTokens);
+      if (contentTokens.length === 0) {
+        telemetrySpan.end({ 'search.result_count': 0 });
+        instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
+          outcome: 'empty_query',
+        });
+        return [];
+      }
 
-    // Degenerate-probe gate: a pure-stopword query (e.g. "a") survives the
-    // filter only through the keep-original-tokens fallback, and any query
-    // whose content-token count sits below the configured minimum carries too
-    // little retrievable intent to rank meaningfully. Quick-path (exact
-    // tool-name) queries are exempt.
-    if (
-      SEARCH_MIN_CONTENT_TOKENS > 0 &&
-      !this.isExactNameQuery(query) &&
-      contentTokens.length < SEARCH_MIN_CONTENT_TOKENS
-    ) {
-      telemetrySpan.end({ 'search.result_count': 0 });
-      instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
-        outcome: 'empty_query',
-      });
-      return [];
-    }
+      // Degenerate-probe gate: a pure-stopword query (e.g. "a") survives the
+      // filter only through the keep-original-tokens fallback, and any query
+      // whose content-token count sits below the configured minimum carries too
+      // little retrievable intent to rank meaningfully. Quick-path (exact
+      // tool-name) queries are exempt.
+      if (
+        SEARCH_MIN_CONTENT_TOKENS > 0 &&
+        !this.isExactNameQuery(query) &&
+        contentTokens.length < SEARCH_MIN_CONTENT_TOKENS
+      ) {
+        telemetrySpan.end({ 'search.result_count': 0 });
+        instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
+          outcome: 'empty_query',
+        });
+        return [];
+      }
 
-    if (
-      this.strategyFlags.enableOutOfDomainGating &&
-      this.shouldRejectOutOfDomain(contentTokens, query)
-    ) {
-      const latencyMs = performance.now() - searchStartTime;
-      telemetrySpan.end({
-        'search.result_count': 0,
-        'search.latency_ms': Math.round(latencyMs),
-      });
-      instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
-        outcome: 'out_of_domain_vocab_rejection',
-      });
-      return [];
-    }
+      if (
+        this.strategyFlags.enableOutOfDomainGating &&
+        this.shouldRejectOutOfDomain(contentTokens, query)
+      ) {
+        const latencyMs = performance.now() - searchStartTime;
+        telemetrySpan.end({
+          'search.result_count': 0,
+          'search.latency_ms': Math.round(latencyMs),
+        });
+        instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
+          outcome: 'out_of_domain_vocab_rejection',
+        });
+        return [];
+      }
 
-    const queryTokens = this.distillQueryTokens(contentTokens);
-    if (queryTokens.length === 0) {
-      telemetrySpan.end({ 'search.result_count': 0 });
-      instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
-        outcome: 'empty_query',
-      });
-      return [];
-    }
+      const queryTokens = this.distillQueryTokens(contentTokens);
+      if (queryTokens.length === 0) {
+        telemetrySpan.end({ 'search.result_count': 0 });
+        instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
+          outcome: 'empty_query',
+        });
+        return [];
+      }
 
-    // Cache key is the baked statement only. topK, profile, and visible
-    // domains are replayed from the stored pre-adjust scores.
-    const cacheKey = buildSearchCacheKey({
-      query,
-      extensionEtag: this.extensionEtag,
-      stemMode: this.stemMode,
-    });
-    const cached = this.queryCache.get(cacheKey);
-    if (cached) {
-      const results = this.replayCached(
-        cached,
+      // Cache key is the baked statement only. topK, profile, and visible
+      // domains are replayed from the stored pre-adjust scores. Active tool names
+      // ARE part of the key when workflow transitions are enabled, because those
+      // session-dependent boosts are baked into the captured scores.
+      const activeToolFingerprint =
+        this.strategyFlags.enableWorkflowTransitions && activeToolNames && activeToolNames.size > 0
+          ? [...activeToolNames].toSorted().join(',')
+          : '';
+      const cacheKey = buildSearchCacheKey({
         query,
-        topK,
-        activeToolNames,
-        visibleDomains,
-        profile,
-      );
-      telemetrySpan.end({
-        'search.cache_hit': true,
-        'search.result_count': results.length,
-        'search.latency_ms': Math.round(performance.now() - searchStartTime),
+        extensionEtag: this.extensionEtag,
+        stemMode: this.stemMode,
+        activeToolFingerprint,
       });
-      instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
-        outcome: 'cache_hit',
-      });
-      return results;
-    }
+      const cached = this.queryCache.get(cacheKey);
+      if (cached) {
+        const results = this.replayCached(
+          cached,
+          query,
+          topK,
+          activeToolNames,
+          visibleDomains,
+          profile,
+        );
+        telemetrySpan.end({
+          'search.cache_hit': true,
+          'search.result_count': results.length,
+          'search.latency_ms': Math.round(performance.now() - searchStartTime),
+        });
+        instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
+          outcome: 'cache_hit',
+        });
+        return results;
+      }
 
-    // Exact tool names skip RRF and the full scoring pipeline. A single
-    // token does not: intent and affinity still have to run.
-    if (SEARCH_SELF_RAG_ENABLED && this.isExactNameQuery(query)) {
-      const { quickResults, preAdjust, quickLatencyMs } = this.executeQuickPathSearch(
+      // Exact tool names skip RRF and the full scoring pipeline. A single
+      // token does not: intent and affinity still have to run.
+      if (SEARCH_SELF_RAG_ENABLED && this.isExactNameQuery(query)) {
+        const { quickResults, preAdjust, quickLatencyMs } = this.executeQuickPathSearch(
+          query,
+          queryTokens,
+          topK,
+          activeToolNames,
+          visibleDomains,
+          profile,
+          searchId,
+        );
+        telemetrySpan.end({
+          'search.quick_path': true,
+          'search.result_count': quickResults.length,
+          'search.latency_ms': quickLatencyMs,
+        });
+        instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
+          outcome: 'quick_path',
+        });
+        instrumentation.emitMetric(MetricNames.searchLatencyMs, quickLatencyMs, 'histogram', {
+          outcome: 'quick_path',
+        });
+        this.writeCache(cacheKey, 'quick', preAdjust);
+        return quickResults;
+      }
+
+      // Shorthand and abbreviation token set for selective expansion on long queries
+      const explicitToolMention = this.findExplicitToolMention(query);
+      const intentToolBonuses = this.intentBoost.resolveIntentToolBonuses(query);
+      return this.runFullSearchPipeline({
+        cacheKey,
         query,
+        contentTokens,
         queryTokens,
         topK,
         activeToolNames,
         visibleDomains,
         profile,
+        explicitToolMention,
+        intentToolBonuses,
+        searchStartTime,
+        telemetrySpan,
         searchId,
-      );
-      telemetrySpan.end({
-        'search.quick_path': true,
-        'search.result_count': quickResults.length,
-        'search.latency_ms': quickLatencyMs,
       });
-      instrumentation.emitMetric(MetricNames.searchQueriesTotal, 1, 'counter', {
-        outcome: 'quick_path',
-      });
-      instrumentation.emitMetric(MetricNames.searchLatencyMs, quickLatencyMs, 'histogram', {
-        outcome: 'quick_path',
-      });
-      this.writeCache(cacheKey, 'quick', preAdjust);
-      return quickResults;
+    } catch (error) {
+      // Never leak the span on a pipeline failure (fusion / re-rank / tracker).
+      telemetrySpan.end({ 'search.result_count': 0 });
+      throw error;
     }
-
-    // Shorthand and abbreviation token set for selective expansion on long queries
-    const explicitToolMention = this.findExplicitToolMention(query);
-    const intentToolBonuses = this.intentBoost.resolveIntentToolBonuses(query);
-    return this.runFullSearchPipeline({
-      cacheKey,
-      query,
-      contentTokens,
-      queryTokens,
-      topK,
-      activeToolNames,
-      visibleDomains,
-      profile,
-      explicitToolMention,
-      intentToolBonuses,
-      searchStartTime,
-      telemetrySpan,
-      searchId,
-    });
   }
 
   /**
@@ -1298,6 +1329,14 @@ export class ToolSearchEngine {
    */
   getStateRoot(): string {
     return this.merkleTree.root;
+  }
+
+  /**
+   * Snapshot of the canonical descriptors committed to by {@link getStateRoot}.
+   * Used by the rebuild path to explain what changed between two catalogs.
+   */
+  getCatalogSnapshot(): readonly CatalogToolDescriptor[] {
+    return this.catalogDescriptors;
   }
 
   /**

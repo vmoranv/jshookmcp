@@ -347,6 +347,19 @@ const NON_VERB_ING: Record<string, true> = {
   binding: true,
 };
 
+/**
+ * Words whose trailing "ed" belongs to the root rather than an inflection.
+ * Stripping it leaves a non-root fragment (embed→emb) that would collide with
+ * unrelated tokens, so they stay verbatim. `needed` and other real -ed forms
+ * are not listed and still fold.
+ */
+const PROTECTED_ED_BASE: Record<string, true> = {
+  need: true,
+  feed: true,
+  embed: true,
+  shed: true,
+};
+
 /** Verb bases that already end in a doubled consonant. Their inflected forms
  *  must NOT collapse that doubling (processing→process, passing→pass). */
 const DOUBLED_STEM_BASE: Record<string, true> = {
@@ -398,29 +411,35 @@ function collapseInflectionalDoubling(root: string): string {
  * protected trailing-e words, doubled-stem bases) are left verbatim.
  */
 function stemInflectionOnly(token: string): string {
-  if (PROTECTED_TRAILING_E[token] || NON_VERB_ING[token]) return token;
+  if (PROTECTED_TRAILING_E[token] || NON_VERB_ING[token] || PROTECTED_ED_BASE[token]) return token;
   if (token.endsWith('ing') && token.length >= 5) {
     return stripTrailingE(collapseInflectionalDoubling(token.slice(0, -3)));
   }
   if (token.endsWith('ed') && token.length >= 4) {
-    return stripTrailingE(collapseInflectionalDoubling(token.slice(0, -2)));
+    const stem = stripTrailingE(collapseInflectionalDoubling(token.slice(0, -2)));
+    // Avoid truncating short real words into 2-char non-roots
+    // (need→ne, feed→fe, embed→emb, shed→sh).
+    return stem.length >= 3 ? stem : token;
   }
   return stripTrailingE(token);
 }
 
 function stemFold(token: string, withPlural: boolean): string {
-  const stemmed = stemInflectionOnly(token);
+  // Fold the plural on the *original* token before verb inflection so a base
+  // noun and its plural reach the same canonical stem (device/devices→devic,
+  // box/boxes→box).
+  let candidate = token;
   if (
     withPlural &&
-    stemmed.length >= 4 &&
-    stemmed.endsWith('s') &&
-    !stemmed.endsWith('ss') &&
-    !stemmed.endsWith('us') &&
-    !stemmed.endsWith('is')
+    candidate.length >= 4 &&
+    candidate.endsWith('s') &&
+    !candidate.endsWith('ss') &&
+    !candidate.endsWith('us') &&
+    !candidate.endsWith('is')
   ) {
-    return stemmed.slice(0, -1);
+    candidate = candidate.slice(0, -1);
   }
-  return stemmed;
+  return stemInflectionOnly(candidate);
 }
 
 /**

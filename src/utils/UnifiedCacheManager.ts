@@ -185,14 +185,14 @@ export class UnifiedCacheManager {
       return this.calculateCleanupResult(beforeSize, currentStats.totalSize);
     }
 
-    await this.cleanupLowHitRate(namespaceFilter);
+    await this.cleanupLowHitRate(namespaceFilter, target);
 
     currentStats = await this.getFilteredStats(namespaceFilter);
     if (currentStats.totalSize <= target) {
       return this.calculateCleanupResult(beforeSize, currentStats.totalSize);
     }
 
-    await this.cleanupLargeItems(namespaceFilter);
+    await this.cleanupLargeItems(namespaceFilter, target);
 
     const afterStats = await this.getFilteredStats(namespaceFilter);
     return this.calculateCleanupResult(beforeSize, afterStats.totalSize);
@@ -214,13 +214,22 @@ export class UnifiedCacheManager {
     }
   }
 
-  private async cleanupLowHitRate(filter: (name: string) => boolean): Promise<void> {
+  private async cleanupLowHitRate(
+    filter: (name: string) => boolean,
+    target: number,
+  ): Promise<void> {
     logger.info('Cleaning up low hit rate caches...');
 
     const stats = await this.getFilteredStats(filter);
     const avgHitRate = stats.hitRate;
+    let remainingSize = stats.totalSize;
 
     for (const cacheStats of stats.caches) {
+      // Stop as soon as the filtered subset fits: clearing every low-hit-rate
+      // cache when one was enough evicts far more than the budget requires.
+      if (remainingSize <= target) {
+        break;
+      }
       if (
         cacheStats.hitRate !== undefined &&
         cacheStats.hitRate < avgHitRate * this.LOW_HIT_RATE_THRESHOLD
@@ -233,6 +242,7 @@ export class UnifiedCacheManager {
             logger.info(
               `Cleared low hit rate cache: ${cacheStats.name} (${(cacheStats.hitRate * 100).toFixed(1)}%)`,
             );
+            remainingSize = (await this.getFilteredStats(filter)).totalSize;
           } catch (error) {
             logger.error(`Failed to clear ${cacheStats.name}:`, error);
           }
@@ -241,20 +251,30 @@ export class UnifiedCacheManager {
     }
   }
 
-  private async cleanupLargeItems(filter: (name: string) => boolean): Promise<void> {
+  private async cleanupLargeItems(
+    filter: (name: string) => boolean,
+    target: number,
+  ): Promise<void> {
     logger.info('Cleaning up large caches...');
 
     const stats = await this.getFilteredStats(filter);
+    let remainingSize = stats.totalSize;
 
     const sortedCaches = stats.caches.toSorted((a, b) => b.size - a.size);
 
-    for (const cacheStats of sortedCaches.slice(0, 2)) {
+    for (const cacheStats of sortedCaches) {
+      // Clear largest-first, one cache at a time, re-measuring after each hit:
+      // always clearing a fixed count can evict ~2x more data than needed.
+      if (remainingSize <= target) {
+        break;
+      }
       const cache = this.caches.get(cacheStats.name);
       /* v8 ignore next */
       if (cache?.clear) {
         try {
           await cache.clear();
           logger.info(`Cleared large cache: ${cacheStats.name} (${cacheStats.sizeMB}MB)`);
+          remainingSize = (await this.getFilteredStats(filter)).totalSize;
         } catch (error) {
           logger.error(`Failed to clear ${cacheStats.name}:`, error);
         }

@@ -34,6 +34,8 @@ export class PersistentCache {
   private db: import('better-sqlite3').Database | null = null;
   private options: Required<PersistentCacheOptions>;
   private initialized = false;
+  /** Shared in-flight initialization so concurrent init() callers await one connection. */
+  private initPromise: Promise<void> | null = null;
   private stats = { hits: 0, misses: 0, sets: 0, deletes: 0 };
 
   constructor(options: PersistentCacheOptions = {}) {
@@ -58,6 +60,20 @@ export class PersistentCache {
       return;
     }
 
+    // Check-then-act would let two concurrent callers both pass the guard and
+    // each open a connection to the same DB (the first handle is overwritten
+    // and never closed). Share one in-flight promise instead.
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this.initializeDatabase().finally(() => {
+      this.initPromise = null;
+    });
+    return this.initPromise;
+  }
+
+  private async initializeDatabase(): Promise<void> {
     try {
       const dbPath = this.resolveDbPath();
 
@@ -167,8 +183,28 @@ export class PersistentCache {
    * @returns Cached value or null if not found/expired
    */
   async get<T>(key: string, ttlMs?: number): Promise<T | null> {
+    return (await this.getEntry<T>(key, ttlMs)).value;
+  }
+
+  /**
+   * Atomic hit-aware lookup.
+   *
+   * `has()` followed by `get()` is two round-trips and a TOCTOU window: the row
+   * can disappear between them, which makes callers treat a miss as a cached
+   * `null`. This single lookup reports the outcome directly, including a
+   * legitimately cached `null` value.
+   *
+   * Only deserialization failures evict the row. A DB error (closed handle,
+   * SQLITE_BUSY, I/O) is reported as a miss but must not delete a valid entry.
+   */
+  async getEntry<T>(key: string, ttlMs?: number): Promise<{ hit: boolean; value: T | null }> {
+    const miss = (): { hit: false; value: null } => {
+      this.stats.misses++;
+      return { hit: false, value: null };
+    };
+
     if (!this.options.enabled || !this.db || !this.initialized) {
-      return null;
+      return miss();
     }
 
     try {
@@ -177,17 +213,45 @@ export class PersistentCache {
       const entry = stmt.get(key, now) as CacheEntry | undefined;
 
       if (!entry) {
-        this.stats.misses++;
-        return null;
+        return miss();
       }
 
       // Check if custom TTL is provided and entry meets the minimum remaining TTL requirement
       if (ttlMs !== undefined) {
         const remainingTTL = entry.expiresAt - now;
         if (remainingTTL < ttlMs) {
-          this.stats.misses++;
-          return null;
+          return miss();
         }
+      }
+
+      // Deserialization is the only failure that justifies eviction.
+      let wrapped: { __cached?: boolean; data?: T };
+      try {
+        wrapped = JSON.parse(entry.value) as { __cached?: boolean; data?: T };
+      } catch (error) {
+        // Corrupted JSON (e.g. torn write or manual DB edit). Delete the poison
+        // row so it stops erroring on every read.
+        logger.warn(
+          `PersistentCache[${this.options.name}] discarding corrupted entry for key "${key}": ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
+        try {
+          this.db.prepare('DELETE FROM cache_entries WHERE key = ?').run(key);
+        } catch {
+          // Deletion failing is not worth surfacing — the next read will retry.
+        }
+        return miss();
+      }
+
+      // Not our wrapped format (e.g. a row written by an external tool or an
+      // older cache version). Discard it instead of returning undefined and
+      // treating every subsequent read as a "hit" of nothing.
+      if (wrapped === null || typeof wrapped !== 'object' || wrapped['__cached'] !== true) {
+        logger.warn(
+          `PersistentCache[${this.options.name}] discarding entry with unexpected format for key "${key}"`,
+        );
+        this.db.prepare('DELETE FROM cache_entries WHERE key = ?').run(key);
+        return miss();
       }
 
       // Update access stats
@@ -198,38 +262,15 @@ export class PersistentCache {
         .run(now, key);
 
       this.stats.hits++;
-
-      // Unwrap the stored value (values are stored as { __cached: true, data: actualValue })
-      const wrapped = JSON.parse(entry.value) as { __cached: boolean; data: T };
-
-      // Not our wrapped format (e.g. a row written by an external tool or an
-      // older cache version). Discard it instead of returning undefined and
-      // treating every subsequent get as a "hit" of nothing.
-      if (wrapped === null || typeof wrapped !== 'object' || wrapped['__cached'] !== true) {
-        logger.warn(
-          `PersistentCache[${this.options.name}] discarding entry with unexpected format for key "${key}"`,
-        );
-        this.db.prepare('DELETE FROM cache_entries WHERE key = ?').run(key);
-        this.stats.misses++;
-        return null;
-      }
-
-      return wrapped.data;
+      return { hit: true, value: wrapped.data as T };
     } catch (error) {
-      // Corrupted JSON (e.g. torn write or manual DB edit). Delete the poison
-      // row so it stops erroring on every get instead of silently discarding
-      // and leaving the entry to fail forever.
+      // Database-level failure (closed handle, SQLITE_BUSY, disk I/O). Do NOT
+      // delete the row: a transient error must not turn into permanent cache loss.
       logger.warn(
-        `PersistentCache[${this.options.name}] discarding corrupted entry for key "${key}": ` +
+        `PersistentCache[${this.options.name}] read error for key "${key}": ` +
           `${error instanceof Error ? error.message : String(error)}`,
       );
-      try {
-        this.db.prepare('DELETE FROM cache_entries WHERE key = ?').run(key);
-      } catch {
-        // Deletion failing is not worth surfacing — the next get will retry it.
-      }
-      this.stats.misses++;
-      return null;
+      return miss();
     }
   }
 
@@ -385,6 +426,7 @@ export class PersistentCache {
       this.db.close();
       this.db = null;
       this.initialized = false;
+      this.initPromise = null;
     } catch (error) {
       logger.error(`PersistentCache[${this.options.name}] close error:`, error);
     }

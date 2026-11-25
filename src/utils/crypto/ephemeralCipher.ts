@@ -40,6 +40,15 @@ export function encryptBuffer(plaintext: Buffer, key: Buffer): EncryptedEnvelope
 }
 
 export function decryptEnvelope(envelope: EncryptedEnvelope, key: Buffer): Buffer {
+  // Never trust the algorithm from the envelope: a tampered/corrupt file must
+  // not be able to select a different cipher than the one we wrote.
+  if (envelope.algorithm !== ALGORITHM) {
+    throw new Error(`Unsupported encrypted envelope algorithm: ${String(envelope.algorithm)}`);
+  }
+  if (typeof envelope.payload !== 'string') {
+    throw new Error('Malformed encrypted envelope: payload must be a string');
+  }
+
   const parts = envelope.payload.split(':');
   if (parts.length !== 3) {
     throw new Error('Malformed encrypted envelope: expected iv:tag:data');
@@ -48,7 +57,13 @@ export function decryptEnvelope(envelope: EncryptedEnvelope, key: Buffer): Buffe
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(tagHex, 'hex');
   const data = Buffer.from(dataHex, 'hex');
-  const decipher = createDecipheriv(envelope.algorithm, key, iv);
+  if (iv.length !== IV_LENGTH) {
+    throw new Error(`Malformed encrypted envelope: IV must be ${IV_LENGTH} bytes`);
+  }
+  if (authTag.length !== 16) {
+    throw new Error('Malformed encrypted envelope: auth tag must be 16 bytes');
+  }
+  const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
   return Buffer.concat([decipher.update(data), decipher.final()]);
 }
@@ -74,7 +89,15 @@ export async function sealFileToPath(
 
 export async function openSealedFile(cipherPath: string, key: Buffer): Promise<Buffer> {
   const raw = await readFile(cipherPath, 'utf8');
-  const envelope = JSON.parse(raw) as EncryptedEnvelope;
+  let envelope: EncryptedEnvelope;
+  try {
+    envelope = JSON.parse(raw) as EncryptedEnvelope;
+  } catch (error) {
+    throw new Error(`Corrupt sealed file ${cipherPath}: not valid JSON`, { cause: error });
+  }
+  if (typeof envelope !== 'object' || envelope === null || typeof envelope.payload !== 'string') {
+    throw new Error(`Corrupt sealed file ${cipherPath}: missing payload`);
+  }
   return decryptEnvelope(envelope, key);
 }
 
@@ -102,7 +125,28 @@ export async function secureWipe(path: string): Promise<void> {
   try {
     const stats = await handle.stat();
     if (stats.size > 0) {
-      await handle.write(randomBytes(stats.size), 0, stats.size, 0);
+      // Overwrite in fixed-size chunks: allocating randomBytes(stats.size) for a
+      // multi-GB heap dump can OOM the process doing the wipe. Each chunk is
+      // written in a loop because FileHandle.write may write fewer bytes than
+      // requested; a short write must not silently leave plaintext behind.
+      const chunkSize = 64 * 1024;
+      for (let offset = 0; offset < stats.size; offset += chunkSize) {
+        const length = Math.min(chunkSize, stats.size - offset);
+        const chunk = randomBytes(length);
+        let written = 0;
+        while (written < length) {
+          const { bytesWritten } = await handle.write(
+            chunk,
+            written,
+            length - written,
+            offset + written,
+          );
+          if (bytesWritten <= 0) {
+            throw new Error(`short write while wiping ${path}`);
+          }
+          written += bytesWritten;
+        }
+      }
       await handle.sync();
     }
   } catch (error) {

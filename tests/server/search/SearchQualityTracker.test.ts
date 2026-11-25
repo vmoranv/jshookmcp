@@ -228,6 +228,31 @@ describe('SearchQualityTracker', () => {
       expect(metrics.topKDistribution['1']).toBe(2);
       expect(metrics.topKDistribution['2']).toBe(1);
     });
+
+    it('ignores restored records whose used rank is non-positive', () => {
+      tracker.restoreSnapshot({
+        lastRecordId: 'sq-1-1',
+        records: [
+          {
+            id: 'sq-1-1',
+            query: 'q',
+            timestamp: 1,
+            returnedTools: ['a'],
+            returnedScores: [0.9],
+            latencyMs: 5,
+            usedTool: 'a',
+            usedToolRank: 0,
+          },
+        ],
+      });
+
+      const metrics = tracker.computeMetrics();
+      // Numerator (rankSum/reciprocalSum) and denominator must agree.
+      expect(metrics.toolUsedRate).toBe(0);
+      expect(metrics.avgUsedRank).toBe(0);
+      expect(metrics.mrr).toBe(0);
+      expect(metrics.topKDistribution).toEqual({});
+    });
   });
 
   describe('MAX_HISTORY limit', () => {

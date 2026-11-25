@@ -350,9 +350,18 @@ export class BrowserSessionCoordinator {
     return this.registry.delete(normalized);
   }
 
-  /** Stop the idle sweep timer. Idempotent; safe for tests and graceful shutdown. */
+  /** Stop timers and reject queued callers. Idempotent; safe for graceful shutdown. */
   dispose(): void {
     this.registry.dispose();
+    this.queue.rejectAll(
+      new BrowserSessionQueueError(
+        'Browser session coordinator disposed while requests were queued',
+        'BROWSER_SESSION_CLOSED',
+      ),
+    );
+    this.queue.dispose();
+    this.browserOwners.clear();
+    this.activeExecutionSessionId = null;
   }
 
   getQueueStats(): BrowserSessionQueueStats {
@@ -545,17 +554,25 @@ export class BrowserSessionCoordinator {
         signal: options.signal ?? null,
       });
       this.scheduler.enqueue(normalized);
-      void this.drainQueue();
+      this.scheduleDrain();
+    });
+  }
+
+  private scheduleDrain(): void {
+    void this.drainQueue().catch((error: unknown) => {
+      logger.error('[browser-session] queue drain failed:', error);
     });
   }
 
   private async drainQueue(): Promise<void> {
     if (this.draining) return;
     this.draining = true;
+    let progressed = false;
     try {
       while (this.queue.size > 0) {
         const selected = this.takeNextExecution();
         if (!selected) break;
+        progressed = true;
         const { sessionId, task, scheduleState, aged } = selected;
 
         const queueWaitMs = Math.max(0, this.now() - task.enqueuedAt);
@@ -593,7 +610,11 @@ export class BrowserSessionCoordinator {
       }
     } finally {
       this.draining = false;
-      if (this.queue.size > 0) void this.drainQueue();
+      // Only retry when the last pass actually dispatched something. If
+      // takeNextExecution() returned null with a non-empty queue (scheduler
+      // lost the ready entry), retrying unconditionally spins the microtask
+      // queue forever without letting the pending deadlines progress.
+      if (progressed && this.queue.size > 0) this.scheduleDrain();
     }
   }
 
@@ -674,11 +695,19 @@ export class BrowserSessionCoordinator {
   }
 
   private expirePendingTasks(): void {
-    for (const task of this.queue.popExpired()) {
+    for (const { task, wasHead } of this.queue.popExpired()) {
       const state = this.scheduler.peekState(task.sessionId);
       if (state?.ready) {
-        this.scheduler.removeTask(task);
-        this.scheduler.removeReady(state);
+        if (wasHead) this.scheduler.removeTask(task);
+        const nextHead = this.queue.head(task.sessionId);
+        if (!nextHead) {
+          this.scheduler.removeReady(state);
+        } else if (wasHead) {
+          // The expired task was the aging heap entry; the session still has
+          // queued work, so re-arm aging with the new head instead of dropping
+          // it from the ready set entirely.
+          this.scheduler.pushHead(nextHead);
+        }
       }
       this.queueTimeoutCount += 1;
       task.reject(

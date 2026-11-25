@@ -41,7 +41,7 @@ const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
     'cipher',
     'ciphers',
   ],
-  ['evidence', 'evidance', 'evidanc', 'artifact', 'bundle'],
+  ['evidence', 'artifact', 'bundle', 'evidance', 'evidanc'],
   ['capture', 'monitor', 'network', 'traffic'],
   ['sniff', 'network', 'request', 'traffic', 'capture', 'observe', 'trace', 'record', 'log'],
   ['intercept', 'fetch', 'xhr', 'api', 'call', 'request', 'network'],
@@ -138,8 +138,9 @@ const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
   ],
   // Performance / profile
   ['performance', 'profile', 'benchmark', 'metric', 'vitals'],
-  // Register / signup
-  ['register', 'signup', 'account', 'enroll', 'join'],
+  // Register / signup ("register" stays in the CPU-registers group above so
+  // the two domains do not bleed into each other).
+  ['signup', 'account', 'enroll', 'join', 'registration'],
   // Captcha / challenge
   ['captcha', 'challenge', 'verification', 'verify', 'solve'],
   // Tab / window

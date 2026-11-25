@@ -64,21 +64,25 @@ describe('ToolMerkleWitness & Cryptographic State Commitment', () => {
     expect(witness!.leafHash).toBe(hashToolLeaf(dummyTools[1]!));
     expect(witness!.proof.length).toBeGreaterThan(0);
 
-    // Succinct verification
-    const isValid = ToolMerkleTree.verifyWitness(witness!);
+    // Succinct verification against a trusted root (the tree's own root here).
+    const isValid = ToolMerkleTree.verifyWitness(witness!, tree.root);
     expect(isValid).toBe(true);
+
+    // Without a trusted root there is nothing to verify against: a witness
+    // cannot authenticate itself.
+    expect(ToolMerkleTree.verifyWitness(witness!)).toBe(false);
   });
 
   it('rejects tampered witnesses', () => {
     const tree = new ToolMerkleTree(dummyTools);
     const witness = tree.getWitness('frida_attach')!;
 
-    // Tamper with leaf hash
+    // Tamper with leaf hash — must fail against the trusted root.
     const fakeWitness = {
       ...witness,
       leafHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     };
-    expect(ToolMerkleTree.verifyWitness(fakeWitness)).toBe(false);
+    expect(ToolMerkleTree.verifyWitness(fakeWitness, tree.root)).toBe(false);
 
     // Tamper with expected root
     expect(
@@ -119,11 +123,53 @@ describe('ToolMerkleWitness & Cryptographic State Commitment', () => {
     const witness = engine.getToolWitness('test_engine_tool');
     expect(witness).not.toBeNull();
     expect(witness!.toolName).toBe('test_engine_tool');
-    expect(ToolMerkleTree.verifyWitness(witness!)).toBe(true);
+    expect(ToolMerkleTree.verifyWitness(witness!, root)).toBe(true);
 
     // Search continues to work with lookup table optimizations
     const results = await engine.search('test engine', 5);
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]!.name).toBe('test_engine_tool');
+  });
+
+  it('commits the input schema, so schema-only edits change the root', () => {
+    const original = new ToolMerkleTree(dummyTools);
+    const schemaChanged = dummyTools.map((tool, index) =>
+      index === 1 ? { ...tool, inputSchema: { type: 'object' } } : tool,
+    );
+
+    expect(new ToolMerkleTree(schemaChanged).root).not.toBe(original.root);
+  });
+
+  it('uses prebuilt descriptors when the rebuild path supplies them', () => {
+    const descriptors = [
+      { name: 'x', domain: 'test', description: 'd', inputSchema: { type: 'object' as const } },
+    ];
+    const engine = new ToolSearchEngine(
+      [{ name: 'x', description: 'd', inputSchema: { type: 'object' as const } }],
+      new Map([['x', 'test']]),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      descriptors,
+    );
+
+    expect(engine.getCatalogSnapshot()).toEqual(descriptors);
+    expect(engine.getStateRoot()).toBe(new ToolMerkleTree(descriptors).root);
+  });
+
+  it('engine snapshot exposes the descriptor shape the root commits to', () => {
+    const inputSchema = {
+      type: 'object' as const,
+      properties: { x: { type: 'string' as const } },
+    };
+    const engine = new ToolSearchEngine(
+      [{ name: 'snapshot_tool', description: 'd', inputSchema }],
+      new Map([['snapshot_tool', 'test']]),
+    );
+
+    expect(engine.getCatalogSnapshot()).toEqual([
+      { name: 'snapshot_tool', domain: 'test', description: 'd', inputSchema },
+    ]);
   });
 });

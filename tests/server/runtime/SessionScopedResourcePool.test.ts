@@ -72,6 +72,35 @@ describe('SessionScopedResourcePool', () => {
     expect(dispose).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 'session-a' }));
   });
 
+  it('re-resolves the resource when a captured proxy method runs after dropSession', async () => {
+    const created: TestResource[] = [];
+    const dispose = vi.fn(async (_resource: TestResource) => undefined);
+    const pool = new SessionScopedResourcePool((sessionId) => {
+      const resource = new TestResource(sessionId);
+      created.push(resource);
+      return resource;
+    }, dispose);
+    const proxy = pool.getProxy();
+
+    // Reading the method captures the current (session-a) entry; the callback
+    // itself must resolve again at call time.
+    const add = await runWithToolRequestContext({ sessionId: 'session-a' }, async () => proxy.add);
+
+    expect(await pool.dropSession('session-a')).toBe(true);
+    expect(dispose).toHaveBeenCalledTimes(1);
+
+    const returned = await runWithToolRequestContext({ sessionId: 'session-a' }, async () =>
+      add('after-drop'),
+    );
+
+    expect(returned).toBe('session-a');
+    const sessionResources = created.filter((resource) => resource.sessionId === 'session-a');
+    expect(sessionResources).toHaveLength(2);
+    expect(sessionResources[0]!.values).toEqual([]);
+    expect(sessionResources[1]!.values).toEqual(['after-drop']);
+    await pool.close();
+  });
+
   it('defers disposal until an in-flight session method settles', async () => {
     const dispose = vi.fn(async (_resource: TestResource) => undefined);
     const pool = new SessionScopedResourcePool((sessionId) => new TestResource(sessionId), dispose);

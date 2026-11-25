@@ -117,6 +117,11 @@ export interface ResolvedNetworkTarget {
   parsedUrl: URL;
   hostname: string;
   resolvedAddress: string | null;
+  /**
+   * Full DNS answer set. Optional for backward compatibility with callers (and
+   * tests) that construct a single-address target by hand.
+   */
+  resolvedAddresses?: string[];
   isIpLiteral: boolean;
 }
 
@@ -324,28 +329,62 @@ export async function resolveNetworkTargets(url: string): Promise<ResolvedNetwor
   };
 }
 
+/**
+ * Single-address view of a target for callers that pin one resolved IP.
+ *
+ * A mixed public/private answer set is rejected outright: callers of this
+ * helper (replay / raw transports) inspect and pin only `resolvedAddress`, so
+ * returning either the public or the private record would let the other one
+ * through validation while the actual connection re-resolves. `isSsrfTarget`
+ * uses `resolveNetworkTargets` directly and remains the full-set entry point.
+ */
 export async function resolveNetworkTarget(url: string): Promise<ResolvedNetworkTarget> {
   const targets = await resolveNetworkTargets(url);
+  const hasPrivateAddress = targets.addresses.some((address) => isPrivateHost(address));
+  const hasPublicAddress = targets.addresses.some((address) => !isPrivateHost(address));
+
+  if (hasPrivateAddress && hasPublicAddress) {
+    throw new Error(
+      `Refusing ambiguous DNS answer for "${targets.hostname}": mixes public and private ` +
+        'addresses (possible DNS rebinding)',
+    );
+  }
+
   return {
     parsedUrl: targets.parsedUrl,
     hostname: targets.hostname,
     resolvedAddress: targets.addresses[0] ?? null,
+    resolvedAddresses: targets.addresses,
     isIpLiteral: targets.isIpLiteral,
   };
 }
 
+/**
+ * Authorization check for a resolved target. An explicitly allow-listed
+ * hostname is always authorized; otherwise EVERY resolved address must fall
+ * inside an allowed CIDR. Requiring the full set (when available) closes the
+ * mixed-answer bypass where only the first record was inspected.
+ */
 export function isAuthorizedNetworkTarget(
   policy: NetworkAuthorizationPolicy | undefined,
-  target: Pick<ResolvedNetworkTarget, 'hostname' | 'resolvedAddress'>,
+  target: Pick<ResolvedNetworkTarget, 'hostname' | 'resolvedAddress'> &
+    Partial<Pick<ResolvedNetworkTarget, 'resolvedAddresses'>>,
 ): boolean {
   if (!policy) {
     return false;
   }
 
-  return (
-    isAddressAuthorized(policy, target.hostname) ||
-    isAddressAuthorized(policy, target.resolvedAddress)
-  );
+  if (isAddressAuthorized(policy, target.hostname)) {
+    return true;
+  }
+
+  const addresses = target.resolvedAddresses?.length
+    ? target.resolvedAddresses
+    : target.resolvedAddress
+      ? [target.resolvedAddress]
+      : [];
+
+  return addresses.length > 0 && addresses.every((address) => isAddressAuthorized(policy, address));
 }
 
 export async function isSsrfTarget(

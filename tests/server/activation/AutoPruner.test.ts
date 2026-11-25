@@ -100,6 +100,48 @@ describe('activation/AutoPruner', () => {
     pruner.dispose();
   });
 
+  it('isolates a throwing onPrune callback and still clears tracking state', () => {
+    vi.useFakeTimers();
+    const onPrune = vi.fn(() => {
+      throw new Error('prune failed');
+    });
+    const pruner = new AutoPruner(eventBus, new Set(), onPrune, {
+      checkIntervalMs: 50,
+      autoActivatedInactivityMs: 10,
+    });
+
+    pruner.markAutoActivated('network');
+    expect(() => vi.advanceTimersByTime(60)).not.toThrow();
+
+    expect(onPrune).toHaveBeenCalledWith('network');
+    expect(pruner.isAutoActivated('network')).toBe(false);
+    expect(pruner.getLastActivity('network')).toBeUndefined();
+
+    vi.useRealTimers();
+    pruner.dispose();
+  });
+
+  it('lets onPrune re-activate the domain without discarding the fresh timestamp', () => {
+    vi.useFakeTimers();
+    const pruner = new AutoPruner(
+      eventBus,
+      new Set(),
+      (domain) => {
+        pruner.recordActivity(domain);
+      },
+      { checkIntervalMs: 50, autoActivatedInactivityMs: 10 },
+    );
+
+    pruner.markAutoActivated('network');
+    vi.advanceTimersByTime(60);
+
+    expect(pruner.isAutoActivated('network')).toBe(false);
+    expect(pruner.getLastActivity('network')).toBeDefined();
+
+    vi.useRealTimers();
+    pruner.dispose();
+  });
+
   it('safely handles environments missing timer unref', () => {
     const originalSetInterval = global.setInterval;
     vi.spyOn(global, 'setInterval').mockImplementation(((cb: any, ms: any) => {

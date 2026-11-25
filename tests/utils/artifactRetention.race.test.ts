@@ -153,7 +153,11 @@ describe('artifactRetention races', () => {
     });
 
     expect(result.removedFiles).toBe(0);
-    expect(result.remainingFiles).toBe(0);
+    // The vetoed candidate survived, so it is still on disk and must be
+    // reported as remaining (and as a failed removal) rather than silently
+    // dropped from the accounting.
+    expect(result.failedRemovals).toBe(1);
+    expect(result.remainingFiles).toBe(1);
     expect(rmMock).not.toHaveBeenCalled();
   });
 

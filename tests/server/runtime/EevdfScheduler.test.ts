@@ -76,6 +76,35 @@ describe('EevdfScheduler (Earliest Eligible Virtual Deadline First)', () => {
     expect(s1!.vruntimeMs).toBeGreaterThan(0);
   });
 
+  it('does not advance system virtual time to a heavy flow while lighter work is queued', async () => {
+    const scheduler = new EevdfScheduler({ maxConcurrency: 1 });
+    let observedVirtualTime = -1;
+
+    const heavy = scheduler.schedule({
+      id: 'heavy',
+      sessionId: 'heavy',
+      costHintMs: 200,
+      fn: async () => {
+        await delay(30);
+        return 'heavy';
+      },
+    });
+    const light = scheduler.schedule({
+      id: 'light',
+      sessionId: 'light',
+      costHintMs: 10,
+      fn: async () => {
+        observedVirtualTime = scheduler.getSystemVirtualTime();
+        return 'light';
+      },
+    });
+
+    await Promise.all([heavy, light]);
+    // The heavy flow's own vruntime must not become V(t) while the light flow
+    // is still queued, or every flow would be trivially eligible.
+    expect(observedVirtualTime).toBe(0);
+  });
+
   it('enforces concurrency limit', async () => {
     const scheduler = new EevdfScheduler({ maxConcurrency: 2 });
     let concurrentCount = 0;

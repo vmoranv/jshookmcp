@@ -73,4 +73,28 @@ describe('search/IntentBoost', () => {
     expect(boost.resolveIntentToolBonuses('账号注册验证码')).toEqual(new Map());
     expect(boost.getCompiledRules()).toEqual([]);
   });
+
+  it('strips stateful g/y flags so repeated queries are stable', () => {
+    const boost = new IntentBoostImpl([
+      {
+        pattern: 'hello',
+        flags: 'gi',
+        boosts: [{ tool: 'custom_tool', bonus: 5 }],
+      },
+      {
+        pattern: 'world',
+        flags: 'y',
+        boosts: [{ tool: 'custom_tool', bonus: 7 }],
+      },
+    ]);
+
+    for (const rule of boost.getCompiledRules()) {
+      expect(rule.pattern.flags).not.toContain('g');
+      expect(rule.pattern.flags).not.toContain('y');
+    }
+
+    expect(boost.resolveIntentToolBonuses('hello').get('custom_tool')).toBe(5);
+    expect(boost.resolveIntentToolBonuses('hello').get('custom_tool')).toBe(5);
+    expect(boost.resolveIntentToolBonuses('world').get('custom_tool')).toBe(7);
+  });
 });

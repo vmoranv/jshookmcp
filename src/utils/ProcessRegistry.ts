@@ -76,8 +76,19 @@ class ProcessRegistrySingleton {
               return resolve();
             }
 
-            // Send SIGTERM first
-            proc.kill('SIGTERM');
+            // Send SIGTERM first. ChildProcess.kill() can throw synchronously
+            // (ESRCH if it already exited, ERR_UNKNOWN_SIGNAL for a bad signal).
+            // If that escaped the executor, terminateAll() would reject and skip
+            // every remaining process, so settle this entry instead.
+            try {
+              proc.kill('SIGTERM');
+            } catch (error) {
+              logger.warn(
+                `[ProcessRegistry] Failed to send SIGTERM: ${error instanceof Error ? error.message : String(error)}`,
+              );
+              this.processes.delete(proc);
+              return resolve();
+            }
 
             let settled = false;
 
@@ -91,9 +102,13 @@ class ProcessRegistrySingleton {
             proc.once('exit', handleExit);
             proc.once('close', handleExit);
 
-            // Fallback to SIGKILL after grace period
+            // Fallback to SIGKILL after grace period. Do NOT gate on
+            // `proc.killed`: Node sets that flag as soon as kill('SIGTERM') is
+            // sent successfully, not when the child actually terminates, so a
+            // child that ignores SIGTERM would never be force-killed. Exit
+            // state is the reliable "still running" signal on every platform.
             setTimeout(() => {
-              if (!settled && !proc.killed && proc.exitCode === null) {
+              if (!settled && proc.exitCode === null && proc.signalCode === null) {
                 logger.debug(`[ProcessRegistry] Force killing child process PID ${proc.pid}`);
                 try {
                   proc.kill('SIGKILL');

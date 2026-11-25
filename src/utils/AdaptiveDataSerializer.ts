@@ -22,6 +22,27 @@ type DataType =
 
 type UnknownRecord = Record<string, unknown>;
 
+/**
+ * Total variant of JSON.stringify for the serializer's `Promise<string>`
+ * contract. JSON.stringify returns `undefined` for undefined/functions/symbols
+ * and throws for BigInt/cycles; both would break the caller. BigInts become
+ * decimal strings; anything still unserializable becomes a small marker object.
+ */
+function stringifySafely(data: unknown): string {
+  try {
+    return (
+      JSON.stringify(data, (_key, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ) ?? 'null'
+    );
+  } catch (error) {
+    return JSON.stringify({
+      type: 'unserializable',
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 interface NetworkRequestLike extends UnknownRecord {
   requestId?: unknown;
   url?: unknown;
@@ -70,7 +91,7 @@ export class AdaptiveDataSerializer {
       case 'function-tree':
         return this.serializeFunctionTree(data, ctx);
       case 'primitive':
-        return JSON.stringify(data);
+        return stringifySafely(data);
       default:
         return await this.serializeDefault(data, ctx);
     }
@@ -220,7 +241,12 @@ export class AdaptiveDataSerializer {
     data: unknown,
     ctx: Required<SerializationContext>,
   ): Promise<string> {
-    const jsonStr = JSON.stringify(data);
+    // Sanitize before the size check and the preview: a `data:` URI (or any
+    // oversized secret) in an unrecognized payload would otherwise be emitted
+    // verbatim into model context. The canonical copy is stored below, so this
+    // display-only pass must not write a second file.
+    const sanitized = await sanitizeForCache(data, { writeFile: false });
+    const jsonStr = stringifySafely(sanitized);
 
     if (jsonStr.length <= ctx.threshold) {
       return jsonStr;
@@ -369,7 +395,10 @@ export class AdaptiveDataSerializer {
       return { name: this.getFunctionTreeName(tree), truncated: true };
     }
 
-    const rawDependencies = tree.dependencies;
+    // `isFunctionTree` accepts three graph-key spellings; read the same set so a
+    // { name, calls } / { functionName, callGraph } tree is not silently reduced
+    // to `dependencies: []`.
+    const rawDependencies = tree.dependencies ?? tree.calls ?? tree.callGraph;
     const dependencies = Array.isArray(rawDependencies) ? rawDependencies : [];
 
     return {

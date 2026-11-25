@@ -92,11 +92,44 @@ export function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+/** Keys the offload placeholder may carry. Anything else marks a forged payload. */
+const OFFLOAD_MARKER_KEYS = new Set(['type', 'path', 'size', 'mimeType', 'sample']);
+
 function isOffloadPlaceholder(value: object): boolean {
   // Own-property check only: a polluted prototype chain must not be able to
   // make arbitrary objects look like placeholders (which would bypass the
   // idempotency guard and pass attacker data through untouched).
-  return Object.prototype.hasOwnProperty.call(value, '_offload');
+  if (!Object.prototype.hasOwnProperty.call(value, '_offload')) {
+    return false;
+  }
+
+  // A real placeholder has no sibling fields. Hostile data can otherwise smuggle
+  // an oversized/base64 sibling past the sanitizer just by carrying `_offload`.
+  if (Object.keys(value).length !== 1) {
+    return false;
+  }
+
+  const marker = (value as { _offload?: unknown })._offload;
+  if (typeof marker !== 'object' || marker === null || Array.isArray(marker)) {
+    return false;
+  }
+
+  const fields = marker as Record<string, unknown>;
+  for (const key of Object.keys(fields)) {
+    if (!OFFLOAD_MARKER_KEYS.has(key)) {
+      return false;
+    }
+  }
+
+  // Full shape match: only a placeholder this module (or its offloader) would
+  // actually produce is trusted. `path` is '' until an async write completes.
+  return (
+    fields.type === 'file' &&
+    typeof fields.path === 'string' &&
+    typeof fields.size === 'string' &&
+    typeof fields.sample === 'string' &&
+    (fields.mimeType === undefined || typeof fields.mimeType === 'string')
+  );
 }
 
 /**

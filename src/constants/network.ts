@@ -12,7 +12,7 @@ import { int, float } from './helpers.js';
 export const NETWORK_REPLAY_TIMEOUT_MS = int('NETWORK_REPLAY_TIMEOUT_MS', 30_000);
 export const NETWORK_REPLAY_MAX_BODY_BYTES = int('NETWORK_REPLAY_MAX_BODY_BYTES', 512_000);
 export const NETWORK_REPLAY_MAX_REDIRECTS = int('NETWORK_REPLAY_MAX_REDIRECTS', 5);
-export const NETWORK_HAR_BODY_CONCURRENCY = int('NETWORK_HAR_BODY_CONCURRENCY', 4);
+export const NETWORK_HAR_BODY_CONCURRENCY = int('NETWORK_HAR_BODY_CONCURRENCY', 4, { min: 1 });
 
 /** Cap on bytes retained per HAR entry response body when includeBodies is true. */
 export const NETWORK_HAR_BODY_MAX_BYTES = int('NETWORK_HAR_BODY_MAX_BYTES', 1 * 1024 * 1024);

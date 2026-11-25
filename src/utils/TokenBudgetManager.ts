@@ -33,6 +33,12 @@ export class TokenBudgetManager {
   private readonly BYTES_PER_TOKEN = 4;
   private readonly AUTO_CLEANUP_THRESHOLD = 0.9;
   private readonly AUTO_CLEANUP_REARM_THRESHOLD = 0.8;
+  /**
+   * After a cleanup that freed nothing, wait for usage to grow by this fraction
+   * of the budget before retrying. Prevents a no-op cleanup from disarming
+   * auto-cleanup forever while still avoiding cleanup thrash.
+   */
+  private readonly AUTO_CLEANUP_RETRY_GROWTH = 0.05;
   private readonly HISTORY_RETENTION = 5 * 60 * 1000;
   /** Hard cap on retained tool-call records; bounds memory in long-lived sessions. */
   private readonly HISTORY_MAX_RECORDS = 2000;
@@ -45,6 +51,8 @@ export class TokenBudgetManager {
   private sessionStartTime = Date.now();
   private trackingEnabled = true;
   private autoCleanupArmed = true;
+  /** Usage level at which the last auto-cleanup attempt ran (retry hysteresis). */
+  private autoCleanupWatermark = 0;
 
   /** Guards against re-entrant auto-cleanup through the external cleanup callback. */
   private cleanupRunning = false;
@@ -348,6 +356,16 @@ export class TokenBudgetManager {
     const ratio = this.currentUsage / this.MAX_TOKENS;
     if (ratio < this.AUTO_CLEANUP_REARM_THRESHOLD) {
       this.autoCleanupArmed = true;
+      this.autoCleanupWatermark = 0;
+    } else if (!this.autoCleanupArmed) {
+      // A cleanup that freed nothing (all records still inside the retention
+      // window, or an external callback that cleared nothing) must not disarm
+      // cleanup until usage drops below 80%: re-arm once usage has grown
+      // measurably past the level the last attempt ran at.
+      const growthSinceAttempt = this.currentUsage - this.autoCleanupWatermark;
+      if (growthSinceAttempt >= this.MAX_TOKENS * this.AUTO_CLEANUP_RETRY_GROWTH) {
+        this.autoCleanupArmed = true;
+      }
     }
     return this.autoCleanupArmed && ratio >= this.AUTO_CLEANUP_THRESHOLD;
   }
@@ -411,7 +429,12 @@ export class TokenBudgetManager {
       );
 
       const newRatio = afterUsage / this.MAX_TOKENS;
-      if (newRatio < this.AUTO_CLEANUP_REARM_THRESHOLD) {
+      this.autoCleanupWatermark = afterUsage;
+      // Re-arm only when the attempt made progress (or usage is comfortably
+      // below the trigger). A zero-freed attempt stays disarmed until
+      // shouldAutoCleanup() sees enough new growth, so the budget cannot
+      // silently blow past 100% after one futile cleanup.
+      if (freed > 0 || newRatio < this.AUTO_CLEANUP_REARM_THRESHOLD) {
         this.autoCleanupArmed = true;
       }
       this.warnings = new Set(
@@ -578,6 +601,7 @@ export class TokenBudgetManager {
     this.headTimestamp = null;
     this.warnings.clear();
     this.autoCleanupArmed = true;
+    this.autoCleanupWatermark = 0;
     this.sessionStartTime = Date.now();
     logger.info('Token budget reset complete');
   }

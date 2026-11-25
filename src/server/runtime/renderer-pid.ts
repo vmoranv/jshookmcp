@@ -75,7 +75,11 @@ export async function resolvePidOrAttachedRenderer(
   processManager: UnifiedProcessManager,
   ctx?: MCPServerContext | null,
 ): Promise<number> {
-  const numeric = Number(value);
+  // Only numbers and digit-only strings are PIDs. Loose `Number()` coercion
+  // would accept `true`/`[42]`/`new Number(7)` and act on an unrelated process.
+  const isNumericInput =
+    typeof value === 'number' || (typeof value === 'string' && /^\s*\d+\s*$/.test(value));
+  const numeric = isNumericInput ? Number(value) : Number.NaN;
   if (Number.isInteger(numeric) && numeric > 0) {
     return numeric;
   }

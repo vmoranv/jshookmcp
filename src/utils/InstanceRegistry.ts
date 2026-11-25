@@ -53,7 +53,14 @@ async function withRegistrationLock<T>(callback: () => Promise<T>): Promise<T> {
       if (
         !(typeof error === 'object' && error !== null && 'code' in error && error.code === 'EEXIST')
       ) {
-        throw new Error('failed to acquire the instance registration lock', { cause: error });
+        // Best-effort telemetry: an inaccessible lock dir (EACCES/ENOSPC/EROFS,
+        // or a file occupying the path) must not abort server startup.
+        logger.warn(
+          `[instances] instance registration lock unavailable (${
+            error instanceof Error ? error.message : String(error)
+          }) — registering without it`,
+        );
+        return await callback();
       }
 
       try {
@@ -67,11 +74,19 @@ async function withRegistrationLock<T>(callback: () => Promise<T>): Promise<T> {
           const stalePath = `${registrationLockPath()}.stale-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
           try {
             await rename(registrationLockPath(), stalePath);
-          } catch {
+            await rm(stalePath, { recursive: true, force: true }).catch(() => {});
             continue;
+          } catch (renameError) {
+            const code =
+              typeof renameError === 'object' && renameError !== null && 'code' in renameError
+                ? renameError.code
+                : undefined;
+            // ENOENT: another waiter won the takeover — retry immediately.
+            // Anything else (EPERM/EBUSY while a scanner holds the dir on
+            // Windows) must fall through to the deadline check + delay so this
+            // loop cannot spin forever without reaching the fail-open timeout.
+            if (code === 'ENOENT') continue;
           }
-          await rm(stalePath, { recursive: true, force: true }).catch(() => {});
-          continue;
         }
       } catch {
         // The lock was released between mkdir and stat; retry immediately.

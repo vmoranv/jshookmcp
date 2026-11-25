@@ -642,6 +642,27 @@ describe('SubprocessWorker', () => {
       worker.request({ command: 'echo' }, { signal: controller.signal }),
     ).rejects.toMatchObject({ code: 'ABORTED' });
   });
+
+  it('rejects a non-serializable payload instead of pending until the timeout', async () => {
+    const worker = createFixtureWorker();
+    const circular: Record<string, unknown> = { command: 'echo' };
+    circular.self = circular;
+
+    const error = await worker
+      .request(circular, { timeoutMs: 2_000 })
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(SubprocessWorkerError);
+    expect((error as SubprocessWorkerError).code).toBe('CHILD_EXITED');
+    expect((error as SubprocessWorkerError).message).toMatch(/failed to write request/);
+
+    // Serialization failure is a caller bug, not a broken pipe: the worker is
+    // still usable for the next request.
+    const result = await worker.request<{ command: string; value: string }, { echo: string }>({
+      command: 'echo',
+      value: 'after-serialization-failure',
+    });
+    expect(result.echo).toBe('after-serialization-failure');
+  });
 });
 
 // ============================================================

@@ -137,7 +137,9 @@ export class WorkflowRunStore implements SnapshotSource {
     };
     this.setRun(runId, entry);
     this.markDirty();
-    logger.debug(`workflow run error: ${runId} (${workflowId}): ${error}`);
+    // Log the sanitized message: template interpolation throws for Symbol and
+    // for objects without a usable primitive conversion.
+    logger.debug(`workflow run error: ${runId} (${workflowId}): ${entry.errorMessage}`);
   }
 
   getRun(runId: string): WorkflowRunEntry | undefined {
@@ -341,9 +343,16 @@ function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
   try {
-    return JSON.stringify(error);
+    const json = JSON.stringify(error);
+    // JSON.stringify returns undefined for undefined/functions/symbols.
+    if (typeof json === 'string') return json;
   } catch {
+    // Circular / BigInt — fall through to a primitive conversion.
+  }
+  try {
     return String(error);
+  } catch {
+    return '<unserializable>';
   }
 }
 
@@ -414,19 +423,27 @@ function normalizeStepOutcomes(
   outcomes: WorkflowStepOutcome[] | undefined,
 ): WorkflowStepOutcome[] | undefined {
   if (!Array.isArray(outcomes) || outcomes.length === 0) return undefined;
-  return outcomes.slice(0, MAX_STEP_OUTCOMES_PER_RUN).map((outcome) => {
-    const normalized: WorkflowStepOutcome = {
-      stepId: String(outcome.stepId),
-      status: outcome.status === 'error' ? 'error' : 'success',
-    };
-    if (typeof outcome.durationMs === 'number' && Number.isFinite(outcome.durationMs)) {
-      normalized.durationMs = outcome.durationMs;
-    }
-    if (typeof outcome.errorSnippet === 'string') {
-      normalized.errorSnippet = truncate(outcome.errorSnippet, MAX_ERROR_SNIPPET_CHARS);
-    }
-    return normalized;
-  });
+  // Also called from restoreSnapshot() with unvalidated persisted data: a
+  // null/primitive element would make `outcome.stepId` throw and abort the
+  // whole restore.
+  return outcomes
+    .filter(
+      (outcome): outcome is WorkflowStepOutcome => Boolean(outcome) && typeof outcome === 'object',
+    )
+    .slice(0, MAX_STEP_OUTCOMES_PER_RUN)
+    .map((outcome) => {
+      const normalized: WorkflowStepOutcome = {
+        stepId: String(outcome.stepId),
+        status: outcome.status === 'error' ? 'error' : 'success',
+      };
+      if (typeof outcome.durationMs === 'number' && Number.isFinite(outcome.durationMs)) {
+        normalized.durationMs = outcome.durationMs;
+      }
+      if (typeof outcome.errorSnippet === 'string') {
+        normalized.errorSnippet = truncate(outcome.errorSnippet, MAX_ERROR_SNIPPET_CHARS);
+      }
+      return normalized;
+    });
 }
 
 function normalizeEntry(raw: unknown): WorkflowRunEntry | undefined {

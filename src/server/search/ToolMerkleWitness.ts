@@ -7,6 +7,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { compareCodeUnit, stableStringify } from './CanonicalJson';
 
 export interface MerkleProofStep {
   readonly position: 'left' | 'right';
@@ -35,8 +36,17 @@ function sha256Hex(data: string): string {
  * Hash a canonical tool leaf node into a 32-byte hexadecimal representation.
  */
 export function hashToolLeaf(tool: ToolDescriptorForCommitment): string {
-  const schemaStr = tool.inputSchema ? JSON.stringify(tool.inputSchema) : '';
-  const canonical = [tool.name, tool.domain ?? '', tool.description ?? '', schemaStr].join('\x1f');
+  // Presence marker: an explicit `false`/`null` schema is distinct from an
+  // absent one (truthiness would collapse them).
+  const hasSchema = tool.inputSchema !== undefined;
+  const schemaStr = hasSchema ? stableStringify(tool.inputSchema) : '';
+  const canonical = [
+    tool.name,
+    tool.domain ?? '',
+    tool.description ?? '',
+    hasSchema ? 'schema' : 'no-schema',
+    schemaStr,
+  ].join('\x1f');
   return sha256Hex(`tool_leaf\x00${canonical}`);
 }
 
@@ -59,7 +69,9 @@ export class ToolMerkleTree {
 
   constructor(tools: readonly ToolDescriptorForCommitment[]) {
     // Sort tools canonically by name to guarantee deterministic state root
-    const sorted = [...tools].toSorted((a, b) => a.name.localeCompare(b.name));
+    // Code-unit order, not localeCompare: a commitment must not depend on
+    // the host's ICU/locale configuration.
+    const sorted = [...tools].toSorted((a, b) => compareCodeUnit(a.name, b.name));
     const indexMap = new Map<string, number>();
     const leafHashes: string[] = [];
 
@@ -145,9 +157,14 @@ export class ToolMerkleTree {
 
   /**
    * Succinctly verify a tool state witness against a known state root.
+   *
+   * `expectedRoot` must come from a trusted source. Without it there is nothing
+   * to verify against — falling back to the witness's own claimed root would
+   * accept any self-consistent (leafHash, proof) pair.
    */
   static verifyWitness(witness: ToolStateWitness, expectedRoot?: string): boolean {
-    const targetRoot = expectedRoot ?? witness.stateRoot;
+    if (expectedRoot === undefined) return false;
+    const targetRoot = expectedRoot;
     let currentHash = witness.leafHash;
 
     for (const step of witness.proof) {

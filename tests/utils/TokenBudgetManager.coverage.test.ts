@@ -427,6 +427,42 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
     expect(() => (manager as any).autoCleanup()).not.toThrow();
   });
 
+  it('re-arms auto-cleanup after a no-op cleanup once usage grows', () => {
+    vi.useFakeTimers();
+    const cleanupFn = vi.fn();
+    manager.setExternalCleanup(cleanupFn);
+
+    // Each round-trip is capped at 131,072 estimated tokens, so two calls cross
+    // the 90% trigger of the 200k default budget.
+    const big = { detailId: 'detail_big', summary: { size: 760_000 } };
+    manager.recordToolCall('big', big, big);
+    manager.recordToolCall('big', big, big);
+    expect(cleanupFn).toHaveBeenCalledTimes(1);
+
+    // The first cleanup frees nothing (records are inside the retention window),
+    // so it must not disarm cleanup forever.
+    vi.advanceTimersByTime(2_000);
+    const grown = { detailId: 'detail_grown', summary: { size: 80_000 } };
+    manager.recordToolCall('grown', grown, grown);
+    expect(cleanupFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a no-op cleanup without meaningful growth', () => {
+    vi.useFakeTimers();
+    const cleanupFn = vi.fn();
+    manager.setExternalCleanup(cleanupFn);
+
+    const big = { detailId: 'detail_big', summary: { size: 760_000 } };
+    manager.recordToolCall('big', big, big);
+    manager.recordToolCall('big', big, big);
+    expect(cleanupFn).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(2_000);
+    const tiny = { detailId: 'detail_tiny', summary: { size: 400 } };
+    manager.recordToolCall('tiny', tiny, tiny);
+    expect(cleanupFn).toHaveBeenCalledTimes(1);
+  });
+
   // ── recalculateUsage ───────────────────────────────────────────────────
 
   it('recalculateUsage sums all token estimates', () => {

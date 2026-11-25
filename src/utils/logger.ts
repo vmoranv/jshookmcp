@@ -1,4 +1,8 @@
-import { sensitiveJsonReplacer } from '@utils/redaction';
+import {
+  redactSensitiveData,
+  redactSensitiveString,
+  sensitiveJsonReplacer,
+} from '@utils/redaction';
 import { readEnvString } from '@src/config/environment';
 
 const ANSI = {
@@ -40,13 +44,21 @@ class Logger {
       }
     }
     // Replace CR/LF so caller-controlled text cannot forge additional log lines.
-    return `${prefix} ${message}${formattedArgs}`.replace(/[\r\n]/g, ' ');
+    // The message itself is redacted too: it is emitted verbatim and can carry
+    // a bearer token or provider key that the structured-args replacer never sees.
+    const safeMessage = redactSensitiveString(message);
+    return `${prefix} ${safeMessage}${formattedArgs}`.replace(/[\r\n]/g, ' ');
   }
 
   private emit(level: LogLevel, message: string, args: unknown[]): void {
+    if (this.listeners.length === 0) return;
+    // Listeners (the MCP log forwarder) receive the payload, not the formatted
+    // console line — redact there too, once, before fan-out.
+    const safeMessage = redactSensitiveString(message);
+    const safeArgs = args.map((arg) => redactSensitiveData(arg));
     for (const listener of this.listeners) {
       try {
-        listener(level, message, args);
+        listener(level, safeMessage, safeArgs);
       } catch {
         // Suppress listener errors to prevent crashing the main log flow
       }

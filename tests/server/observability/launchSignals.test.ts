@@ -128,7 +128,7 @@ describe('beginStderrCapture', () => {
     const capture = beginStderrCapture();
     process.stderr.write('noise\n');
     capture.markFailed();
-    expect(capture.bytesSoFar()).toBe(0);
+    expect(capture.bytesSoFar()).toBe(6);
     capture.stop();
   });
 

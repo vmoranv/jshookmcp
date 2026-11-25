@@ -37,11 +37,25 @@ export class BrowserSessionCostModel {
 
   update(toolName: string, serviceMs: number, alpha: number): void {
     const previous = this.toolCosts.get(toolName);
+    // Untrusted callers (and a NaN clock) must not poison the estimate forever:
+    // `clamp()` does not sanitize NaN, and estimate() would then return NaN.
+    const safeServiceMs =
+      Number.isFinite(serviceMs) && serviceMs >= 0 ? serviceMs : DEFAULT_COST_MS;
+    const safeAlpha = Number.isFinite(alpha) ? clamp(alpha, 0, 1) : 0;
     if (!previous) {
-      this.toolCosts.set(toolName, { estimateMs: roundMetric(serviceMs), samples: 1 });
+      this.toolCosts.set(toolName, {
+        estimateMs: roundMetric(clamp(safeServiceMs, MIN_COST_MS, MAX_COST_MS)),
+        samples: 1,
+      });
       return;
     }
-    previous.estimateMs = roundMetric(alpha * serviceMs + (1 - alpha) * previous.estimateMs);
+    previous.estimateMs = roundMetric(
+      clamp(
+        safeAlpha * safeServiceMs + (1 - safeAlpha) * previous.estimateMs,
+        MIN_COST_MS,
+        MAX_COST_MS,
+      ),
+    );
     previous.samples += 1;
   }
 

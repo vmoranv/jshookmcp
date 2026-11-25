@@ -139,4 +139,21 @@ describe('config validation – extended checks', () => {
     );
     expect(result.errors).toContain('search.intentToolBoostRules contains invalid regex: [invalid');
   });
+
+  it('fails closed when a trust-boundary plugin flag is supplied but malformed', async () => {
+    process.env.NODE_ENV = 'development';
+    delete process.env.MCP_PLUGIN_SIGNATURE_REQUIRED;
+    delete process.env.MCP_PLUGIN_STRICT_LOAD;
+    vi.resetModules();
+    const baseline = await import('@utils/config');
+    expect(baseline.getConfig().extensions.signatureRequired).toBe(false);
+
+    // `yes` is not a boolean: parseConfigEnvironment drops the field. Treating
+    // the supplied-but-invalid flag as "enabled" keeps the trust boundary shut.
+    process.env.MCP_PLUGIN_SIGNATURE_REQUIRED = 'yes';
+    vi.resetModules();
+    const malformed = await import('@utils/config');
+    expect(malformed.getConfig().extensions.signatureRequired).toBe(true);
+    expect(malformed.getConfig().extensions.strictLoad).toBe(true);
+  });
 });
