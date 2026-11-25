@@ -23,7 +23,7 @@ Full-stack HTTP/HTTPS MITM proxy domain for system-level traffic interception, m
 
 | Tool | Description |
 | --- | --- |
-| `proxy_start` | Start the local HTTP/HTTPS interception proxy with optional TLS. |
+| `proxy_start` | Start the local HTTP/HTTPS interception proxy with optional TLS. Returns a leaseId that later calls can pass as leaseId to keep operating the proxy from a different MCP connection. |
 | `proxy_stop` | Stop the proxy and release all active rules. |
 | `proxy_status` | Report proxy status, listen port, and CA certificate path. |
 | `proxy_export_ca` | Read the proxy CA certificate. |

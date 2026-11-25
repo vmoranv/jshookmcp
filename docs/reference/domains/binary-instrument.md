@@ -20,7 +20,7 @@
 - binary-instrument + memory
 - binary-instrument + process
 
-## 工具清单（46）
+## 工具清单（50）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -32,6 +32,9 @@
 | `generate_hooks` | 为一组符号生成 Frida interceptor 脚本。 |
 | `unidbg_emulate` | 尝试用 unidbg 模拟原生函数，不可用时返回结构化模拟输出。 |
 | `frida_run_script` | 在已附加的 Frida 会话中执行一段 JavaScript 代码。 |
+| `frida_breakpoint_address` | 在绝对地址、导出符号（可带模块）或 moduleName+offset 处安装 Frida Interceptor 断点；每次命中捕获参数指针、寄存器上下文（pc/sp/lr/x0-x7）与 ACCURATE 调用栈，窗口由 keepAliveMs 控制。 |
+| `frida_backtrace` | 在地址/符号/moduleName+offset 处断点，每次命中返回映射后的 ACCURATE 调用栈（每帧含模块与符号）；只关心调用栈、不需要完整 Stalker 轨迹时使用。 |
+| `frida_stalker_trace` | 在地址/符号/moduleName+offset 处断点并对命中线程执行 Stalker 跟踪，输出带模块/符号注解的 call/ret/exec/block 事件，直到 maxEvents 或处理函数返回。 |
 | `frida_resume` | 恢复先前由 frida_spawn 暂停的目标进程。典型流程是先 spawn、安装早期 hook，再用该工具释放进程继续运行。 |
 | `frida_detach` | 从 Frida 会话分离并清理资源。 |
 | `frida_list_sessions` | 列出所有活跃的 Frida 会话。 |
@@ -57,6 +60,7 @@
 | `dex_scan_file` | 扫描二进制/内存 dump 文件中的 DEX 或 CompactDex 魔数，并可选择性地提取命中结果。 |
 | `binary_strings_extract` | 从二进制文件中提取可打印的 ASCII/UTF-16LE 字符串，支持正则过滤。 |
 | `binary_entropy_profile` | 跨定长 chunk 计算二进制文件的香农熵以定位加密/加壳/压缩段。高熵区（≥7.0 bits/byte）疑似加密或压缩；低熵（&lt;4.0）通常是代码或文本。纯计算，无外部工具依赖。 |
+| `binary_find_xrefs` | 在 ELF 或原始二进制中查找指向目标虚拟地址的 ARM64 代码引用（ADRP+ADD / ADR），适合在无导出符号的 stripped native 中定位字符串/表的使用点。 |
 | `apk_native_libs_list` | 列出 APK 内打包的原生共享库（.so）及其 ABI 目录。 |
 | `unidbg_launch` | 在 Unidbg 模拟器中启动 ARM/ARM64 .so 库，首次调用约 3-5 秒预热。 |
 | `unidbg_call` | 在运行中的 Unidbg 模拟器会话中调用 JNI 函数。 |

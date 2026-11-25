@@ -2861,6 +2861,41 @@ export const GENERATED_TOOL_CATALOG = [
   },
   {
     tool: {
+      name: 'binary_find_xrefs',
+      description:
+        'Find ARM64 code references (ADRP+ADD / ADR) to a target virtual address in an ELF or raw binary. Useful for locating string/table users in stripped natives without exports.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          filePath: {
+            type: 'string',
+            description: 'Path to the ELF or raw binary file',
+          },
+          target: {
+            type: 'string',
+            description: 'Target virtual address in hex, e.g. 0x29e08',
+          },
+          maxResults: {
+            type: 'number',
+            description: 'Maximum xrefs to return',
+            default: 50,
+            minimum: 1,
+            maximum: 500,
+          },
+        },
+        required: ['filePath', 'target'],
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    domain: 'binary-instrument',
+  },
+  {
+    tool: {
       name: 'binary_instrument_capabilities',
       description: 'Report binary instrumentation backend availability.',
       inputSchema: {
@@ -10118,7 +10153,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'frida_attach_interceptor',
       description:
-        'Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session.',
+        'Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session. Pass keepAliveMs to keep the hook armed so intercepted calls are actually captured — without it the frida CLI exits right after load and the hook prints nothing.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -10155,6 +10190,13 @@ export const GENERATED_TOOL_CATALOG = [
             description: 'Run the generated script in the supplied Frida session.',
             default: false,
           },
+          keepAliveMs: {
+            type: 'number',
+            description:
+              'install=true only: park the hook with recv().wait() for this window so intercepted calls are captured (1000-25000ms; the frida CLI bounds script load at ~30s).',
+            minimum: 1000,
+            maximum: 25000,
+          },
           sessionId: {
             type: 'string',
             description: 'Required when install=true; session from frida_attach or frida_spawn',
@@ -10171,6 +10213,116 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'binary-instrument',
     sceneKeywords: ['intercept calls via frida', 'frida interceptor attach'],
+  },
+  {
+    tool: {
+      name: 'frida_backtrace',
+      description:
+        'Break on an address/symbol/moduleName+offset and return an ACCURATE mapped backtrace (module+offset per frame) for each hit. Use it when you only need the call stack, not a full Stalker trace.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          sessionId: {
+            type: 'string',
+            description: 'Session id returned by frida_attach',
+          },
+          address: {
+            type: 'string',
+            description: 'Absolute address expression',
+          },
+          symbol: {
+            type: 'string',
+            description: 'Exported symbol/function name',
+          },
+          moduleName: {
+            type: 'string',
+            description: 'Module name for symbol lookup or moduleName+offset',
+          },
+          offset: {
+            type: 'number',
+            description: 'Module-relative offset (decimal) used with moduleName',
+          },
+          maxFrames: {
+            type: 'number',
+            description: 'Maximum frames per backtrace (1-128)',
+            default: 32,
+          },
+          keepAliveMs: {
+            type: 'number',
+            description: 'Hook window in ms (1000-25000)',
+            default: 12000,
+          },
+        },
+        required: ['sessionId'],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    domain: 'binary-instrument',
+  },
+  {
+    tool: {
+      name: 'frida_breakpoint_address',
+      description:
+        'Install a Frida Interceptor breakpoint at an absolute address, an exported symbol (optionally module-scoped), or moduleName+offset. Captures argument pointers, register context (pc/sp/lr/x0-x7), and an ACCURATE backtrace per hit for the keepAliveMs window.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          sessionId: {
+            type: 'string',
+            description: 'Session id returned by frida_attach',
+          },
+          address: {
+            type: 'string',
+            description: 'Absolute address expression, e.g. 0x7a0b74a000+0x5cb1c0',
+          },
+          symbol: {
+            type: 'string',
+            description: 'Exported symbol/function name to break on',
+          },
+          moduleName: {
+            type: 'string',
+            description: 'Module name for symbol lookup or for moduleName+offset',
+          },
+          offset: {
+            type: 'number',
+            description: 'Module-relative offset (decimal) used with moduleName',
+          },
+          argCount: {
+            type: 'number',
+            description: 'Number of argument pointers to capture (0-16)',
+            default: 8,
+          },
+          captureRegisters: {
+            type: 'boolean',
+            description: 'Capture pc/sp/lr/x0-x7',
+            default: true,
+          },
+          captureBacktrace: {
+            type: 'boolean',
+            description: 'Capture an ACCURATE Thread.backtrace per hit',
+            default: true,
+          },
+          keepAliveMs: {
+            type: 'number',
+            description: 'Hook window in ms (1000-25000; CLI load timeout bounds it)',
+            default: 12000,
+          },
+        },
+        required: ['sessionId'],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    domain: 'binary-instrument',
   },
   {
     tool: {
@@ -10654,6 +10806,56 @@ export const GENERATED_TOOL_CATALOG = [
     },
     domain: 'binary-instrument',
     sceneKeywords: ['spawn the app under frida', 'start the process gated'],
+  },
+  {
+    tool: {
+      name: 'frida_stalker_trace',
+      description:
+        'Break on an address/symbol/moduleName+offset and Stalker-follow the hitting thread, emitting annotated call/ret/exec/block events until maxEvents or handler return. Addresses are annotated with module/symbol by Frida (annotate+stringify).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          sessionId: {
+            type: 'string',
+            description: 'Session id returned by frida_attach',
+          },
+          address: {
+            type: 'string',
+            description: 'Absolute address expression',
+          },
+          symbol: {
+            type: 'string',
+            description: 'Exported symbol/function name',
+          },
+          moduleName: {
+            type: 'string',
+            description: 'Module name for symbol lookup or moduleName+offset',
+          },
+          offset: {
+            type: 'number',
+            description: 'Module-relative offset (decimal) used with moduleName',
+          },
+          maxEvents: {
+            type: 'number',
+            description: 'Stop Stalker after this many events (1-20000)',
+            default: 2000,
+          },
+          keepAliveMs: {
+            type: 'number',
+            description: 'Hook window in ms (1000-25000)',
+            default: 12000,
+          },
+        },
+        required: ['sessionId'],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    domain: 'binary-instrument',
   },
   {
     tool: {
@@ -13150,7 +13352,7 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'jadx_decompile_apk',
       description:
-        'High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code.',
+        'High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code. Large APKs routinely exceed 60s; set timeoutMs and allow a long client request timeout (or poll outputDir) so the client does not cancel while JADX is still writing sources.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -13171,6 +13373,23 @@ export const GENERATED_TOOL_CATALOG = [
             type: 'boolean',
             description: 'Clear outputDir before decompilation if it exists.',
             default: false,
+          },
+          deobfuscate: {
+            type: 'boolean',
+            description:
+              'Pass --deobf so JADX heuristically renames obfuscated members. Cannot restore original R8/ProGuard names without a mapping file.',
+            default: false,
+          },
+          timeoutMs: {
+            type: 'number',
+            description: 'JADX process timeout in milliseconds (default from config).',
+            minimum: 1000,
+          },
+          threadsCount: {
+            type: 'number',
+            description: 'JADX worker thread count (default from config).',
+            minimum: 1,
+            maximum: 128,
           },
         },
         required: ['apkPath'],
@@ -24143,6 +24362,11 @@ export const GENERATED_TOOL_CATALOG = [
             description:
               'Path to a callback script module. The script must export beforeRequest(req) and/or beforeResponse(res, req) functions. Mutually exclusive with transformRequest/transformResponse.',
           },
+          leaseId: {
+            type: 'string',
+            description:
+              'Lease id returned by proxy_start (needed when calling from a new MCP connection).',
+          },
         },
         required: ['action'],
       },
@@ -24162,7 +24386,12 @@ export const GENERATED_TOOL_CATALOG = [
       description: 'Clear all captured proxy request/response logs.',
       inputSchema: {
         type: 'object',
-        properties: {},
+        properties: {
+          leaseId: {
+            type: 'string',
+            description: 'Lease id returned by proxy_start.',
+          },
+        },
       },
       annotations: {
         readOnlyHint: false,
@@ -24180,7 +24409,12 @@ export const GENERATED_TOOL_CATALOG = [
       description: 'Clear active proxy interception rules while keeping the proxy running.',
       inputSchema: {
         type: 'object',
-        properties: {},
+        properties: {
+          leaseId: {
+            type: 'string',
+            description: 'Lease id returned by proxy_start.',
+          },
+        },
       },
       annotations: {
         readOnlyHint: false,
@@ -24221,6 +24455,10 @@ export const GENERATED_TOOL_CATALOG = [
             type: 'string',
             description: 'Optional URL filter.',
           },
+          leaseId: {
+            type: 'string',
+            description: 'Lease id returned by proxy_start.',
+          },
         },
       },
       annotations: {
@@ -24240,7 +24478,12 @@ export const GENERATED_TOOL_CATALOG = [
         'List the active proxy interception rules (URL pattern, action, stage, endpoint id) currently registered on the mock server.',
       inputSchema: {
         type: 'object',
-        properties: {},
+        properties: {
+          leaseId: {
+            type: 'string',
+            description: 'Lease id returned by proxy_start.',
+          },
+        },
       },
       annotations: {
         readOnlyHint: true,
@@ -24263,6 +24506,11 @@ export const GENERATED_TOOL_CATALOG = [
           endpointId: {
             type: 'string',
             description: 'The endpointId returned when the rule was added.',
+          },
+          leaseId: {
+            type: 'string',
+            description:
+              'Lease id returned by proxy_start (needed when calling from a new MCP connection).',
           },
         },
         required: ['endpointId'],
@@ -24307,7 +24555,8 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'proxy_start',
-      description: 'Start the local HTTP/HTTPS interception proxy with optional TLS.',
+      description:
+        'Start the local HTTP/HTTPS interception proxy with optional TLS. Returns a leaseId that later calls can pass as leaseId to keep operating the proxy from a different MCP connection.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -24367,7 +24616,13 @@ export const GENERATED_TOOL_CATALOG = [
       description: 'Stop the proxy and release all active rules.',
       inputSchema: {
         type: 'object',
-        properties: {},
+        properties: {
+          leaseId: {
+            type: 'string',
+            description:
+              'Lease id returned by proxy_start (needed when calling from a new MCP connection).',
+          },
+        },
       },
       annotations: {
         readOnlyHint: false,
@@ -26268,10 +26523,26 @@ export const GENERATED_TOOL_CATALOG = [
     tool: {
       name: 'syscall_ebpf_attach',
       description:
-        'Live eBPF syscall attach — spawns a bpftrace process, captures syscall events as structured JSON in real time, and returns them directly. Unlike syscall_ebpf_trace (script-generator), this tool actually runs bpftrace and captures output. Falls back to script mode on non-Linux or when bpftrace is unavailable. Requires bpftrace + CAP_BPF or root on Linux.',
+        "Live eBPF syscall attach — runs a generated bpftrace program, captures syscall events as structured JSON in real time, and returns them directly. Unlike syscall_ebpf_trace (script-generator), this tool actually executes bpftrace. device='host' traces this machine's kernel (needs bpftrace + CAP_BPF/root); device='adb' pushes the SAME generated program to an Android device and runs it under su, so one code path serves both. Falls back to script mode (with an honest scope/note/fix) when the executor is unavailable.",
       inputSchema: {
         type: 'object',
         properties: {
+          device: {
+            type: 'string',
+            enum: ['host', 'adb'],
+            description:
+              "Where to run bpftrace: 'host' (this machine) or 'adb' (Android device over adb).",
+            default: 'host',
+          },
+          serial: {
+            type: 'string',
+            description: "Android serial when device='adb' (see adb_device_list).",
+          },
+          bpftracePath: {
+            type: 'string',
+            description:
+              "Absolute bpftrace path on the device when device='adb' and it is not on PATH.",
+          },
           pid: {
             type: 'number',
             description: 'Process ID to trace. 0 = trace all.',
@@ -26551,18 +26822,43 @@ export const GENERATED_TOOL_CATALOG = [
   {
     tool: {
       name: 'syscall_start_monitor',
-      description: 'Start syscall monitoring.',
+      description:
+        "Start syscall monitoring. backend='adb' captures Android syscalls over adb (bpftrace on-device) and feeds them into the same capture buffer; other backends use host ETW/strace/dtrace.",
       inputSchema: {
         type: 'object',
         properties: {
           backend: {
             type: 'string',
-            enum: ['etw', 'strace', 'dtrace'],
+            enum: ['etw', 'strace', 'dtrace', 'adb'],
             description: 'Syscall capture backend',
           },
           pid: {
             type: 'number',
             description: 'Optional PID to scope monitoring to a single process',
+          },
+          serial: {
+            type: 'string',
+            description: "Android device serial when backend='adb'.",
+          },
+          durationSec: {
+            type: 'number',
+            description: "backend='adb' capture window in seconds (the call blocks for this long).",
+            default: 5,
+            minimum: 1,
+            maximum: 60,
+          },
+          bpftracePath: {
+            type: 'string',
+            description:
+              "backend='adb': bpftrace path on the device when it is not on PATH (e.g. a wrapper script).",
+          },
+          syscalls: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+            description:
+              "backend='adb': syscall names to trace. Defaults to connect/openat/read/write.",
           },
           simulate: {
             type: 'boolean',
