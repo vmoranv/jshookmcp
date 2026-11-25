@@ -30,7 +30,7 @@ export function generateEphemeralKey(): Buffer {
 
 export function encryptBuffer(plaintext: Buffer, key: Buffer): EncryptedEnvelope {
   const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: 16 });
   const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const authTag = cipher.getAuthTag();
   return {
@@ -161,3 +161,4 @@ export async function secureWipe(path: string): Promise<void> {
     }
   });
 }
+

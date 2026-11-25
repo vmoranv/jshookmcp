@@ -3,6 +3,7 @@
  * Handles query pattern matching and tool bonus resolution.
  */
 import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
+import { compileSafeRegex } from '@utils/safeRegExp';
 import type { SearchIntentToolBoostRuleConfig } from '@internal-types/config';
 
 // ── Intent tool boost rules ──
@@ -45,7 +46,7 @@ export class IntentBoostImpl {
         // Never allow stateful flags (g/y): `test()` mutates lastIndex, so the
         // same query would alternate match/no-match across calls.
         const safeFlags = (rule.flags ?? 'i').replace(/[gy]/g, '');
-        regex = new RegExp(rule.pattern, safeFlags);
+        regex = compileSafeRegex(rule.pattern, safeFlags);
       } catch {
         continue;
       }
@@ -93,3 +94,5 @@ export class IntentBoostImpl {
     return this.compiledRules;
   }
 }
+
+

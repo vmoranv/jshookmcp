@@ -54,7 +54,16 @@ export class CodeCache {
     return crypto.createHash('sha256').update(data).digest('hex');
   }
 
+  /** Cache keys are sha256 hex digests; reject anything that isn't pure hex
+   *  as defense-in-depth against path injection via a tampered key. */
+  private validateCacheKey(key: string): void {
+    if (!/^[0-9a-f]{64}$/.test(key)) {
+      throw new Error(`Invalid cache key: expected 64-char lowercase hex, got ${key.length} chars`);
+    }
+  }
+
   private getCachePath(key: string): string {
+    this.validateCacheKey(key);
     return path.join(this.cacheDir, `${key}.json`);
   }
 
@@ -296,3 +305,5 @@ export class CodeCache {
     logger.info('Cache warmup completed');
   }
 }
+
+

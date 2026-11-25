@@ -1,5 +1,6 @@
 import type { CodeFile } from '@internal-types/index';
 import { logger } from '@utils/logger';
+import { compileSafeRegex } from '@utils/safeRegExp';
 import { calculatePriorityScore } from '@modules/collector/PageScriptCollectors';
 
 export function getCollectedFilesSummaryImpl(collectedFilesCache: Map<string, CodeFile>): Array<{
@@ -48,7 +49,7 @@ export function getFilesByPatternImpl(
 } {
   let regex: RegExp;
   try {
-    regex = new RegExp(pattern);
+    regex = compileSafeRegex(pattern);
   } catch (error) {
     throw new Error(
       `Invalid regular expression pattern "${pattern}": ` +
@@ -128,3 +129,5 @@ export function getTopPriorityFilesImpl(
     totalFiles: allFiles.length,
   };
 }
+
+
