@@ -109,6 +109,9 @@ export function compileSafeRegex(pattern: string, flags?: string): RegExp {
   const safeFlags = (flags ?? '').replace(/[gy]/g, '');
 
   try {
+    // Compiling a caller-supplied pattern IS this module's purpose; the
+    // ReDoS guards and length cap run before this line.
+    // eslint-disable-next-line security/detect-non-literal-regexp
     return new RegExp(pattern, safeFlags);
   } catch (error) {
     throw new Error(
