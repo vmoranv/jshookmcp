@@ -46,6 +46,7 @@ import {
   argStringArray,
 } from '@server/domains/shared/parse-args';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
+import { compileSafeRegex } from '@utils/safeRegExp';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
@@ -918,7 +919,7 @@ export class ADBBridgeHandlers {
       );
 
       const allEntries = parseGetprop(stdout);
-      const regex = pattern ? new RegExp(pattern, 'i') : undefined;
+      const regex = pattern ? compileSafeRegex(pattern, 'i') : undefined;
       const filteredEntries = regex
         ? allEntries.filter((entry) => regex.test(entry.key))
         : allEntries;
@@ -1568,7 +1569,7 @@ export class ADBBridgeHandlers {
         pid = await this.resolvePackagePid(serial, packageName);
       }
 
-      const regex = pattern ? new RegExp(pattern, 'i') : undefined;
+      const regex = pattern ? compileSafeRegex(pattern, 'i') : undefined;
       const minPriority = parsePriorityArg(argString(args, 'minPriority'));
       const structured = argBool(args, 'structured') ?? false;
       const predicate = minPriority ? priorityPredicate(minPriority) : undefined;
@@ -1666,7 +1667,7 @@ export class ADBBridgeHandlers {
       }
 
       const pid = await this.resolvePackagePid(serial, packageName);
-      const builtInPattern = new RegExp(
+      const builtInPattern = compileSafeRegex(
         [
           packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
           'ActivityManager',
