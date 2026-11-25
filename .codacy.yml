@@ -85,6 +85,8 @@ engines:
       # request data. The non-literal fs-argument findings are inherent to a
       # computed cache key; the consumer (handlers/jadx.ts) is NOT excluded.
       - 'src/modules/jadx-search/decompile-cache.ts'
+      # Safe-regex utility: compiling a caller-supplied pattern IS this module's purpose (same class of exclusion as ScriptManager/custom-pattern above).
+      - 'src/utils/safeRegExp.ts'
 
       # Content-addressed code cache. Paths are derived from a SHA256 key under
       # a fixed cache root; raw request data never becomes a path component.
