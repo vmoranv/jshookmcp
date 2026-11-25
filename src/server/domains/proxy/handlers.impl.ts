@@ -754,6 +754,17 @@ export class ProxyHandlers {
       : 'default';
   }
 
+  /**
+   * Resolve the lease owner for a call. `leaseId` (returned by proxy_start)
+   * lets a caller keep operating the proxy from a *new* MCP connection; without
+   * it the per-connection session id is used as before.
+   */
+  private ownerFrom(args?: Record<string, unknown>): string {
+    const explicit = args ? argString(args, 'leaseId') : undefined;
+    const trimmed = explicit?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : this.currentSessionId();
+  }
+
   private isOwner(sessionId = this.currentSessionId()): boolean {
     return (
       this.owners.has(sessionId) ||
@@ -882,6 +893,7 @@ export class ProxyHandlers {
         message: 'Reused running proxy.',
         reused: true,
         port: this.currentPort,
+        leaseId: this.currentSessionId(),
         totalOwners: this.owners.size,
       });
     }
@@ -963,6 +975,7 @@ export class ProxyHandlers {
         port: this.currentPort,
         caCertPath,
         reused: false,
+        leaseId: this.currentSessionId(),
         totalOwners: this.owners.size,
       });
     } catch (e) {
@@ -972,11 +985,11 @@ export class ProxyHandlers {
     }
   }
 
-  async handleProxyStop(_args: Record<string, unknown>) {
+  async handleProxyStop(args: Record<string, unknown>) {
     if (!this.server) {
       return ResponseBuilder.error('Proxy is not running.');
     }
-    const sessionId = this.currentSessionId();
+    const sessionId = this.ownerFrom(args);
     const implicitDefaultOwner = this.owners.size === 0 && sessionId === 'default';
     if (!implicitDefaultOwner && !this.owners.delete(sessionId)) {
       return ResponseBuilder.error('Current MCP session does not own a proxy lease.');
@@ -1003,8 +1016,8 @@ export class ProxyHandlers {
     });
   }
 
-  async handleProxyStatus(_args: Record<string, unknown>) {
-    const sessionId = this.currentSessionId();
+  async handleProxyStatus(args: Record<string, unknown>) {
+    const sessionId = this.ownerFrom(args);
     return ResponseBuilder.success({
       running: !!this.server,
       port: this.currentPort,
@@ -1035,8 +1048,11 @@ export class ProxyHandlers {
     if (!this.server) {
       return ResponseBuilder.error('Proxy must be running to add rules.');
     }
-    if (!this.isOwner()) {
-      return ResponseBuilder.error('Call proxy_start to acquire a lease before adding rules.');
+    const owner = this.ownerFrom(args);
+    if (!this.isOwner(owner)) {
+      return ResponseBuilder.error(
+        'Call proxy_start to acquire a lease before adding rules, or pass the leaseId it returned.',
+      );
     }
 
     const payload = parseProxyRulePayload(args);
@@ -1088,7 +1104,7 @@ export class ProxyHandlers {
         message: 'Rule added successfully',
         endpointId: endpoint.id,
         rule: this.recordRule({
-          ownerSessionId: this.currentSessionId(),
+          ownerSessionId: owner,
           endpointId: endpoint.id,
           action,
           method,
@@ -1116,7 +1132,7 @@ export class ProxyHandlers {
       return ResponseBuilder.error('endpointId is required');
     }
 
-    const sessionId = this.currentSessionId();
+    const sessionId = this.ownerFrom(args);
     const idx = this.ruleRecords.findIndex(
       (rule) => rule.endpointId === endpointId && rule.ownerSessionId === sessionId,
     );
@@ -1157,8 +1173,8 @@ export class ProxyHandlers {
     }
   }
 
-  async handleProxyListRules(_args: Record<string, unknown>) {
-    const sessionId = this.currentSessionId();
+  async handleProxyListRules(args: Record<string, unknown>) {
+    const sessionId = this.ownerFrom(args);
     const rules = this.ruleRecords.filter((rule) => rule.ownerSessionId === sessionId);
     return ResponseBuilder.success({
       count: rules.length,
@@ -1166,12 +1182,12 @@ export class ProxyHandlers {
     });
   }
 
-  async handleProxyClearRules(_args: Record<string, unknown>) {
+  async handleProxyClearRules(args: Record<string, unknown>) {
     if (!this.server) {
       return ResponseBuilder.error('Proxy must be running to clear rules.');
     }
 
-    const cleared = await this.disposeRulesForSession(this.currentSessionId());
+    const cleared = await this.disposeRulesForSession(this.ownerFrom(args));
     return ResponseBuilder.success({
       message: 'Proxy rules cleared.',
       cleared,
@@ -1188,7 +1204,7 @@ export class ProxyHandlers {
       });
     }
     const urlFilter = argString(args, 'urlFilter');
-    const clearedAt = this.captureClearWatermarks.get(this.currentSessionId()) ?? 0;
+    const clearedAt = this.captureClearWatermarks.get(this.ownerFrom(args)) ?? 0;
     let results: CaptureEntry[] = this.captureBuffer.filter((entry) => entry.timestamp > clearedAt);
     if (urlFilter) {
       results = results.filter((r) => r.url !== undefined && r.url.includes(urlFilter));
@@ -1199,8 +1215,8 @@ export class ProxyHandlers {
     });
   }
 
-  async handleProxyClearLogs(_args: Record<string, unknown>) {
-    this.captureClearWatermarks.set(this.currentSessionId(), Date.now());
+  async handleProxyClearLogs(args: Record<string, unknown>) {
+    this.captureClearWatermarks.set(this.ownerFrom(args), Date.now());
     return ResponseBuilder.success({ message: 'Captured proxy logs cleared.' });
   }
 

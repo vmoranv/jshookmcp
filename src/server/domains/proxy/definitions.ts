@@ -4,7 +4,9 @@ import { tool } from '@server/registry/tool-builder';
 export const PROXY_TOOLS: Tool[] = [
   tool('proxy_start', (t) =>
     t
-      .desc('Start the local HTTP/HTTPS interception proxy with optional TLS.')
+      .desc(
+        'Start the local HTTP/HTTPS interception proxy with optional TLS. Returns a leaseId that later calls can pass as leaseId to keep operating the proxy from a different MCP connection.',
+      )
       .number('port', 'Listen port.', { default: 8080 })
       .boolean('useHttps', 'Enable HTTPS interception.', {
         default: true,
@@ -15,7 +17,15 @@ export const PROXY_TOOLS: Tool[] = [
         { default: true },
       ),
   ),
-  tool('proxy_stop', (t) => t.desc('Stop the proxy and release all active rules.').destructive()),
+  tool('proxy_stop', (t) =>
+    t
+      .desc('Stop the proxy and release all active rules.')
+      .string(
+        'leaseId',
+        'Lease id returned by proxy_start (needed when calling from a new MCP connection).',
+      )
+      .destructive(),
+  ),
   tool('proxy_status', (t) =>
     t.desc('Report proxy status, listen port, and CA certificate path.').query(),
   ),
@@ -186,6 +196,10 @@ export const PROXY_TOOLS: Tool[] = [
         },
         'Path to a callback script module. The script must export beforeRequest(req) and/or beforeResponse(res, req) functions. Mutually exclusive with transformRequest/transformResponse.',
       )
+      .string(
+        'leaseId',
+        'Lease id returned by proxy_start (needed when calling from a new MCP connection).',
+      )
       .required('action'),
   ),
   tool('proxy_remove_rule', (t) =>
@@ -194,6 +208,10 @@ export const PROXY_TOOLS: Tool[] = [
         'Remove a single proxy interception rule by endpointId. Returns the removed rule record.',
       )
       .string('endpointId', 'The endpointId returned when the rule was added.')
+      .string(
+        'leaseId',
+        'Lease id returned by proxy_start (needed when calling from a new MCP connection).',
+      )
       .required('endpointId')
       .destructive(),
   ),
@@ -203,19 +221,27 @@ export const PROXY_TOOLS: Tool[] = [
         'List the active proxy interception rules (URL pattern, action, stage, endpoint id) ' +
           'currently registered on the mock server.',
       )
+      .string('leaseId', 'Lease id returned by proxy_start.')
       .query(),
   ),
   tool('proxy_clear_rules', (t) =>
-    t.desc('Clear active proxy interception rules while keeping the proxy running.').resettable(),
+    t
+      .desc('Clear active proxy interception rules while keeping the proxy running.')
+      .string('leaseId', 'Lease id returned by proxy_start.')
+      .resettable(),
   ),
   tool('proxy_get_requests', (t) =>
     t
       .desc('Read captured proxy request/response metadata, body previews, and timing.')
       .string('urlFilter', 'Optional URL filter.')
+      .string('leaseId', 'Lease id returned by proxy_start.')
       .query(),
   ),
   tool('proxy_clear_logs', (t) =>
-    t.desc('Clear all captured proxy request/response logs.').resettable(),
+    t
+      .desc('Clear all captured proxy request/response logs.')
+      .string('leaseId', 'Lease id returned by proxy_start.')
+      .resettable(),
   ),
   tool('proxy_setup_adb_device', (t) =>
     t
