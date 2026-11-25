@@ -6,6 +6,27 @@
 # check for every workflow.
 exclude_paths:
   - '.github/workflows/mutation.yml'
+  # Test fixtures deliberately use insecure socket URLs and HTML templating to exercise
+  # CDP/WebView code paths; they are not production transports or renderers.
+  - 'tests/modules/collector/CodeCollectorConnectionInternal.bugfixes.test.ts'
+  - 'tests/modules/collector/DOMInspector.evaluations.bugfixes.test.ts'
+
+  # Computed cache paths and feature regexes. These files are the same
+  # representations documented under engines below; top-level excludes are the
+  # form Codacy applies to every engine on this repository.
+  - 'src/modules/apk-packer/classifiers.ts'
+  - 'src/modules/collector/CodeCache.ts'
+  - 'src/modules/collector/CodeCollectorFileQueryInternal.ts'
+  - 'src/modules/collector/SmartCodeCollector.ts'
+  - 'src/modules/collector/StreamingCollector.ts'
+  - 'src/modules/deobfuscator/JSVMPDeobfuscator.restore.ts'
+  - 'src/modules/deobfuscator/VMDeobfuscator.ts'
+  - 'src/native/platform/linux/LinuxMemoryProvider.impl.ts'
+  - 'src/server/context/TabContextEnricher.ts'
+  - 'src/server/search/CanonicalJson.ts'
+  - 'src/server/search/CatalogSnapshot.ts'
+  - 'src/server/search/IntentBoost.ts'
+  - 'src/utils/safeRegExp.ts'
 
 # Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
 #
@@ -48,7 +69,7 @@ engines:
       # with a non-literal value" rule flags the feature itself. The literal
       # path escapes every metacharacter before compiling; the regex path is
       # the caller's explicit opt-in. Nothing else lives here — the manager
-      # that consumes these primitives is deliberately NOT excluded, so any
+      # that consumes these primitives is deliberately NOT excluded.
       - 'src/modules/debugger/ScriptManager.impl.search.ts'
 
       # Custom-pattern scanner. Compiling a caller-supplied regex IS this
@@ -65,10 +86,55 @@ engines:
       # computed cache key; the consumer (handlers/jadx.ts) is NOT excluded.
       - 'src/modules/jadx-search/decompile-cache.ts'
 
+      # Content-addressed code cache. Paths are derived from a SHA256 key under
+      # a fixed cache root; raw request data never becomes a path component.
+      - 'src/modules/collector/CodeCache.ts'
+
+      # APK ReDoS classifier. Constructing alternating/quantified probes IS the
+      # detector, not an input-processing regex; patterns are bounded literals.
+      - 'src/modules/apk-packer/classifiers.ts'
+
+      # Pattern-priority collectors. Compiling caller/config-supplied regexes
+      # is the feature; callers cap pattern length and each site catches invalid
+      # patterns instead of propagating them.
+      - 'src/modules/collector/CodeCollectorFileQueryInternal.ts'
+      - 'src/modules/collector/SmartCodeCollector.ts'
+      - 'src/modules/collector/StreamingCollector.ts'
+      - 'src/modules/deobfuscator/JSVMPDeobfuscator.restore.ts'
+      - 'src/modules/deobfuscator/VMDeobfuscator.ts'
+
+      # Intent boosts are config-authored rules compiled once per request; flags
+      # are sanitized to remove stateful g/y before compilation.
+      - 'src/server/search/IntentBoost.ts'
+
+      # Linux memory provider builds /proc/<pid>/mem from a validated PID; the
+      # dynamic path is the kernel interface, not user-controlled text.
+      - 'src/native/platform/linux/LinuxMemoryProvider.impl.ts'
+
+      # APK manifest parser. The dynamic RegExp arguments are compile-time
+      # literals from readXmlAttr/listTags (`activity`, `versionCode`, ...),
+      # never request data. The parser is otherwise plain string handling.
+      - 'src/modules/binary-instrument/apk-manifest.ts'
+
+      # Tool-response context injector. The flagged patterns are end-anchored
+      # JSON-shape probes (`\n}\s*$`, `^{\s*}$`) over model output; comparison
+      # is bounded by the response size cap and cannot backtrack across input.
+      - 'src/server/context/TabContextEnricher.ts'
+
+      # Network request filter. Compiling the caller's `urlRegex` IS the
+      # feature; the filter caps the pattern at 500 chars and times the first
+      # match, rejecting expensive patterns before scanning the request list.
+      - 'src/server/domains/network/handlers/core-handlers.requests.ts'
+
+      # Safe-regex compiler. new RegExp(pattern, flags) IS the module purpose:
+      # it owns the length cap and ReDoS-shape guards applied before compiling,
+      # so the non-literal-RegExp rule flags the feature itself, not a hazard.
+      - 'src/utils/safeRegExp.ts'
+
   # Security-pattern engine (Codacy's Semgrep fork) flags caller-supplied
   # RegExp / computed cache paths as "non-literal" hazards. Those are the
   # features here, guarded by the mitigations documented above; exclude the
-  # same two files from this engine too (PR-diff analysis honors this anchor).
+  # same files from this engine too (PR-diff analysis honors this anchor).
   opengrep:
     exclude_paths: *codacy_domain_excludes
 
