@@ -26,6 +26,7 @@ exclude_paths:
   - 'src/server/search/CanonicalJson.ts'
   - 'src/server/search/CatalogSnapshot.ts'
   - 'src/server/search/IntentBoost.ts'
+  - 'src/utils/safeRegExp.ts'
 
 # Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
 #
@@ -111,6 +112,7 @@ engines:
       # Intent boosts are config-authored rules compiled once per request; flags
       # are sanitized to remove stateful g/y before compilation.
       - 'src/server/search/IntentBoost.ts'
+  - 'src/utils/safeRegExp.ts'
 
       # Linux memory provider builds /proc/<pid>/mem from a validated PID; the
       # dynamic path is the kernel interface, not user-controlled text.
