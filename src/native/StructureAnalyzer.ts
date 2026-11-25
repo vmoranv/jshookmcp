@@ -297,6 +297,10 @@ export class StructureAnalyzer {
     vtableAddress: string,
     existingHandle?: ProcessHandle,
   ): Promise<{ className: string; baseClasses: string[] } | null> {
+    // `rttiParser` is created by initializeComponents(); with an externally
+    // supplied handle the provider getter was never touched, so initialize the
+    // lazy components before dereferencing them.
+    this.ensureComponents();
     const vtableAddr = BigInt(
       vtableAddress.startsWith('0x') ? vtableAddress : `0x${vtableAddress}`,
     );

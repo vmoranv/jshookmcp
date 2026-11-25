@@ -83,6 +83,10 @@ export class IpcRelay extends EventEmitter {
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private lastError: string | undefined;
+  /** In-flight connect, shared so parallel requests open one socket. */
+  private connecting: Promise<void> | null = null;
+  /** True while an explicit disconnect() is tearing the relay down. */
+  private intentionalClose = false;
 
   constructor(config: IpcRelayConfig) {
     super();
@@ -114,7 +118,15 @@ export class IpcRelay extends EventEmitter {
   /** Connect to the relay endpoint. Resolves when connected or rejects on timeout. */
   async connect(): Promise<void> {
     if (this.connected) return;
+    if (this.connecting) return this.connecting;
+    this.connecting = this.doConnect().finally(() => {
+      this.connecting = null;
+    });
+    return this.connecting;
+  }
 
+  private async doConnect(): Promise<void> {
+    this.intentionalClose = false;
     const { default: net } = await import('node:net');
     const path = this.resolvePath();
     const connectTimeout = this.config.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS;
@@ -136,11 +148,13 @@ export class IpcRelay extends EventEmitter {
       });
 
       sock.on('data', (chunk: Buffer) => this.handleData(chunk));
-      sock.on('close', () => this.handleClose());
+      sock.on('close', () => this.handleClose(sock));
       sock.on('error', (err: Error) => {
         clearTimeout(timer);
         this.lastError = err.message;
-        reject(err);
+        if (!this.connected) {
+          reject(err);
+        }
       });
 
       this.socket = sock;
@@ -149,6 +163,7 @@ export class IpcRelay extends EventEmitter {
 
   /** Disconnect and cancel pending requests. */
   disconnect(): void {
+    this.intentionalClose = true;
     this.cancelReconnect();
 
     // Reject all pending requests.
@@ -330,10 +345,27 @@ export class IpcRelay extends EventEmitter {
     }
   }
 
-  private handleClose(): void {
+  private handleClose(sock?: Socket): void {
+    // A close from a superseded socket must not tear down a newer connection.
+    if (sock && this.socket !== null && this.socket !== sock) return;
+
     this.connected = false;
     this.socket = null;
     this.receiveBuffer = Buffer.alloc(0);
+
+    if (this.intentionalClose) {
+      // disconnect() already emitted and rejected pending requests.
+      return;
+    }
+
+    // Fail outstanding requests immediately rather than letting them wait for
+    // their full timeout on a dead connection.
+    for (const [id, pending] of this.pending) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error('Connection closed before response'));
+      this.pending.delete(id);
+    }
+
     this.emit('disconnected');
 
     // Auto-reconnect with exponential backoff.

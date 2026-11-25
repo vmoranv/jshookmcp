@@ -37,10 +37,10 @@ const HEADER_WORD_COUNT = 5;
 // ─── Opcodes (subset relevant to reflection + disassembly) ────────────────────
 
 const OpEntryPoint = 15;
-const OpName = 19;
-const OpMemberName = 20;
-const OpTypeVoid = 17;
-const OpTypeBool = 18;
+const OpName = 5;
+const OpMemberName = 6;
+const OpTypeVoid = 19;
+const OpTypeBool = 20;
 const OpTypeInt = 21;
 const OpTypeFloat = 22;
 const OpTypeVector = 23;
@@ -60,21 +60,21 @@ const OpFunction = 54;
 const OpFunctionEnd = 56;
 const OpLabel = 248;
 const OpReturn = 253;
-const OpBranch = 252;
+const OpBranch = 249;
 const OpLoopMerge = 246;
 const OpSelectionMerge = 247;
-const OpLoad = 55;
+const OpLoad = 61;
 const OpStore = 62;
 const OpAccessChain = 65;
 const OpImageSample = 80;
-const OpMemoryBarrier = 226;
-const OpControlBarrier = 227;
-const OpExtInst = 11;
+const OpMemoryBarrier = 225;
+const OpControlBarrier = 224;
+const OpExtInst = 12;
 const OpFunctionCall = 57;
 const OpBranchConditional = 250;
 const OpSwitch = 251;
 const OpReturnValue = 254;
-const OpKill = 2520;
+const OpKill = 252;
 
 // Texture-sampling opcode family (OpImageSample* / OpImageFetch / OpImageGather
 // and the sparse variants). Used for the textureSamples stat.
@@ -89,18 +89,18 @@ const OpImageSampleProjDrefExplicitLod = 94;
 const OpImageFetch = 95;
 const OpImageGather = 96;
 const OpImageDrefGather = 97;
-const OpImageSparseSampleImplicitLod = 100;
-const OpImageSparseSampleExplicitLod = 101;
-const OpImageSparseSampleDrefImplicitLod = 102;
-const OpImageSparseSampleDrefExplicitLod = 103;
-const OpImageSparseSampleProjImplicitLod = 104;
-const OpImageSparseSampleProjExplicitLod = 105;
-const OpImageSparseSampleProjDrefImplicitLod = 106;
-const OpImageSparseSampleProjDrefExplicitLod = 107;
-const OpImageSparseFetch = 108;
-const OpImageSparseGather = 109;
-const OpImageSparseDrefGather = 110;
-const OpImageSparseTexelsResident = 111;
+const OpImageSparseSampleImplicitLod = 305;
+const OpImageSparseSampleExplicitLod = 306;
+const OpImageSparseSampleDrefImplicitLod = 307;
+const OpImageSparseSampleDrefExplicitLod = 308;
+const OpImageSparseSampleProjImplicitLod = 309;
+const OpImageSparseSampleProjExplicitLod = 310;
+const OpImageSparseSampleProjDrefImplicitLod = 311;
+const OpImageSparseSampleProjDrefExplicitLod = 312;
+const OpImageSparseFetch = 313;
+const OpImageSparseGather = 314;
+const OpImageSparseDrefGather = 315;
+const OpImageSparseTexelsResident = 316;
 
 /** Opcode → human-readable name (used by disassembler). */
 const OPCODE_NAMES: Record<number, string> = {
@@ -202,10 +202,10 @@ const ExecutionModelGeometry = 3;
 const ExecutionModelFragment = 4;
 const ExecutionModelGLCompute = 5;
 const ExecutionModelKernel = 6;
-const ExecutionModelRayGenerationKHR = 5311;
-const ExecutionModelMissKHR = 5312;
-const ExecutionModelClosestHitKHR = 5314;
-const ExecutionModelCallableKHR = 5316;
+const ExecutionModelRayGenerationKHR = 5313;
+const ExecutionModelMissKHR = 5317;
+const ExecutionModelClosestHitKHR = 5316;
+const ExecutionModelCallableKHR = 5318;
 
 // ─── Storage class enum (subset) ─────────────────────────────────────────────
 
@@ -1299,9 +1299,14 @@ function resolvePointerToStruct(
  * Describe a type id as a human-readable string (WGSL-flavoured for familiarity).
  * Falls back to `type<id:N>` for unresolved or recursive types.
  */
-function describeType(typeId: number, typeInfo: Map<number, TypeDescriptor>): string {
+function describeType(typeId: number, typeInfo: Map<number, TypeDescriptor>, depth = 0): string {
   const info = typeInfo.get(typeId);
   if (!info) {
+    return `type<id:${typeId}>`;
+  }
+  // Malformed modules can chain type ids cyclically; bound the recursion so a
+  // hostile OpTypeVector/Array/Pointer graph cannot overflow the stack.
+  if (depth > 16) {
     return `type<id:${typeId}>`;
   }
 
@@ -1329,11 +1334,11 @@ function describeType(typeId: number, typeInfo: Map<number, TypeDescriptor>): st
       return `f${width}`;
     }
     case 'vector': {
-      const component = describeType(info.componentTypeId ?? 0, typeInfo);
+      const component = describeType(info.componentTypeId ?? 0, typeInfo, depth + 1);
       return `vec${info.count ?? 0}<${component}>`;
     }
     case 'matrix': {
-      const component = describeType(info.componentTypeId ?? 0, typeInfo);
+      const component = describeType(info.componentTypeId ?? 0, typeInfo, depth + 1);
       return `mat${info.count ?? 0}x${describeVectorColumns(info.componentTypeId ?? 0, typeInfo)}<${component}>`;
     }
     case 'image':
@@ -1343,17 +1348,17 @@ function describeType(typeId: number, typeInfo: Map<number, TypeDescriptor>): st
     case 'sampled-image':
       return 'sampled-texture';
     case 'array': {
-      const element = describeType(info.elementType ?? 0, typeInfo);
+      const element = describeType(info.elementType ?? 0, typeInfo, depth + 1);
       return `array<${element}>`;
     }
     case 'runtime-array': {
-      const element = describeType(info.elementType ?? 0, typeInfo);
+      const element = describeType(info.elementType ?? 0, typeInfo, depth + 1);
       return `array<${element}>`; // runtime-sized
     }
     case 'struct':
       return 'struct';
     case 'pointer': {
-      const element = describeType(info.elementType ?? 0, typeInfo);
+      const element = describeType(info.elementType ?? 0, typeInfo, depth + 1);
       return `ptr<${element}>`;
     }
     case 'function':

@@ -224,16 +224,23 @@ export class ElfLoader {
     const dynsymOffset = Number(this.view.getBigUint64(dynsymSh + 0x18, le));
     const dynsymSize = Number(this.view.getBigUint64(dynsymSh + 0x20, le));
     // Guard against corrupted section headers (anti-RE technique):
-    // offset past EOF or size unreasonably small → fall back to PT_DYNAMIC.
-    if (dynsymOffset > this.bytes.length || dynsymSize < SYM_SIZE * 2) {
+    // offset past EOF, the whole table past EOF, or size unreasonably small →
+    // fall back to PT_DYNAMIC.
+    if (
+      dynsymOffset > this.bytes.length ||
+      dynsymOffset + dynsymSize > this.bytes.length ||
+      dynsymSize < SYM_SIZE * 2
+    ) {
       return this.exportedSymbolsFromDynamic();
     }
     const strtabIdx = this.view.getUint32(dynsymSh + 0x28, le); // sh_link → .dynstr
 
-    // Resolve the linked string table.
-    const strSh = this.shoff + strtabIdx * this.shentsize;
-    const strOffset = Number(this.view.getBigUint64(strSh + 0x18, le));
-    const strSize = Number(this.view.getBigUint64(strSh + 0x20, le));
+    // Resolve the linked string table through the validated section table so a
+    // corrupt sh_link cannot index past the file.
+    const strSection = this.sectionHeader(strtabIdx);
+    if (!strSection) return this.exportedSymbolsFromDynamic();
+    const strOffset = strSection.offset;
+    const strSize = strSection.size;
     // Also guard the linked strtab section header.
     if (strOffset > this.bytes.length || strSize === 0) {
       return this.exportedSymbolsFromDynamic();
@@ -243,6 +250,7 @@ export class ElfLoader {
     for (let i = 1; i < count; i++) {
       // skip reserved null symbol at index 0
       const sym = dynsymOffset + i * SYM_SIZE;
+      if (sym + SYM_SIZE > this.bytes.length) break;
       const nameOff = this.view.getUint32(sym + 0x00, le);
       const value = Number(this.view.getBigUint64(sym + 0x08, le));
       const shndx = this.view.getUint16(sym + 0x06, le);
@@ -274,6 +282,10 @@ export class ElfLoader {
       for (let symbolIndex = 1; symbolIndex < count; symbolIndex++) {
         const symbolOffset = section.offset + symbolIndex * entrySize;
         if (symbolOffset + SYM_SIZE > this.bytes.length) break;
+        const sectionIndex = this.view.getUint16(symbolOffset + 0x06, le);
+        // Skip undefined symbols (SHN_UNDEF=0): imports have value 0 and no home
+        // section, so vaddrToOffset would otherwise resolve them to a real local.
+        if (sectionIndex === 0) continue;
         const nameOffset = this.view.getUint32(symbolOffset, le);
         const symbolName = this.readCString(strings.offset, strings.size, nameOffset);
         if (symbolName !== name) continue;
@@ -281,7 +293,6 @@ export class ElfLoader {
         const offset = this.vaddrToOffset(value);
         if (offset >= 0) return offset;
 
-        const sectionIndex = this.view.getUint16(symbolOffset + 0x06, le);
         const target = this.sectionHeader(sectionIndex);
         if (!target) return undefined;
         const relative = value - target.address;
@@ -424,6 +435,10 @@ export class ElfLoader {
       }
     }
     if (dynOff < 0) return null;
+    // A corrupt p_filesz can point the walk past EOF; clamp it to the file so
+    // the entry loop cannot read out of bounds.
+    const maxDynamicBytes = Math.min(dynSize, this.bytes.length - dynOff);
+    if (dynOff >= this.bytes.length || maxDynamicBytes < 16) return null;
     const info = {
       symtab: 0,
       strtab: 0,
@@ -436,7 +451,7 @@ export class ElfLoader {
       initArray: 0,
       initArraySz: 0,
     };
-    const entries = Math.floor(dynSize / 16); // Elf64_Dyn = { i64 tag; u64 val }
+    const entries = Math.floor(maxDynamicBytes / 16); // Elf64_Dyn = { i64 tag; u64 val }
     for (let i = 0; i < entries; i++) {
       const e = dynOff + i * 16;
       const tag = Number(BigInt.asIntN(64, this.view.getBigUint64(e + 0x00, le)));
@@ -524,9 +539,12 @@ export class ElfLoader {
   /** Read a NUL-terminated string from a string table at the given index. */
   private readCString(tableOffset: number, tableSize: number, index: number): string {
     if (index <= 0 || index >= tableSize) return '';
-    let end = tableOffset + index;
-    const limit = tableOffset + tableSize;
+    const start = tableOffset + index;
+    // Clamp the scan window to the real file: a corrupt DT_STRSZ/sh_size must not
+    // let the loop run to a huge synthetic limit.
+    const limit = Math.min(tableOffset + tableSize, this.bytes.length);
+    let end = start;
     while (end < limit && this.bytes[end] !== 0) end++;
-    return new TextDecoder().decode(this.bytes.subarray(tableOffset + index, end));
+    return new TextDecoder().decode(this.bytes.subarray(start, end));
   }
 }

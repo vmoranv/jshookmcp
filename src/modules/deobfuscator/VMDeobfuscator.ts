@@ -194,7 +194,11 @@ export class VMDeobfuscator {
    * being cut at the first `}`. Returns the code unchanged when no match.
    */
   private removeInterpreterFunction(code: string, name: string): string {
-    const match = new RegExp(`function\\s+${escapeRegexStr(name)}\\s*\\(`).exec(code);
+    // Consume any `export`/`async` prefix so removal does not leave a dangling
+    // `export` (or `async`) keyword behind.
+    const match = new RegExp(
+      `(?:export\\s+(?:default\\s+)?)?(?:async\\s+)?function\\s+${escapeRegexStr(name)}\\s*\\(`,
+    ).exec(code);
     if (!match) {
       return code;
     }
@@ -219,7 +223,11 @@ export class VMDeobfuscator {
    * match (mirrors the old regex fallback of leaving the code untouched).
    */
   private removeInstructionArray(code: string, name: string): string {
-    const match = new RegExp(`(?:var|let|const)\\s+${escapeRegexStr(name)}\\s*=\\s*\\[`).exec(code);
+    // Consume a leading `export` so the declaration is removed whole rather
+    // than leaving `export /* ... */`.
+    const match = new RegExp(
+      `(?:export\\s+(?:default\\s+)?)?(?:var|let|const)\\s+${escapeRegexStr(name)}\\s*=\\s*\\[`,
+    ).exec(code);
     if (!match) {
       return code;
     }
@@ -257,6 +265,13 @@ export class VMDeobfuscator {
         }
       } else if (ch === '"' || ch === "'" || ch === '`') {
         quote = ch;
+      } else if (ch === '/' && text[i + 1] === '/') {
+        // Skip line comments so braces in comments do not affect depth.
+        while (i < text.length && text[i] !== '\n') i++;
+      } else if (ch === '/' && text[i + 1] === '*') {
+        i += 2;
+        while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++;
+        i++;
       } else if (ch === open) {
         depth++;
       } else if (ch === close) {

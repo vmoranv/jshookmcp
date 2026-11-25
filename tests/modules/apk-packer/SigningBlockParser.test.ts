@@ -6,9 +6,12 @@
  * keystore or APK signing tool involvement.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { SigningBlockParser } from '@modules/apk-packer/SigningBlockParser';
+import { BLOCK_ID_V3 } from '@modules/apk-packer/signing-block-types';
 import {
   buildAll,
   type FixturePaths,
@@ -16,6 +19,56 @@ import {
 import { ToolError } from '@errors/ToolError';
 
 let paths: FixturePaths;
+
+const SIG_BLOCK_MAGIC = Buffer.from('APK Sig Block 42', 'utf8');
+const EOCD_SIGNATURE = Buffer.from([0x50, 0x4b, 0x05, 0x06]);
+
+interface BlockLayout {
+  blockStart: number;
+  pairsStart: number;
+  pairsEnd: number;
+  sizeOfBlock: number;
+}
+
+function locateSigningBlock(buf: Buffer): BlockLayout {
+  const magicAt = buf.indexOf(SIG_BLOCK_MAGIC);
+  if (magicAt < 0) throw new Error('fixture has no signing-block magic');
+  const sizeOfBlock = Number(buf.readBigUInt64LE(magicAt - 8));
+  const blockStart = magicAt + 16 - 8 - sizeOfBlock;
+  return { blockStart, pairsStart: blockStart + 8, pairsEnd: magicAt - 8, sizeOfBlock };
+}
+
+function findPair(
+  buf: Buffer,
+  layout: BlockLayout,
+  id: number,
+): { start: number; end: number } | undefined {
+  let cursor = layout.pairsStart;
+  while (cursor + 12 <= layout.pairsEnd) {
+    const pairSize = Number(buf.readBigUInt64LE(cursor));
+    const end = cursor + 8 + pairSize;
+    if (buf.readUInt32LE(cursor + 8) === id) return { start: cursor, end };
+    cursor = end;
+  }
+  return undefined;
+}
+
+function findEocd(buf: Buffer): number {
+  for (let i = buf.length - 22; i >= 0; i--) {
+    if (buf.subarray(i, i + 4).equals(EOCD_SIGNATURE)) return i;
+  }
+  return -1;
+}
+
+let scratchDir: string;
+
+beforeAll(async () => {
+  scratchDir = await mkdtemp(join(tmpdir(), 'sigblock-dupe-'));
+});
+
+afterAll(async () => {
+  await rm(scratchDir, { recursive: true, force: true });
+});
 
 beforeAll(async () => {
   paths = await buildAll();
@@ -159,7 +212,63 @@ describe('SigningBlockParser — report shape', () => {
   });
 });
 
-// Cleanup hint — fixtures stay in place for cross-test reuse.
-afterAll(async () => {
-  void rm; // marker so the import isn't pruned by oxlint
+describe('SigningBlockParser — hardened parsing', () => {
+  it('merges duplicate v3 blocks instead of dropping earlier signers', async () => {
+    const original = await readFile(paths.v3Rotation);
+    const layout = locateSigningBlock(original);
+    const v3Pair = findPair(original, layout, BLOCK_ID_V3);
+    expect(v3Pair).toBeDefined();
+    const duplicate = Buffer.from(original.subarray(v3Pair!.start, v3Pair!.end));
+
+    const mutated = Buffer.concat([
+      original.subarray(0, layout.pairsEnd),
+      duplicate,
+      original.subarray(layout.pairsEnd),
+    ]);
+    const newSize = layout.sizeOfBlock + duplicate.length;
+    mutated.writeBigUInt64LE(BigInt(newSize), layout.blockStart);
+    mutated.writeBigUInt64LE(BigInt(newSize), layout.pairsEnd + duplicate.length);
+    const eocd = findEocd(mutated);
+    expect(eocd).toBeGreaterThan(0);
+    const originalCentralDir = layout.pairsEnd + 24;
+    mutated.writeUInt32LE(originalCentralDir + duplicate.length, eocd + 16);
+
+    const apkPath = join(scratchDir, 'duplicate-v3.apk');
+    await writeFile(apkPath, mutated);
+
+    const report = await new SigningBlockParser().parse(apkPath);
+    expect(report.schemes.v3?.signers).toHaveLength(2);
+    expect(report.anomalies.map((a) => a.kind)).toContain('duplicate-scheme');
+  });
+
+  it('degrades an oversized pair length into a warning (no throw)', async () => {
+    const original = await readFile(paths.v2Only);
+    const layout = locateSigningBlock(original);
+    const mutated = Buffer.from(original);
+    // Corrupt the high half of the first pair's u64 size field.
+    mutated.writeUInt32LE(0xffffffff, layout.pairsStart + 4);
+    const apkPath = join(scratchDir, 'oversized-pair.apk');
+    await writeFile(apkPath, mutated);
+
+    const report = await new SigningBlockParser().parse(apkPath);
+    expect(report.signingBlock.found).toBe(true);
+    expect(report.warnings.join('\n')).toMatch(/Unreadable ID-value pair header/i);
+  });
+
+  it('degrades a malformed signer payload into a warning (no throw)', async () => {
+    const original = await readFile(paths.v3Rotation);
+    const layout = locateSigningBlock(original);
+    const v3Pair = findPair(original, layout, BLOCK_ID_V3);
+    expect(v3Pair).toBeDefined();
+    const mutated = Buffer.from(original);
+    // signersLen lives at valueStart (= pair start + 12).
+    mutated.writeUInt32LE(0xffffff00, v3Pair!.start + 12);
+    const apkPath = join(scratchDir, 'bad-signers-len.apk');
+    await writeFile(apkPath, mutated);
+
+    const report = await new SigningBlockParser().parse(apkPath);
+    expect(report.signingBlock.found).toBe(true);
+    expect(report.schemes.v3).toBeUndefined();
+    expect(report.warnings.join('\n')).toMatch(/Skipped malformed block 0xf05368c0/i);
+  });
 });

@@ -72,6 +72,14 @@ describe('selectGrammar()', () => {
     expect(selectGrammar({ dartSdkRev: '3.0+ build7' })?.sdkFamily).toBe('3.0+');
   });
 
+  it('reaches the open-ended 3.x family from real Dart 3 revisions', () => {
+    for (const dartSdkRev of ['3.0.0', '3.4.1', '3.6.0-123.4.beta', '3.10.0']) {
+      expect(selectGrammar({ dartSdkRev })?.sdkFamily).toBe('3.0+');
+    }
+    // The open-ended family must not swallow 2.x revisions.
+    expect(selectGrammar({ dartSdkRev: '2.19.6' })?.sdkFamily).not.toBe('3.0+');
+  });
+
   it('matches by major Flutter version', () => {
     expect(selectGrammar({ flutterVersion: '3.16.4' })?.sdkFamily).toBe('3.0+');
     expect(selectGrammar({ flutterVersion: '2.10.0' })?.sdkFamily).toBe('2.17');

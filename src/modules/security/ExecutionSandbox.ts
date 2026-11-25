@@ -96,15 +96,6 @@ export class ExecutionSandbox {
 
     return new Promise<SandboxExecuteResult>((resolve) => {
       let settled = false;
-      const terminationTimeout = setTimeout(() => {
-        if (!settled) {
-          void worker.terminate();
-          logger.warn(
-            `[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`,
-          );
-          finish({ ok: false, error: 'Execution timed out (worker terminated)', timedOut: true });
-        }
-      }, timeoutMs + SANDBOX_TERMINATE_GRACE_MS);
 
       const workerOptions: ConstructorParameters<typeof Worker>[1] & { type?: 'module' } = {
         eval: true,
@@ -120,16 +111,41 @@ export class ExecutionSandbox {
       };
       workerOptions.type = 'module';
 
-      const worker = new Worker(WORKER_SCRIPT, workerOptions);
+      const worker = (() => {
+        try {
+          return new Worker(WORKER_SCRIPT, workerOptions);
+        } catch (err) {
+          // Invalid resourceLimits/options reject synchronously; report the
+          // failure instead of leaking the worker.
+          const message = err instanceof Error ? err.message : String(err);
+          resolve({
+            ok: false,
+            error: `Worker creation failed: ${message}`,
+            timedOut: false,
+            durationMs: Date.now() - startTime,
+          });
+          return null;
+        }
+      })();
+      if (!worker) return;
       if (typeof worker.unref === 'function') worker.unref();
       ProcessRegistry.register(worker);
 
       const finish = (result: Omit<SandboxExecuteResult, 'durationMs'>) => {
         if (settled) return;
         settled = true;
-        if (terminationTimeout) clearTimeout(terminationTimeout);
+        clearTimeout(terminationTimeout);
         resolve({ ...result, durationMs: Date.now() - startTime });
       };
+
+      const terminationTimeout = setTimeout(() => {
+        if (settled) return;
+        void worker.terminate();
+        logger.warn(
+          `[ExecutionSandbox] Worker terminated after ${timeoutMs + SANDBOX_TERMINATE_GRACE_MS}ms`,
+        );
+        finish({ ok: false, error: 'Execution timed out (worker terminated)', timedOut: true });
+      }, timeoutMs + SANDBOX_TERMINATE_GRACE_MS);
 
       worker.on('message', (msg: SandboxWorkerMessage) => {
         finish({

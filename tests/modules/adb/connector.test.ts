@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ADB_FILE_TRANSFER_TIMEOUT_MS } from '@src/constants';
 
 /** Helper to create a mock async iterable stream from a string or Buffer. */
 function mockStream(data: string | Buffer): AsyncIterable<Buffer> {
@@ -11,12 +14,33 @@ function mockStream(data: string | Buffer): AsyncIterable<Buffer> {
 }
 
 const mocks = vi.hoisted(() => {
+  function createEmitter() {
+    const listeners = new Map<string, Array<(...args: unknown[]) => void>>();
+    const add = (event: string, cb: (...args: unknown[]) => void) => {
+      const bucket = listeners.get(event) ?? [];
+      bucket.push(cb);
+      listeners.set(event, bucket);
+    };
+    return {
+      pipe: vi.fn(),
+      unpipe: vi.fn(),
+      destroy: vi.fn(),
+      end: vi.fn(),
+      on: vi.fn(add),
+      once: vi.fn(add),
+      emit: (event: string, ...args: unknown[]) => {
+        for (const cb of listeners.get(event) ?? []) cb(...args);
+      },
+      reset: () => listeners.clear(),
+    };
+  }
+
+  const pullTransfer = createEmitter();
+  const writeStream = createEmitter();
+
   const deviceClient = {
     shell: vi.fn(async () => mockStream('')),
-    pull: vi.fn(async () => ({
-      on: vi.fn((_event: string, _cb: () => void) => {}),
-      pipe: vi.fn(),
-    })),
+    pull: vi.fn(async () => pullTransfer),
     forward: vi.fn(async () => {}),
     listForwards: vi.fn(async (): Promise<any[]> => []),
     getProperties: vi.fn(async () => ({})),
@@ -54,8 +78,8 @@ const mocks = vi.hoisted(() => {
     ClientCtor,
     checkADBBinary: vi.fn(() => true),
     execFileMock,
-    writeStreamOn: vi.fn(),
-    writeStreamPipe: vi.fn(),
+    pullTransfer,
+    writeStream,
     // Expose reset for the internal module cache
     resetClientCache: vi.fn(),
   };
@@ -75,10 +99,7 @@ vi.mock('@devicefarmer/adbkit', () => {
 });
 
 vi.mock('node:fs', () => ({
-  createWriteStream: vi.fn(() => ({
-    on: mocks.writeStreamOn,
-    pipe: mocks.writeStreamPipe,
-  })),
+  createWriteStream: vi.fn(() => mocks.writeStream),
 }));
 
 import { ADBConnector, resetAdbAvailabilityCache } from '@modules/adb/ADBConnector';
@@ -88,6 +109,8 @@ import { TEST_URLS } from '@tests/shared/test-urls';
 describe('ADBConnector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.pullTransfer.reset();
+    mocks.writeStream.reset();
     mocks.checkADBBinary.mockReturnValue(true);
     mocks.execFileMock.mockImplementation(
       (
@@ -170,11 +193,54 @@ describe('ADBConnector', () => {
 
   describe('shellCommand', () => {
     it('executes shell command and returns result', async () => {
-      mocks.deviceClient.shell.mockResolvedValueOnce(mockStream('result data'));
+      mocks.deviceClient.shell.mockResolvedValueOnce(
+        mockStream('result data\n__JSHOOK_ADB_EXIT__:0\n'),
+      );
       const connector = new ADBConnector();
       const result = await connector.shellCommand('emulator-5554', 'getprop ro.product.model');
       expect(result).toHaveProperty('stdout', 'result data');
       expect(result).toHaveProperty('command', 'getprop ro.product.model');
+      expect(result.exitCode).toBe(0);
+    });
+
+    it('reports the real device-side exit code instead of always success', async () => {
+      mocks.deviceClient.shell.mockResolvedValueOnce(mockStream('\n__JSHOOK_ADB_EXIT__:1\n'));
+      const connector = new ADBConnector();
+      const result = await connector.shellCommand('emulator-5554', 'pm path no.such.package');
+      expect(result.exitCode).toBe(1);
+      expect(result.stdout).toBe('');
+    });
+
+    it('strips the exit-status sentinel from multi-line output', async () => {
+      mocks.deviceClient.shell.mockResolvedValueOnce(
+        mockStream('line one\nline two\n__JSHOOK_ADB_EXIT__:42\n'),
+      );
+      const connector = new ADBConnector();
+      const result = await connector.shellCommand('emulator-5554', 'multiline');
+      expect(result.stdout).toBe('line one\nline two');
+      expect(result.exitCode).toBe(42);
+    });
+
+    it('wraps the command so a missing sentinel is not treated as success', async () => {
+      mocks.deviceClient.shell.mockResolvedValueOnce(mockStream('partial output'));
+      const connector = new ADBConnector();
+      const result = await connector.shellCommand('emulator-5554', 'cat /proc/net/unix');
+      expect(result.stdout).toBe('partial output');
+      expect(result.exitCode).toBe(1);
+      expect(mocks.deviceClient.shell).toHaveBeenCalledWith(
+        expect.stringContaining('cat /proc/net/unix'),
+      );
+      expect(mocks.deviceClient.shell).toHaveBeenCalledWith(
+        expect.stringContaining('__JSHOOK_ADB_EXIT__'),
+      );
+    });
+
+    it('rejects an invalid device serial before reaching adbkit', async () => {
+      const connector = new ADBConnector();
+      await expect(connector.shellCommand('bad;reboot', 'ls')).rejects.toThrow(
+        'Invalid device serial',
+      );
+      expect(mocks.deviceClient.shell).not.toHaveBeenCalled();
     });
 
     it('throws when ADB binary is unavailable', async () => {
@@ -246,20 +312,60 @@ describe('ADBConnector', () => {
   describe('pullApk', () => {
     it('pulls APK from device to output path', async () => {
       mocks.deviceClient.shell.mockResolvedValueOnce(mockStream('package:/data/app/base.apk'));
-      mocks.writeStreamOn.mockImplementation((_event: string, cb: () => void) => {
-        if (_event === 'finish') setImmediate(cb);
+      mocks.pullTransfer.pipe.mockImplementationOnce(() => {
+        mocks.writeStream.emit('finish');
       });
       const connector = new ADBConnector();
       const result = await connector.pullApk('emulator-5554', 'com.example.app', '/tmp/test.apk');
       expect(result).toBe('/tmp/test.apk');
+      expect(mocks.deviceClient.pull).toHaveBeenCalledWith('/data/app/base.apk');
+    });
+
+    it('rejects when the transfer closes before finish', async () => {
+      mocks.deviceClient.shell.mockResolvedValueOnce(mockStream('package:/data/app/base.apk'));
+      const connector = new ADBConnector();
+      const promise = connector.pullApk('emulator-5554', 'com.example.app', '/tmp/closes.apk');
+      promise.catch(() => {});
+      await vi.waitFor(() => expect(mocks.pullTransfer.pipe).toHaveBeenCalled());
+      mocks.pullTransfer.emit('close');
+      await expect(promise).rejects.toThrow('closed before the transfer finished');
+      expect(mocks.writeStream.destroy).toHaveBeenCalled();
+    });
+
+    it('times out a stalled pull, destroys both streams and removes the partial file', async () => {
+      mocks.deviceClient.shell.mockResolvedValueOnce(mockStream('package:/data/app/base.apk'));
+      const connector = new ADBConnector();
+      vi.useFakeTimers();
+      try {
+        const promise = connector.pullApk(
+          'emulator-5554',
+          'com.example.app',
+          join(tmpdir(), 'jshook-adb-stalled.apk'),
+        );
+        promise.catch(() => {});
+        await vi.advanceTimersByTimeAsync(ADB_FILE_TRANSFER_TIMEOUT_MS + 1);
+        await expect(promise).rejects.toThrow('Timed out');
+        expect(mocks.pullTransfer.destroy).toHaveBeenCalled();
+        expect(mocks.writeStream.destroy).toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('throws when package not found', async () => {
-      mocks.deviceClient.shell.mockResolvedValueOnce(mockStream(''));
+      mocks.deviceClient.shell.mockResolvedValueOnce(mockStream('\n__JSHOOK_ADB_EXIT__:1\n'));
       const connector = new ADBConnector();
       await expect(
         connector.pullApk('emulator-5554', 'com.nonexistent.app', '/tmp/test.apk'),
       ).rejects.toThrow('Package "com.nonexistent.app" not found');
+    });
+
+    it('rejects a package name with shell metacharacters before invoking the device', async () => {
+      const connector = new ADBConnector();
+      await expect(
+        connector.pullApk('emulator-5554', 'com.example.app; reboot', '/tmp/injected.apk'),
+      ).rejects.toThrow('Invalid Android package name');
+      expect(mocks.deviceClient.shell).not.toHaveBeenCalled();
     });
   });
 
@@ -298,6 +404,24 @@ describe('ADBConnector', () => {
       expect(apkInfo).toHaveProperty('packageName', 'com.example.app');
       expect(apkInfo.versionName).toBe('');
       expect(apkInfo.permissions).toEqual([]);
+    });
+
+    it('throws NOT_FOUND when dumpsys reports an unknown package', async () => {
+      mocks.deviceClient.shell.mockResolvedValueOnce(
+        mockStream('Unable to find package: com.nonexistent.app\n__JSHOOK_ADB_EXIT__:0\n'),
+      );
+      const connector = new ADBConnector();
+      await expect(connector.parseApkInfo('emulator-5554', 'com.nonexistent.app')).rejects.toThrow(
+        'not found on device',
+      );
+    });
+
+    it('rejects a package name with shell metacharacters before invoking the device', async () => {
+      const connector = new ADBConnector();
+      await expect(connector.parseApkInfo('emulator-5554', 'com.example.app$(id)')).rejects.toThrow(
+        'Invalid Android package name',
+      );
+      expect(mocks.deviceClient.shell).not.toHaveBeenCalled();
     });
   });
 

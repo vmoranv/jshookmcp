@@ -139,7 +139,14 @@ export class PointerChainEngine {
       }
 
       // Construct chains: walk from deepest level back to target
-      const chains = this.buildChains(levelResults, targetAddr, modules, maxResults, staticOnly);
+      const chains = this.buildChains(
+        levelResults,
+        targetAddr,
+        modules,
+        maxResults,
+        staticOnly,
+        maxOffset,
+      );
 
       const elapsed = `${(performance.now() - start).toFixed(1)}ms`;
 
@@ -229,7 +236,14 @@ export class PointerChainEngine {
       );
 
       // Build chains from the auto-discovered levels
-      const chains = this.buildChains(levelResults, targetAddr, modules, maxResults, staticOnly);
+      const chains = this.buildChains(
+        levelResults,
+        targetAddr,
+        modules,
+        maxResults,
+        staticOnly,
+        maxOffset,
+      );
 
       const elapsed = `${(performance.now() - start).toFixed(1)}ms`;
 
@@ -271,6 +285,7 @@ export class PointerChainEngine {
     const nextTargets = new Set<bigint>();
     for (const m of matches) {
       nextTargets.add(m.pointerAddress);
+      if (nextTargets.size >= POINTER_CHAIN_MAX_BFS_BREADTH) break; // limit BFS breadth
     }
 
     await this.autoScanRecursive(
@@ -519,13 +534,16 @@ export class PointerChainEngine {
     modules: Map<string, ModuleEntry>,
     maxResults: number,
     staticOnly: boolean,
+    maxOffset: number,
   ): PointerChain[] {
     if (levelResults.length === 0) return [];
 
     const chains: PointerChain[] = [];
     const ctx: ChainBuildContext = {
       targetAddrStr: formatAddress(targetAddr),
-      maxOff: BigInt(POINTER_CHAIN_MAX_OFFSET),
+      // Backtracking must use the same tolerance that discovery used, not the
+      // global default, or links are matched at the wrong distance.
+      maxOff: BigInt(maxOffset),
       modules,
       maxResults,
       staticOnly,
@@ -695,7 +713,7 @@ export const pointerChainEngine = new PointerChainEngine();
 
 /** Sorted target list + range bounds for pointer-level scanning. */
 interface TargetIndex {
-  targets: BigInt64Array;
+  targets: BigUint64Array;
   targetCount: number;
   globalMin: bigint;
   globalMax: bigint;
@@ -708,8 +726,11 @@ interface TargetIndex {
 /**
  * Build the O(log n) search structure for one BFS level.
  *
- * BigInt64Array stores native 8-byte values — ~87.5% smaller than a JS
+ * BigUint64Array stores native 8-byte values — ~87.5% smaller than a JS
  * BigInt[], which matters because every scanned word binary-searches it.
+ * Unsigned storage matches the `readBigUInt64LE` reads used during the scan;
+ * a signed array would wrap addresses ≥ 2^63 negative and break the range
+ * checks and binary search.
  * Returns null when there are no targets to look for.
  */
 function buildTargetIndex(targetAddresses: Set<bigint>, maxOffset: number): TargetIndex | null {
@@ -718,7 +739,7 @@ function buildTargetIndex(targetAddresses: Set<bigint>, maxOffset: number): Targ
   );
   if (sortedTargets.length === 0) return null;
 
-  const targets = new BigInt64Array(sortedTargets.length);
+  const targets = new BigUint64Array(sortedTargets.length);
   for (let i = 0; i < sortedTargets.length; i++) {
     targets[i] = sortedTargets[i]!;
   }

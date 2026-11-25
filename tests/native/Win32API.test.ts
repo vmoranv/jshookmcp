@@ -5,6 +5,7 @@ import {
   OpenProcess,
   CloseHandle,
   ReadProcessMemory,
+  ReadProcessMemoryAsync,
   WriteProcessMemory,
   VirtualQueryEx,
   VirtualProtectEx,
@@ -150,6 +151,35 @@ describe('Win32API', () => {
     mockFuncs.ReadProcessMemory.mockReturnValue(0);
     mockFuncs.GetLastError.mockReturnValue(0x5);
     expect(() => ReadProcessMemory(1234n, 1000n, 4)).toThrow('0x5');
+  });
+
+  it('truncates a partial ReadProcessMemory result to bytesRead', () => {
+    // @ts-expect-error
+    mockFuncs.ReadProcessMemory.mockImplementation((hProcess, lpBase, buf, size, bytesRead) => {
+      buf.write('ab');
+      bytesRead.writeBigUInt64LE(2n); // short read of a 4-byte request
+      return 1;
+    });
+
+    const buf = ReadProcessMemory(1234n, 1000n, 4);
+    expect(buf.length).toBe(2);
+    expect(buf.toString('utf8')).toBe('ab');
+  });
+
+  it('truncates a partial async read to bytesRead', async () => {
+    const asyncFn = vi.fn((...args: unknown[]) => {
+      const buf = args[2] as Buffer;
+      const bytesRead = args[4] as Buffer;
+      buf.write('xy');
+      bytesRead.writeBigUInt64LE(2n);
+      const cb = args[args.length - 1] as (err: unknown, res: number) => void;
+      cb(null, 1);
+    });
+    (mockFuncs.ReadProcessMemory as unknown as { async: typeof asyncFn }).async = asyncFn;
+
+    const buf = await ReadProcessMemoryAsync(1234n, 1000n, 4);
+    expect(buf.length).toBe(2);
+    expect(buf.toString('utf8')).toBe('xy');
   });
 
   it('handles WriteProcessMemory success and failure', () => {

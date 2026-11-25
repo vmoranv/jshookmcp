@@ -44,6 +44,7 @@ globalThis.WebSocket = MockWebSocket;
 const mockAdbClient = {
   shell: vi.fn(),
   forward: vi.fn(),
+  removeForward: vi.fn(),
   disconnect: vi.fn(),
 };
 
@@ -63,6 +64,11 @@ describe('WebViewDebugger', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAdbClient.shell.mockReset();
+    mockAdbClient.forward.mockReset();
+    mockAdbClient.forward.mockResolvedValue(undefined);
+    mockAdbClient.removeForward.mockReset();
+    mockAdbClient.removeForward.mockResolvedValue(undefined);
     debuggerInstance = new WebViewDebugger(mockAdbClient as any);
   });
 
@@ -131,5 +137,102 @@ describe('WebViewDebugger', () => {
     await expect(
       debuggerInstance.executeScript('device_id', 'webview_devtools_remote_12345', '1+1'),
     ).rejects.toThrow(ToolError);
+  });
+
+  it('deduplicates concurrent forwards for the same webview', async () => {
+    mockAdbClient.shell.mockResolvedValue('@webview_devtools_remote_12345\n');
+    let releaseForward!: () => void;
+    mockAdbClient.forward.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseForward = resolve;
+        }),
+    );
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'target1',
+          title: 'Test Page',
+          url: TEST_HTTP_URLS.root,
+          type: 'page',
+          webSocketDebuggerUrl: 'ws://127.0.0.1:12345/devtools/page/target1',
+        },
+      ],
+    });
+
+    const first = debuggerInstance.listWebViews('device_id');
+    const second = debuggerInstance.listWebViews('device_id');
+    await vi.waitFor(() => expect(mockAdbClient.forward).toHaveBeenCalled());
+    releaseForward();
+
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    expect(mockAdbClient.forward).toHaveBeenCalledTimes(1);
+    expect(firstResult).toHaveLength(1);
+    expect(secondResult).toHaveLength(1);
+  });
+
+  it('retries a failed forward instead of caching the failure', async () => {
+    mockAdbClient.shell.mockResolvedValue('@webview_devtools_remote_12345\n');
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'target1',
+          title: 'Test Page',
+          url: TEST_HTTP_URLS.root,
+          type: 'page',
+          webSocketDebuggerUrl: 'ws://127.0.0.1:12345/devtools/page/target1',
+        },
+      ],
+    });
+    mockAdbClient.forward.mockRejectedValueOnce(new Error('device offline'));
+
+    const failed = await debuggerInstance.listWebViews('device_id');
+    expect(failed[0]?.url).toBe('');
+
+    await debuggerInstance.listWebViews('device_id');
+    expect(mockAdbClient.forward).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes the forward when the target fetch fails', async () => {
+    mockAdbClient.shell.mockResolvedValue('@webview_devtools_remote_12345\n');
+    (globalThis.fetch as any).mockResolvedValue({ ok: false, status: 503 });
+
+    await debuggerInstance.listWebViews('device_id');
+
+    expect(mockAdbClient.removeForward).toHaveBeenCalledWith('device_id', 'tcp:12345');
+  });
+
+  it('quotes the package name derived from a socket before pidof', async () => {
+    mockAdbClient.shell.mockResolvedValue('@com.example.app_devtools_remote\n');
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'target1',
+          title: 'Test Page',
+          url: TEST_HTTP_URLS.root,
+          type: 'page',
+          webSocketDebuggerUrl: 'ws://127.0.0.1:12345/devtools/page/target1',
+        },
+      ],
+    });
+
+    await debuggerInstance.listWebViews('device_id');
+
+    expect(mockAdbClient.shell).toHaveBeenCalledWith('device_id', "pidof -s 'com.example.app'");
+  });
+
+  it('never interpolates an untrusted socket-derived package into a shell command', async () => {
+    mockAdbClient.shell.mockResolvedValue('@com.example.app;reboot_devtools_remote\n');
+    (globalThis.fetch as any).mockResolvedValue({ ok: false, status: 503 });
+
+    const webviews = await debuggerInstance.listWebViews('device_id');
+
+    expect(webviews[0]?.processId).toBe(0);
+    for (const call of mockAdbClient.shell.mock.calls) {
+      expect(String(call[1])).not.toContain('pidof');
+    }
   });
 });

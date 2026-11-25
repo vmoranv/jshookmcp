@@ -26,7 +26,8 @@
  *  - nfalliere snapshot-hash gist
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 import { ToolError } from '@errors/ToolError';
 import { DART_SNAPSHOT_TABLE_PATH } from '@src/constants';
@@ -120,8 +121,18 @@ const SEED_ENTRIES: ReadonlyArray<readonly [string, VersionEntry]> = [
  */
 export const SNAPSHOT_VERSION_TABLE: ReadonlyMap<string, VersionEntry> = new Map(SEED_ENTRIES);
 
-/** Cache for the last loaded user table, keyed by absolute path. */
-const userTableCache = new Map<string, Map<string, VersionEntry>>();
+interface CachedUserTable {
+  /** File mtime used to detect on-disk edits. */
+  readonly mtimeMs: number;
+  readonly size: number;
+  readonly table: Map<string, VersionEntry>;
+}
+
+/** Bounded LRU cache of user tables, keyed by resolved absolute path. */
+const USER_TABLE_CACHE_MAX = 8;
+const userTableCache = new Map<string, CachedUserTable>();
+/** Coalesces concurrent first loads for the same path. */
+const userTableInflight = new Map<string, Promise<Map<string, VersionEntry>>>();
 
 /**
  * Validate that an arbitrary value matches the {@link VersionEntry}
@@ -135,16 +146,19 @@ function coerceEntry(raw: unknown): VersionEntry | undefined {
   if (typeof obj['engineCommit'] === 'string') entry.engineCommit = obj['engineCommit'];
   if (typeof obj['dartSdkRev'] === 'string') entry.dartSdkRev = obj['dartSdkRev'];
   if (typeof obj['releaseDate'] === 'string') entry.releaseDate = obj['releaseDate'];
-  if (Array.isArray(obj['abis'])) {
+  if (obj['abis'] !== undefined) {
+    // A present-but-malformed `abis` field is a shape error: silently dropping
+    // bad values could let a broken user entry shadow a complete built-in one.
+    const abisValue = obj['abis'];
+    if (!Array.isArray(abisValue) || abisValue.length === 0) return undefined;
     const allowed = new Set(['arm32', 'arm64', 'x64', 'ia32', 'riscv64'] as const);
     type Abi = 'arm32' | 'arm64' | 'x64' | 'ia32' | 'riscv64';
     const abis: Abi[] = [];
-    for (const candidate of obj['abis']) {
-      if (typeof candidate === 'string' && allowed.has(candidate as Abi)) {
-        abis.push(candidate as Abi);
-      }
+    for (const candidate of abisValue) {
+      if (typeof candidate !== 'string' || !allowed.has(candidate as Abi)) return undefined;
+      abis.push(candidate as Abi);
     }
-    if (abis.length > 0) entry.abis = abis;
+    entry.abis = abis;
   }
   return entry;
 }
@@ -205,11 +219,61 @@ async function parseUserTable(path: string): Promise<Map<string, VersionEntry>> 
 }
 
 /**
+ * Load (and cache) a user table, keyed by resolved absolute path so
+ * equivalent spellings share one entry. Freshness is validated against
+ * `mtimeMs` + size; concurrent first loads share one in-flight promise.
+ */
+async function loadUserTableCached(path: string): Promise<Map<string, VersionEntry>> {
+  const cacheKey = resolve(path);
+
+  let mtimeMs: number;
+  let size: number;
+  try {
+    const st = await stat(cacheKey);
+    mtimeMs = st.mtimeMs;
+    size = st.size;
+  } catch {
+    // Fall through to parseUserTable so the documented RUNTIME error (with the
+    // offending path in its message) is produced exactly once.
+    return parseUserTable(cacheKey);
+  }
+
+  const cached = userTableCache.get(cacheKey);
+  if (cached && cached.mtimeMs === mtimeMs && cached.size === size) {
+    // Refresh LRU position.
+    userTableCache.delete(cacheKey);
+    userTableCache.set(cacheKey, cached);
+    return cached.table;
+  }
+
+  const inFlight = userTableInflight.get(cacheKey);
+  if (inFlight) return inFlight;
+
+  const pending = parseUserTable(cacheKey)
+    .then((table) => {
+      userTableCache.set(cacheKey, { mtimeMs, size, table });
+      while (userTableCache.size > USER_TABLE_CACHE_MAX) {
+        const oldest = userTableCache.keys().next().value;
+        if (oldest === undefined) break;
+        userTableCache.delete(oldest);
+      }
+      return table;
+    })
+    .finally(() => {
+      userTableInflight.delete(cacheKey);
+    });
+  userTableInflight.set(cacheKey, pending);
+  return pending;
+}
+
+/**
  * Load the effective lookup table. User entries (from
  * `customTablePath` or `DART_SNAPSHOT_TABLE_PATH`) take precedence on
  * hash collisions with the built-in seed.
  *
- * Reads are cached by absolute path so repeat calls do not re-hit disk.
+ * User tables are cached by resolved path and revalidated against the file's
+ * mtime/size on each call, so a corrected JSON table is picked up without a
+ * process restart.
  */
 export async function loadVersionTable(
   customTablePath?: string,
@@ -218,11 +282,7 @@ export async function loadVersionTable(
     customTablePath && customTablePath.length > 0 ? customTablePath : DART_SNAPSHOT_TABLE_PATH;
   if (!effectivePath || effectivePath.length === 0) return SNAPSHOT_VERSION_TABLE;
 
-  let userTable = userTableCache.get(effectivePath);
-  if (!userTable) {
-    userTable = await parseUserTable(effectivePath);
-    userTableCache.set(effectivePath, userTable);
-  }
+  const userTable = await loadUserTableCached(effectivePath);
 
   const merged = new Map<string, VersionEntry>(SNAPSHOT_VERSION_TABLE);
   for (const [hash, entry] of userTable) {
@@ -234,4 +294,5 @@ export async function loadVersionTable(
 /** Test-only: drop the user-table cache so subsequent loads re-read disk. */
 export function resetUserTableCacheForTests(): void {
   userTableCache.clear();
+  userTableInflight.clear();
 }

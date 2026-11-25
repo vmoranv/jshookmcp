@@ -127,7 +127,8 @@ export function installAndroidSyscalls(engine: CpuEngine, opts: AndroidSyscallOp
   // clock_gettime(clk_id, struct timespec* tp): write {tv_sec, tv_nsec}, return 0.
   engine.registerSyscall(NR_CLOCK_GETTIME, (ctx: SyscallContext) => {
     const tp = Number(ctx.x(1));
-    writeTimespec(ctx, tp, clockSecondsOf(opts));
+    // A NULL timespec is legal for clock probing; only write when non-NULL.
+    if (tp !== 0) writeTimespec(ctx, tp, clockSecondsOf(opts));
     return 0n;
   });
 
@@ -145,7 +146,7 @@ export function installAndroidSyscalls(engine: CpuEngine, opts: AndroidSyscallOp
     const count = Number(ctx.x(2));
     const data = ctx.read(buf, count);
     opts.onWrite?.(fd, data);
-    return BigInt(count);
+    return BigInt(data.length);
   });
 
   // read(fd, buf, count): pull from the backing reader, return bytes read.
@@ -166,6 +167,8 @@ export function installAndroidSyscalls(engine: CpuEngine, opts: AndroidSyscallOp
   let mmapBump = MMAP_BASE;
   engine.registerSyscall(NR_MMAP, (ctx: SyscallContext) => {
     const length = Number(ctx.x(1));
+    // length == 0 (or garbage) is EINVAL, not a page-sized mapping.
+    if (!Number.isFinite(length) || length <= 0) return -22n;
     const rounded = Math.max(MMAP_ALIGN, Math.ceil(length / MMAP_ALIGN) * MMAP_ALIGN);
     const addr = mmapBump;
     engine.mapMemory(addr, rounded);
@@ -205,8 +208,10 @@ export function installAndroidSyscalls(engine: CpuEngine, opts: AndroidSyscallOp
     const flags = Number(ctx.x(2));
     const granted = opts.onOpen?.(path, flags);
     if (granted === undefined) return BigInt(ENOENT);
-    // Honour an explicit fd from the resolver, else hand out a fresh one.
-    return BigInt(granted >= 0 ? granted : nextFd++);
+    // A negative return from onOpen is an errno (EACCES/EISDIR/...): propagate
+    // it instead of fabricating a success-looking fd.
+    if (granted < 0) return BigInt(granted);
+    return BigInt(granted > 0 ? granted : nextFd++);
   });
 
   // lseek(fd, offset, whence): the emulator has no seekable backing store, so

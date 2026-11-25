@@ -130,6 +130,31 @@ export interface GrammarSelectInput {
  * Returns `undefined` when no built-in grammar matches; callers MUST
  * surface that as `grammar.matched: false`, not as a thrown error.
  */
+function parseMajorMinor(value: string): { major: number; minor: number } | undefined {
+  const match = /^(\d+)\.(\d+)/.exec(value.trim());
+  if (!match) return undefined;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  return Number.isSafeInteger(major) && Number.isSafeInteger(minor) ? { major, minor } : undefined;
+}
+
+/**
+ * Match a Dart SDK revision against a grammar family. Families ending in `+`
+ * are open-ended (`'3.0+'` means 3.0 and newer) and are compared numerically,
+ * because a real revision such as `'3.4.1'` can never start with the literal
+ * `'3.0+'`.
+ */
+function matchesSdkFamily(dartRev: string, sdkFamily: string): boolean {
+  if (!sdkFamily.endsWith('+')) return dartRev.startsWith(sdkFamily);
+  const floor = parseMajorMinor(sdkFamily.slice(0, -1));
+  const revision = parseMajorMinor(dartRev);
+  if (!floor || !revision) return false;
+  return (
+    revision.major > floor.major ||
+    (revision.major === floor.major && revision.minor >= floor.minor)
+  );
+}
+
 export function selectGrammar(input: GrammarSelectInput): ClusterGrammar | undefined {
   if (input.forceGrammar) {
     const forced = GRAMMARS.find((g) => g.sdkFamily === input.forceGrammar);
@@ -138,7 +163,7 @@ export function selectGrammar(input: GrammarSelectInput): ClusterGrammar | undef
   const dartRev = (input.dartSdkRev ?? '').trim();
   if (dartRev.length > 0) {
     for (const g of GRAMMARS) {
-      if (dartRev.startsWith(g.sdkFamily)) return g;
+      if (matchesSdkFamily(dartRev, g.sdkFamily)) return g;
     }
   }
   const flutter = (input.flutterVersion ?? '').trim();

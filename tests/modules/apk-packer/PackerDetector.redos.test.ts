@@ -31,14 +31,35 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
     );
   });
 
-  it('rejects (a|b)+c+ as catastrophic at compile time', () => {
+  it('rejects ambiguous alternation (a|aa)+$ at compile time', () => {
     expect(() =>
       compileSignatureInput({
         name: 'evil',
         category: 'attacker',
-        libPatterns: ['^(a|b)+c+$'],
+        // codeql[js/redos] ignore — intentional evil pattern testing rejection
+        libPatterns: ['^(a|aa)+$'],
       }),
     ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
+  });
+
+  it('rejects (a+){2,} as catastrophic at compile time', () => {
+    expect(() =>
+      compileSignatureInput({
+        name: 'evil',
+        category: 'attacker',
+        // codeql[js/redos] ignore — intentional evil pattern testing rejection
+        libPatterns: ['(a+){2,}'],
+      }),
+    ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
+  });
+
+  it('accepts disjoint alternation under a quantifier', () => {
+    const sig = compileSignatureInput({
+      name: 'safe',
+      category: 'safe',
+      libPatterns: ['^(a|b)+c+$', '^(ab|ac)+$'],
+    });
+    expect(sig.libPatterns.every((p) => p instanceof RegExp)).toBe(true);
   });
 
   it('rejects (a*)+b as catastrophic at compile time', () => {

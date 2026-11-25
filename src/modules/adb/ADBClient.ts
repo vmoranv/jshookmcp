@@ -137,7 +137,11 @@ export class ADBClient {
       });
     }
 
-    if (lower.includes('failed to connect') || lower.includes('unable to connect')) {
+    if (
+      lower.includes('failed to connect') ||
+      lower.includes('unable to connect') ||
+      lower.includes('cannot connect')
+    ) {
       return new ToolError('CONNECTION', message, {
         toolName: 'adb-bridge',
         details: {
@@ -172,7 +176,12 @@ export class ADBClient {
       const target = `${host.trim()}:${port ?? DEFAULT_NETWORK_PORT}`;
       const output = await this.runAdb(['connect', target]);
 
-      if (/(failed|unable)/i.test(output)) {
+      // `adb connect` exits 0 on most failures and prints the reason to stdout:
+      // "cannot connect to <host>: Connection refused",
+      // "failed to connect to ...", "unable to connect ...", or "error: ...".
+      // Checking the exit status alone therefore reported an unreachable
+      // device as connected.
+      if (/(failed|unable|cannot connect|error:)/i.test(output)) {
         throw new ToolError('CONNECTION', output.trim(), {
           toolName: 'adb-bridge',
           details: {
@@ -283,6 +292,20 @@ export class ADBClient {
 
   async forward(deviceId: string, local: string, remote: string): Promise<void> {
     await this.runAdb(['-s', deviceId, 'forward', local, remote]);
+  }
+
+  /**
+   * Remove a single port forward (e.g. a `tcp:<port>` local endpoint created by
+   * `forward`). `--remove` only touches the given endpoint, unlike
+   * `--remove-all`, so other forwards of the same device stay intact.
+   */
+  async removeForward(deviceId: string, local: string): Promise<void> {
+    if (local.length === 0 || /\s/.test(local)) {
+      throw new ToolError('VALIDATION', `Invalid forward endpoint: ${local}`, {
+        toolName: 'adb-bridge',
+      });
+    }
+    await this.runAdb(['-s', deviceId, 'forward', '--remove', local]);
   }
 
   async getWebViewVersion(deviceId: string): Promise<string | null> {

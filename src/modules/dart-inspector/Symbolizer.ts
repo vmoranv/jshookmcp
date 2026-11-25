@@ -39,6 +39,26 @@ import { ToolError } from '@errors/ToolError';
  */
 const DEFAULT_MAX_MAP_BYTES = DART_MAX_MAP_BYTES;
 
+/**
+ * Classify a raw fs failure so permission problems are not reported as a
+ * missing file, and so read failures stay inside the ToolError contract.
+ */
+function classifyFsError(cause: unknown, mapPath: string, action: string): ToolError {
+  if (cause instanceof ToolError) return cause;
+  const code = (cause as NodeJS.ErrnoException | undefined)?.code;
+  const toolCode =
+    code === 'ENOENT' || code === 'ENOTDIR'
+      ? 'NOT_FOUND'
+      : code === 'EACCES' || code === 'EPERM'
+        ? 'PERMISSION'
+        : 'RUNTIME';
+  return new ToolError(
+    toolCode,
+    `Unable to ${action} obfuscation map: ${mapPath} (${(cause as Error | undefined)?.message ?? 'unknown error'})`,
+    { details: { mapPath, code }, cause: cause as Error },
+  );
+}
+
 export type SymbolizerFormat = 'auto' | 'flat' | 'pairs' | 'object';
 
 /** Resolve direction: obfuscated → original, or original → obfuscated. */
@@ -88,6 +108,56 @@ export interface SymbolizeResult {
   format: Exclude<SymbolizerFormat, 'auto'>;
 }
 
+function validateResolveInput(
+  queries: readonly string[],
+  mapPath: string,
+  opts: SymbolizeOptions,
+): {
+  format: SymbolizerFormat;
+  mode: SymbolizerMode;
+  maxMapBytes: number;
+  maxLookups: number | undefined;
+} {
+  if (!mapPath || mapPath.length === 0) {
+    throw new ToolError('VALIDATION', 'mapPath must be a non-empty string');
+  }
+  if (!Array.isArray(queries)) {
+    throw new ToolError('VALIDATION', 'queries must be an array of strings');
+  }
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
+    if (typeof q !== 'string') {
+      throw new ToolError('VALIDATION', `queries[${i}] must be a string (got ${typeof q})`);
+    }
+  }
+  const format = opts.format ?? 'auto';
+  if (format !== 'auto' && format !== 'flat' && format !== 'pairs' && format !== 'object') {
+    throw new ToolError(
+      'VALIDATION',
+      `format must be one of auto|flat|pairs|object (got "${format}")`,
+    );
+  }
+  const mode = opts.mode ?? 'forward';
+  if (mode !== 'forward' && mode !== 'reverse') {
+    throw new ToolError('VALIDATION', `mode must be either "forward" or "reverse" (got "${mode}")`);
+  }
+  const maxMapBytes = opts.maxMapBytes ?? DEFAULT_MAX_MAP_BYTES;
+  if (!Number.isInteger(maxMapBytes) || maxMapBytes <= 0) {
+    throw new ToolError(
+      'VALIDATION',
+      `maxMapBytes must be a positive integer (got ${maxMapBytes})`,
+    );
+  }
+  const maxLookups = opts.maxLookups;
+  if (maxLookups !== undefined && (!Number.isInteger(maxLookups) || maxLookups < 0)) {
+    throw new ToolError(
+      'VALIDATION',
+      `maxLookups must be a non-negative integer (got ${maxLookups})`,
+    );
+  }
+  return { format, mode, maxMapBytes, maxLookups };
+}
+
 export class Symbolizer {
   /**
    * Resolve a batch of obfuscated names against the map at `mapPath`.
@@ -103,55 +173,13 @@ export class Symbolizer {
     mapPath: string,
     opts: SymbolizeOptions = {},
   ): Promise<SymbolizeResult> {
-    if (!mapPath || mapPath.length === 0) {
-      throw new ToolError('VALIDATION', 'mapPath must be a non-empty string');
-    }
-    if (!Array.isArray(queries)) {
-      throw new ToolError('VALIDATION', 'queries must be an array of strings');
-    }
-    for (let i = 0; i < queries.length; i++) {
-      const q = queries[i];
-      if (typeof q !== 'string') {
-        throw new ToolError('VALIDATION', `queries[${i}] must be a string (got ${typeof q})`);
-      }
-    }
-    const format = opts.format ?? 'auto';
-    if (format !== 'auto' && format !== 'flat' && format !== 'pairs' && format !== 'object') {
-      throw new ToolError(
-        'VALIDATION',
-        `format must be one of auto|flat|pairs|object (got "${format}")`,
-      );
-    }
-    const mode = opts.mode ?? 'forward';
-    if (mode !== 'forward' && mode !== 'reverse') {
-      throw new ToolError(
-        'VALIDATION',
-        `mode must be either "forward" or "reverse" (got "${mode}")`,
-      );
-    }
-    const maxMapBytes = opts.maxMapBytes ?? DEFAULT_MAX_MAP_BYTES;
-    if (!Number.isInteger(maxMapBytes) || maxMapBytes <= 0) {
-      throw new ToolError(
-        'VALIDATION',
-        `maxMapBytes must be a positive integer (got ${maxMapBytes})`,
-      );
-    }
-    const maxLookups = opts.maxLookups;
-    if (maxLookups !== undefined && (!Number.isInteger(maxLookups) || maxLookups < 0)) {
-      throw new ToolError(
-        'VALIDATION',
-        `maxLookups must be a non-negative integer (got ${maxLookups})`,
-      );
-    }
+    const { format, mode, maxMapBytes, maxLookups } = validateResolveInput(queries, mapPath, opts);
 
     let size: number;
     try {
       size = (await stat(mapPath)).size;
     } catch (cause) {
-      throw new ToolError('NOT_FOUND', `Obfuscation map not found: ${mapPath}`, {
-        details: { mapPath },
-        cause: cause as Error,
-      });
+      throw classifyFsError(cause, mapPath, 'inspect');
     }
     if (size > maxMapBytes) {
       throw new ToolError(
@@ -161,7 +189,12 @@ export class Symbolizer {
       );
     }
 
-    const raw = await readFile(mapPath, 'utf-8');
+    let raw: string;
+    try {
+      raw = await readFile(mapPath, 'utf-8');
+    } catch (cause) {
+      throw classifyFsError(cause, mapPath, 'read');
+    }
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);

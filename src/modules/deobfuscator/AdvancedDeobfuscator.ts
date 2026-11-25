@@ -48,7 +48,10 @@ export class AdvancedDeobfuscator {
 
   private generateCacheKey(options: AdvancedDeobfuscateOptions): string {
     const key = JSON.stringify({
-      code: options.code.substring(0, 2000),
+      // Hash the FULL code, not a prefix: two scripts sharing the first 2000
+      // characters would otherwise collide and return each other's result.
+      codeHash: crypto.createHash('sha256').update(options.code).digest('hex'),
+      codeLength: options.code.length,
       detectOnly: options.detectOnly,
       forceOutput: options.forceOutput,
       includeModuleCode: options.includeModuleCode,
@@ -157,7 +160,7 @@ export class AdvancedDeobfuscator {
         this.resultCache.delete(firstKey);
       }
     }
-    this.resultCache.set(cacheKey, result);
+    this.resultCache.set(cacheKey, { ...result });
   }
 
   private calculateConfidence(

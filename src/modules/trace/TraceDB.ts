@@ -104,20 +104,31 @@ export class TraceDB {
     this.batchSize = options.batchSize ?? 200;
     this.maxRows = options.maxRows ?? DEFAULT_MAX_ROWS;
 
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('synchronous = NORMAL');
+    // If any schema/statement setup step fails, release the native handle we
+    // just opened instead of leaking the SQLite file (and its WAL/SHM files).
+    try {
+      this.db.pragma('journal_mode = WAL');
+      this.db.pragma('synchronous = NORMAL');
 
-    initializeTraceSchema(this.db);
-    const statements = prepareTraceStatements(this.db);
-    this.insertEventStmt = statements.insertEventStmt;
-    this.insertDeltaStmt = statements.insertDeltaStmt;
-    this.insertSnapshotStmt = statements.insertSnapshotStmt;
-    this.upsertMetadataStmt = statements.upsertMetadataStmt;
-    this.upsertNetworkResourceStmt = statements.upsertNetworkResourceStmt;
-    this.insertNetworkChunkStmt = statements.insertNetworkChunkStmt;
-    this.insertSampleStmt = statements.insertSampleStmt;
-    this.insertConsoleLogStmt = statements.insertConsoleLogStmt;
-    this.insertExceptionStmt = statements.insertExceptionStmt;
+      initializeTraceSchema(this.db);
+      const statements = prepareTraceStatements(this.db);
+      this.insertEventStmt = statements.insertEventStmt;
+      this.insertDeltaStmt = statements.insertDeltaStmt;
+      this.insertSnapshotStmt = statements.insertSnapshotStmt;
+      this.upsertMetadataStmt = statements.upsertMetadataStmt;
+      this.upsertNetworkResourceStmt = statements.upsertNetworkResourceStmt;
+      this.insertNetworkChunkStmt = statements.insertNetworkChunkStmt;
+      this.insertSampleStmt = statements.insertSampleStmt;
+      this.insertConsoleLogStmt = statements.insertConsoleLogStmt;
+      this.insertExceptionStmt = statements.insertExceptionStmt;
+    } catch (error) {
+      try {
+        this.db.close();
+      } catch {
+        // Preserve the original setup failure.
+      }
+      throw error;
+    }
   }
 
   /** Database file path. */
@@ -637,9 +648,15 @@ export class TraceDB {
 
   close(): void {
     if (this.closed) return;
-    this.flush();
-    this.db.close();
-    this.closed = true;
+    // Release the native handle even if the final flush/prune fails (disk full,
+    // SQLITE_BUSY): otherwise the SQLite file stays open and `closed` stays
+    // false.
+    try {
+      this.flush();
+    } finally {
+      this.db.close();
+      this.closed = true;
+    }
   }
 
   get isClosed(): boolean {
@@ -658,6 +675,9 @@ export class TraceDB {
 
   private executeReadQuery(sql: string, params: readonly unknown[]): TraceQueryResult {
     this.ensureOpen();
+    // Typed reads all flush buffered rows first; raw query()/queryWithParams()
+    // must do the same or they can silently miss not-yet-persisted events.
+    this.flush();
 
     if (WRITE_SQL_PATTERN.test(sql)) {
       throw new Error(

@@ -19,6 +19,8 @@ export interface DominatorNode {
   nodeId: number;
   /** Class/object name */
   name: string;
+  /** Heap-snapshot node type, used for unnamed-node histogram keys */
+  type?: string;
   /** Memory retained by this node (including children) */
   retainedSize: number;
   /** Memory directly allocated by this node */
@@ -233,6 +235,9 @@ export class DominatorTreeBuilder {
   buildDominatorTree(nodes: ParsedNode[], edges: ParsedEdge[]): DominatorNode {
     this.nodes = new Map(nodes.map((n) => [n.id, n]));
     this.edges = edges;
+    // Each build is independent: stale idom entries from a previous snapshot
+    // would otherwise leak into retainer-chain lookups for the new graph.
+    this.idom.clear();
 
     // Build adjacency lists
     this.buildAdjacencyLists();
@@ -533,6 +538,7 @@ export class DominatorTreeBuilder {
       treeNodes.set(id, {
         nodeId: id,
         name: node.name,
+        ...(node.type ? { type: node.type } : {}),
         retainedSize: 0, // Computed later
         shallowSize: node.selfSize,
         children: [],

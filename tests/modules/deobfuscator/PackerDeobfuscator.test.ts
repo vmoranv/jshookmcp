@@ -271,6 +271,9 @@ describe('Packer-family deobfuscators', () => {
     expect((deobfuscator as any).base(36, 36)).toBe('10'); // 36 in base36 = '10'
     expect((deobfuscator as any).base(61, 62)).toBe('Z'); // 61 in base62 (uppercase Z)
     expect((deobfuscator as any).base(62, 62)).toBe('10'); // 62 in base62 = '10'
+    // Radix 0/1 makes the reduction diverge; the guard returns a safe token.
+    expect((deobfuscator as any).base(10, 0)).toBe('0');
+    expect((deobfuscator as any).base(10, 1)).toBe('0');
   });
 
   it('beautify formats code with newlines and trims', () => {

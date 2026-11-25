@@ -351,7 +351,6 @@ function buildTypeIndexCacheFromProcess(
 
   for (const entry of processEntries) {
     if (seenIndices.has(entry.objectTypeIndex)) continue;
-    seenIndices.add(entry.objectTypeIndex);
 
     const dupHandle = duplicateHandle(processHandle, entry.handleValue);
     if (dupHandle === 0n) continue;
@@ -359,6 +358,9 @@ function buildTypeIndexCacheFromProcess(
     try {
       const typeName = queryHandleTypeName(dupHandle);
       cache.set(entry.objectTypeIndex, typeName);
+      // Only treat the type as resolved once a handle of that type actually
+      // succeeded; a stale/protected first handle must not block later ones.
+      seenIndices.add(entry.objectTypeIndex);
     } finally {
       CloseHandle(dupHandle);
     }

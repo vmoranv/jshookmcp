@@ -30,24 +30,24 @@ function buildModule(instructionWords: number[][]): Uint8Array {
 }
 
 // Opcodes exercised by the fixture.
-const OP_LOAD = 55;
+const OP_LOAD = 61;
 const OP_STORE = 62;
 const OP_FADD = 129;
 const OP_FMUL = 133;
 const OP_IMAGE_SAMPLE_IMPLICIT_LOD = 87;
 const OP_IMAGE_SAMPLE = 80; // generic OpImageSample (was missing from TEXTURE_SAMPLE_OPCODES)
 const OP_IMAGE_FETCH = 95;
-const OP_BRANCH = 252;
+const OP_BRANCH = 249;
 const OP_BRANCH_CONDITIONAL = 250;
 const OP_LOOP_MERGE = 246;
 const OP_SELECTION_MERGE = 247;
-const OP_MEMORY_BARRIER = 226;
+const OP_MEMORY_BARRIER = 225;
 const OP_RETURN = 253;
 const OP_LABEL = 248;
 const OP_FUNCTION = 54;
 const OP_FUNCTION_END = 56;
 const OP_TYPE_FLOAT = 22;
-const OP_TYPE_VOID = 17;
+const OP_TYPE_VOID = 19;
 const OP_TYPE_FUNCTION = 33;
 const OP_TYPE_POINTER = 32;
 

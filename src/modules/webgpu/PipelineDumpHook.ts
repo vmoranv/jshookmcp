@@ -88,11 +88,11 @@ export async function installPipelineDumpHook(
       if (value === null || typeof value !== 'object') {
         return value;
       }
-      if (Array.isArray(value)) {
-        return value.map((v) => sanitize(v, depth + 1));
-      }
       if (depth > MAX_DEPTH) {
         return '<deep>';
+      }
+      if (Array.isArray(value)) {
+        return value.map((v) => sanitize(v, depth + 1));
       }
       const ctor = typeof value.constructor === 'function' ? value.constructor.name : '';
       if (ctor !== '' && ctor !== 'Object' && ctor !== 'Array') {

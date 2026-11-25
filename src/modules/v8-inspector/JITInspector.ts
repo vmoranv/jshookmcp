@@ -50,17 +50,24 @@ function mapOptimizationTier(status: number | null): { optimized: boolean; tier:
   if (status === null) {
     return { optimized: false, tier: 'unknown' };
   }
-  // V8 runtime.h OptimizationStatus bit positions (v13+):
-  //   bit 5 (32) = kTurboFanned, bit 4 (16) = kMaglevved,
-  //   bit 3 (8) = kOptimized, bit 14 (16384) = kBaseline (Sparkplug)
-  if ((status & 32) !== 0) {
+  // V8 runtime.h OptimizationStatus bit positions (v12+):
+  //   bit 3 (8) = kMaybeDeopted, bit 4 (16) = kOptimized,
+  //   bit 5 (32) = kMaglevved, bit 6 (64) = kTurboFanned,
+  //   bit 15 (32768) = kBaseline (Sparkplug).
+  if ((status & 64) !== 0) {
     return { optimized: true, tier: 'turbofan' };
   }
-  if ((status & 16) !== 0) {
+  if ((status & 32) !== 0) {
     return { optimized: true, tier: 'maglev' };
   }
-  if ((status & 8) !== 0) {
+  if ((status & 16) !== 0) {
     return { optimized: true, tier: 'optimized' };
+  }
+  if ((status & 32768) !== 0) {
+    return { optimized: false, tier: 'baseline' };
+  }
+  if ((status & 8) !== 0) {
+    return { optimized: false, tier: 'deoptimized' };
   }
   return { optimized: false, tier: 'interpreted' };
 }

@@ -16,12 +16,25 @@ export function installFortifiedMemoryStubs(lib: BionicLibrary): void {
   aliasHandler(lib, '__memset_chk', 'memset');
 }
 
+function parseInteger(text: string, base: number): bigint {
+  const parsed = Number.parseInt(text, base);
+  // parseInt returns NaN for non-numeric input; BigInt(NaN) would throw and
+  // abort the emulator (C returns 0 for unparseable strings).
+  return Number.isFinite(parsed) ? BigInt(parsed) : 0n;
+}
+
 export function installConversionStubs(lib: BionicLibrary): void {
-  for (const name of ['atoi', 'atol', 'atoll', 'strtol', 'strtoll']) {
-    lib.set(
-      name,
-      (ctx) => BigInt(Number.parseInt(readGuestCString(ctx, Number(ctx.x(0))), 10)) || 0n,
-    );
+  for (const name of ['atoi', 'atol', 'atoll']) {
+    lib.set(name, (ctx) => parseInteger(readGuestCString(ctx, Number(ctx.x(0))), 10));
+  }
+  for (const name of ['strtol', 'strtoll']) {
+    lib.set(name, (ctx) => {
+      const text = readGuestCString(ctx, Number(ctx.x(0)));
+      // strtol/strtoll take the radix in x2; 0 means auto-detect (0x/0 prefixes).
+      const rawBase = Number(ctx.x(2));
+      const base = rawBase === 0 || (rawBase >= 2 && rawBase <= 36) ? rawBase : 10;
+      return parseInteger(text, base === 0 ? 0 : base);
+    });
   }
   lib.set('strtod', (ctx) => {
     const parsed = Number.parseFloat(readGuestCString(ctx, Number(ctx.x(0))));

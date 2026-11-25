@@ -36,8 +36,8 @@ describe('JITInspector', () => {
       }
       // @ts-expect-error
       if (method === 'Runtime.evaluate' && params?.expression?.includes('%GetOptimizationStatus')) {
-        // V8 OptimizationStatus bit 5 (value 32) = kTurboFanned
-        return { result: { value: 32 } };
+        // V8 OptimizationStatus bit 6 (value 64) = kTurboFanned
+        return { result: { value: 64 } };
       }
       return {};
     });
@@ -50,7 +50,7 @@ describe('JITInspector', () => {
     expect(result.functions[0]?.tier).toBe('turbofan');
   });
 
-  it('maps kMaglevved bit (16) to maglev tier', async () => {
+  it('maps kMaglevved bit (32) to maglev tier', async () => {
     const inspector = createInspector(async (method, params) => {
       if (method === 'Debugger.getScriptSource')
         return { scriptSource: 'function myFunc() { return 1; }' };
@@ -70,8 +70,8 @@ describe('JITInspector', () => {
       }
       // @ts-expect-error
       if (method === 'Runtime.evaluate' && params?.expression?.includes('%GetOptimizationStatus')) {
-        // V8 OptimizationStatus bit 4 (value 16) = kMaglevved
-        return { result: { value: 16 } };
+        // V8 OptimizationStatus bit 5 (value 32) = kMaglevved
+        return { result: { value: 32 } };
       }
       return {};
     });
@@ -81,7 +81,7 @@ describe('JITInspector', () => {
     expect(result.functions[0]?.tier).toBe('maglev');
   });
 
-  it('maps kInterpreted bit (64) to interpreted tier', async () => {
+  it('maps kInterpreted bit (128) to interpreted tier', async () => {
     const inspector = createInspector(async (method, params) => {
       if (method === 'Debugger.getScriptSource')
         return { scriptSource: 'function myFunc() { return 1; }' };
@@ -101,8 +101,8 @@ describe('JITInspector', () => {
       }
       // @ts-expect-error
       if (method === 'Runtime.evaluate' && params?.expression?.includes('%GetOptimizationStatus')) {
-        // V8 OptimizationStatus bit 6 (value 64) = kInterpreted
-        return { result: { value: 64 } };
+        // V8 OptimizationStatus bit 7 (value 128) = kInterpreted
+        return { result: { value: 128 } };
       }
       return {};
     });

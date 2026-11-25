@@ -14,8 +14,11 @@
  * against; bump it whenever the whitelist is refreshed.
  *
  * Dart core libraries (`dart:async`, `dart:io`, …) are referenced via the
- * `dart:` scheme, never `package:` — they are listed here only to defensively
- * catch malformed `package:dart` strings.
+ * `dart:` scheme, never `package:`. Names such as `async`, `collection`,
+ * `convert`, `ffi`, `isolate`, `js`, and `typed_data` are deliberately NOT
+ * listed: they are also real pub.dev packages, and `PackageDetector` strips
+ * the `package:` prefix before consulting this set, so including them would
+ * silently drop genuine third-party dependencies from the report.
  */
 
 // The Flutter SDK release this whitelist was last reviewed against.
@@ -31,21 +34,16 @@ export const SDK_SNAPSHOT_VERSION = '3.24.x';
  */
 export const FLUTTER_STDLIB_PACKAGES: ReadonlySet<string> = Object.freeze(
   new Set<string>([
-    // Dart core libs (defensive — usually referenced via `dart:` not `package:`)
+    // dart:-only core libs that are not also widely used pub.dev packages.
+    // (`async`, `collection`, `convert`, `ffi`, `isolate`, `js`, and
+    // `typed_data` are intentionally absent — see the module header.)
     '_internal',
-    'async',
-    'collection',
-    'convert',
     'core',
     'dart',
     'developer',
-    'ffi',
     'io',
-    'isolate',
-    'js',
     'math',
     'mirrors',
-    'typed_data',
     'ui',
     // Flutter SDK first-party packages
     'flutter',

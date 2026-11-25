@@ -63,7 +63,9 @@ function parseThin(data: Buffer, offset: number): MachoSection[] {
           name: `${segName}.${secName}`,
           addr: secAddr,
           size: Number(secSize),
-          fileOffset: secOffset,
+          // section_64.offset is relative to the start of the embedded Mach-O
+          // slice; rebase it so FAT consumers get an absolute file offset.
+          fileOffset: offset + secOffset,
           isExecutable: (maxprot & 0x4) !== 0 || (secFlags & 0x4) !== 0,
           isWritable: (maxprot & 0x2) !== 0,
         });
@@ -89,6 +91,7 @@ function readCString(buf: Buffer, off: number, max: number): string {
  * {@link findThinOffset}.
  */
 function findThinOffsetInFAT(data: Buffer): number {
+  if (data.length < 8) return -1; // need magic(4) + nfat_arch(4)
   const narch = data.readUInt32BE(4); // FAT header is big-endian
   for (let i = 0; i < narch; i++) {
     const archOff = 8 + i * 20;
@@ -97,7 +100,11 @@ function findThinOffsetInFAT(data: Buffer): number {
     const offset = data.readUInt32BE(archOff + 8);
     const size = data.readUInt32BE(archOff + 12);
     // CPU_TYPE_X86_64 = 0x01000007, CPU_TYPE_ARM64 = 0x0100000C
-    if ((cputype === 0x01000007 || cputype === 0x0100000c) && offset + size <= data.length) {
+    if (
+      (cputype === 0x01000007 || cputype === 0x0100000c) &&
+      size >= 4 &&
+      offset + size <= data.length
+    ) {
       if (data.readUInt32LE(offset) === MH_MAGIC_64) return offset;
     }
   }
@@ -243,7 +250,8 @@ export function parseMachOSymbols(filePath: string): MachOSymbolTable {
   const exports: MachOSymbol[] = [];
   // nlist_64 is 16 bytes: n_strx(4) n_type(1) n_sect(1) n_desc(2) n_value(8).
   for (let i = 0; i < Math.min(nsyms, 8192); i++) {
-    const entry = symoff + i * 16;
+    // symoff/stroff are relative to the embedded Mach-O slice, not the file.
+    const entry = offset + symoff + i * 16;
     if (entry + 16 > data.length) break;
     const nStrx = data.readUInt32LE(entry);
     const nType = data[entry + 4]!;
@@ -251,7 +259,7 @@ export function parseMachOSymbols(filePath: string): MachOSymbolTable {
     const nValue = data.readBigUInt64LE(entry + 8);
     const isExternal = (nType & N_EXT) !== 0;
     if (!isExternal) continue; // local symbols are not import/export candidates
-    const name = readCString(data, stroff + nStrx, 256);
+    const name = readCString(data, offset + stroff + nStrx, 256);
     if (!name) continue;
     const isImport = nSect === 0;
     const sym: MachOSymbol = {

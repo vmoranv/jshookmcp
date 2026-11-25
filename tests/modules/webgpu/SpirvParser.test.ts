@@ -66,9 +66,9 @@ function makeHeader(version: number, generator: number, bound: number, schema = 
 }
 
 // Opcodes used in test fixtures.
-const OP_NAME = 19;
-const OP_MEMBER_NAME = 20;
-const OP_TYPE_VOID = 17;
+const OP_NAME = 5;
+const OP_MEMBER_NAME = 6;
+const OP_TYPE_VOID = 19;
 const OP_TYPE_FLOAT = 22;
 const OP_TYPE_INT = 21;
 const OP_TYPE_VECTOR = 23;

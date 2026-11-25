@@ -127,6 +127,21 @@ async function locateInApk(apkPath: string): Promise<LocateResult | null> {
       const zip = zipFile as YauzlZipFile;
       const candidates: string[] = [];
       let resolving = false;
+      let settled = false;
+
+      // We stop calling readEntry() after the first extraction attempt, so
+      // yauzl's autoClose never fires. Close the fd before every settle to
+      // avoid leaking descriptors across repeated triage runs.
+      const settle = (action: () => void): void => {
+        if (settled) return;
+        settled = true;
+        try {
+          zip.close();
+        } catch {
+          // yauzl's close() is idempotent; ignore a double-close race.
+        }
+        action();
+      };
 
       zip.on('entry', (entry: ZipEntry) => {
         if (isObfuscationSidecar(entry.fileName)) {
@@ -136,11 +151,13 @@ async function locateInApk(apkPath: string): Promise<LocateResult | null> {
             const matchName = entry.fileName;
             zip.openReadStream(entry, (streamErr, stream) => {
               if (streamErr || !stream) {
-                reject(
-                  new ToolError(
-                    'RUNTIME',
-                    `Failed to read ${matchName}: ${streamErr?.message ?? 'unknown'}`,
-                    { details: { apkPath, entry: matchName }, cause: streamErr ?? undefined },
+                settle(() =>
+                  reject(
+                    new ToolError(
+                      'RUNTIME',
+                      `Failed to read ${matchName}: ${streamErr?.message ?? 'unknown'}`,
+                      { details: { apkPath, entry: matchName }, cause: streamErr ?? undefined },
+                    ),
                   ),
                 );
                 return;
@@ -158,25 +175,29 @@ async function locateInApk(apkPath: string): Promise<LocateResult | null> {
                   try {
                     await writeFile(tmpPath, bytes, { flag: 'wx' });
                   } catch (writeErr) {
-                    reject(
-                      new ToolError(
-                        'RUNTIME',
-                        `Failed to write extracted map: ${(writeErr as Error).message}`,
-                        {
-                          cause: writeErr as Error,
-                        },
+                    settle(() =>
+                      reject(
+                        new ToolError(
+                          'RUNTIME',
+                          `Failed to write extracted map: ${(writeErr as Error).message}`,
+                          {
+                            cause: writeErr as Error,
+                          },
+                        ),
                       ),
                     );
                     return;
                   }
-                  resolve({ path: tmpPath, source: `apk:${matchName}`, candidates });
+                  settle(() => resolve({ path: tmpPath, source: `apk:${matchName}`, candidates }));
                 },
                 (readErr: Error) => {
-                  reject(
-                    new ToolError('RUNTIME', `Reading ${matchName} failed: ${readErr.message}`, {
-                      details: { apkPath, entry: matchName },
-                      cause: readErr,
-                    }),
+                  settle(() =>
+                    reject(
+                      new ToolError('RUNTIME', `Reading ${matchName} failed: ${readErr.message}`, {
+                        details: { apkPath, entry: matchName },
+                        cause: readErr,
+                      }),
+                    ),
                   );
                 },
               );
@@ -192,12 +213,14 @@ async function locateInApk(apkPath: string): Promise<LocateResult | null> {
           // Scanned the whole archive, no sidecar extracted. If candidates were
           // found but none extracted (defensive — resolving flips on first hit),
           // still report null; callers ask for the map explicitly then.
-          resolve(null);
+          settle(() => resolve(null));
         }
       });
 
       zip.on('error', (zipErr: Error) => {
-        reject(new ToolError('RUNTIME', `ZIP read error: ${zipErr.message}`, { cause: zipErr }));
+        settle(() =>
+          reject(new ToolError('RUNTIME', `ZIP read error: ${zipErr.message}`, { cause: zipErr })),
+        );
       });
 
       // lazyEntries: true requires an explicit read to emit the first entry.

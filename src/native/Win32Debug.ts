@@ -632,7 +632,15 @@ export function WaitForDebugEvent(timeoutMs: number): DebugEventInfo | null {
   const buf = Buffer.alloc(DEBUG_EVENT_SIZE);
 
   const result = fn(buf, timeoutMs);
-  if (result === 0) return null;
+  if (result === 0) {
+    // WaitForDebugEvent reports FALSE for a genuine timeout with
+    // ERROR_SEM_TIMEOUT; every other failure must not look like a timeout or
+    // callers will spin forever instead of surfacing the error.
+    const err = GetLastError();
+    const ERROR_SEM_TIMEOUT = 121;
+    if (err === ERROR_SEM_TIMEOUT) return null;
+    throw new Error(`WaitForDebugEvent failed. Error: 0x${err.toString(16)}`);
+  }
 
   const info: DebugEventInfo = {
     debugEventCode: buf.readUInt32LE(0x00),
@@ -712,11 +720,14 @@ export function EnumerateProcessThreads(pid: number): number[] {
         entry.writeUInt32LE(28, 0); // Reset dwSize
       } while (fnNext(snapshot, entry) !== 0);
     }
-
-    CloseHandle(snapshot);
-  } catch (e) {
-    // Best effort cleanup
-    console.error('[EnumerateProcessThreads] cleanup error:', e);
+  } finally {
+    // Close on both success and failure; enumeration errors then propagate
+    // instead of being swallowed as a partial result.
+    try {
+      CloseHandle(snapshot);
+    } catch (e) {
+      logger.warn('[EnumerateProcessThreads] CloseHandle(snapshot) failed:', e);
+    }
   }
 
   return threads;

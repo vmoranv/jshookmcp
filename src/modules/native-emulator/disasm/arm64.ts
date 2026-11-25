@@ -64,7 +64,7 @@ function tryDisassemble(insn: number, pc: bigint): DisasmResult | null {
   // ── Loads and stores ─────────────────────────────────────────────
   if (m(insn, 0x3b000000, 0x18000000)) return decodeLoadLiteral(insn, pc);
   if (m(insn, 0x3b000000, 0x39000000)) return decodeLoadStoreUnsigned(insn);
-  if (m(insn, 0x3b200c00, 0x38000400)) return decodeLoadStoreRegOffset(insn);
+  if (m(insn, 0x3b200c00, 0x38200800)) return decodeLoadStoreRegOffset(insn);
   if (m(insn, 0x38000000, 0x28000000)) return decodeLoadStorePair(insn);
   if (m(insn, 0x3f000000, 0x08000000)) return decodeLoadStoreExclusive(insn);
 
@@ -84,7 +84,8 @@ function tryDisassemble(insn: number, pc: bigint): DisasmResult | null {
   if (m(insn, 0xffffffe0, 0xdac147e0)) return { mnemonic: 'xpacd', operands: `x${insn & 0x1f}` };
 
   // ── FP / SIMD (scalar) ───────────────────────────────────────────
-  if (m(insn, 0x1f200000, 0x0e200000)) return decodeFpSimdScalar(insn);
+  if (m(insn, 0x1f200000, 0x0e200000) || m(insn, 0x1f200000, 0x1e200000))
+    return decodeFpSimdScalar(insn);
 
   return null;
 }
@@ -165,14 +166,16 @@ function decodeLogicalImm(insn: number): DisasmResult {
  * Returns the actual 64-bit value.
  */
 function decodeBitmaskImmediate(n: number, immr: number, imms: number, sf: number): bigint {
-  const len = sf ? (n ? 6 : 32 - Math.clz32(~imms & 0x3f)) : n ? 0 : 32 - Math.clz32(~imms & 0x3f);
-  if (len < 1) return 0n;
+  // HighestSetBit(N:NOT(imms)) is a 0-based index (0..6), not a bit length.
+  const nImms = ((n & 1) << 6) | (~imms & 0x3f);
+  const len = 31 - Math.clz32(nImms);
+  if (len < 1 || (sf === 0 && n !== 0)) return 0n;
   const levels = (1 << len) - 1;
   const s = imms & levels;
   const r = immr & levels;
   const size = 1 << len;
-  // Create replicated pattern
-  const dmask = BigInt((1 << (s + 1)) - 1);
+  // Create replicated pattern (BigInt: s may be up to 63, so `1 << 64` would wrap).
+  const dmask = (1n << BigInt(s + 1)) - 1n;
   const welem = dmask;
   let elem = welem;
   // Rotate right within element
@@ -234,17 +237,17 @@ function decodeBitfield(insn: number): DisasmResult {
       // LSR alias: UBFM Rd, Rn, #r, #(size-1)
       return { mnemonic: 'lsr', operands: `${reg}${rd}, ${reg}${rn}, #${immr}` };
     }
-    if (imms + 1 === immr) {
-      // UBFX alias: UBFM Rd, Rn, #r, #(s)
-      return {
-        mnemonic: 'ubfx',
-        operands: `${reg}${rd}, ${reg}${rn}, #${immr}, #${imms - immr + 1}`,
-      };
-    }
     if (immr === 0) {
       // UXTB/UXTH alias
       if (imms === 7) return { mnemonic: 'uxtb', operands: `${reg}${rd}, ${reg}${rn}` };
       if (imms === 15) return { mnemonic: 'uxth', operands: `${reg}${rd}, ${reg}${rn}` };
+    }
+    // UBFX is `UBFM Rd, Rn, #lsb, #(lsb + width - 1)`, i.e. imms >= immr.
+    if (imms >= immr) {
+      return {
+        mnemonic: 'ubfx',
+        operands: `${reg}${rd}, ${reg}${rn}, #${immr}, #${imms - immr + 1}`,
+      };
     }
     return { mnemonic: 'ubfm', operands: `${reg}${rd}, ${reg}${rn}, #${immr}, #${imms}` };
   }
@@ -287,7 +290,7 @@ function decodeBranch(insn: number, pc: bigint): DisasmResult {
 function decodeBranchCond(insn: number, pc: bigint): DisasmResult {
   const cond = insn & 0xf;
   const imm19 = (insn >> 5) & 0x7ffff;
-  const offset = (BigInt(imm19) << 45n) >> 43n; // sign-extend 19 bits, shift left 2
+  const offset = BigInt.asIntN(64, BigInt(imm19) << 45n) >> 43n; // sign-extend 19 bits, ×4
   const target = pc + offset;
 
   const conds = [
@@ -319,7 +322,7 @@ function decodeCBZ(insn: number, pc: bigint): DisasmResult {
   const op = (insn >> 24) & 1;
   const imm19 = (insn >> 5) & 0x7ffff;
   const rt = insn & 0x1f;
-  const offset = (BigInt(imm19) << 45n) >> 43n;
+  const offset = BigInt.asIntN(64, BigInt(imm19) << 45n) >> 43n;
   const target = pc + offset;
 
   const reg = sf ? 'x' : 'w';
@@ -336,7 +339,7 @@ function decodeTBZ(insn: number, pc: bigint): DisasmResult {
   const bitPos = (b5 << 5) | b40;
   const rt = insn & 0x1f;
   const imm14 = (insn >>> 5) & 0x3fff;
-  const offset = (BigInt(imm14) << 48n) >> 46n;
+  const offset = BigInt.asIntN(64, BigInt(imm14) << 48n) >> 46n;
   const target = pc + offset;
   return {
     mnemonic: op ? 'tbnz' : 'tbz',
@@ -428,7 +431,8 @@ function decodeLoadStorePair(insn: number): DisasmResult {
 
   if (v) return { mnemonic: 'ldp/stp', operands: '<simd>' };
 
-  const scale = 2 + opc;
+  // opc selects the access size: 00/01 → 4-byte scale 2 (01 is LDPSW), 10 → 8-byte scale 3.
+  const scale = opc === 2 ? 3 : 2;
   const offset = ((imm7 << (32 - 7)) >> (32 - 7)) << scale;
   const reg = opc === 2 ? 'x' : 'w';
 
@@ -561,8 +565,8 @@ function decodeMSR(insn: number): DisasmResult {
 
 // ─── FP / SIMD (basic scalar) ──────────────────────────────────────
 function decodeFpSimdScalar(insn: number): DisasmResult | null {
-  // FP data processing (1-source): 0x5e200000 pattern
-  if ((insn & 0x5f200000) === 0x5e200000) {
+  // FP data processing (1-source): scalar 0x1e200000 / vector 0x0e200000
+  if ((insn & 0x1f200000) === 0x0e200000 || (insn & 0x1f200000) === 0x1e200000) {
     const ftype = (insn >> 22) & 0x3;
     const opcode = (insn >> 12) & 0x1f;
     const rn = (insn >> 5) & 0x1f;
