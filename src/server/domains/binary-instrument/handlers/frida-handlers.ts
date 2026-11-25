@@ -3,7 +3,7 @@
  * enumerateModules, enumerateFunctions, findSymbols.
  */
 
-import { FridaSession, type FridaDevice } from '@modules/binary-instrument';
+import { FridaSession, diagnoseFridaError, type FridaDevice } from '@modules/binary-instrument';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
 import { getReverseEngineeringConfig } from '@utils/reverseEngineeringConfig';
 import type { BinaryInstrumentState } from './shared';
@@ -135,6 +135,8 @@ export class FridaHandlers {
     try {
       sessionId = await frida.attach(target, device, probeTimeoutMs);
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      const diagnosis = diagnoseFridaError(reason);
       return jsonResponse({
         success: false,
         available: true,
@@ -142,7 +144,8 @@ export class FridaHandlers {
         fix: 'Run the server elevated or choose a target process that allows Frida injection.',
         target,
         device,
-        reason: error instanceof Error ? error.message : String(error),
+        reason,
+        ...(diagnosis ? { diagnosis } : {}),
         sessions: frida.listSessions(),
       });
     }
@@ -198,6 +201,8 @@ export class FridaHandlers {
     try {
       sessionId = await frida.spawn(target, device, probeTimeoutMs);
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      const diagnosis = diagnoseFridaError(reason);
       return jsonResponse({
         success: false,
         available: true,
@@ -205,7 +210,8 @@ export class FridaHandlers {
         fix: 'Confirm the package or executable exists and that Frida has spawn privileges.',
         target,
         device,
-        reason: error instanceof Error ? error.message : String(error),
+        reason,
+        ...(diagnosis ? { diagnosis } : {}),
         sessions: frida.listSessions(),
       });
     }
@@ -403,6 +409,191 @@ export class FridaHandlers {
     });
   }
 
+  /** Resolve a debug target from address / symbol(+module) / moduleName+offset. */
+  private resolveDebugTarget(
+    args: Record<string, unknown>,
+  ): { code: string; label: string } | { error: string } {
+    const address = readOptionalString(args, 'address');
+    if (address) return { code: `ptr(${JSON.stringify(address)})`, label: address };
+    const symbol = readOptionalString(args, 'symbol');
+    const moduleName = readOptionalString(args, 'moduleName');
+    if (symbol) {
+      const moduleExpr = moduleName ? JSON.stringify(moduleName) : 'null';
+      return {
+        code: `Module.findExportByName(${moduleExpr}, ${JSON.stringify(symbol)})`,
+        label: `${moduleName ?? '<global>'}!${symbol}`,
+      };
+    }
+    const offset = readOptionalNumber(args, 'offset');
+    if (moduleName && offset !== undefined) {
+      const value = Math.trunc(offset);
+      return {
+        code: `Process.getModuleByName(${JSON.stringify(moduleName)}).base.add(${value})`,
+        label: `${moduleName}+0x${value.toString(16)}`,
+      };
+    }
+    return { error: 'Provide address, symbol, or moduleName+offset' };
+  }
+
+  private async runFridaDebugScript(
+    args: Record<string, unknown>,
+    capability: string,
+    script: string,
+  ): Promise<unknown> {
+    const sessionId = readRequiredString(args, 'sessionId');
+    const frida = this.getFridaSession();
+    const availability = await frida.getAvailability();
+    if (!availability.available) {
+      return jsonResponse({
+        success: false,
+        available: false,
+        capability: 'frida_cli',
+        fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
+        sessionId,
+        reason: availability.reason ?? 'Frida CLI is not available',
+      });
+    }
+    if (!frida.useSession(sessionId)) {
+      return jsonResponse({
+        success: false,
+        available: false,
+        capability: 'frida_session',
+        fix: 'Call frida_attach first and reuse the returned sessionId.',
+        sessionId,
+        reason: `Unknown Frida session: ${sessionId}`,
+      });
+    }
+    const requested = readOptionalNumber(args, 'keepAliveMs');
+    const keepAliveMs =
+      requested === undefined
+        ? 12_000
+        : Math.max(FRIDA_KEEP_ALIVE_MIN_MS, Math.min(requested, FRIDA_KEEP_ALIVE_MAX_MS));
+    const execution = await frida.executeScript(script, {
+      keepAlive: true,
+      timeoutMs: keepAliveMs,
+    });
+    if (execution.error) {
+      return jsonResponse({
+        success: false,
+        available: true,
+        capability,
+        sessionId,
+        keepAliveMs,
+        reason: execution.error,
+        execution,
+        ...(execution.timedOut && !execution.output
+          ? {
+              note: 'No output before the keepAlive window ended; UC/SecurityGuard cold attach can exceed 5s. Retry with keepAliveMs 12000-20000 or after a cold start.',
+            }
+          : {}),
+      });
+    }
+    return jsonResponse({
+      success: true,
+      available: true,
+      capability,
+      sessionId,
+      keepAliveMs,
+      execution,
+    });
+  }
+
+  async handleFridaBreakpointAddress(args: Record<string, unknown>): Promise<unknown> {
+    const target = this.resolveDebugTarget(args);
+    if ('error' in target) return jsonResponse({ success: false, error: target.error });
+    const argCount = Math.max(
+      0,
+      Math.min(Math.trunc(readOptionalNumber(args, 'argCount') ?? 8), 16),
+    );
+    const captureRegisters = readOptionalBoolean(args, 'captureRegisters') !== false;
+    const captureBacktrace = readOptionalBoolean(args, 'captureBacktrace') !== false;
+    const script = `(function(){
+  var target = null;
+  try { target = ${target.code}; } catch (e) { console.log('JSHOOK ' + JSON.stringify({ev:'error', error:'' + e, label:${JSON.stringify(target.label)}})); return; }
+  if (!target) { console.log('JSHOOK ' + JSON.stringify({ev:'error', error:'target_not_found', label:${JSON.stringify(target.label)}})); return; }
+  var mod = null;
+  try { if (typeof Process.findModuleByAddress === 'function') mod = Process.findModuleByAddress(target); } catch (e) {}
+  console.log('JSHOOK ' + JSON.stringify({ev:'installed', label:${JSON.stringify(target.label)}, target:target.toString(), module:mod?mod.name:null}));
+  Interceptor.attach(target, { onEnter: function (args) {
+    var rec = {ev:'hit', label:${JSON.stringify(target.label)}, target:target.toString()};
+    try { rec.args = []; for (var i=0;i<${argCount};i++) rec.args.push(args[i].toString()); } catch (e) {}
+    try { if (${captureRegisters}) { var c=this.context; rec.regs={pc:c.pc.toString(),sp:c.sp.toString(),lr:c.lr.toString()}; for (var r=0;r<8;r++) rec.regs['x'+r]=c['x'+r].toString(); } } catch (e) {}
+    try { if (${captureBacktrace}) { rec.backtrace = Thread.backtrace(this.context, Backtracer.ACCURATE).map(function (a) { var s=DebugSymbol.fromAddress(a); return { addr:a.toString(), name:s.name||null, module:s.moduleName||null }; }); } } catch (e) {}
+    console.log('JSHOOK ' + JSON.stringify(rec));
+  }});
+})();`;
+    return this.runFridaDebugScript(args, 'frida_breakpoint_address', script);
+  }
+
+  async handleFridaBacktrace(args: Record<string, unknown>): Promise<unknown> {
+    const target = this.resolveDebugTarget(args);
+    if ('error' in target) return jsonResponse({ success: false, error: target.error });
+    const maxFrames = Math.max(
+      1,
+      Math.min(Math.trunc(readOptionalNumber(args, 'maxFrames') ?? 32), 128),
+    );
+    const script = `(function(){
+  var target = null;
+  try { target = ${target.code}; } catch (e) { console.log('JSHOOK ' + JSON.stringify({ev:'error', error:'' + e, label:${JSON.stringify(target.label)}})); return; }
+  if (!target) { console.log('JSHOOK ' + JSON.stringify({ev:'error', error:'target_not_found', label:${JSON.stringify(target.label)}})); return; }
+  console.log('JSHOOK ' + JSON.stringify({ev:'installed', label:${JSON.stringify(target.label)}, target:target.toString()}));
+  Interceptor.attach(target, { onEnter: function () {
+    var rec = {ev:'backtrace', label:${JSON.stringify(target.label)}, target:target.toString()};
+    try {
+      rec.frames = Thread.backtrace(this.context, Backtracer.ACCURATE).slice(0, ${maxFrames}).map(function (a) {
+        var s = DebugSymbol.fromAddress(a);
+        return { addr:a.toString(), name:s.name||null, module:s.moduleName||null };
+      });
+    } catch (e) { rec.error = '' + e; }
+    console.log('JSHOOK ' + JSON.stringify(rec));
+  }});
+})();`;
+    return this.runFridaDebugScript(args, 'frida_backtrace', script);
+  }
+
+  async handleFridaStalkerTrace(args: Record<string, unknown>): Promise<unknown> {
+    const target = this.resolveDebugTarget(args);
+    if ('error' in target) return jsonResponse({ success: false, error: target.error });
+    const maxEvents = Math.max(
+      1,
+      Math.min(Math.trunc(readOptionalNumber(args, 'maxEvents') ?? 2_000), 20_000),
+    );
+    const script = `(function(){
+  var target = null;
+  try { target = ${target.code}; } catch (e) { console.log('JSHOOK ' + JSON.stringify({ev:'error', error:'' + e, label:${JSON.stringify(target.label)}})); return; }
+  if (!target) { console.log('JSHOOK ' + JSON.stringify({ev:'error', error:'target_not_found', label:${JSON.stringify(target.label)}})); return; }
+  var followed = false, count = 0;
+  console.log('JSHOOK ' + JSON.stringify({ev:'installed', label:${JSON.stringify(target.label)}, target:target.toString()}));
+  Interceptor.attach(target, {
+    onEnter: function () {
+      if (followed) return;
+      followed = true;
+      var tid = Process.getCurrentThreadId();
+      console.log('JSHOOK ' + JSON.stringify({ev:'stalker_start', tid:tid, target:target.toString()}));
+      Stalker.follow(tid, {
+        events: { call:true, ret:true, exec:true, block:true },
+        onReceive: function (events) {
+          try {
+            var parsed = Stalker.parse(events, { annotate:true, stringify:true });
+            if (parsed.length) {
+              console.log('JSHOOK ' + JSON.stringify({ev:'stalker_events', tid:tid, events:parsed.slice(0, 200)}));
+              count += parsed.length;
+            }
+            if (count >= ${maxEvents}) {
+              Stalker.unfollow(tid); Stalker.flush();
+              console.log('JSHOOK ' + JSON.stringify({ev:'stalker_stop', tid:tid, count:count}));
+            }
+          } catch (e) { console.log('JSHOOK ' + JSON.stringify({ev:'stalker_err', error:'' + e})); }
+        }
+      });
+    },
+    onLeave: function () {
+      try { if (followed) { Stalker.unfollow(Process.getCurrentThreadId()); Stalker.flush(); } } catch (e) {}
+    }
+  });
+})();`;
+    return this.runFridaDebugScript(args, 'frida_stalker_trace', script);
+  }
   async handleFridaResume(args: Record<string, unknown>): Promise<unknown> {
     const sessionId = readRequiredString(args, 'sessionId');
     const frida = this.getFridaSession();
@@ -541,6 +732,8 @@ export class FridaHandlers {
    * reported as available with the underlying reason.
    */
   private listingFailure(error: unknown, capability: string): unknown {
+    const reason = error instanceof Error ? error.message : String(error);
+    const diagnosis = error instanceof PrerequisiteError ? null : diagnoseFridaError(reason);
     return jsonResponse({
       success: false,
       available: !(error instanceof PrerequisiteError),
@@ -548,7 +741,8 @@ export class FridaHandlers {
       ...(error instanceof PrerequisiteError
         ? { fix: 'Install frida-tools (pip install frida-tools) and ensure the CLI is on PATH.' }
         : {}),
-      reason: error instanceof Error ? error.message : String(error),
+      reason,
+      ...(diagnosis ? { diagnosis } : {}),
     });
   }
 
@@ -588,6 +782,26 @@ export class FridaHandlers {
     const address = readOptionalString(args, 'address');
     const sessionId = readOptionalString(args, 'sessionId');
     const install = readOptionalBoolean(args, 'install') ?? false;
+    const requestedKeepAliveMs = readOptionalNumber(args, 'keepAliveMs');
+    const keepAliveMs =
+      requestedKeepAliveMs === undefined
+        ? undefined
+        : Math.max(
+            FRIDA_KEEP_ALIVE_MIN_MS,
+            Math.min(requestedKeepAliveMs, FRIDA_KEEP_ALIVE_MAX_MS),
+          );
+    const keepAliveNotes: string[] = [];
+    if (install) {
+      if (requestedKeepAliveMs === undefined) {
+        keepAliveNotes.push(
+          'No keepAliveMs: the frida CLI exits right after load, so intercepted calls are not captured. Pass keepAliveMs (1000-25000) to keep the hook armed and return console output.',
+        );
+      } else if (keepAliveMs !== requestedKeepAliveMs) {
+        keepAliveNotes.push(
+          `keepAliveMs clamped from ${requestedKeepAliveMs} to ${keepAliveMs}ms — the frida CLI enforces a ~30s script load timeout.`,
+        );
+      }
+    }
     const argSpec = this.readInterceptorArgSpec(args);
     const script = this.buildInterceptorScript({
       moduleName,
@@ -644,7 +858,10 @@ export class FridaHandlers {
       });
     }
 
-    const execution = await frida.executeScript(script);
+    const execution = await frida.executeScript(
+      script,
+      keepAliveMs !== undefined ? { keepAlive: true, timeoutMs: keepAliveMs } : {},
+    );
     if (execution.error) {
       return jsonResponse({
         success: false,
@@ -656,6 +873,8 @@ export class FridaHandlers {
         reason: execution.error,
         execution,
         script,
+        ...(keepAliveMs !== undefined ? { keepAliveMs } : {}),
+        ...(keepAliveNotes.length > 0 ? { notes: keepAliveNotes } : {}),
       });
     }
 
@@ -668,6 +887,8 @@ export class FridaHandlers {
       symbol,
       execution,
       script,
+      ...(keepAliveMs !== undefined ? { keepAliveMs } : {}),
+      ...(keepAliveNotes.length > 0 ? { notes: keepAliveNotes } : {}),
     });
   }
 

@@ -19,7 +19,65 @@ import {
   jsonResponse,
 } from './shared';
 
-export class FridaHandlers {
+/**
+ * Resolve a package/process name to a pid via `frida-ps -j` on the same device.
+ * frida-dexdump's `-n <name>` path spawns and fails on already-running Android
+ * apps ("Failed to spawn: unable to find process"); `-p <pid>` attaches and
+ * works. Resolving first keeps the name-based API usable.
+ */
+function resolvePidByName(device: FridaDevice, name: string): Promise<number | undefined> {
+  return new Promise((resolve) => {
+    execFile(
+      'frida-ps',
+      [...fridaDeviceArgs(device), '-j'],
+      { encoding: 'utf8', windowsHide: true, timeout: 10_000, maxBuffer: 8 * 1024 * 1024 },
+      (error, stdout) => {
+        if (error) {
+          resolve(undefined);
+          return;
+        }
+        try {
+          const list = JSON.parse(stdout) as Array<{
+            pid?: number;
+            name?: string;
+            identifier?: string;
+          }>;
+          const hit = list.find((p) => p.name === name || p.identifier === name);
+          resolve(typeof hit?.pid === 'number' ? hit.pid : undefined);
+        } catch {
+          resolve(undefined);
+        }
+      },
+    );
+  });
+}
+
+/**
+ * adb fallback for name → pid. frida-ps does not always list an Android app's
+ * main process (it can expose only `pkg:subprocess` entries), while `pidof`
+ * still resolves the main pid. Only used for USB devices with a plain
+ * package/process name so nothing is shell-injected.
+ */
+function resolvePidViaAdb(name: string): Promise<number | undefined> {
+  if (!/^[A-Za-z0-9._:-]+$/.test(name)) return Promise.resolve(undefined);
+  return new Promise((resolve) => {
+    execFile(
+      'adb',
+      ['shell', `pidof ${name}`],
+      { encoding: 'utf8', windowsHide: true, timeout: 5_000, maxBuffer: 1024 * 1024 },
+      (error, stdout) => {
+        if (error) {
+          resolve(undefined);
+          return;
+        }
+        const match = /\b(\d+)\b/.exec(stdout);
+        resolve(match ? Number(match[1]) : undefined);
+      },
+    );
+  });
+}
+
+export class FridaDexDumpHandlers {
   async handleFridaDexDump(args: Record<string, unknown>): Promise<unknown> {
     const outputDir = await resolveSafeOutputPath(readRequiredString(args, 'outputDir'), {
       allowedRoots: getSafeOutputRoots(),
@@ -52,7 +110,11 @@ export class FridaHandlers {
     const device: FridaDevice = resolvedDevice ?? (usb ? { type: 'usb' } : { type: 'local' });
 
     const dexArgs: string[] = [...fridaDeviceArgs(device)];
-    if (pid) dexArgs.push('-p', String(pid));
+    let resolvedPid = pid ?? (target ? await resolvePidByName(device, target) : undefined);
+    if (!resolvedPid && target && device.type === 'usb') {
+      resolvedPid = await resolvePidViaAdb(target);
+    }
+    if (resolvedPid) dexArgs.push('-p', String(resolvedPid));
     else if (target) dexArgs.push('-n', target);
     dexArgs.push('-o', outputDir);
 
@@ -97,7 +159,8 @@ export class FridaHandlers {
       available: true,
       success,
       target,
-      pid,
+      pid: resolvedPid ?? pid,
+      ...(resolvedPid && !pid && target ? { resolvedFromName: target } : {}),
       device,
       outputDir,
       dumpedFiles,

@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": ["scripts/**/*.{mjs,cjs,js,ts,mts}", "vitest.*.config.mts", "vitest.config.ts"],
+  "ignoreBinaries": ["adb", "frida-ps"],
   "ignoreUnresolvedImports": [
     "./worker",
     "**/unidbg-worker.mjs",
