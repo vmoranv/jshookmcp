@@ -49,3 +49,39 @@ describe('StreamingCollector bug fixes', () => {
     expect(chunks[chunks.length - 1]?.truncated).toBeUndefined();
   });
 });
+
+describe('StreamingCollector chunk boundary correctness', () => {
+  it('never splits a surrogate pair and keeps offsets contiguous', async () => {
+    const collector = new StreamingCollector();
+    const content = `${'a'.repeat(9)}\u{1f600}${'b'.repeat(10)}`;
+    const file = { url: 'emoji.js', content, size: content.length, type: 'external' as const };
+
+    const chunks: StreamChunk[] = [];
+    for await (const chunk of collector.streamFile(file, { chunkSize: 10, maxChunks: 100 })) {
+      chunks.push(chunk);
+    }
+
+    // The boundary is extended so the pair stays whole; offsets follow it.
+    expect(chunks.map((chunk) => chunk.metadata?.offset)).toEqual([0, 11]);
+    expect(chunks.every((chunk) => !chunk.content.includes('\uFFFD'))).toBe(true);
+
+    const restored = await collector.collectStream(
+      (async function* () {
+        yield* chunks;
+      })(),
+    );
+    expect(restored.get('emoji.js')).toBe(content);
+  });
+
+  it('does not hang or drop content for a negative chunk size', async () => {
+    const collector = new StreamingCollector();
+    const file = { url: 'small.js', content: 'abcdef', size: 6, type: 'external' as const };
+
+    const chunks: StreamChunk[] = [];
+    for await (const chunk of collector.streamFile(file, { chunkSize: -4, maxChunks: -1 })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks.map((chunk) => chunk.content).join('')).toBe('abcdef');
+  });
+});

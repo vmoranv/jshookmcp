@@ -121,6 +121,12 @@ export class UnifiedBrowserManager implements IBrowserManager {
   private chromeLaunchPromise?: Promise<PuppeteerBrowser>;
   private camoufoxLaunchPromise?: Promise<CamoufoxBrowserLike>;
   private isClosing = false;
+  /**
+   * Incremented by every close(). close() resets `isClosing` when it finishes,
+   * so an attach that completes after a full close cycle must compare epochs
+   * rather than only reading the flag.
+   */
+  private shutdownEpoch = 0;
   private chromeIsAttached = false;
 
   constructor(config: UnifiedBrowserConfig = {}) {
@@ -270,6 +276,11 @@ export class UnifiedBrowserManager implements IBrowserManager {
   }
 
   private async connectChrome(wsEndpoint: string): Promise<PuppeteerBrowser> {
+    if (this.isClosing) {
+      throw new Error('Cannot connect browser while closing');
+    }
+    const epochAtStart = this.shutdownEpoch;
+
     logger.info(`Connecting to Chrome browser: ${wsEndpoint}`);
 
     const puppeteer = await import('rebrowser-puppeteer-core');
@@ -278,21 +289,63 @@ export class UnifiedBrowserManager implements IBrowserManager {
       defaultViewport: null,
     });
 
+    // close() can run to completion while connect() awaits: release the new
+    // connection instead of attaching a browser the manager will never close.
+    if (this.isClosing || this.shutdownEpoch !== epochAtStart) {
+      await browser.disconnect().catch(() => undefined);
+      throw new Error('Browser connect aborted because close was requested');
+    }
+
+    const previousManager = this.chromeManager;
+    const previousWasAttached = this.chromeIsAttached;
+
     // Create a minimal manager wrapper for the connected browser
     this.chromeManager = new BrowserModeManager({}, {});
     // Access internal browser reference
     Reflect.set(this.chromeManager as object, 'browser', browser);
     this.chromeIsAttached = true;
 
+    // Replacing an existing manager without releasing it leaks a launched Chrome
+    // (never closed) or leaves an attached connection dangling.
+    if (previousManager && previousManager !== this.chromeManager) {
+      if (previousWasAttached) {
+        await previousManager
+          .getBrowser()
+          ?.disconnect()
+          .catch((error) => logger.warn('Failed to disconnect previous Chrome browser:', error));
+      } else {
+        await previousManager
+          .close()
+          .catch((error) => logger.warn('Failed to close previous Chrome browser:', error));
+      }
+    }
+
     logger.info('Connected to Chrome browser successfully');
     return browser;
   }
 
   private async connectCamoufox(wsEndpoint: string): Promise<CamoufoxBrowserLike> {
+    if (this.isClosing) {
+      throw new Error('Cannot connect browser while closing');
+    }
+    const epochAtStart = this.shutdownEpoch;
+
     logger.info(`Connecting to Camoufox browser: ${wsEndpoint}`);
 
+    const previousManager = this.camoufoxManager;
     this.camoufoxManager = new CamoufoxBrowserManager({});
     const browser = await this.camoufoxManager.connectToServer(wsEndpoint);
+
+    if (this.isClosing || this.shutdownEpoch !== epochAtStart) {
+      await this.camoufoxManager.close().catch(() => undefined);
+      throw new Error('Browser connect aborted because close was requested');
+    }
+
+    if (previousManager && previousManager !== this.camoufoxManager) {
+      await previousManager
+        .close()
+        .catch((error) => logger.warn('Failed to close previous Camoufox browser:', error));
+    }
 
     logger.info('Connected to Camoufox browser successfully');
     return browser;
@@ -336,6 +389,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   async close(): Promise<void> {
     // Set closing flag to prevent new launches
     this.isClosing = true;
+    this.shutdownEpoch += 1;
 
     try {
       // Wait for any in-flight launches to settle first — a launch that

@@ -74,6 +74,12 @@ interface PoolEntry {
   lastAccess: number;
   /** Whether this entry is currently in use */
   inUse: boolean;
+  /**
+   * Number of outstanding acquire() calls on this entry. Concurrent acquires of
+   * the same profile share one manager, so the entry is only idle (and eligible
+   * for the idle timer) once every holder has released it.
+   */
+  acquireCount: number;
   /** Idle timeout handle */
   idleTimer?: NodeJS.Timeout;
   /** Whether the browser is disposed */
@@ -152,6 +158,15 @@ export class BrowserPool {
       throw new Error('BrowserPool has been disposed');
     }
 
+    const manager = await this.acquireInner(profile);
+    const entry = this.findEntryByInstance(manager);
+    if (entry) {
+      entry.acquireCount += 1;
+    }
+    return manager;
+  }
+
+  private async acquireInner(profile: BrowserProfile): Promise<UnifiedBrowserManager> {
     const existing = this.entries.get(profile.name);
     if (existing && !existing.disposed) {
       logger.debug(`[BrowserPool] Reusing browser for profile "${profile.name}"`);
@@ -185,6 +200,15 @@ export class BrowserPool {
 
       logger.info(`[BrowserPool] Creating new browser for profile "${profile.name}"`);
 
+      if ((profile.config?.driver ?? 'chrome') === 'camoufox') {
+        // Camoufox pages are not Puppeteer pages: createTab()/disposeEntry()
+        // rely on on()/isClosed()/close(), which CamoufoxPageLike lacks.
+        throw new Error(
+          `BrowserPool does not support the "camoufox" driver (profile "${profile.name}"); ` +
+            'use the Chrome driver for pooled tabs.',
+        );
+      }
+
       const config: UnifiedBrowserConfig = {
         // Preserve profile-specific settings
         driver: profile.config?.driver ?? 'chrome',
@@ -199,6 +223,19 @@ export class BrowserPool {
 
       const manager = new UnifiedBrowserManager(config);
       await manager.launch();
+
+      // dispose() may have started while this launch was in flight. Storing the
+      // entry now would hand back a manager that nobody ever closes (leaked
+      // browser process), so tear it down instead.
+      if (this.isDisposed) {
+        await manager.close().catch((error) => {
+          logger.warn(
+            `[BrowserPool] Failed to clean up launch that completed after dispose for ` +
+              `profile "${profile.name}": ${error instanceof Error ? error.message : String(error)}`,
+          );
+        });
+        throw new Error('BrowserPool has been disposed');
+      }
 
       const browser = manager.getBrowser() as PuppeteerBrowser | null;
       if (!browser) {
@@ -222,6 +259,7 @@ export class BrowserPool {
         pages: [],
         lastAccess: Date.now(),
         inUse: true,
+        acquireCount: 0,
         disposed: false,
         profileConfig: profile,
       };
@@ -257,13 +295,24 @@ export class BrowserPool {
       return;
     }
 
-    if (!entry.inUse) {
+    if (!entry.inUse && entry.acquireCount === 0) {
       logger.warn(`[BrowserPool] Profile "${entry.profile}" was not in use`);
       return;
     }
 
-    entry.inUse = false;
+    if (entry.acquireCount > 0) {
+      entry.acquireCount -= 1;
+    }
     entry.lastAccess = Date.now();
+
+    // Still held by another concurrent acquire() — keep it in use so the idle
+    // timer cannot dispose a live session under the remaining holder.
+    if (entry.acquireCount > 0) {
+      logger.debug(`[BrowserPool] Released browser for profile "${entry.profile}" (still in use)`);
+      return;
+    }
+
+    entry.inUse = false;
     this.startIdleTimer(entry);
 
     logger.debug(`[BrowserPool] Released browser for profile "${entry.profile}"`);
@@ -412,6 +461,12 @@ export class BrowserPool {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = undefined;
+    }
+
+    // Let in-flight launches observe isDisposed (they close their own manager)
+    // before the entry table is cleared.
+    if (this.pendingAcquires.size > 0) {
+      await Promise.allSettled(this.pendingAcquires.values());
     }
 
     const closePromises: Promise<void>[] = [];

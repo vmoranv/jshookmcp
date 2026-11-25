@@ -128,6 +128,13 @@ export class TabRegistry<PageLike = unknown> {
     }
     for (const pageId of toDelete) {
       this.tabsById.delete(pageId);
+      // Pruned pageIds never come back (pageIdByHandle keeps the mapping), so
+      // their alias bindings would otherwise report `stale` forever.
+      for (const [alias, boundPageId] of this.aliasToPageId) {
+        if (boundPageId === pageId) {
+          this.aliasToPageId.delete(alias);
+        }
+      }
       logger.debug(`[TabRegistry] Page ${pageId} pruned (was already stale)`);
     }
 

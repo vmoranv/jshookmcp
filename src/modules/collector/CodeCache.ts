@@ -109,9 +109,17 @@ export class CodeCache {
         summaries: entry.summaries,
       };
     } catch (err) {
-      logger.warn(
-        `Cache read failed for ${url}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      // A cache miss is expected; only real read/parse failures are worth a log.
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        logger.warn(
+          `Cache read failed for ${url}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        if (err instanceof SyntaxError) {
+          // A truncated/partial JSON file would fail JSON.parse forever; drop it
+          // so the next set() can repopulate the entry.
+          await fs.unlink(this.getCachePath(key)).catch(() => undefined);
+        }
+      }
       return null;
     }
   }
@@ -152,7 +160,17 @@ export class CodeCache {
       // thread only once, and indentation roughly doubles the payload size
       // with no reader benefit (b1-04). Worker-izing the stringify is tracked
       // separately.
-      await fs.writeFile(cachePath, JSON.stringify(entry), 'utf-8');
+      const payload = JSON.stringify(entry);
+      // Write-then-rename: a crash or a concurrent get() must never observe a
+      // partially written (unparseable) cache file.
+      const tmpPath = `${cachePath}.${process.pid}.${Date.now()}.tmp`;
+      try {
+        await fs.writeFile(tmpPath, payload, 'utf-8');
+        await fs.rename(tmpPath, cachePath);
+      } catch (writeError) {
+        await fs.unlink(tmpPath).catch(() => undefined);
+        throw writeError;
+      }
       logger.debug(`Cache saved: ${url} (${(result.totalSize / 1024).toFixed(2)} KB)`);
     } catch (error) {
       logger.error('Failed to save cache:', error);
@@ -172,7 +190,18 @@ export class CodeCache {
       const entries: Array<{ file: string; mtime: Date; size: number }> = [];
 
       for (const file of files) {
-        if (!file.endsWith('.json')) continue;
+        if (!file.endsWith('.json')) {
+          // Sweep temp files left behind by a crash during an atomic write,
+          // but leave ones young enough to belong to an in-flight set().
+          if (file.endsWith('.tmp')) {
+            const tmpPath = path.join(this.cacheDir, file);
+            const stats = await fs.stat(tmpPath).catch(() => null);
+            if (stats && Date.now() - stats.mtime.getTime() > 60_000) {
+              await fs.unlink(tmpPath).catch(() => undefined);
+            }
+          }
+          continue;
+        }
 
         const filePath = path.join(this.cacheDir, file);
         const stats = await fs.stat(filePath);
@@ -209,7 +238,7 @@ export class CodeCache {
       const files = await fs.readdir(this.cacheDir);
 
       for (const file of files) {
-        if (file.endsWith('.json')) {
+        if (file.endsWith('.json') || file.endsWith('.tmp')) {
           await fs.unlink(path.join(this.cacheDir, file));
         }
       }

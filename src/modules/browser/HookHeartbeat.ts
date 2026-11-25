@@ -126,19 +126,24 @@ export class HookHeartbeat {
     );
 
     for (const [id, script] of this.scripts) {
+      // The timeout timer must be cleared when evaluate() wins, otherwise one
+      // dangling timer per script survives every navigation.
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
       try {
         await Promise.race([
           this.page.evaluate(script.source),
-          new Promise<never>((_, reject) =>
-            setTimeout(
+          new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(
               () => reject(new Error('HookHeartbeat: page.evaluate timed out after 10s')),
               10000,
-            ),
-          ),
+            );
+          }),
         ]);
       } catch (error) {
         logger.warn(`[HookHeartbeat] Failed to re-inject script "${id}":`, error);
         // Don't stop — try remaining scripts
+      } finally {
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
       }
     }
   }

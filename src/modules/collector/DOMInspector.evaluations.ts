@@ -153,10 +153,23 @@ export function findClickableInPage(filterText: string | undefined): {
   const normalizedFilter = filterText?.toLowerCase();
   const results: DOMInspectorClickableElement[] = [];
   const seen = new Set<Element>();
-  // eslint-disable-next-line no-shadow, unicorn/consistent-function-scoping
-  const isVisible = (el: Element): boolean => {
+  const isVisibleInPage = (el: Element): boolean => {
+    void normalizedFilter;
     const style = window.getComputedStyle(el);
     return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  };
+  // `element.className` is an SVGAnimatedString on SVG nodes and ids/classes are
+  // not necessarily valid CSS identifiers without escaping.
+  const escapeIdentInPage = (value: string): string => {
+    void normalizedFilter;
+    return typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+      ? CSS.escape(value)
+      : value.replace(/[^a-zA-Z0-9_-]/g, (ch) => '\\' + ch);
+  };
+  const firstClassOfInPage = (el: Element): string => {
+    void normalizedFilter;
+    const classAttr = (el.getAttribute('class') || '').trim();
+    return classAttr.split(/\s+/).filter(Boolean)[0] || '';
   };
   const roots: Array<Document | ShadowRoot> = [document];
   const queue: Array<Document | ShadowRoot> = [document];
@@ -185,13 +198,16 @@ export function findClickableInPage(filterText: string | undefined): {
     if (normalizedFilter && !text.toLowerCase().includes(normalizedFilter)) return;
     const rect = element.getBoundingClientRect();
     let selector = fallbackSelector;
-    if (element.id) selector = '#' + element.id;
-    else if (element.className) selector = fallbackSelector + '.' + element.className.split(' ')[0];
+    if (element.id) selector = '#' + escapeIdentInPage(element.id);
+    else {
+      const firstClass = firstClassOfInPage(element);
+      if (firstClass) selector = fallbackSelector + '.' + escapeIdentInPage(firstClass);
+    }
     results.push({
       selector,
       text,
       type,
-      visible: isVisible(element) && rect.width > 0 && rect.height > 0,
+      visible: isVisibleInPage(element) && rect.width > 0 && rect.height > 0,
       boundingBox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
     });
   };
@@ -222,6 +238,17 @@ export function findByTextInPage(
     const style = window.getComputedStyle(el);
     return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
   };
+  const escapeIdentInPage = (value: string): string => {
+    void searchText;
+    return typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+      ? CSS.escape(value)
+      : value.replace(/[^a-zA-Z0-9_-]/g, (ch) => '\\' + ch);
+  };
+  const firstClassOfInPage = (el: Element): string => {
+    void searchText;
+    const classAttr = (el.getAttribute('class') || '').trim();
+    return classAttr.split(/\s+/).filter(Boolean)[0] || '';
+  };
   // tagName flows into the XPath expression: restrict it to a valid HTML tag
   // name so it cannot inject predicates.
   const safeTag = tagName && /^[a-zA-Z][a-zA-Z0-9-]*$/.test(tagName) ? tagName : '*';
@@ -239,10 +266,11 @@ export function findByTextInPage(
     if (!element) continue;
     const rect = element.getBoundingClientRect();
     let selector = element.tagName.toLowerCase();
-    if (element.id) selector = `#${element.id}`;
-    else if (element.className) {
-      const classes = element.className.split(' ').filter(Boolean);
-      if (classes.length > 0) selector = `${element.tagName.toLowerCase()}.${classes[0]}`;
+    if (element.id) selector = `#${escapeIdentInPage(element.id)}`;
+    else {
+      const firstClass = firstClassOfInPage(element);
+      if (firstClass)
+        selector = `${element.tagName.toLowerCase()}.${escapeIdentInPage(firstClass)}`;
     }
     matchedElements.push({
       found: true,
@@ -255,6 +283,8 @@ export function findByTextInPage(
   }
   return matchedElements;
 }
+
+/** Node-side visibility check used by direct (non-injected) evaluation calls. */
 
 /** Node-side visibility check used by direct (non-injected) evaluation calls. */
 function isVisible(element: Element): boolean {
@@ -271,10 +301,13 @@ export function getStructureEvaluation(
   }
   const buildTree = (node: Element, currentDepth: number): DOMInspectorStructureNode | null => {
     if (currentDepth > depth) return null;
+    // `node.className` is an SVGAnimatedString for SVG elements, which would put
+    // a non-string into the serialized result.
+    const classAttr = (node.getAttribute('class') || '').trim();
     const result: DOMInspectorStructureNode = {
       tag: node.tagName,
       id: node.id || undefined,
-      class: node.className || undefined,
+      class: classAttr || undefined,
     };
     if (withText && node.childNodes.length === 1 && node.childNodes[0]?.nodeType === 3) {
       result.text = node.textContent?.trim();
@@ -293,28 +326,31 @@ export function getComputedStyleEvaluation(selector: string): Record<string, str
   if (!element) return null;
   const computed = window.getComputedStyle(element);
   const result: Record<string, string> = {};
-  for (const prop of [
-    'display',
-    'visibility',
-    'opacity',
-    'position',
-    'zIndex',
-    'width',
-    'height',
-    'top',
-    'left',
-    'right',
-    'bottom',
-    'color',
-    'backgroundColor',
-    'fontSize',
-    'fontFamily',
-    'border',
-    'padding',
-    'margin',
-    'overflow',
-  ]) {
-    result[prop] = computed.getPropertyValue(prop);
+  // getPropertyValue() only accepts hyphenated CSS property names — the
+  // camelCase form silently returns ''. Keys stay camelCase for the tool API.
+  const properties: ReadonlyArray<readonly [reportKey: string, cssName: string]> = [
+    ['display', 'display'],
+    ['visibility', 'visibility'],
+    ['opacity', 'opacity'],
+    ['position', 'position'],
+    ['zIndex', 'z-index'],
+    ['width', 'width'],
+    ['height', 'height'],
+    ['top', 'top'],
+    ['left', 'left'],
+    ['right', 'right'],
+    ['bottom', 'bottom'],
+    ['color', 'color'],
+    ['backgroundColor', 'background-color'],
+    ['fontSize', 'font-size'],
+    ['fontFamily', 'font-family'],
+    ['border', 'border'],
+    ['padding', 'padding'],
+    ['margin', 'margin'],
+    ['overflow', 'overflow'],
+  ];
+  for (const [reportKey, cssName] of properties) {
+    result[reportKey] = computed.getPropertyValue(cssName);
   }
   return result;
 }
@@ -364,6 +400,15 @@ function xpathStringLiteral(value: string): string {
   return `concat('${value.replace(/'/g, `', "'", '`)}')`;
 }
 
+/** Escape a CSS identifier/class for use in a selector (node-side helpers). */
+function escapeCssIdentifier(value: string): string {
+  const css = (globalThis as { CSS?: { escape?: (input: string) => string } }).CSS;
+  if (css && typeof css.escape === 'function') {
+    return css.escape(value);
+  }
+  return value.replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
+}
+
 /** Node-side findByText (jsdom/tests): shares the in-page XPath semantics. */
 export function findByTextEvaluation(
   searchText: string,
@@ -386,10 +431,12 @@ export function findByTextEvaluation(
     if (!element) continue;
     const rect = element.getBoundingClientRect();
     let selector = element.tagName.toLowerCase();
-    if (element.id) selector = `#${element.id}`;
-    else if (element.className) {
-      const classes = element.className.split(' ').filter(Boolean);
-      if (classes.length > 0) selector = `${element.tagName.toLowerCase()}.${classes[0]}`;
+    if (element.id) selector = `#${escapeCssIdentifier(element.id)}`;
+    else {
+      const classAttr = (element.getAttribute('class') || '').trim();
+      const firstClass = classAttr.split(/\s+/).filter(Boolean)[0];
+      if (firstClass)
+        selector = `${element.tagName.toLowerCase()}.${escapeCssIdentifier(firstClass)}`;
     }
     matchedElements.push({
       found: true,
@@ -410,7 +457,17 @@ export function getXPathEvaluation(selector: string): string | null {
   let current: Element | null = element;
   while (current && current !== document.body && current !== document.documentElement) {
     if (current.id) {
-      parts.unshift(`//*[@id="${current.id}"]`);
+      // Build the literal quote-safely: an id containing `"` is legal HTML and
+      // would otherwise produce a malformed XPath (or inject a predicate).
+      let idLiteral: string;
+      if (!current.id.includes('"')) {
+        idLiteral = `"${current.id}"`;
+      } else if (!current.id.includes("'")) {
+        idLiteral = `'${current.id}'`;
+      } else {
+        idLiteral = `concat('${current.id.replace(/'/g, `', "'", '`)}')`;
+      }
+      parts.unshift(`//*[@id=${idLiteral}]`);
       return parts.join('');
     }
     let ix = 0;

@@ -850,3 +850,56 @@ describe('CodeCollector collect internals', () => {
     expect(self.collectedUrls.size).toBeLessThanOrEqual(self.MAX_FILES_PER_COLLECT);
   });
 });
+
+describe('CodeCollector collect internals – lifecycle hardening', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    collectorHelpers.collectInlineScripts.mockResolvedValue([]);
+    collectorHelpers.collectServiceWorkers.mockResolvedValue([]);
+    collectorHelpers.collectWebWorkers.mockResolvedValue([]);
+    collectorHelpers.analyzeDependencies.mockImplementation((files: Array<{ url: string }>) => ({
+      nodes: files.map((file) => ({ id: file.url, url: file.url, type: 'external' })),
+      edges: [],
+    }));
+    collectorHelpers.setupWebWorkerTracking.mockResolvedValue(undefined);
+  });
+
+  it('closes the temporary browser context when page creation fails', async () => {
+    const { self, browserContext } = createHarness();
+    self.getActivePage.mockRejectedValueOnce(new Error('no active page'));
+    browserContext.newPage.mockRejectedValueOnce(new Error('newPage failed'));
+
+    await expect(
+      collectInnerImpl(self, {
+        url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
+      }),
+    ).rejects.toThrow('newPage failed');
+
+    expect(browserContext.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores the active page even when closing the collection page fails', async () => {
+    const { self, page } = createHarness();
+    page.close.mockRejectedValueOnce(new Error('close failed'));
+
+    const result = await collectInnerImpl(self, {
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
+    });
+
+    // The close failure must not replace the collection result.
+    expect(result.files.length).toBeGreaterThan(0);
+    expect(self.selectPage).toHaveBeenCalledWith(0);
+  });
+
+  it('drains in-flight CDP response handlers before processing the file list', async () => {
+    const { self } = createHarness({ responseBodyDelayMs: 25 });
+
+    const result = await collectInnerImpl(self, {
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
+    });
+
+    // handleResponseReceived is fire-and-forget; stopCdpCapture must await it,
+    // otherwise the truncated/smart/compression passes see an incomplete list.
+    expect(result.files.some((file) => file.url.includes('app.js'))).toBe(true);
+  });
+});

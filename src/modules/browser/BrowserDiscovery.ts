@@ -16,6 +16,12 @@ export interface BrowserSignature {
   debugPorts: number[];
 }
 
+/** BrowserInfo.pid is required, so ignore rows whose process id is not a real PID. */
+function readPositivePid(value: unknown): number | null {
+  const pid = typeof value === 'number' ? value : Number(value);
+  return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
 export class BrowserDiscovery {
   protected scriptLoader: ScriptLoader;
 
@@ -62,10 +68,17 @@ export class BrowserDiscovery {
     return this.sanitizePsInput(value).replace(/'/g, "''");
   }
 
+  /** Upper bound for a single discovery PowerShell invocation. */
+  private static readonly POWERSHELL_TIMEOUT_MS = 15_000;
+
   /**
    * Run a PowerShell `-Command` and return its stdout. The `powershell.exe`
    * invocation shape (promisified execFile + fixed flags) is shared by all
    * discovery queries; callers keep their own try/catch and output parsing.
+   *
+   * `timeout` bounds a stalled WMI/`Get-NetTCPConnection` query (otherwise the
+   * whole discovery flow blocks forever) and `windowsHide` keeps the packaged
+   * CLI from flashing a console window per spawn.
    */
   private async execPowerShell(command: string, maxBuffer = 10 * 1024 * 1024): Promise<string> {
     const { execFile } = await import('node:child_process');
@@ -73,6 +86,8 @@ export class BrowserDiscovery {
     const execFileAsync = promisify(execFile);
     const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-Command', command], {
       maxBuffer,
+      windowsHide: true,
+      timeout: BrowserDiscovery.POWERSHELL_TIMEOUT_MS,
     });
     return stdout;
   }
@@ -163,7 +178,11 @@ export class BrowserDiscovery {
           '-ClassPattern',
           escapedPattern,
         ],
-        { maxBuffer: 1024 * 1024 * 10 },
+        {
+          maxBuffer: 1024 * 1024 * 10,
+          windowsHide: true,
+          timeout: BrowserDiscovery.POWERSHELL_TIMEOUT_MS,
+        },
       );
 
       return this.parseWindowsResult(stdout, classNamePattern);
@@ -230,9 +249,14 @@ export class BrowserDiscovery {
           }
         }
 
+        const pid = readPositivePid(win.ProcessId);
+        if (pid === null) {
+          continue;
+        }
+
         results.push({
           type,
-          pid: win.ProcessId,
+          pid,
           hwnd: win.Handle,
           title: win.Title,
         });
@@ -270,9 +294,14 @@ export class BrowserDiscovery {
           type = 'firefox';
         }
 
+        const pid = readPositivePid(proc.Id);
+        if (pid === null) {
+          continue;
+        }
+
         results.push({
           type,
-          pid: proc.Id,
+          pid,
           hwnd: proc.MainWindowHandle?.toString(),
           title: proc.MainWindowTitle,
         });

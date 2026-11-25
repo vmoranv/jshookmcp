@@ -26,6 +26,19 @@ function readAttachedSessionId(session: CDPSessionLike): string | null {
   return typeof sessionId === 'string' && sessionId.length > 0 ? sessionId : null;
 }
 
+async function rollbackAttachment(
+  parentSession: FlatSessionParentLike,
+  targetId: string,
+  sessionId: string,
+): Promise<void> {
+  await parentSession.send('Target.detachFromTarget', { sessionId }).catch((error) => {
+    logger.warn(
+      `Failed to roll back CDP attachment for ${targetId} (session ${sessionId}): ` +
+        `${error instanceof Error ? error.message : String(error)}`,
+    );
+  });
+}
+
 export async function attachToFlatTarget(
   parentSession: FlatSessionParentLike,
   targetId: string,
@@ -42,19 +55,15 @@ export async function attachToFlatTarget(
 
   const connection = parentSession.connection?.();
   if (!connection || typeof connection.session !== 'function') {
+    // The attach already succeeded server-side; roll it back so the target is
+    // not left in a half-attached (orphaned) state.
+    await rollbackAttachment(parentSession, targetId, sessionId);
     throw new Error(`CDP connection lookup unavailable for attached target ${targetId}`);
   }
 
   const attachedSession = connection.session(sessionId);
   if (!attachedSession) {
-    // The attach already succeeded server-side; roll it back so the target is
-    // not left in a half-attached (orphaned) state.
-    await parentSession.send('Target.detachFromTarget', { sessionId }).catch((error) => {
-      logger.warn(
-        `Failed to roll back CDP attachment for ${targetId} (session ${sessionId}): ` +
-          `${error instanceof Error ? error.message : String(error)}`,
-      );
-    });
+    await rollbackAttachment(parentSession, targetId, sessionId);
     throw new Error(`CDP attached target session ${sessionId} was not registered for ${targetId}`);
   }
 

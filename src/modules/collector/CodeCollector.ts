@@ -494,6 +494,16 @@ export class CodeCollector {
     if (index < 0 || index >= pages.length) {
       throw new Error(`Page index ${index} out of range (0-${pages.length - 1})`);
     }
+
+    // `pages` is an earlier snapshot than the target list; a tab can close in
+    // between, so validate the fresh target instead of non-null asserting an
+    // undefined entry into resolvePageTargetHandle().
+    const pageTargets = this.getPageTargets();
+    const pageTarget = pageTargets[index];
+    if (!pageTarget) {
+      throw new Error(`Page index ${index} is no longer valid (the tab may have closed)`);
+    }
+
     this.activePageIndex = index;
 
     // Resolve and cache the selected page immediately. This avoids repeated
@@ -501,12 +511,13 @@ export class CodeCollector {
     // Only this one target is resolved — no cascade thanks to listPages()
     // being used in syncTabRegistryWithCollectorPages instead of listResolvedPages().
     try {
-      const pageTargets = this.getPageTargets();
       this.cachedActivePage = await this.resolvePageTargetHandle(
-        pageTargets[index]!,
+        pageTarget,
         8000, // 8s timeout — WebGL tabs typically hang, this lets us fail fast
       );
-      logger.info(`Active page index set to ${index}: ${pages[index]!.url} (cached)`);
+      logger.info(
+        `Active page index set to ${index}: ${pages[index]?.url ?? pageTarget.url()} (cached)`,
+      );
     } catch (error) {
       // WebGL / game tabs: resolvePageTargetHandle times out. Leave cache null
       // so getActivePage() falls through to the lazy path (which will also timeout,
@@ -715,7 +726,9 @@ export class CodeCollector {
 
     if (this.connectGuard) {
       if (this.connectGuardKey === requestKey) return await this.connectGuard;
-      await this.connectGuard;
+      // A predecessor connect to a *different* endpoint must not fail this
+      // request: wait for it to settle, ignore its outcome, then try ours.
+      await this.connectGuard.catch(() => undefined);
       return await this.connect(endpointOrOptions);
     }
 

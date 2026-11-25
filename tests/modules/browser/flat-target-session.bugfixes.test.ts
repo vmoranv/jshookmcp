@@ -48,3 +48,23 @@ describe('attachToFlatTarget rollback on unregistered session', () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('attachToFlatTarget rollback on unavailable connection', () => {
+  it('detaches the target when the parent connection cannot be inspected', async () => {
+    const send = vi.fn(async (method: string) =>
+      method === 'Target.attachToTarget' ? { sessionId: 'sess-9' } : {},
+    );
+    const parentSession = {
+      send,
+      connection: () => undefined,
+    } as unknown as FlatSessionParentLike;
+
+    await expect(attachToFlatTarget(parentSession, 'target-9')).rejects.toThrow(
+      'connection lookup unavailable',
+    );
+
+    // The server-side attach already succeeded: it must be reverted before the
+    // error leaves this function.
+    expect(send).toHaveBeenLastCalledWith('Target.detachFromTarget', { sessionId: 'sess-9' });
+  });
+});

@@ -147,3 +147,41 @@ describe('BrowserLifecycleManager launch error enrichment', () => {
     expect(thrown).not.toBeInstanceOf(PrerequisiteError);
   });
 });
+
+describe('BrowserLifecycleManager concurrent dispose', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('still runs the close() data-clear callback when a dispose is already in flight', async () => {
+    const { BrowserLifecycleManager } = await import('@modules/collector/BrowserLifecycleManager');
+    const browser = createBrowser();
+    let releaseClose!: () => void;
+    browser.close.mockImplementation(
+      () =>
+        new Promise<undefined>((resolve) => {
+          releaseClose = () => resolve(undefined);
+        }),
+    );
+    const manager = new BrowserLifecycleManager(
+      { headless: true, timeout: 30_000 } as any,
+      { width: 1280, height: 720 },
+      vi.fn(),
+    );
+    (manager as any).browser = browser;
+    (manager as any).chromePid = 12345;
+
+    // Simulate idle reclamation starting first (it passes a no-op clear callback).
+    const idleDispose = (manager as any).closeIdleBrowser() as Promise<void>;
+    const clearAllData = vi.fn(async () => {});
+    const closePromise = manager.close(clearAllData);
+
+    // let disposeInner reach browser.close() before releasing it
+    await Promise.resolve();
+    await Promise.resolve();
+    releaseClose();
+    await Promise.all([idleDispose, closePromise]);
+
+    expect(clearAllData).toHaveBeenCalledTimes(1);
+  });
+});

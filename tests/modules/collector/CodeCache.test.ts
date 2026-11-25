@@ -198,3 +198,44 @@ describe('CodeCache', () => {
     expect(getSpy).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('CodeCache durability', () => {
+  let cacheDir: string;
+
+  beforeEach(async () => {
+    cacheDir = await mkdtemp(join(tmpdir(), 'jshook-cache-durable-'));
+  });
+
+  afterEach(async () => {
+    await rm(cacheDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('writes cache entries atomically and leaves no temp file behind', async () => {
+    const { readdir } = await import('node:fs/promises');
+    const url = buildTestUrl('durable', { path: '/atomic.js' });
+    const cache = new TestCodeCache({ cacheDir });
+
+    await cache.set(url, sampleResult);
+
+    const files = await readdir(cacheDir);
+    expect(files.some((file) => file.endsWith('.tmp'))).toBe(false);
+
+    const key = cache.callGenerateKey(url);
+    const raw = await readFile(join(cacheDir, `${key}.json`), 'utf-8');
+    expect(() => JSON.parse(raw)).not.toThrow();
+  });
+
+  it('removes a corrupt cache file so later reads can repopulate it', async () => {
+    const { readdir } = await import('node:fs/promises');
+    const url = buildTestUrl('durable', { path: '/corrupt.js' });
+    const cache = new TestCodeCache({ cacheDir });
+    const key = cache.callGenerateKey(url);
+    await writeFile(join(cacheDir, `${key}.json`), '{invalid json', 'utf-8');
+
+    await expect(cache.get(url)).resolves.toBeNull();
+
+    const files = await readdir(cacheDir);
+    expect(files).not.toContain(`${key}.json`);
+  });
+});

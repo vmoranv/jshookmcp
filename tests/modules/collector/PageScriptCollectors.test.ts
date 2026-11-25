@@ -719,3 +719,49 @@ describe('PageScriptCollectors', () => {
     expect(score).toBe(60);
   });
 });
+
+describe('setupWebWorkerTracking idempotency', () => {
+  it('does not stack Proxy wrappers when the init script runs twice', async () => {
+    const page = {
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    await setupWebWorkerTracking(page);
+
+    const installTracking = page.evaluateOnNewDocument.mock.calls[0]?.[0] as
+      | (() => void)
+      | undefined;
+    expect(installTracking).toBeTypeOf('function');
+
+    class OriginalWorker {
+      readonly scriptURL: string | URL;
+      constructor(scriptURL: string | URL) {
+        this.scriptURL = scriptURL;
+      }
+    }
+
+    const workerWindow = { Worker: OriginalWorker } as unknown as WorkerWindowLike<
+      typeof OriginalWorker
+    >;
+    const restoreWindow = replaceWindow(workerWindow);
+
+    try {
+      installTracking?.();
+      const wrappedOnce = workerWindow.Worker;
+
+      // A second evaluateOnNewDocument registration re-runs the installer on the
+      // same document; it must not wrap the already-wrapped constructor again.
+      installTracking?.();
+      expect(workerWindow.Worker).toBe(wrappedOnce);
+
+      const firstWorker = new workerWindow.Worker('/one.js');
+      const secondWorker = new workerWindow.Worker('/two.js');
+
+      expect(firstWorker).toBeInstanceOf(OriginalWorker);
+      expect(secondWorker).toBeInstanceOf(OriginalWorker);
+      expect(workerWindow.__workerUrls).toEqual(['/one.js', '/two.js']);
+    } finally {
+      restoreWindow();
+    }
+  });
+});

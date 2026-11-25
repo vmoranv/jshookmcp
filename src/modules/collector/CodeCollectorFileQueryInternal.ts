@@ -46,7 +46,16 @@ export function getFilesByPatternImpl(
   returned: number;
   truncated: boolean;
 } {
-  const regex = new RegExp(pattern);
+  let regex: RegExp;
+  try {
+    regex = new RegExp(pattern);
+  } catch (error) {
+    throw new Error(
+      `Invalid regular expression pattern "${pattern}": ` +
+        `${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
   const matched: CodeFile[] = [];
   for (const file of collectedFilesCache.values()) {
     if (regex.test(file.url)) {
