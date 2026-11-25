@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { ToolError } from '@errors/ToolError';
 import {
   getHandledToolNames,
@@ -50,6 +51,18 @@ function createDeps(): {
 }
 
 describe('ToolHandlerMap', () => {
+  it('derives tool names from the registry leaf, not the heavy registry barrel', () => {
+    // Guard the cycle split: importing `registry/index` from this module pulls
+    // discovery → generated-domains → every domain manifest back into the
+    // MCPServer/search import graph.
+    const source = readFileSync(
+      new URL('../../src/server/ToolHandlerMap.ts', import.meta.url),
+      'utf8',
+    );
+    expect(source).not.toContain('@server/registry/index');
+    expect(source).toContain('@server/registry/views');
+  });
+
   it('exposes known handled tool names', () => {
     const names = getHandledToolNames();
     expect(names.has('get_token_budget_stats')).toBe(true);

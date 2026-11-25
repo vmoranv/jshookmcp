@@ -514,6 +514,21 @@ describe('ADBBridgeHandlers', () => {
     expect(parsed.files[0].zipLike).toBe(true);
   });
 
+  it('rejects packageName path traversal before invoking adb', async () => {
+    mockExecFile([]);
+
+    const result = await handlers.handleApkPull({
+      serial: 'emulator-5554',
+      packageName: '../../../../tmp/jshook-victim; pm path com.example.app',
+      outputPath: join(tmpdir(), 'jshook-adb-output-test'),
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(String(parsed.error)).toContain('valid Android package name');
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
   it('analyzes apk metadata from dumpsys output', async () => {
     mockExecFile([
       {
@@ -560,6 +575,21 @@ describe('ADBBridgeHandlers', () => {
     expect(parsed.success).toBe(true);
     expect(parsed.count).toBe(2);
     expect(parsed.libraries[0].remoteDir).toContain('com.example.app');
+  });
+
+  it('rejects packageName path traversal for native library pulls', async () => {
+    mockExecFile([]);
+
+    const result = await handlers.handlePullNativeLibs({
+      serial: 'emulator-5554',
+      packageName: 'com.example.app/../../evil',
+      outputPath: join(tmpdir(), 'jshook-adb-output-test'),
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(String(parsed.error)).toContain('valid Android package name');
+    expect(execFile).not.toHaveBeenCalled();
   });
 
   it('throws prerequisite error when adb not found', async () => {

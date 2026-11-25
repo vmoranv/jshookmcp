@@ -93,6 +93,18 @@ describe('tool-builder', () => {
     });
   });
 
+  it('accumulates separate calls made on the same receiver', () => {
+    const built = tool('accumulating_tool', (t) => {
+      t.string('a', 'A');
+      t.string('b', 'B');
+    });
+
+    expect(Object.keys(built.inputSchema.properties as Record<string, unknown>)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
   it('returns new builder snapshots without mutating the previous one', () => {
     let captured!: ToolBuilder;
     tool('immutability_probe', (t) => {

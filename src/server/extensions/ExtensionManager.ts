@@ -519,6 +519,7 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
       runtimeRecord,
       baseToolNames,
       ctx,
+      loadedTools,
       loadedToolRecords,
       incrementActivated: () => {
         activatedOnReload++;
@@ -693,6 +694,8 @@ async function activatePluginLifecycle(pc: {
   runtimeRecord: ExtensionPluginRuntimeRecord;
   baseToolNames: Set<string>;
   ctx: MCPServerContext;
+  /** Receives the names of the tools this plugin contributed. */
+  loadedTools: string[];
   loadedToolRecords: ExtensionToolRecord[];
   incrementActivated: () => void;
   warnings: string[];
@@ -707,6 +710,7 @@ async function activatePluginLifecycle(pc: {
     runtimeRecord,
     baseToolNames,
     ctx,
+    loadedTools,
     loadedToolRecords,
     incrementActivated,
     warnings,
@@ -743,7 +747,6 @@ async function activatePluginLifecycle(pc: {
 
     // Register plugin tools into the extension registry and auto-activate
     // the subset visible in the current base profile.
-    const loadedTools: string[] = [];
     for (const toolDef of plugin.tools) {
       if (baseToolNames.has(toolDef.name)) {
         pc.warnings.push(

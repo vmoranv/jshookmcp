@@ -164,6 +164,20 @@ describe('ToolCallContextGuard', () => {
     expect(parsed._tabContext).toEqual(meta);
   });
 
+  it('injects tab context into a pretty-printed empty object without a leading comma', () => {
+    const guard = new ToolCallContextGuard(() => ({
+      getContextMeta: () => meta,
+    }));
+    const response = makeResponse('{\n}');
+
+    const enriched = guard.enrichResponse('console_execute', response);
+    const text = getText(enriched);
+
+    expect(() => JSON.parse(text)).not.toThrow();
+    expect(JSON.parse(text)._tabContext).toEqual(meta);
+    expect(text).not.toContain('{,');
+  });
+
   it('leaves malformed or non-object JSON payloads unchanged', () => {
     const guard = new ToolCallContextGuard(() => ({
       getContextMeta: () => meta,

@@ -172,7 +172,7 @@ describe('QuickJSSandbox — comprehensive', () => {
       expect(result.logs.some((l: string) => l.includes('rejected'))).toBe(true);
     });
 
-    it('respects maxBridgeCalls limit', async () => {
+    it('enforces maxBridgeCalls as a total call budget', async () => {
       const ctx = createMockContext(['tool_a']);
       (ctx.executeToolWithTracking as any).mockResolvedValue({
         content: [{ type: 'text', text: '{"ok":true}' }],
@@ -189,9 +189,41 @@ describe('QuickJSSandbox — comprehensive', () => {
         maxBridgeCalls: 2,
       });
 
+      // Never converges within budget: fail instead of dropping the last
+      // round's results and reporting a misleading success.
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain('budget exhausted');
+      expect(result.bridgeCallCount).toBe(2);
+    });
+
+    it('does not execute bridge calls it cannot deliver back', async () => {
+      const ctx = createMockContext(['tool_a']);
+      (ctx.executeToolWithTracking as any).mockResolvedValue({
+        content: [{ type: 'text', text: '{"ok":true}' }],
+      });
+      const bridge = new MCPBridge(ctx);
+
+      const result = await sandbox.executeWithOrchestration('mcp.call("tool_a", {}); 1', bridge, {
+        maxBridgeCalls: 0,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.bridgeCallCount).toBe(0);
+      expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
+    });
+
+    it('restores a caller-owned allowlist after the run', async () => {
+      const ctx = createMockContext(['tool_a', 'tool_b']);
+      const bridge = new MCPBridge(ctx, { allowedTools: ['tool_b'] });
+
+      const result = await sandbox.executeWithOrchestration('1 + 2', bridge, {
+        bridgeAllowlist: ['tool_a'],
+      });
       expect(result.ok).toBe(true);
-      // Should stop after maxBridgeCalls rounds
-      expect(result.bridgeCallCount).toBeLessThanOrEqual(3);
+
+      // The caller's original allowlist must be back in force.
+      expect(() => bridge.assertCallable('tool_b')).not.toThrow();
+      expect(() => bridge.assertCallable('tool_a')).toThrow(/allowlist/);
     });
 
     it('handles bridge call errors gracefully during orchestration', async () => {

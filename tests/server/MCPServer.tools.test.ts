@@ -43,6 +43,7 @@ vi.mock('@errors/ToolError', () => ({
 
 import { registerSingleTool, installCachedToolListHandler } from '@server/MCPServer.tools';
 import { TEST_URLS } from '@tests/shared/test-urls';
+import { McpServer } from '@modelcontextprotocol/server';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
   const registrations: Array<{
@@ -296,5 +297,193 @@ describe('installCachedToolListHandler', () => {
 
     expect(innerServer.setRequestHandler).not.toHaveBeenCalled();
     expect(server.sendToolListChanged).not.toHaveBeenCalled();
+  });
+
+  it('invalidates the cache on SDK-internal mutations that skip the explicit client notification', async () => {
+    // Regression guard for the cache-invalidation coupling: the server gates the
+    // explicit `sendToolListChanged()` notification on `clientSupportsListChanged`,
+    // but the SDK itself calls the (wrapped) notifier on every register/update/
+    // remove. Removing through the RegisteredTool handle must therefore still
+    // bump the cache version even when no notification is sent to the client.
+    const server = new McpServer({ name: 'cache-test', version: '0.0.0' });
+    const registered = server.registerTool('cache_tool', { description: 'x' }, async () => ({
+      content: [],
+    }));
+    installCachedToolListHandler(server);
+
+    const inner = (server as unknown as { server: Record<string, unknown> }).server;
+    const handlers = inner['_requestHandlers'] as Map<
+      string,
+      (request: unknown, ctx?: unknown) => unknown
+    >;
+    const handler = handlers.get('tools/list')!;
+    const request = { method: 'tools/list', params: {} };
+
+    const first = (await handler(request, {})) as { tools: Array<{ name: string }> };
+    expect(first.tools.map((tool) => tool.name)).toEqual(['cache_tool']);
+
+    registered.remove();
+
+    const second = (await handler(request, {})) as { tools: Array<{ name: string }> };
+    expect(second.tools).toEqual([]);
+  });
+
+  it('reports append-only tools/list growth as a stable prefix', async () => {
+    const { server, originalHandler, getInstalledHandler } = createFakeMcpServer();
+    const emit = vi.fn();
+    installCachedToolListHandler(server, { emit } as any);
+    const handler = getInstalledHandler()!;
+    const request = { method: 'tools/list', params: {} };
+
+    await handler(request, {}); // session baseline — no event
+    expect(emit).not.toHaveBeenCalled();
+
+    originalHandler.mockResolvedValue({
+      tools: [
+        { name: 'page_navigate', inputSchema: { type: 'object' } },
+        { name: 'network_enable', inputSchema: { type: 'object' } },
+      ],
+    } as any);
+    server.sendToolListChanged();
+    await handler(request, {});
+
+    expect(emit).toHaveBeenCalledWith(
+      'tool.list_prefix_changed',
+      expect.objectContaining({
+        prefixStable: true,
+        commonPrefixTools: 1,
+        added: ['network_enable'],
+        removed: [],
+        reordered: false,
+        toolCountBefore: 1,
+        toolCountAfter: 2,
+        truncated: false,
+        timestamp: expect.any(String),
+      }),
+    );
+  });
+
+  it('flags a mid-list removal as a broken prefix', async () => {
+    const { server, originalHandler, getInstalledHandler } = createFakeMcpServer();
+    const emit = vi.fn();
+    installCachedToolListHandler(server, { emit } as any);
+    const handler = getInstalledHandler()!;
+    const request = { method: 'tools/list', params: {} };
+
+    originalHandler.mockResolvedValue({
+      tools: [
+        { name: 'a', inputSchema: { type: 'object' } },
+        { name: 'b', inputSchema: { type: 'object' } },
+      ],
+    } as any);
+    await handler(request, {});
+
+    originalHandler.mockResolvedValue({
+      tools: [{ name: 'a', inputSchema: { type: 'object' } }],
+    } as any);
+    server.sendToolListChanged();
+    await handler(request, {});
+
+    expect(emit).toHaveBeenCalledWith(
+      'tool.list_prefix_changed',
+      expect.objectContaining({
+        prefixStable: false,
+        commonPrefixTools: 1,
+        removed: ['b'],
+        added: [],
+      }),
+    );
+  });
+
+  it('flags a same-name schema mutation as a broken prefix', async () => {
+    const { server, originalHandler, getInstalledHandler } = createFakeMcpServer();
+    const emit = vi.fn();
+    installCachedToolListHandler(server, { emit } as any);
+    const handler = getInstalledHandler()!;
+    const request = { method: 'tools/list', params: {} };
+
+    await handler(request, {});
+    originalHandler.mockResolvedValue({
+      tools: [
+        {
+          name: 'page_navigate',
+          description: 'mutated',
+          inputSchema: { type: 'object' },
+        },
+      ],
+    } as any);
+    server.sendToolListChanged();
+    await handler(request, {});
+
+    expect(emit).toHaveBeenCalledWith(
+      'tool.list_prefix_changed',
+      expect.objectContaining({
+        prefixStable: false,
+        commonPrefixTools: 0,
+        added: [],
+        removed: [],
+        reordered: false,
+      }),
+    );
+  });
+
+  it('flags a reorder as a broken prefix', async () => {
+    const { server, originalHandler, getInstalledHandler } = createFakeMcpServer();
+    const emit = vi.fn();
+    installCachedToolListHandler(server, { emit } as any);
+    const handler = getInstalledHandler()!;
+    const request = { method: 'tools/list', params: {} };
+
+    originalHandler.mockResolvedValue({
+      tools: [
+        { name: 'a', inputSchema: { type: 'object' } },
+        { name: 'b', inputSchema: { type: 'object' } },
+      ],
+    } as any);
+    await handler(request, {});
+
+    originalHandler.mockResolvedValue({
+      tools: [
+        { name: 'b', inputSchema: { type: 'object' } },
+        { name: 'a', inputSchema: { type: 'object' } },
+      ],
+    } as any);
+    server.sendToolListChanged();
+    await handler(request, {});
+
+    expect(emit).toHaveBeenCalledWith(
+      'tool.list_prefix_changed',
+      expect.objectContaining({
+        prefixStable: false,
+        commonPrefixTools: 0,
+        reordered: true,
+      }),
+    );
+  });
+
+  it('preserves non-tool fields (nextCursor) when recomputing the list', async () => {
+    const { server, originalHandler, getInstalledHandler } = createFakeMcpServer();
+    installCachedToolListHandler(server, { emit: vi.fn() } as any);
+    const handler = getInstalledHandler()!;
+    const request = { method: 'tools/list', params: {} };
+
+    originalHandler.mockResolvedValue({ tools: [], nextCursor: 'page-2' } as any);
+    server.sendToolListChanged();
+
+    await expect(handler(request, {})).resolves.toEqual({ tools: [], nextCursor: 'page-2' });
+  });
+
+  it('does not emit when a mutation notification leaves the payload unchanged', async () => {
+    const { server, getInstalledHandler } = createFakeMcpServer();
+    const emit = vi.fn();
+    installCachedToolListHandler(server, { emit } as any);
+    const handler = getInstalledHandler()!;
+    const request = { method: 'tools/list', params: {} };
+
+    await handler(request, {});
+    server.sendToolListChanged();
+    await handler(request, {});
+
+    expect(emit).not.toHaveBeenCalled();
   });
 });

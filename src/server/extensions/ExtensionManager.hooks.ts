@@ -162,6 +162,15 @@ export interface ExtensionToolHookOptions {
   handler: ExtensionToolHandler;
 }
 
+/** Rewritten hook values must keep the shape the downstream consumer expects. */
+function isToolArgs(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isToolResponse(value: unknown): value is ToolResponse {
+  return isToolArgs(value) && Array.isArray(value['content']);
+}
+
 /**
  * Wrap a plugin tool handler with the plugin's before/after hook chain.
  *
@@ -182,18 +191,39 @@ export function wrapExtensionToolHandler(options: ExtensionToolHookOptions): Ext
     if (before.action === 'deny') {
       return buildHookDenyResponse(toolName, pluginId, before.reason);
     }
+    // Fail-open: an `allow` hook may rewrite args to a non-object. Keeping the
+    // original args is safer than handing the handler an unusable value.
+    let effectiveArgs = args;
+    if (isToolArgs(before.args)) {
+      effectiveArgs = before.args;
+    } else if (before.args !== args) {
+      logger.warn(
+        `[extension:${pluginId}] toolExecuteBefore hook for "${toolName}" rewrote args to a ` +
+          'non-object value; keeping the original args',
+      );
+    }
     // The tool (and only the tool) sees the possibly-rewritten args.
-    const result = await handler(before.args as Record<string, unknown>, ctx);
+    const result = await handler(effectiveArgs, ctx);
     const after = await applyToolExecuteAfterHooks(
       pluginId,
       afterHooks,
       toolName,
-      before.args,
+      effectiveArgs,
       result,
     );
     if (after.action === 'redact') {
       return buildHookRedactResponse(toolName, pluginId, after.reason);
     }
-    return after.result as ToolResponse;
+    // Fail-open: a malformed rewrite must not surface a broken MCP response.
+    if (after.result === result) {
+      return result;
+    } else if (isToolResponse(after.result)) {
+      return after.result;
+    }
+    logger.warn(
+      `[extension:${pluginId}] toolExecuteAfter hook for "${toolName}" rewrote the result to an ` +
+        'invalid tool response; keeping the original result',
+    );
+    return result;
   };
 }

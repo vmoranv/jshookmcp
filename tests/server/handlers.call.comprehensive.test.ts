@@ -245,20 +245,28 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       });
     });
 
-    it('treats null args as empty object', async () => {
+    it('rejects null args instead of silently dispatching {}', async () => {
       const ctx = createCtx();
 
-      await handleCallTool(ctx, { name: 'test_tool', args: null }, { getMetaToolHandler });
+      const result = parseResponse(
+        await handleCallTool(ctx, { name: 'test_tool', args: null }, { getMetaToolHandler }),
+      );
 
-      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('args must be a JSON object');
+      expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
     });
 
-    it('treats number args as empty object', async () => {
+    it('rejects number args instead of silently dispatching {}', async () => {
       const ctx = createCtx();
 
-      await handleCallTool(ctx, { name: 'test_tool', args: 42 }, { getMetaToolHandler });
+      const result = parseResponse(
+        await handleCallTool(ctx, { name: 'test_tool', args: 42 }, { getMetaToolHandler }),
+      );
 
-      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('args must be a JSON object');
+      expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
     });
   });
 
@@ -299,28 +307,36 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       });
     });
 
-    it('parameters string that is not valid JSON falls back to empty object', async () => {
+    it('rejects a parameters string that is not valid JSON', async () => {
       const ctx = createCtx();
 
-      await handleCallTool(
-        ctx,
-        { name: 'test_tool', parameters: 'not-json-at-all' },
-        { getMetaToolHandler },
+      const result = parseResponse(
+        await handleCallTool(
+          ctx,
+          { name: 'test_tool', parameters: 'not-json-at-all' },
+          { getMetaToolHandler },
+        ),
       );
 
-      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('parameters must be valid JSON');
+      expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
     });
 
-    it('parameters string that is a JSON array falls back to empty object', async () => {
+    it('rejects a parameters string that decodes to a JSON array', async () => {
       const ctx = createCtx();
 
-      await handleCallTool(
-        ctx,
-        { name: 'test_tool', parameters: '[1, 2, 3]' },
-        { getMetaToolHandler },
+      const result = parseResponse(
+        await handleCallTool(
+          ctx,
+          { name: 'test_tool', parameters: '[1, 2, 3]' },
+          { getMetaToolHandler },
+        ),
       );
 
-      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('parameters must decode to a JSON object');
+      expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
     });
 
     it('args takes precedence over parameters when both are present', async () => {
@@ -406,35 +422,43 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
     it('does NOT use spread-flat when parameters wrapper is present (even if malformed JSON)', async () => {
       const ctx = createCtx();
 
-      await handleCallTool(
-        ctx,
-        {
-          name: 'test_tool',
-          url: TEST_URLS.root,
-          parameters: 'not-valid-json',
-        },
-        { getMetaToolHandler },
+      const result = parseResponse(
+        await handleCallTool(
+          ctx,
+          {
+            name: 'test_tool',
+            url: TEST_URLS.root,
+            parameters: 'not-valid-json',
+          },
+          { getMetaToolHandler },
+        ),
       );
 
-      // parameters key is present → Format 3 is skipped; malformed string → toolArgs stays {}
-      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+      // parameters key is present → Format 3 is skipped; malformed string is reported.
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('parameters must be valid JSON');
+      expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
     });
 
     it('does NOT use spread-flat when args wrapper is present (even if null)', async () => {
       const ctx = createCtx();
 
-      await handleCallTool(
-        ctx,
-        {
-          name: 'test_tool',
-          url: TEST_URLS.root,
-          args: null,
-        },
-        { getMetaToolHandler },
+      const result = parseResponse(
+        await handleCallTool(
+          ctx,
+          {
+            name: 'test_tool',
+            url: TEST_URLS.root,
+            args: null,
+          },
+          { getMetaToolHandler },
+        ),
       );
 
-      // args key is present → Format 3 is skipped; null is not an object → toolArgs stays {}
-      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+      // args key is present → Format 3 is skipped; null is reported as a wrapper error.
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('args must be a JSON object');
+      expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
     });
   });
 });

@@ -55,7 +55,7 @@ import {
 } from '@server/observability/InstrumentationContract';
 import { setGlobalQueryTextPolicy } from '@server/observability/queryTextPolicy';
 import { setGlobalToolArgsPolicy } from '@server/observability/toolArgsPolicy';
-import { getAllManifests, ensureDomainLoaded } from '@server/registry/index';
+import { getAllManifests, ensureDomainLoaded, getRegistrationByName } from '@server/registry/index';
 import {
   RuntimeSnapshotScheduler,
   getStateDir,
@@ -175,6 +175,8 @@ export class MCPServer implements MCPServerContext {
    */
   toolTraceRecorder: ToolCallTraceRecorder | null = null;
   toolTraceStop: (() => void) | null = null;
+  /** Unsubscribe handle for the client log-forwarding listener. */
+  logForwardStop: (() => void) | null = null;
   /** Structured log transport for MCP `notifications/message`. */
   public readonly mcpLog = new McpLogTransport();
   public readonly baseTier: ToolProfile;
@@ -542,7 +544,7 @@ export class MCPServer implements MCPServerContext {
     // Rate-limit the info forward path (see INFO_LOG_FORWARD_EVERY) while
     // always forwarding warn/error; debug is dropped entirely.
     let infoLogCount = 0;
-    logger.onLog((level, message, args) => {
+    this.logForwardStop = logger.onLog((level, message, args) => {
       if (!this.clientInitialized) return;
       // Drop debug — forwarding every debug/info line as an MCP notification
       // broadcast to all HTTP sessions is a quadratic amplification risk
@@ -796,15 +798,22 @@ export class MCPServer implements MCPServerContext {
 
   private circuitBreakerReactivate(toolName: string): void {
     if (!this.circuitBrokenTools.has(toolName)) return;
-    this.circuitBrokenTools.delete(toolName);
 
-    // Look up tool definition from selected tools (base tier) or registry
-    const toolDef = this.selectedTools.find((t) => t.name === toolName);
+    // Resolve the definition BEFORE mutating the broken-tool set: a failed
+    // lookup must leave the tool tracked as broken (recoverable) rather than
+    // silently dropping it from both the broken set and the tool list.
+    // Domain-activated tools are no longer in `selectedTools`, so fall back to
+    // the loaded registry and the extension registry.
+    const toolDef =
+      this.selectedTools.find((t) => t.name === toolName) ??
+      this.extensionToolsByName.get(toolName)?.tool ??
+      getRegistrationByName(toolName)?.tool;
     if (!toolDef) {
       logger.warn(`CircuitBreaker: cannot reactivate "${toolName}" — no tool definition found`);
       return;
     }
 
+    this.circuitBrokenTools.delete(toolName);
     const registration = this.registerSingleTool(toolDef);
     this.activatedRegisteredTools.set(toolName, registration);
     this.activatedToolNames.add(toolName);

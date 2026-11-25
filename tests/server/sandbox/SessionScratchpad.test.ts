@@ -90,4 +90,35 @@ describe('SessionScratchpad', () => {
     expect(pad.getAll('s1')).toEqual({});
     expect(pad.getAll('s2')).toEqual({});
   });
+
+  it('rejects a value larger than the per-entry cap', () => {
+    const pad = new SessionScratchpad();
+    const huge = 'x'.repeat(64 * 1024 + 1);
+    expect(() => pad.set('s1', 'big', huge)).toThrow(/exceeds/);
+    expect(pad.get('s1', 'big')).toBeUndefined();
+  });
+
+  it('rejects more keys than the per-session cap', () => {
+    const pad = new SessionScratchpad();
+    for (let i = 0; i < 256; i++) {
+      pad.set('s1', `k${i}`, i);
+    }
+    expect(() => pad.set('s1', 'overflow', 1)).toThrow(/keys/);
+    expect(pad.keys('s1')).toHaveLength(256);
+  });
+
+  it('evicts the oldest session once the session cap is reached', () => {
+    const pad = new SessionScratchpad();
+    for (let i = 0; i < 257; i++) {
+      pad.set(`s${i}`, 'k', i);
+    }
+    expect(pad.keys('s0')).toEqual([]);
+    expect(pad.get('s256', 'k')).toBe(256);
+  });
+
+  it('treats undefined as a persisted JSON null instead of storing a non-string', () => {
+    const pad = new SessionScratchpad();
+    pad.set('s1', 'u', undefined);
+    expect(pad.get('s1', 'u')).toBeNull();
+  });
 });

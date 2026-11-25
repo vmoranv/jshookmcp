@@ -8,7 +8,7 @@
  * registry↔workflow audit; this leaf breaks that return edge.
  */
 import type { RoutingState } from '@server/ToolRouter.probe';
-import { getLoadedManifests } from '@server/registry/state';
+import { getLoadedManifests, onRegistryInvalidate } from '@server/registry/state';
 
 export interface PrerequisiteEntry {
   condition: string;
@@ -49,9 +49,17 @@ function buildPrerequisiteCheck(condition: string): (state: RoutingState) => boo
 
 let cachedPrerequisites: Record<string, PrerequisiteEntry[]> | null = null;
 
+// Manifests are append-only at runtime: `ensureDomainLoaded` adds lazily loaded
+// domains (and notifies invalidation) after this cache may already be built.
+// Without subscribing, prerequisites from a domain activated mid-session would
+// never appear in routes.
+onRegistryInvalidate(() => {
+  cachedPrerequisites = null;
+});
+
 /**
  * Aggregate prerequisite declarations from domain manifests.
- * Cached lazily — manifests are immutable at runtime.
+ * Cached lazily and reset whenever the registry reports an invalidation.
  */
 export function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]> {
   if (cachedPrerequisites) return cachedPrerequisites;

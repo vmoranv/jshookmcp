@@ -77,16 +77,23 @@ export class McpLogTransport {
   }
 
   /**
-   * Send a structured log message to the connected Host.
+   * Send a structured log message to the connected Host, and append it to the
+   * log file when file logging is enabled.
    *
-   * Silently no-ops when:
+   * The MCP notification is silently skipped when:
    *  - transport is disabled (`MCP_LOG_ENABLED=false`)
    *  - no server is attached
-   *  - the message level is below the configured minimum
+   * Messages below the configured minimum level are dropped from BOTH channels.
    */
   log(level: McpLogLevel, logger: string, data: Record<string, unknown>): void {
-    if (!this.enabled || !this.server) return;
     if (LEVEL_ORDER[level] < LEVEL_ORDER[this.minLevel]) return;
+
+    // File logging is configured independently of the MCP notification channel
+    // (`logging.fileDir` can be set with `logging.enabled` off), so it must not
+    // be short-circuited by the enabled/server gate below.
+    this.writeToFile(level, logger, data);
+
+    if (!this.enabled || !this.server) return;
 
     void this.server.server
       .sendLoggingMessage({
@@ -95,8 +102,6 @@ export class McpLogTransport {
         data: JSON.stringify(data),
       })
       .catch(() => undefined);
-
-    this.writeToFile(level, logger, data);
   }
 
   private writeToFile(level: McpLogLevel, logger: string, data: Record<string, unknown>): void {

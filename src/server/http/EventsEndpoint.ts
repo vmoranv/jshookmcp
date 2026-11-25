@@ -47,6 +47,14 @@ const SSE_EVENTS_REPLAY_LIMIT = 100;
 const SSE_EVENTS_MAX_CLIENTS = 32;
 
 /**
+ * Socket write-buffer cap per /events stream. A stalled consumer behind a
+ * proxy keeps `res.write` returning false while Node buffers frames without
+ * bound; past this many pending bytes the client is dropped (it can reconnect
+ * with `Last-Event-ID`). 1 MiB is far above normal replay bursts.
+ */
+const SSE_EVENTS_MAX_BUFFER_BYTES = 1024 * 1024;
+
+/**
  * Bus events mirrored to SSE subscribers. Metadata-only by contract — see the
  * corresponding payloads in @server/EventBus ServerEventMap.
  */
@@ -238,26 +246,12 @@ export function createEventsEndpoint(
       return;
     }
 
-    activeClients += 1;
-    // Attach the recorder BEFORE reading the buffer inside this synchronous
-    // setup: events emitted before this call are already buffered, events
-    // after it reach the live sink — no gap, no duplicates.
-    ensureRecorder();
-
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    });
-    // Auth/contract documentation lives in comment frames (SSE clients ignore
-    // colon-prefixed lines). Auth itself is enforced by the /events route in
-    // MCPServer.transport.ts — same chain as POST /mcp.
-    res.write(': jshookmcp unified event stream (GET /events)\n');
-    res.write(
-      ': auth mirrors POST /mcp (Bearer MCP_AUTH_TOKEN when configured); ' +
-        'payloads are metadata-only\n\n',
-    );
+    // A connection that is already gone must never consume a client slot:
+    // after an abort the 'close' event has already fired and no listener
+    // registered now would observe it, so admission would leak permanently.
+    if (req.aborted || res.destroyed || res.writableEnded) {
+      return;
+    }
 
     // Resume point: Last-Event-ID header or ?since=<seq>; null → legacy full replay.
     const since = parseResumeSequence(req);
@@ -288,7 +282,14 @@ export function createEventsEndpoint(
     function writeFrame(frame: string): void {
       if (stream.cleanedUp) return;
       try {
-        res.write(frame);
+        const writable = res.write(frame);
+        // Backpressure: drop a stalled consumer once its pending buffer is
+        // past the cap instead of buffering frames without bound. Reconnecting
+        // clients resume from the SSE `id:` sequence.
+        if (!writable && res.writableLength > SSE_EVENTS_MAX_BUFFER_BYTES) {
+          logger.debug?.('/events client exceeded the write-buffer cap; dropping stream');
+          cleanupClient();
+        }
       } catch (error) {
         logger.debug?.('Failed to write /events frame:', error);
         cleanupClient();
@@ -301,10 +302,47 @@ export function createEventsEndpoint(
     const sink = (frame: string): void => {
       writeFrame(frame);
     };
+
+    activeClients += 1;
+    // Attach the recorder BEFORE reading the buffer inside this synchronous
+    // setup: events emitted before this call are already buffered, events
+    // after it reach the live sink — no gap, no duplicates.
+    ensureRecorder();
     clientSinks.add(sink);
     stream.unsubscribe = () => {
       clientSinks.delete(sink);
     };
+
+    // Register teardown listeners BEFORE writing anything so a disconnect
+    // cannot happen while the stream is unobserved. Cleanup is idempotent.
+    res.on('close', cleanupClient);
+    res.on('error', (error) => {
+      logger.debug?.('/events stream error:', error);
+      cleanupClient();
+    });
+
+    // The client may have aborted between the admission check above and this
+    // point (in which case 'close' already fired): verify liveness once the
+    // listeners exist and release the slot ourselves.
+    if (req.aborted || res.destroyed || res.writableEnded) {
+      cleanupClient();
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    // Auth/contract documentation lives in comment frames (SSE clients ignore
+    // colon-prefixed lines). Auth itself is enforced by the /events route in
+    // MCPServer.transport.ts — same chain as POST /mcp.
+    res.write(': jshookmcp unified event stream (GET /events)\n');
+    res.write(
+      ': auth mirrors POST /mcp (Bearer MCP_AUTH_TOKEN when configured); ' +
+        'payloads are metadata-only\n\n',
+    );
 
     if (since === null) {
       // Legacy behavior: flush the whole bounded buffer.
@@ -326,6 +364,10 @@ export function createEventsEndpoint(
       }
     }
 
+    // Replay may have discovered a dead socket and cleaned up already; never
+    // start a heartbeat (or leak its timer) for a closed connection.
+    if (stream.cleanedUp) return;
+
     stream.heartbeat = setInterval(() => {
       // Colon-prefixed comment frames are ignored by SSE clients but keep the
       // connection (and intermediate proxies) alive.
@@ -333,14 +375,6 @@ export function createEventsEndpoint(
     }, heartbeatMs);
     // A heartbeat must never keep the process alive on its own.
     stream.heartbeat.unref?.();
-
-    // Client disconnect (abort/close) and socket errors both terminate the
-    // subscription; cleanup is idempotent.
-    res.on('close', cleanupClient);
-    res.on('error', (error) => {
-      logger.debug?.('/events stream error:', error);
-      cleanupClient();
-    });
   };
 
   return {

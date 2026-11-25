@@ -163,12 +163,21 @@ export async function deactivateDomainOnExpiry(
     // Only remove if still in activated set (may have been manually deactivated)
     if (!ctx.activatedToolNames.has(name)) continue;
 
-    deactivateToolCore(name, {
-      activatedToolNames: ctx.activatedToolNames,
-      activatedRegisteredTools: ctx.activatedRegisteredTools,
-      router: ctx.router,
-      extensionToolsByName: ctx.extensionToolsByName,
-    });
+    // Per-tool error isolation: the TTL entry (and its timer) is already gone,
+    // so a throw here would leave the remaining tools activated forever with
+    // no retry path. Keep going and let the re-evaluation below re-report any
+    // domain whose tools are still active.
+    try {
+      deactivateToolCore(name, {
+        activatedToolNames: ctx.activatedToolNames,
+        activatedRegisteredTools: ctx.activatedRegisteredTools,
+        router: ctx.router,
+        extensionToolsByName: ctx.extensionToolsByName,
+      });
+    } catch (error) {
+      logger.warn(`Failed to deactivate tool "${name}" on domain TTL expiry:`, error);
+      continue;
+    }
 
     removedCount++;
   }
@@ -176,10 +185,14 @@ export async function deactivateDomainOnExpiry(
   if (removedCount > 0) {
     // Re-evaluate enabled domains
     ctx.enabledDomains.delete(domain);
-    // Re-add domain if any tool from it is still active (base profile or other activation)
+    // Re-add domain if any tool from it is still active (base profile or other
+    // activation). Extension tools are not in the built-in ToolCatalog, so
+    // resolve them through the extension registry before concluding the
+    // domain is empty.
+    const resolveDomain = (toolName: string): string | null =>
+      getToolDomain(toolName) ?? ctx.extensionToolsByName.get(toolName)?.domain ?? null;
     for (const activeName of ctx.activatedToolNames) {
-      const d = getToolDomain(activeName);
-      if (d === domain) {
+      if (resolveDomain(activeName) === domain) {
         ctx.enabledDomains.add(domain);
         break;
       }

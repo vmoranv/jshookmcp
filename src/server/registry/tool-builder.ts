@@ -89,6 +89,9 @@ type InternalToolBuilder = ToolBuilder & {
 };
 type BuilderTracker = { latest?: InternalToolBuilder };
 
+/** State behind each immutable snapshot, so a tracker can resume from it. */
+const builderStates = new WeakMap<InternalToolBuilder, BuilderState>();
+
 function createInitialState(name: string): BuilderState {
   return {
     name,
@@ -169,13 +172,24 @@ function buildTool(state: BuilderState): BuiltTool {
 function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalToolBuilder {
   const next = (updated: BuilderState): InternalToolBuilder => {
     const nextBuilder = createBuilder(updated, tracker);
+    builderStates.set(nextBuilder, updated);
     if (tracker) tracker.latest = nextBuilder;
     return nextBuilder;
   };
 
+  // Accumulating base state. A void-returning configurator can start several
+  // independent chains from the same receiver:
+  //   tool('x', (b) => { b.string('a', 'A'); b.string('b', 'B'); });
+  // Each call must build on the previously produced snapshot, otherwise the
+  // tracker (and the `?? tracker.latest` fallback) silently drops earlier work.
+  const base = (): BuilderState => {
+    const latest = tracker?.latest;
+    return latest && latest !== builder ? (builderStates.get(latest) ?? state) : state;
+  };
+
   const builder: InternalToolBuilder = {
     desc(description: string) {
-      return next(withState(state, { description })) as InternalToolBuilder;
+      return next(withState(base(), { description })) as InternalToolBuilder;
     },
     string(name: string, description: string, opts?: StringOpts) {
       const schema: PropertySchema = {
@@ -186,7 +200,7 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
       if (opts?.pattern) {
         schema.pattern = opts.pattern;
       }
-      return next(withProperty(state, name, schema)) as InternalToolBuilder;
+      return next(withProperty(base(), name, schema)) as InternalToolBuilder;
     },
     number(name: string, description: string, opts?: NumberOpts) {
       const schema: PropertySchema = {
@@ -200,7 +214,7 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
       if (opts?.maximum !== undefined) {
         schema.maximum = opts.maximum;
       }
-      return next(withProperty(state, name, schema)) as InternalToolBuilder;
+      return next(withProperty(base(), name, schema)) as InternalToolBuilder;
     },
     integer(name: string, description: string, opts?: NumberOpts) {
       const schema: PropertySchema = {
@@ -214,11 +228,11 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
       if (opts?.maximum !== undefined) {
         schema.maximum = opts.maximum;
       }
-      return next(withProperty(state, name, schema)) as InternalToolBuilder;
+      return next(withProperty(base(), name, schema)) as InternalToolBuilder;
     },
     boolean(name: string, description: string, opts?: ParamOpts) {
       return next(
-        withProperty(state, name, {
+        withProperty(base(), name, {
           type: 'boolean',
           description,
           ...defaults(opts),
@@ -227,7 +241,7 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
     },
     enum(name: string, values: readonly string[], description: string, opts?: ParamOpts) {
       return next(
-        withProperty(state, name, {
+        withProperty(base(), name, {
           type: 'string',
           enum: values,
           description,
@@ -237,7 +251,7 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
     },
     array(name: string, items: PropertySchema | Record<string, unknown>, description: string) {
       return next(
-        withProperty(state, name, {
+        withProperty(base(), name, {
           type: 'array',
           items,
           description,
@@ -251,7 +265,7 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
       opts?: { required?: string[] },
     ) {
       return next(
-        withProperty(state, name, {
+        withProperty(base(), name, {
           type: 'object',
           properties: props,
           description,
@@ -260,25 +274,25 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
       ) as InternalToolBuilder;
     },
     prop(name: string, schema: PropertySchema) {
-      return next(withProperty(state, name, schema)) as InternalToolBuilder;
+      return next(withProperty(base(), name, schema)) as InternalToolBuilder;
     },
     required(...names: string[]) {
-      return next(withRequiredNames(state, names)) as InternalToolBuilder;
+      return next(withRequiredNames(base(), names)) as InternalToolBuilder;
     },
     requiredOpenWorld(...names: string[]) {
       return this.required(...names).openWorld();
     },
     readOnly() {
-      return next(withAnnotations(state, { readOnlyHint: true })) as InternalToolBuilder;
+      return next(withAnnotations(base(), { readOnlyHint: true })) as InternalToolBuilder;
     },
     destructive() {
-      return next(withAnnotations(state, { destructiveHint: true })) as InternalToolBuilder;
+      return next(withAnnotations(base(), { destructiveHint: true })) as InternalToolBuilder;
     },
     idempotent() {
-      return next(withAnnotations(state, { idempotentHint: true })) as InternalToolBuilder;
+      return next(withAnnotations(base(), { idempotentHint: true })) as InternalToolBuilder;
     },
     openWorld() {
-      return next(withAnnotations(state, { openWorldHint: true })) as InternalToolBuilder;
+      return next(withAnnotations(base(), { openWorldHint: true })) as InternalToolBuilder;
     },
     query() {
       return this.readOnly().idempotent();
@@ -287,26 +301,27 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
       return this.destructive().idempotent();
     },
     asyncTask() {
-      return next(withState(state, { asyncTask: true })) as InternalToolBuilder;
+      return next(withState(base(), { asyncTask: true })) as InternalToolBuilder;
     },
     autocomplete(argName: string, handler: (value: string) => string[] | Promise<string[]>) {
       return next(
-        withState(state, {
+        withState(base(), {
           autocompleteHandlers: {
-            ...state.autocompleteHandlers,
+            ...base().autocompleteHandlers,
             [argName]: handler,
           },
         }),
       ) as InternalToolBuilder;
     },
     outputSchema(schema: Record<string, unknown>) {
-      return next(withState(state, { outputSchema: schema })) as InternalToolBuilder;
+      return next(withState(base(), { outputSchema: schema })) as InternalToolBuilder;
     },
     build() {
       return buildTool(state);
     },
   };
 
+  builderStates.set(builder, state);
   if (tracker && !tracker.latest) tracker.latest = builder;
   return builder;
 }

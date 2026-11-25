@@ -212,7 +212,13 @@ export class LargeDataOffloader {
       if (typeof entry !== 'object' || entry === null) continue;
 
       const record = entry as Record<string, unknown>;
-      if (record.type !== 'text' && record.type !== 'resource') continue;
+      // Only plain text blocks carry a top-level `text` payload. MCP embedded
+      // resources are shaped `{ type: 'resource', resource: { uri, text|blob } }`,
+      // so the previous `'resource'` branch never matched `record.text` and
+      // silently skipped every resource block. Resource payloads stay intact by
+      // design: replacing `resource.text` / `resource.blob` would break the
+      // resource contract and needs its own placeholder protocol.
+      if (record.type !== 'text') continue;
 
       const text = record.text as string | undefined;
       if (typeof text !== 'string' || text.length < this.detailThreshold) continue;
@@ -227,12 +233,22 @@ export class LargeDataOffloader {
       const detailWrapper = this.tryParseJson(text);
       if (detailWrapper !== null && this.isDetailWrapper(detailWrapper)) {
         tasks.push(async () => {
-          const sanitized = await sanitizeForCache(detailWrapper);
-          if (sanitized !== detailWrapper) {
-            content[i] = { ...record, text: JSON.stringify(sanitized, null, 2) };
-            return true;
+          try {
+            const sanitized = await sanitizeForCache(detailWrapper);
+            if (sanitized !== detailWrapper) {
+              content[i] = { ...record, text: JSON.stringify(sanitized, null, 2) };
+              return true;
+            }
+            return false;
+          } catch (error) {
+            // Same contract as the sibling tasks: an offload failure must never
+            // reject `offload()` and drop the tool's payload.
+            logger.warn(
+              `[Offloader] Failed to sanitize ${toolName} detail wrapper (entry ${i}), keeping original text`,
+              error,
+            );
+            return false;
           }
-          return false;
         });
         continue;
       }

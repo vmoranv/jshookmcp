@@ -13,7 +13,14 @@ export interface ToolDeactivationDeps {
   activatedToolNames: Set<string>;
   activatedRegisteredTools: Map<string, { remove(): void }>;
   router: { removeHandler(name: string): void };
-  extensionToolsByName?: Map<string, { registeredTool?: unknown }>;
+  extensionToolsByName?: Map<
+    string,
+    {
+      registeredTool?: unknown;
+      activatedAt?: string;
+      activationSource?: 'reload' | 'activate_tools' | 'activate_domain';
+    }
+  >;
 }
 
 /**
@@ -42,9 +49,15 @@ export function deactivateToolCore(name: string, deps: ToolDeactivationDeps): vo
   deps.activatedToolNames.delete(name);
   deps.activatedRegisteredTools.delete(name);
 
-  // 3. Clear extension tool registration state (if applicable)
+  // 3. Clear extension tool registration AND activation state (if applicable).
+  // Leaving `activatedAt` / `activationSource` behind would make a deactivated
+  // tool still look reload-activated to `ExtensionManager.reload`'s
+  // `autoActivatedTools` report (and to any TTL/LRU bookkeeping that reads the
+  // same helper), so this is the single place that must reset all three.
   const extRecord = deps.extensionToolsByName?.get(name);
   if (extRecord) {
     extRecord.registeredTool = undefined;
+    extRecord.activatedAt = undefined;
+    extRecord.activationSource = undefined;
   }
 }

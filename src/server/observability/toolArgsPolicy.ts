@@ -91,11 +91,11 @@ function renderValue(key: string, value: unknown, policy: ToolArgsPolicy): unkno
     }
     return value;
   }
-  // Objects/arrays: stringify once, then truncate the whole rendering at the
-  // caller level (per-key truncation of nested structures is not worth the
-  // complexity — the total cap is the real guard).
+  // Objects/arrays: redact credential-ish keys at every depth (secrets most
+  // often live nested — `headers.authorization`, `options.password`, ...),
+  // stringify once, then truncate the whole rendering at the caller level.
   try {
-    const text = JSON.stringify(value) ?? String(value);
+    const text = JSON.stringify(redactNestedCredentialKeys(value)) ?? String(value);
     if (policy === 'truncated' && text.length > VALUE_TRUNCATION) {
       return `${text.slice(0, VALUE_TRUNCATION)}…(+${text.length - VALUE_TRUNCATION})`;
     }
@@ -103,4 +103,24 @@ function renderValue(key: string, value: unknown, policy: ToolArgsPolicy): unkno
   } catch {
     return String(value);
   }
+}
+
+/**
+ * Recursively mask values whose key looks credential-ish. The top-level
+ * `renderValue` check cannot see nested keys, so without this a
+ * `{ headers: { authorization } }` payload ships its token verbatim.
+ * Cycle-safe so a captured object graph cannot blow the stack.
+ */
+function redactNestedCredentialKeys(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (value === null || typeof value !== 'object') return value;
+  if (seen.has(value)) return '[circular]';
+  seen.add(value);
+  if (Array.isArray(value)) {
+    return value.map((item) => redactNestedCredentialKeys(item, seen));
+  }
+  const out: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = CREDENTIAL_KEY_PATTERN.test(key) ? '***' : redactNestedCredentialKeys(nested, seen);
+  }
+  return out;
 }

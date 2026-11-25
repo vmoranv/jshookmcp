@@ -46,9 +46,12 @@ export async function executeWithRetry(
       return { ...lastResult, retryCount: attempt };
     }
 
-    // Append error context for the next attempt
+    // Append error context for the next attempt. The message can derive from
+    // data the script processed, so neutralize any `*/` that would terminate
+    // the block comment and turn the rest into executable code.
     if (attempt < maxRetries) {
-      currentCode = `/* Previous error (attempt ${attempt + 1}): ${lastResult.error ?? 'unknown error'} */\n${code}`;
+      const safeError = (lastResult.error ?? 'unknown error').replace(/\*\//g, '*\\/');
+      currentCode = `/* Previous error (attempt ${attempt + 1}): ${safeError} */\n${code}`;
     }
   }
 

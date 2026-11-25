@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
-import { isAbsolute, join, normalize } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { getArtifactDir } from '@utils/artifacts';
 import { getReverseEngineeringConfig } from '@utils/reverseEngineeringConfig';
 import type {
@@ -45,9 +45,21 @@ interface ParsedToolResult {
   text?: string;
 }
 
+/**
+ * Plain-text tool bodies carry no `success` flag. Treat a leading error word as
+ * a failed step instead of silently recording it as completed evidence.
+ */
+const TOOL_ERROR_TEXT_PREFIX = /^\s*(?:error|failed?|failure|exception|eacces|eperm|enoent)\b/i;
+
 export class ReverseSessionOrchestrator {
   private readonly store: ReverseSessionStore;
   private readonly toolExecutor?: ReverseSessionToolExecutor;
+  /**
+   * Sessions with a run in flight. The store hands out the live mutable
+   * record, so two overlapping runs would interleave attempts/status/evidence
+   * writes on the same objects.
+   */
+  private readonly activeRuns = new Set<string>();
   constructor(store = new ReverseSessionStore(), toolExecutor?: ReverseSessionToolExecutor) {
     this.store = store;
     this.toolExecutor = toolExecutor;
@@ -99,6 +111,26 @@ export class ReverseSessionOrchestrator {
       };
     }
 
+    if (this.activeRuns.has(input.sessionId)) {
+      return {
+        success: false,
+        reason: `Reverse session ${input.sessionId} is already running.`,
+        session,
+      };
+    }
+
+    this.activeRuns.add(input.sessionId);
+    try {
+      return await this.runExclusive(session, input);
+    } finally {
+      this.activeRuns.delete(input.sessionId);
+    }
+  }
+
+  private async runExclusive(
+    session: ReverseSessionRecord,
+    input: RunReverseSessionInput,
+  ): Promise<ReverseSessionRunResult> {
     const executableSteps = session.steps.filter(isExecutableStep);
     if (executableSteps.length === 0) {
       return this.finishWithoutExecutableSteps(session);
@@ -154,15 +186,18 @@ export class ReverseSessionOrchestrator {
   }
   /** No executable steps remain: record a terminal run and report it. */
   private finishWithoutExecutableSteps(session: ReverseSessionRecord): ReverseSessionRunResult {
+    const hasFailed = session.steps.some((step) => step.status === 'failed');
     const hasBlocked = session.steps.some((step) => step.status === 'blocked');
     const run = createRunRecord({
-      status: hasBlocked ? 'blocked' : 'completed',
+      status: hasFailed ? 'failed' : hasBlocked ? 'blocked' : 'completed',
       executedSteps: [],
       blockedSteps: session.steps.filter((step) => step.status === 'blocked'),
       evidenceRefs: [],
-      reason: hasBlocked
-        ? 'No executable steps are available because remaining steps are blocked.'
-        : 'All executable steps are already completed.',
+      reason: hasFailed
+        ? 'No executable steps remain: one or more steps failed and cannot be retried.'
+        : hasBlocked
+          ? 'No executable steps are available because remaining steps are blocked.'
+          : 'All executable steps are already completed.',
     });
     session.runs.push(run);
     updateSessionStatus(session);
@@ -335,6 +370,7 @@ function parseToolResult(result: unknown): ParsedToolResult {
 function isSuccessfulToolResult(result: ParsedToolResult): boolean {
   if (result.isError) return false;
   const body = result.body;
+  if (typeof body === 'string') return !TOOL_ERROR_TEXT_PREFIX.test(body);
   if (!isRecord(body)) return true;
   if (body['success'] === false || body['available'] === false) return false;
   if (typeof body['error'] === 'string' && body['success'] !== true) return false;
@@ -378,7 +414,7 @@ async function promoteBlockedStepsFromResult(
     (step) => step.id === 'transform-workbench' && step.status === 'blocked',
   );
   if (!transformStep) return;
-  const artifactPath = selectDumpedArtifactPath(body);
+  const artifactPath = selectDumpedArtifactPath(body, session.artifactRoot);
   if (!artifactPath) return;
   const fileStat = await stat(artifactPath).catch(() => undefined);
   if (!fileStat?.isFile() || fileStat.size === 0) {
@@ -407,10 +443,13 @@ async function promoteBlockedStepsFromResult(
   transformStep.reason = `Ready from dumped artifact: ${artifactPath}`;
 }
 
-function selectDumpedArtifactPath(body: unknown): string | undefined {
+function selectDumpedArtifactPath(body: unknown, allowedRoot: string): string | undefined {
   if (!isRecord(body)) return undefined;
   const direct = readArtifactPath(body);
-  if (direct) return direct;
+  if (direct) {
+    const contained = containArtifactPath(allowedRoot, direct);
+    if (contained) return contained;
+  }
 
   const outputDir = typeof body['outputDir'] === 'string' ? body['outputDir'] : undefined;
   const dumpedFiles = body['dumpedFiles'];
@@ -418,7 +457,7 @@ function selectDumpedArtifactPath(body: unknown): string | undefined {
     const selected = dumpedFiles.find(
       (entry): entry is string => typeof entry === 'string' && isDexLikePath(entry),
     );
-    if (selected) return resolveArtifactPath(outputDir, selected);
+    if (selected) return containArtifactPath(allowedRoot, outputDir, selected);
   }
 
   const evidence = body['evidence'];
@@ -427,12 +466,30 @@ function selectDumpedArtifactPath(body: unknown): string | undefined {
     if (isRecord(dumpedDex) && Array.isArray(dumpedDex['files'])) {
       for (const entry of dumpedDex['files']) {
         const path = readArtifactPath(entry);
-        if (path && isDexLikePath(path)) return resolveArtifactPath(outputDir, path);
+        if (path && isDexLikePath(path)) {
+          const contained = containArtifactPath(allowedRoot, outputDir, path);
+          if (contained) return contained;
+        }
       }
     }
   }
 
   return undefined;
+}
+
+/**
+ * Resolve an untrusted tool-reported artifact path and require it to stay
+ * inside the session's artifact root: the body is tool output (possibly
+ * prompt-influenced), so absolute paths and `..` segments must not escape.
+ */
+function containArtifactPath(allowedRoot: string, ...pathSegments: string[]): string | undefined {
+  const root = resolve(allowedRoot);
+  const resolved = resolve(root, ...pathSegments);
+  const relativePath = relative(root, resolved);
+  if (relativePath === '..' || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) {
+    return undefined;
+  }
+  return resolved;
 }
 
 function readArtifactPath(value: unknown): string | undefined {
@@ -442,10 +499,6 @@ function readArtifactPath(value: unknown): string | undefined {
     if (typeof path === 'string' && path.trim().length > 0) return path.trim();
   }
   return undefined;
-}
-
-function resolveArtifactPath(outputDir: string, artifactPath: string): string {
-  return normalize(isAbsolute(artifactPath) ? artifactPath : join(outputDir, artifactPath));
 }
 
 function isDexLikePath(path: string): boolean {

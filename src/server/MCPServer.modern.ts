@@ -5,6 +5,7 @@ import { registerSingleTool as registerSingleToolImpl } from '@server/MCPServer.
 import { registerSearchMetaTools } from '@server/MCPServer.search';
 import { registerServerResources } from '@server/MCPServer.resources';
 import { registerServerPrompts } from '@server/MCPServer.prompts';
+import { TaskStoreAdapter } from '@server/tasks/TaskStoreAdapter';
 
 /**
  * Build the per-request SDK server used by the MCP 2.0 HTTP handler.
@@ -23,13 +24,18 @@ export function createModernMcpServer(
     {
       capabilities: {
         tools: { listChanged: true },
-        logging: {},
+        // `logging` is intentionally NOT advertised here: the structured log
+        // transport is attached to the legacy shell only, so the modern leg
+        // would accept `logging/setLevel` and never emit notifications.
         completions: {},
         prompts: { listChanged: true },
+        // Advertised only because the handler is installed right below;
+        // without the adapter `tasks/list`/`tasks/cancel` are Method not found.
         tasks: { list: {}, cancel: {} },
       },
     },
   );
+  new TaskStoreAdapter(core.taskManager).install(server.server);
 
   // Keep protocol bookkeeping local to this request. Domain instances and
   // execution managers remain shared, but activation/list metadata must not
@@ -56,7 +62,25 @@ export function createModernMcpServer(
           registerSingleToolImpl(facade, toolDef, { isModern: true });
       }
       const value = Reflect.get(target, property, receiver);
-      return typeof value === 'function' ? value.bind(target) : value;
+      // Bind to the proxy, not the shared core: method bodies read per-request
+      // state through `this` (activatedToolNames, enabledDomains, ...), and
+      // binding to the core would let them operate on process-level state.
+      return typeof value === 'function' ? value.bind(receiver) : value;
+    },
+    // Assignments/deletes to copied keys must land in the request-local state
+    // instead of falling through to the shared core.
+    set(target, property, value, receiver) {
+      if (property in requestState) {
+        (requestState as unknown as Record<PropertyKey, unknown>)[property] = value;
+        return true;
+      }
+      return Reflect.set(target, property, value, receiver);
+    },
+    deleteProperty(target, property) {
+      if (property in requestState) {
+        return delete (requestState as unknown as Record<PropertyKey, unknown>)[property];
+      }
+      return Reflect.deleteProperty(target, property);
     },
   }) as MCPServerContext;
 

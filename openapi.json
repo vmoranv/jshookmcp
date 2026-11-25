@@ -31726,7 +31726,7 @@
     },
     "/meta/coverage_report": {
       "post": {
-        "description": "Report which tools have been called in the current runtime and which known tools remain uncalled. Loads all domains first so the uncalled list reflects the full tool catalog, not just currently active tools.",
+        "description": "Report which tools have been called in the current runtime and which known tools remain uncalled. Also returns the catalog commitment digest for cross-session drift checks. Loads all domains first so the uncalled list reflects the full tool catalog, not just currently active tools.",
         "operationId": "coverage_report",
         "requestBody": {
           "content": {
@@ -31846,7 +31846,7 @@
     },
     "/meta/search_tools": {
       "post": {
-        "description": "Search 739 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. The engine combines token matching, fuzzy names, profile context, and optional static embeddings.",
+        "description": "Search 739 tools across 36 capability domains. This includes built-in tools plus any loaded plugin/workflow tools (0 currently loaded). In search-tier sessions, call this before assuming a capability is unavailable. Use activate_tools for exact matches, activate_domain for an entire domain. The ranking combines token matching, fuzzy names, and profile context.",
         "operationId": "search_tools",
         "requestBody": {
           "content": {

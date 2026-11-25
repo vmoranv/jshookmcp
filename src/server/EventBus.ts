@@ -96,6 +96,47 @@ export interface ServerEventMap {
     toolNames: string[];
     timestamp: string;
   };
+  /**
+   * A search-engine rebuild found a real catalog change (added/removed tools
+   * or a mutated schema/description), as opposed to a signature change with an
+   * identical descriptor set. Metadata-only: names and field paths, never
+   * schema bodies or tool arguments.
+   */
+  'search:catalog_changed': {
+    digestBefore: string;
+    digestAfter: string;
+    added: string[];
+    removed: string[];
+    mutated: Array<{ name: string; path: string }>;
+    truncated: boolean;
+    timestamp: string;
+  };
+  /**
+   * Emitted when a recomputed `tools/list` payload differs from the previously
+   * served one. This is the client-facing prompt-cache boundary: activating a
+   * domain appends tool definitions (cache-friendly), while TTL expiry or an
+   * explicit deactivation removes from the middle and invalidates every byte
+   * after the removal point. Metadata-only — names and sizes, never schemas.
+   */
+  'tool.list_prefix_changed': {
+    /** True when the previous serialized tool entries are an unchanged prefix. */
+    prefixStable: boolean;
+    /** Count of leading tool definitions whose serialized bytes are identical. */
+    commonPrefixTools: number;
+    added: string[];
+    removed: string[];
+    /** Same tool set, different order (still invalidates the prefix). */
+    reordered: boolean;
+    toolCountBefore: number;
+    toolCountAfter: number;
+    byteLengthBefore: number;
+    byteLengthAfter: number;
+    estimatedTokensBefore: number;
+    estimatedTokensAfter: number;
+    estimatedTokenDelta: number;
+    truncated: boolean;
+    timestamp: string;
+  };
   'tool:called': {
     toolName: string;
     domain: string | null;
@@ -435,20 +476,26 @@ export class EventBus<TMap extends object = ServerEventMap> {
   async emit<K extends keyof TMap>(event: K, payload: TMap[K]): Promise<void> {
     const subs = this.listeners.get(event);
     if (subs) {
-      const toRemove: number[] = [];
-      for (let i = 0; i < subs.length; i++) {
-        const sub = subs[i];
-        if (!sub) continue;
+      // Snapshot: handlers may (un)subscribe while we await them. Iterating the
+      // live array would otherwise shift indices, so a listener removed
+      // mid-flight makes the loop skip the next one and an index-based once
+      // removal can splice the wrong entry (or none at all). Removing by
+      // identity keeps re-entrancy correct.
+      const snapshot = [...subs];
+      for (const sub of snapshot) {
+        // A handler may have unsubscribed this listener (or another emit may
+        // have consumed it) before its turn. Skipping keeps `once` semantics
+        // under concurrent emits.
+        if (!subs.includes(sub)) continue;
+        if (sub.once) {
+          const idx = subs.indexOf(sub);
+          if (idx >= 0) subs.splice(idx, 1);
+        }
         try {
           await sub.handler(payload);
         } catch {
           // Swallow listener errors to prevent cascading failures
         }
-        if (sub.once) toRemove.push(i);
-      }
-      // Remove once-listeners in reverse order to preserve indices
-      for (let i = toRemove.length - 1; i >= 0; i--) {
-        subs.splice(toRemove[i]!, 1);
       }
     }
 

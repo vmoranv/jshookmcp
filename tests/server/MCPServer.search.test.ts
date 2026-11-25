@@ -187,6 +187,7 @@ vi.mock('@server/registry/index', () => ({
 vi.mock('@server/registry/state', () => ({
   getAllDomains: () => new Set(['browser', 'network', 'workflow']),
   getAllKnownDomains: () => new Set(['browser', 'network', 'workflow']),
+  onRegistryInvalidate: vi.fn(),
   ensureDomainLoaded: vi.fn().mockResolvedValue(null),
   getRegistrationByName: (name: string) => {
     const definitions = new Map([
@@ -379,6 +380,14 @@ vi.mock('@server/ToolSearch', () => ({
 
     getSearchQualityTracker() {
       return { getEnhancementSuggestions: () => null };
+    }
+
+    getCatalogSnapshot() {
+      return [];
+    }
+
+    getStateRoot() {
+      return '0'.repeat(64);
     }
   },
 }));
@@ -1506,6 +1515,7 @@ describe('MCPServer.search', () => {
         maxTools: MCP_TOOL_MAX_ACTIVE_TOOLS,
         headroom: MCP_TOOL_ACTIVATION_BUDGET_TOKENS,
       },
+      catalogDigest: '0'.repeat(64),
     });
     expect(recordToolCall).toHaveBeenCalledWith('coverage_report', {});
   });

@@ -5,7 +5,7 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 function createMockContext(): MCPServerContext {
   return {
     registerSingleTool: vi.fn(() => ({ remove: vi.fn() })),
-    router: { removeHandler: vi.fn() },
+    router: { addHandlers: vi.fn(), removeHandler: vi.fn() },
     activatedToolNames: new Set<string>(),
     activatedRegisteredTools: new Map<string, { remove: () => void }>(),
     selectedTools: [],
@@ -32,6 +32,44 @@ describe('DynamicToolRegistry', () => {
     );
   });
 
+  it('wires the handler into the execution router so the tool is callable', async () => {
+    const ctx = createMockContext();
+    const registry = new DynamicToolRegistry(ctx);
+    const handler = vi.fn(async (args: Record<string, unknown>) => ({ echoed: args }));
+
+    await registry.registerDynamicTool('wired', 'Wired tool', handler);
+
+    // executeToolWithTracking dispatches through ctx.router, so the handler must
+    // be registered there — the local map alone is never consulted.
+    const addHandlers = ctx.router.addHandlers as ReturnType<typeof vi.fn>;
+    expect(addHandlers).toHaveBeenCalledOnce();
+    const routed = (
+      addHandlers.mock.calls[0]![0] as Record<
+        string,
+        (a: Record<string, unknown>) => Promise<unknown>
+      >
+    )['sandbox_wired'];
+    expect(typeof routed).toBe('function');
+
+    const response = (await routed!({ args: { x: 1 } })) as {
+      content: Array<{ type: string; text: string }>;
+    };
+    expect(handler).toHaveBeenCalledWith({ args: { x: 1 } });
+    expect(response.content[0]!.text).toContain('"echoed"');
+  });
+
+  it('rejects a duplicate registration instead of leaking the previous handle', async () => {
+    const ctx = createMockContext();
+    const registry = new DynamicToolRegistry(ctx);
+
+    await registry.registerDynamicTool('dup', 'Duplicate', async () => null);
+
+    await expect(
+      registry.registerDynamicTool('dup', 'Duplicate again', async () => null),
+    ).rejects.toThrow(/already registered/);
+    expect(ctx.registerSingleTool).toHaveBeenCalledOnce();
+  });
+
   it('unregisters dynamic tool from both the local map and the MCP server', async () => {
     const ctx = createMockContext();
     const registry = new DynamicToolRegistry(ctx);
@@ -47,6 +85,8 @@ describe('DynamicToolRegistry', () => {
     expect(registry.listDynamicTools()).toHaveLength(0);
     // The MCP server registration must be removed too — not just the local map.
     expect(removeFn).toHaveBeenCalledOnce();
+    // And the router handler, otherwise the tool stays callable.
+    expect(ctx.router.removeHandler).toHaveBeenCalledWith('sandbox_temp');
   });
 
   it('unregister returns false for non-existent tool', async () => {

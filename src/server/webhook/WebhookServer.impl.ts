@@ -68,6 +68,11 @@ function parseJsonBody(rawBody: string): unknown {
 }
 
 const REPLAY_WINDOW_MS = 5 * 60 * 1000; // ±5 minutes
+/** Hard cap on a webhook request body (webhooks carry small JSON payloads). */
+const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024;
+/** Socket read deadlines so a stalled client cannot hold a connection open. */
+const WEBHOOK_REQUEST_TIMEOUT_MS = 30_000;
+const WEBHOOK_HEADERS_TIMEOUT_MS = 15_000;
 
 /**
  * Verify an HMAC-SHA256 webhook signature.
@@ -76,8 +81,10 @@ const REPLAY_WINDOW_MS = 5 * 60 * 1000; // ±5 minutes
  * 1. Raw hex digest: `X-Webhook-Signature: <hex>`
  * 2. GitHub-style prefix: `X-Webhook-Signature: sha256=<hex>`
  *
- * Anti-replay: when `X-Webhook-Timestamp` is present the timestamp must
- * be within ±5 minutes of the server clock.
+ * Anti-replay: `X-Webhook-Timestamp` is REQUIRED and is part of the signed
+ * material (`<timestamp>.<rawBody>`). It must be within ±5 minutes of the
+ * server clock. Signing only the body would let a captured request be replayed
+ * with a fresh timestamp (or none at all).
  */
 function verifySignature(
   rawBody: string,
@@ -87,18 +94,21 @@ function verifySignature(
 ): { valid: false; error: string } | { valid: true } {
   const provided = signatureHeader.replace(/^sha256=/, '');
 
-  // Anti-replay guard
-  if (timestampHeader !== undefined) {
-    const ts = Number(timestampHeader);
-    if (Number.isNaN(ts) || ts <= 0) {
-      return { valid: false, error: 'invalid timestamp' };
-    }
-    if (Math.abs(Date.now() - ts) > REPLAY_WINDOW_MS) {
-      return { valid: false, error: 'timestamp expired' };
-    }
+  // A secret-protected endpoint requires a timestamp: without one the replay
+  // window cannot be enforced at all.
+  if (timestampHeader === undefined || timestampHeader.trim().length === 0) {
+    return { valid: false, error: 'missing timestamp header' };
+  }
+  const ts = Number(timestampHeader);
+  if (Number.isNaN(ts) || ts <= 0) {
+    return { valid: false, error: 'invalid timestamp' };
+  }
+  if (Math.abs(Date.now() - ts) > REPLAY_WINDOW_MS) {
+    return { valid: false, error: 'timestamp expired' };
   }
 
-  const expected = createHmac('sha256', secret).update(rawBody, 'utf8').digest('hex');
+  const signedPayload = `${timestampHeader}.${rawBody}`;
+  const expected = createHmac('sha256', secret).update(signedPayload, 'utf8').digest('hex');
 
   // Constant-time comparison
   const expectedBuf = Buffer.from(expected, 'utf8');
@@ -195,10 +205,32 @@ export class WebhookServerImpl extends EventEmitter {
     }
 
     this.server = http.createServer((request, response) => {
-      void this.handleRequest(request, response);
+      // Fire-and-forget used to turn any rejection (body stream error, a full
+      // queue throwing, a rejecting event handler) into an unhandled rejection
+      // with the client left hanging. Always finish the response.
+      this.handleRequest(request, response).catch((error: unknown) => {
+        this.emit('requestError', error);
+        if (!response.writableEnded) {
+          if (!response.headersSent) {
+            response.statusCode = 500;
+            response.setHeader('content-type', 'application/json');
+          }
+          response.end(JSON.stringify({ error: 'internal error' }));
+        }
+      });
     });
-    this.server.listen(this.port, this.host);
-    this.emit('started', this.port);
+    // An unhandled 'error' event on an http.Server (EADDRINUSE, EACCES on a
+    // privileged port) crashes the process. Surface it instead.
+    this.server.once('error', (error) => {
+      this.server = undefined;
+      this.emit('serverError', error);
+    });
+    this.server.requestTimeout = WEBHOOK_REQUEST_TIMEOUT_MS;
+    this.server.headersTimeout = WEBHOOK_HEADERS_TIMEOUT_MS;
+    // `listen()` is asynchronous: `started` must fire once the socket is bound.
+    this.server.listen(this.port, this.host, () => {
+      this.emit('started', this.port);
+    });
   }
 
   async stop(): Promise<void> {
@@ -290,12 +322,33 @@ export class WebhookServerImpl extends EventEmitter {
       return;
     }
 
-    // Read body before HMAC verification (signature covers the raw body)
+    // Read body before HMAC verification (signature covers the raw body).
+    // Bound the buffered size: an unbounded read lets one client exhaust the
+    // heap.
+    const declaredLength = Number(request.headers['content-length']);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_WEBHOOK_BODY_BYTES) {
+      response.statusCode = 413;
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({ error: 'payload too large' }));
+      request.destroy();
+      return;
+    }
+
     const chunks: string[] = [];
+    let totalBytes = 0;
+    let tooLarge = false;
     await new Promise<void>((resolve, reject) => {
       request.setEncoding('utf8');
       request.on('data', (chunk) => {
-        chunks.push(chunk);
+        if (tooLarge) return;
+        totalBytes += Buffer.byteLength(chunk as string, 'utf8');
+        if (totalBytes > MAX_WEBHOOK_BODY_BYTES) {
+          tooLarge = true;
+          request.pause();
+          resolve();
+          return;
+        }
+        chunks.push(chunk as string);
       });
       request.on('end', () => {
         resolve();
@@ -304,6 +357,13 @@ export class WebhookServerImpl extends EventEmitter {
         reject(error);
       });
     });
+    if (tooLarge) {
+      response.statusCode = 413;
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({ error: 'payload too large' }));
+      request.destroy();
+      return;
+    }
 
     const rawBody = chunks.join('');
 

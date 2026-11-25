@@ -92,13 +92,22 @@ export function unregisterExtensionToolRecord(
     onRemoveError?: (error: unknown) => void;
   } = {},
 ): boolean {
-  const registeredTool = record.registeredTool ?? ctx.activatedRegisteredTools.get(record.name);
+  const trackedRegisteredTool = ctx.activatedRegisteredTools.get(record.name);
+  const registeredTool = record.registeredTool ?? trackedRegisteredTool;
   const wasActive =
     Boolean(registeredTool) ||
     ctx.activatedToolNames.has(record.name) ||
     ctx.activatedRegisteredTools.has(record.name);
 
-  if (registeredTool && !options.skipRegisteredToolRemoval) {
+  // `registerExtensionToolRecord` stores the same handle in both places, and
+  // `deactivateToolCore` already removes the tracked one. Only remove here when
+  // this record holds an untracked handle, otherwise we would call `remove()`
+  // twice for the same tool.
+  if (
+    registeredTool &&
+    !options.skipRegisteredToolRemoval &&
+    registeredTool !== trackedRegisteredTool
+  ) {
     try {
       registeredTool.remove();
     } catch (error) {

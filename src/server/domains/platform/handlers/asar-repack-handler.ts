@@ -8,8 +8,8 @@
  * `@electron/asar` pack step.
  */
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { basename, dirname, relative, resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { basename, relative, resolve } from 'node:path';
 import type { ToolResponse } from '@server/types';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import {
@@ -19,6 +19,8 @@ import {
   resolveOutputDirectory,
   toDisplayPath,
 } from '@server/domains/platform/handlers/platform-utils';
+import { getSafeOutputRoots } from '@utils/outputPaths';
+import { resolveSafeOutputPath, writeOutputFile } from '@utils/safeOutput';
 import {
   buildAsarBuffer,
   type AsarPackEntry,
@@ -49,21 +51,25 @@ export async function handleAsarRepack(args: Record<string, unknown>): Promise<T
       entries.push({ path: relativePath, data });
     });
 
-    // Resolve the output path. If the caller supplies outputPath, use it verbatim
-    // (creating parent directories as needed); otherwise generate one under the
-    // artifacts tmp tree named after the source directory.
+    // Resolve the output path. Explicit paths are confined to the same roots
+    // as every other export tool; the generated default already lives under
+    // the project artifact tree.
+    const allowedRoots = getSafeOutputRoots();
+    const allowedRootsDescription = 'project root or system temp directory';
     const outputPathArg = parseStringArg(args, 'outputPath');
     let outputPath: string;
     if (outputPathArg) {
-      outputPath = resolve(outputPathArg);
-      await mkdir(dirname(outputPath), { recursive: true });
+      outputPath = await resolveSafeOutputPath(outputPathArg, {
+        allowedRoots,
+        allowedRootsDescription,
+      });
     } else {
       const outputDir = await resolveOutputDirectory('asar-repack', basename(absInputDir));
       outputPath = resolve(outputDir.absolutePath, `${basename(absInputDir)}.asar`);
     }
 
     const { buffer, fileCount, totalDataSize } = buildAsarBuffer(entries);
-    await writeFile(outputPath, buffer);
+    await writeOutputFile(outputPath, buffer, { allowedRoots, allowedRootsDescription });
 
     return {
       success: true,

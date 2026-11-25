@@ -227,6 +227,29 @@ function assembleRoutedResults(
   return { results, presetPlannedToolNames };
 }
 
+function resolveWorkflowRunner(
+  recommendations: RouterResponse['recommendations'],
+  routeMatchMetadata: { readonly id: string },
+  ctx: import('@server/MCPServer.context').MCPServerContext,
+): { isActive: boolean; inputSchema: Tool['inputSchema'] } {
+  const recommendation = recommendations.find((entry) => entry.name === 'run_extension_workflow');
+  if (!recommendation) {
+    logger.warn('[ToolRouter] Workflow runner missing from recommendations', {
+      workflowId: routeMatchMetadata.id,
+    });
+  }
+  // rerankResultsForContext + slice(0, recommendationLimit) can drop the runner
+  // from the recommendation list. Fall back to registry probes so a routed
+  // workflow still yields actionable steps instead of throwing.
+  return {
+    isActive: recommendation?.isActive ?? isToolActive('run_extension_workflow', ctx),
+    inputSchema:
+      recommendation?.inputSchema ??
+      getToolInputSchema('run_extension_workflow', ctx) ??
+      ({ type: 'object' } as Tool['inputSchema']),
+  };
+}
+
 export async function routeToolRequest(
   request: RouterRequest,
   ctx: import('@server/MCPServer.context').MCPServerContext,
@@ -389,17 +412,15 @@ export async function routeToolRequest(
       });
     }
   } else if (routeMatchMetadata?.kind === 'workflow') {
-    const workflowRecommendation = recommendations.find(
-      (recommendation) => recommendation.name === 'run_extension_workflow',
-    )!;
+    const workflowRunner = resolveWorkflowRunner(recommendations, routeMatchMetadata, ctx);
 
     let stepNumber = 1;
-    if (!workflowRecommendation.isActive) {
+    if (!workflowRunner.isActive) {
       nextActions.push({
         step: stepNumber++,
         action: 'activate',
-        toolName: workflowRecommendation.name,
-        command: `activate_tools with names: ["${workflowRecommendation.name}"]`,
+        toolName: 'run_extension_workflow',
+        command: `activate_tools with names: ["run_extension_workflow"]`,
         description: `Activate workflow runner for ${routeMatchMetadata.name}`,
       });
     }
@@ -410,7 +431,7 @@ export async function routeToolRequest(
       toolName: 'run_extension_workflow',
       command: 'run_extension_workflow',
       exampleArgs: {
-        ...generateExampleArgs(workflowRecommendation.inputSchema!),
+        ...generateExampleArgs(workflowRunner.inputSchema),
         workflowId: routeMatchMetadata.id,
       },
       description: `Execute routed workflow ${routeMatchMetadata.name}`,
