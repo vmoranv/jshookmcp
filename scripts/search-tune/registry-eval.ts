@@ -1,5 +1,5 @@
 /**
- * Registry-level evaluation entry (739 tools).
+ * Registry-level evaluation entry (743 tools).
  *
  * Thin adapter over the single seam: it only selects corpus=registry and a
  * default request shape. No metric semantics live here.
@@ -32,3 +32,4 @@ if (invokedDirectly) {
   const out = index >= 0 ? args[index + 1] : undefined;
   await evaluateRegistry(out);
 }
+

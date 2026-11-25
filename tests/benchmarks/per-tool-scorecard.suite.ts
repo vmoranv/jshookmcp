@@ -38,9 +38,8 @@ const COVERAGE_FILE = join(ROOT, 'coverage', 'coverage-final.json');
 const E2E_RESULTS_FILE = join(ROOT, 'artifacts/benchmarks/e2e-results.json');
 const RETRIEVAL_FILE = join(ROOT, 'artifacts/benchmarks/retrieval-metrics.json');
 
-// Preferred per-tool evidence source: the registry-corpus benchmark (739
+// Preferred per-tool evidence source: the registry-corpus benchmark (743
 // tools, real descriptions + expansion). Falls back to the legacy
-// search-quality evidence (114 tools, proxy corpus) when the registry run
 // has not been executed yet.
 const RETRIEVAL_PER_TOOL_EVIDENCE_FILE = join(
   ROOT,
@@ -305,7 +304,7 @@ interface PerToolRetrievalEvidence {
 }
 
 function loadPerToolRetrievalEvidence(): Record<string, PerToolRetrievalEvidence> | null {
-  // Registry-corpus evidence first (739 tools, real descriptions); fall back
+  // Registry-corpus evidence first (743 tools, real descriptions); fall back
   // to the legacy search-quality evidence when the registry run has not been
   // executed in this checkout yet.
   for (const file of [RETRIEVAL_PER_TOOL_EVIDENCE_FILE, LEGACY_RETRIEVAL_PER_TOOL_EVIDENCE_FILE]) {
@@ -695,7 +694,7 @@ export function renderPerToolScorecardFrom(metrics: readonly ToolMetrics[]): {
   const fullyMeasured = metrics.filter((m) => m.evaluation === 'all layers measured').length;
 
   const lines: string[] = [
-    '# Per-Tool Benchmark Scorecard — native metrics (739 tools)',
+    '# Per-Tool Benchmark Scorecard — native metrics (743 tools)',
     '',
     `Generated: ${new Date().toISOString()}`,
     '',
@@ -768,7 +767,7 @@ export function createPerToolScorecardSuite(
         name: 'per-tool/complete-coverage',
         tool: '*all*',
         origin: 'homemade',
-        reference: 'registry 739 tools × native-metric columns',
+        reference: 'registry 743 tools × native-metric columns',
         run: async () => {
           refreshMeasurements();
           const metrics = perToolMetrics();
@@ -784,7 +783,7 @@ export function createPerToolScorecardSuite(
         validate: (v) => {
           const b = body(v);
           const total = Number(b.total ?? 0);
-          if (total !== 739) return `expected exactly 739 scored tools, got ${total}`;
+          if (total !== 743) return `expected exactly 743 scored tools, got ${total}`;
           const orphans = (b.orphans ?? []) as string[];
           return orphans.length === 0
             ? true
@@ -843,7 +842,7 @@ export function createPerToolScorecardSuite(
         tool: '*all*',
         origin: 'homemade',
         reference:
-          '739-row native-metric scorecard persisted to artifacts/benchmarks/per-tool-scorecard.{md,json}',
+          '743-row native-metric scorecard persisted to artifacts/benchmarks/per-tool-scorecard.{md,json}',
         run: async () => {
           const { md, stats } = renderPerToolScorecard();
           const outDir = join(ROOT, 'artifacts/benchmarks');
@@ -858,12 +857,14 @@ export function createPerToolScorecardSuite(
         validate: (v) => {
           const b = body(v);
           const rows = Number(b.rows ?? 0);
-          if (rows < 739) return `scorecard has ${rows} tool rows, expected 739`;
+          if (rows < 743) return `scorecard has ${rows} tool rows, expected 743`;
           const stats = b.stats as Record<string, number> | undefined;
-          if (!stats || Number(stats.total ?? 0) !== 739) return 'stats block missing/incorrect';
+          if (!stats || Number(stats.total ?? 0) !== 743) return 'stats block missing/incorrect';
           return true;
         },
       },
     ],
   };
 }
+
+
