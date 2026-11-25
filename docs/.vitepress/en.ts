@@ -1,7 +1,7 @@
-import { defineConfig } from 'vitepress';
-import { referenceSidebarItems } from './sidebar-reference-en.mjs';
+import type { DefaultTheme, LocaleSpecificConfig } from 'vitepress';
+import { referenceSidebarItems } from './sidebar-reference-en';
 
-export const en = defineConfig({
+export const en = {
   lang: 'en-US',
   description:
     'Documentation site for JavaScript reverse engineering, browser automation, network capture, and extension development.',
@@ -63,12 +63,12 @@ export const en = defineConfig({
         },
       ],
     },
-    outlineTitle: 'On this page',
+    outline: { label: 'On this page' },
     editLink: {
       pattern: 'https://github.com/vmoranv/jshookmcp/edit/master/docs/:path',
       text: 'Edit this page on GitHub',
     },
-    lastUpdatedText: 'Last updated',
+    lastUpdated: { text: 'Last updated' },
     docFooter: {
       prev: 'Previous page',
       next: 'Next page',
@@ -77,4 +77,4 @@ export const en = defineConfig({
     sidebarMenuLabel: 'Menu',
     darkModeSwitchLabel: 'Theme',
   },
-});
+} satisfies LocaleSpecificConfig<DefaultTheme.Config>;

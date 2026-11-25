@@ -1,7 +1,7 @@
-import { defineConfig } from 'vitepress';
-import { referenceSidebarItems } from './sidebar-reference-zh.mjs';
+import type { DefaultTheme, LocaleSpecificConfig } from 'vitepress';
+import { referenceSidebarItems } from './sidebar-reference-zh';
 
-export const zh = defineConfig({
+export const zh = {
   lang: 'zh-CN',
   description: '面向 JavaScript 逆向、浏览器自动化、网络采集与扩展开发的 MCP 文档站。',
   themeConfig: {
@@ -62,12 +62,12 @@ export const zh = defineConfig({
         },
       ],
     },
-    outlineTitle: '本页目录',
+    outline: { label: '本页目录' },
     editLink: {
       pattern: 'https://github.com/vmoranv/jshookmcp/edit/master/docs/:path',
       text: '发现文档有问题？在 GitHub 上编辑此页',
     },
-    lastUpdatedText: '最后更新于',
+    lastUpdated: { text: '最后更新于' },
     docFooter: {
       prev: '上一页',
       next: '下一页',
@@ -76,4 +76,4 @@ export const zh = defineConfig({
     sidebarMenuLabel: '菜单',
     darkModeSwitchLabel: '主题',
   },
-});
+} satisfies LocaleSpecificConfig<DefaultTheme.Config>;
