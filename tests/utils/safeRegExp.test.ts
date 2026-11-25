@@ -81,4 +81,3 @@ describe('utils/safeRegExp', () => {
     expect(MAX_PATTERN_LENGTH).toBe(256);
   });
 });
-

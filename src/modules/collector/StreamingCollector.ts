@@ -239,5 +239,3 @@ export class StreamingCollector {
     };
   }
 }
-
-

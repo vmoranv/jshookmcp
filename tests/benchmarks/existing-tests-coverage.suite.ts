@@ -490,4 +490,3 @@ export const existingTestsSuite: BenchSuite = {
     } satisfies BenchCase,
   ],
 };
-

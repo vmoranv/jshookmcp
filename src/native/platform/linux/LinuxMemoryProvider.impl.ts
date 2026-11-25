@@ -314,6 +314,3 @@ class LinuxMemoryProviderImpl implements PlatformMemoryAPI {
 }
 
 export class LinuxMemoryProvider extends LinuxMemoryProviderImpl {}
-
-
-

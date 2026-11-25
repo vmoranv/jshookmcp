@@ -866,5 +866,3 @@ export function createPerToolScorecardSuite(
     ],
   };
 }
-
-

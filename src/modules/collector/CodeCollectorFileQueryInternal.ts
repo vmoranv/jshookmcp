@@ -129,5 +129,3 @@ export function getTopPriorityFilesImpl(
     totalFiles: allFiles.length,
   };
 }
-
-

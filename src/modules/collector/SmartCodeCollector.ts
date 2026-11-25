@@ -317,5 +317,3 @@ export class SmartCodeCollector {
     return imports;
   }
 }
-
-

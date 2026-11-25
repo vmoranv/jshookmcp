@@ -161,4 +161,3 @@ export async function secureWipe(path: string): Promise<void> {
     }
   });
 }
-

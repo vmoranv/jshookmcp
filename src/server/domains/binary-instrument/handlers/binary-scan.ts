@@ -303,7 +303,3 @@ function shannonEntropy(buf: Buffer): number {
   }
   return entropy;
 }
-
-
-
-
