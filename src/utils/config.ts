@@ -1117,7 +1117,16 @@ export function getConfig(): Config {
     },
     toolExecution: {
       allowTools: parseCsvList(env.MCP_TOOL_ALLOW_TOOLS),
-      rules: parseToolExecutionRules(env.MCP_TOOL_RULES_JSON),
+      rules: (() => {
+        try {
+          return parseToolExecutionRules(env.MCP_TOOL_RULES_JSON);
+        } catch {
+          logger.warn(
+            '[Config] Ignoring malformed MCP_TOOL_RULES_JSON: falling back to empty rules',
+          );
+          return [];
+        }
+      })(),
     },
     reverseEngineering: buildReverseEngineeringConfig(env),
     search,
