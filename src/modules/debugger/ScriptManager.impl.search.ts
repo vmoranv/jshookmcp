@@ -10,6 +10,7 @@
  */
 
 import { setImmediate as waitForImmediate } from 'node:timers/promises';
+import { compileSafeRegex } from '@utils/safeRegExp';
 import {
   SCRIPT_CONTEXT_TRUNCATE_LINES_LARGE,
   SCRIPT_CONTEXT_SNIPPET_HALF_LINES_LARGE,
@@ -40,6 +41,8 @@ export function buildSearchRegex(
   caseSensitive: boolean,
 ): RegExp {
   if (isRegex) {
+    // Reject ReDoS-prone patterns (nested quantifiers, excessive length) before compiling
+    compileSafeRegex(keyword);
     return caseSensitive ? new RegExp(keyword, 'g') : new RegExp(keyword, 'gi');
   }
   const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
