@@ -551,12 +551,12 @@ export function ResumeThread(hThread: bigint): number {
 
 /** Get thread context (CPU registers including debug registers) */
 export function GetThreadContext(hThread: bigint, contextFlags: number): Buffer {
-  const fn = getKernel32().func(`int GetThreadContext(void *, _Inout_ uint8_t[${CONTEXT_SIZE}])`);
+  const fn = getKernel32().func('int GetThreadContext(void *, _Inout_ void *)');
   const buf = Buffer.alloc(CONTEXT_SIZE);
   // Must set ContextFlags before calling
   buf.writeUInt32LE(contextFlags, IS_ARM64_WINDOWS ? 0x00 : 0x30);
 
-  const result = fn(hThread, buf);
+  const result = fn(hThread, requireKoffi().address(buf));
   if (result === 0) {
     throw new Error(`GetThreadContext failed. Error: 0x${GetLastError().toString(16)}`);
   }
@@ -565,8 +565,8 @@ export function GetThreadContext(hThread: bigint, contextFlags: number): Buffer 
 
 /** Set thread context (CPU registers including debug registers) */
 export function SetThreadContext(hThread: bigint, contextBuf: Buffer): void {
-  const fn = getKernel32().func(`int SetThreadContext(void *, uint8_t[${CONTEXT_SIZE}])`);
-  const result = fn(hThread, contextBuf);
+  const fn = getKernel32().func('int SetThreadContext(void *, void *)');
+  const result = fn(hThread, requireKoffi().address(contextBuf));
   if (result === 0) {
     throw new Error(`SetThreadContext failed. Error: 0x${GetLastError().toString(16)}`);
   }
@@ -698,8 +698,8 @@ export function FlushInstructionCache(
  */
 export function EnumerateProcessThreads(pid: number): number[] {
   const fnSnapshot = getKernel32().func('void * CreateToolhelp32Snapshot(uint32, uint32)');
-  const fnFirst = getKernel32().func('int Thread32First(void *, _Out_ uint8_t[28])');
-  const fnNext = getKernel32().func('int Thread32Next(void *, _Out_ uint8_t[28])');
+  const fnFirst = getKernel32().func('int Thread32First(void *, _Out_ void *)');
+  const fnNext = getKernel32().func('int Thread32Next(void *, _Out_ void *)');
 
   const snapshot = fnSnapshot(TH32CS.SNAPTHREAD, 0);
   if (snapshot === 0n || snapshot === BigInt('0xFFFFFFFFFFFFFFFF')) {
@@ -709,16 +709,17 @@ export function EnumerateProcessThreads(pid: number): number[] {
   const threads: number[] = [];
   const entry = Buffer.alloc(28);
   entry.writeUInt32LE(28, 0); // dwSize
+  const entryPtr = requireKoffi().address(entry);
 
   try {
-    if (fnFirst(snapshot, entry) !== 0) {
+    if (fnFirst(snapshot, entryPtr) !== 0) {
       do {
         const ownerPid = entry.readUInt32LE(0x0c);
         if (ownerPid === pid) {
           threads.push(entry.readUInt32LE(0x08));
         }
         entry.writeUInt32LE(28, 0); // Reset dwSize
-      } while (fnNext(snapshot, entry) !== 0);
+      } while (fnNext(snapshot, entryPtr) !== 0);
     }
   } finally {
     // Close on both success and failure; enumeration errors then propagate

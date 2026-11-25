@@ -22,13 +22,12 @@ import { enumerateKernelModules, findKernelModule } from '@native/syscall';
 const WIN32_RUNTIME = process.platform === 'win32' && process.env.JSHOOK_NATIVE_RUNTIME === '1';
 
 /**
- * Lower bound for kernel-mode module addresses. Covers BOTH the canonical
- * kernel range (0xFFFFF800'00000000+, where ntoskrnl/HAL live) AND the
- * session-space range (~0xFFFFF580'00000000+, where the win32k.sys / win32kbase.sys
- * subsystem drivers live). A strict 0xFFFFF800 bound wrongly rejects those —
- * observed on this host: win32k.sys @ 0xFFFFF60C0DD90000 is a loaded kernel module.
+ * Lower bound for kernel-mode module addresses. The canonical x64 kernel half
+ * starts at 0xFFFF8000'00000000. win32k/session-space modules can sit well
+ * below the old 0xFFFFF000'00000000 bound — observed on this host:
+ * win32k.sys @ 0xFFFFECDC'0ACD0000, win32kbase.sys @ 0xFFFFECDC'0AE00000.
  */
-const KERNEL_MODULE_MIN = 0xfffff00000000000n;
+const KERNEL_MODULE_MIN = 0xffff800000000000n;
 
 describe.skipIf(!WIN32_RUNTIME)(
   'NtModuleEnumerator — real NtQuerySystemInformation (runtime, host=Windows)',

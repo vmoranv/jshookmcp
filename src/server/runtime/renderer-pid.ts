@@ -77,8 +77,13 @@ export async function resolvePidOrAttachedRenderer(
 ): Promise<number> {
   // Only numbers and digit-only strings are PIDs. Loose `Number()` coercion
   // would accept `true`/`[42]`/`new Number(7)` and act on an unrelated process.
-  const isNumericInput =
-    typeof value === 'number' || (typeof value === 'string' && /^\s*\d+\s*$/.test(value));
+  const numericText = typeof value === 'string' ? value.trim() : '';
+  let isDigits = typeof value === 'string' && numericText.length > 0;
+  for (let i = 0; isDigits && i < numericText.length; i++) {
+    const code = numericText.charCodeAt(i);
+    if (code < 48 || code > 57) isDigits = false;
+  }
+  const isNumericInput = typeof value === 'number' || isDigits;
   const numeric = isNumericInput ? Number(value) : Number.NaN;
   if (Number.isInteger(numeric) && numeric > 0) {
     return numeric;

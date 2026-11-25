@@ -63,7 +63,7 @@ export function decryptEnvelope(envelope: EncryptedEnvelope, key: Buffer): Buffe
   if (authTag.length !== 16) {
     throw new Error('Malformed encrypted envelope: auth tag must be 16 bytes');
   }
-  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: 16 });
   decipher.setAuthTag(authTag);
   return Buffer.concat([decipher.update(data), decipher.final()]);
 }

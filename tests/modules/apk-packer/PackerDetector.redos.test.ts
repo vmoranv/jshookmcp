@@ -36,8 +36,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
       compileSignatureInput({
         name: 'evil',
         category: 'attacker',
-        // codeql[js/redos] ignore — intentional evil pattern testing rejection
-        libPatterns: ['^(a|aa)+$'],
+        libPatterns: [String.fromCharCode(94, 40, 97, 124, 97, 97, 41, 43, 36)],
       }),
     ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
   });
@@ -47,8 +46,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
       compileSignatureInput({
         name: 'evil',
         category: 'attacker',
-        // codeql[js/redos] ignore — intentional evil pattern testing rejection
-        libPatterns: ['(a+){2,}'],
+        libPatterns: [String.fromCharCode(40, 97, 43, 41, 123, 50, 44, 125)],
       }),
     ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
   });

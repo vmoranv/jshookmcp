@@ -46,6 +46,7 @@ vi.mock('koffi', () => ({
     address: vi.fn((value) => {
       if (typeof value === 'bigint') return value;
       if (typeof value === 'number') return BigInt(value);
+      if (Buffer.isBuffer(value)) return value;
       return 0n;
     }),
     load: vi.fn(() => ({
